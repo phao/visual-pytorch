@@ -321,7 +321,9 @@ Develop concrete-first architecture families with optional scoped symbols and
 specialization, explicit repetition versus tied weights, recurrent state,
 lengths/masks and independently tested mixed CNN/RNN compositions. Teaching
 links specification, mathematics, execution and measured evidence. Symbolic
-families, recurrent operators and notebook generation are not implemented yet.
+families and recurrent operators are not implemented yet. Concrete experiment
+notebook generation/execution belongs to the partial C work described above;
+it is not evidence of symbolic or recurrent family support.
 
 ## E — Heavyweight execution
 
