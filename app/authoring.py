@@ -9,7 +9,7 @@ import uuid
 
 from .core import GraphError, validate_model
 from .datasets import _identifier, _keys, _require, validate_task
-from .experiment_objects import reference, validate_dependencies
+from .experiment_objects import reference, validate_dependencies, preview_experiment
 from .revisions import frozen_document
 
 KINDS = ('dataset', 'experiment', 'task')
@@ -117,3 +117,16 @@ def task_compatibility(workspace, draft, model, dataset):
     return copy.deepcopy({'version': 1, 'task': prospective, 'model': model, 'dataset': dataset,
                           'status': status, 'reason': reason,
                           'scope': 'interface-only-no-fitting-or-execution'})
+
+
+def experiment_preview(workspace, draft, *, offset=0, limit=25):
+    """Bounded train-free prospective selection; never admit a draft or a run."""
+    check(workspace, draft)
+    _require(draft['kind'] == 'experiment', 'Experiment preview requires an experiment draft.')
+    _require(type(limit) is int and 1 <= limit <= 25, 'Draft preview limit must be an integer in 1..25.')
+    frozen = frozen_document('experiment', draft['document'])
+    page = preview_experiment(frozen, workspace.get_spec, offset=offset, limit=limit)
+    # Cartesian counts can exceed JavaScript's exact integer range. Preserve
+    # their decimal representation separately; coordinates remain bounded pages.
+    return {'version': 1, 'preview': page,
+            'total_combinations_exact': str(page['total_combinations'])}

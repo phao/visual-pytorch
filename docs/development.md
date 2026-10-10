@@ -108,7 +108,7 @@ The common dataset/task/experiment draft API records workspace UUID, exact base
 and expected browsing head, validates through the existing grammar/dependencies
 without fitting, and rejects stale/invalid admission before writes. Historical
 editing is explicit; unchanged head admission is a no-op. Undo retains evidence.
-Dataset and task forms are wired; the experiment form, richer metric/predictor/
+Dataset, task and experiment forms are wired; richer metric/predictor/
 multi-run reporting, GUI notebook execution, bounded transport and full C gates
 are unfinished. D/E remain pending. This checkpoint is not merged/published.
 
@@ -157,11 +157,50 @@ buttons are compact rather than evenly stretching to fill the entire card.
 All 381 Python tests pass (144.929 s) and 77 JS tests pass. Dataset forms and 11
 native lifecycle checks pass after the controller changes. The inherited actual
 experiment fit/retry/report/notebook-generation/recovery and sandboxed editor
-checks pass; the latest task form capture was inspected. C still needs experiment
-authoring, richer metrics/predictor/report
+checks pass; the latest task form capture was inspected. C still needs richer metrics/predictor/report
 views, GUI notebook execution, transport/presentation bounds, rendered report
 figure review and a full gate audit. D/E remain pending; partial C is not merged
 or published. User app, workspaces and configuration remain untouched.
+
+### Typed experiment GUI checkpoint — local task branch only
+
+The floating scientific tab now creates/edits exact model, dataset/task, split,
+initialization and training-configuration selections through typed controls.
+All four split kinds, crossed/paired whitelists and reasoned exclusions use the
+existing ExperimentSpec grammar. Ordered axes remain explicit. Every version-1
+Adam/budget/seed/shuffle/history control is stored, not cosmetic; fixed CPU float32
+and checkpoint/test policies are labelled. Refresh never silently selects a newer
+hash, and invalid text survives. Changing mode/IDs preserves conflicts for explicit
+correction. External observation IDs preserve literal spaces/commas and role order.
+
+scienceAuthorPreview adds a read-only prospective compatibility page using the
+existing registry/dependency/head/UUID gates. It never fits or admits objects/runs,
+uses at most 25 rows and preserves exact decimal total counts. This is interface/
+split compatibility, not RAM or training success. All axis cards render; complete
+metadata/inline data/manifest transport is not bounded by these candidate pages.
+
+Thirteen new Python and six JS tests cover these contracts. Real sandboxed Qt
+starts with no experiment, authors non-default configurations and verifies all
+stored fields. Eight explicit GUI fits cover two models × two datasets × two
+initializations; three more fits exercise authored group/time/external splits.
+A 96-row draft shows 48 compatible/32 incompatible/16 excluded rows in four pages.
+No-op/history, invalid text/refresh, missing historical choice, mode conflicts,
+stale head/foreign workspace/late preview, pending delivery and v6 Save/reload
+pass. Dark/GitHub/Math fonts 14/18/28, spacing 1/4/10 and the rendered capture are
+checked, with no console errors or GUI-host Torch. These bounded three/four-update
+fits prove configuration flow, not model quality or complete C. The scientific
+tab header labels exact revisions/explicit runs, not the legacy full-batch MSE
+contract.
+
+All 394 Python tests pass (134.602 s), all 83 JS tests pass. Dataset/task authoring,
+the inherited real experiment fit/retry/report/notebook-generation/recovery flow,
+all 11 native lifecycle tests and the inherited sandboxed editor pass after these
+changes. Syntax/compile/diff checks pass. The latest form capture was inspected.
+
+Richer metrics/predictor/multi-run reporting, GUI notebook execution, transport/
+rendering bounds, rendered report-figure review and a full C exit audit remain.
+D/E remain pending; unfinished C is not merged/published. The user app, workspace
+and configuration are unchanged.
 
 ### First executable checkpoint — not Stage C completion
 

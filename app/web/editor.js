@@ -647,6 +647,7 @@
   function showPanel(name) {
     floating.open("experiment-dock");
     panel = name;
+    $("panel-context").textContent = name === "science" ? "Exact revisions · explicit runs" : "CPU · full-batch Adam · MSE";
     document.querySelectorAll("[data-panel]").forEach(el => el.classList.toggle("active", el.dataset.panel === name));
     for (const p of ["experiment", "code", "results", "science"]) $(p + "-panel").hidden = p !== name;
   }

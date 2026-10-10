@@ -1,8 +1,8 @@
 # Typed datasets and tasks — Stage C work in progress
 
 This is the executable first inline adapter, not completion of Stage C. It is
-available through Python/CLI and the branch-only [typed dataset/task GUI](experiment-gui.md).
-Experiment visual authoring is still unfinished. Independent
+available through Python/CLI and the branch-only [typed scientific GUI](experiment-gui.md),
+including exact experiment selections and train-free draft preview. Independent
 dataset/task/model revisions persist in `.vtw` v6; fitted task training/export is
 now executable. Architecture-owned legacy `dataset.x/y` continues unchanged.
 Experiment/run/report persistence is specified in [experiment-objects.md](experiment-objects.md).

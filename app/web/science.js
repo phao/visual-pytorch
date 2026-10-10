@@ -25,7 +25,7 @@
     current=null;page=null;
     for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;
     $('science-candidates').replaceChildren();$('science-document').textContent='';
-    if(!value){$('science-status').textContent='No '+$('science-kind').selectedOptions[0].textContent.toLowerCase()+' stored yet. Use New dataset, import a specification, or create it using the CLI.';window.LoomScienceAuthor?.selectionChanged();return;}
+    if(!value){$('science-status').textContent='No '+$('science-kind').selectedOptions[0].textContent.toLowerCase()+' stored yet. Use the dataset/task/experiment authoring controls, freeze an architecture, import a specification, or use the CLI.';window.LoomScienceAuthor?.selectionChanged();return;}
     const reference=JSON.parse(value),document=await request('scienceShow',{reference});
     if(ticket!==generation || identity!==api.workspace())return;
     current={reference,document};$('science-document').textContent=JSON.stringify(document,null,2);

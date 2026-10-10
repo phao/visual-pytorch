@@ -17,9 +17,11 @@ revision. Changing workspace clears stale selections and candidate cards.
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.
-The dataset and task authoring forms below create typed observations and reusable
-bindings. Experiment authoring remains unfinished; use the CLI or specification
-import for that object. Do not treat an imported experiment as GUI authoring.
+The dataset, task and experiment authoring forms below create typed observations,
+reusable bindings and exact experiment selections. They share the existing
+strict registry/CLI contracts; no raw whole-specification JSON editor is required.
+The scientific tab header says Exact revisions · explicit runs, rather than
+applying the legacy drawing's full-batch MSE contract to every independent task.
 
 ### Typed dataset authoring
 
@@ -68,14 +70,13 @@ retains immutable evidence through the normal history wrapper. Pending terminal
 delivery blocks draft admission. In-flight commands disable duplicate submission;
 the existing keyboard typing safeguards apply to all inputs/textarea/selects.
 The pure backend supports dataset/task/experiment drafts under their existing
-closed grammars. Dataset and task forms are connected to the UI; the experiment
-form remains open work.
+closed grammars. Dataset, task and experiment forms are connected to the UI.
 
 ### Typed task authoring
 
 New task opens an incomplete private TaskSpec draft with empty input/head lists.
 It does not guess bindings, targets, losses or observations from list position.
-Edit selected revision works for datasets and tasks, including exact historical
+Edit selected revision works for all three authorable kinds, including exact historical
 revisions. Names are editable labels, not port/field identities. Task ID remains
 fixed throughout editing. The task is reusable: the optional model/dataset chosen
 for suggestions and compatibility are **not stored dependencies in TaskSpec**.
@@ -136,6 +137,66 @@ and metadata/rendering bounds remain unfinished, not proven by the dataset grid'
 paging. Task revisions use the existing v6 registry, history and explicit file
 Save, without new tables or an alternative task store.
 
+### Typed experiment authoring
+
+New experiment opens an incomplete private ExperimentSpec with empty architecture,
+dataset/task, split, seed and training-configuration axes. No model, dataset or
+task is guessed from list position. Each exact reference dropdown displays name,
+hash and historical/current-head status. Refresh changes available choices only:
+selected hashes and invalid local text remain. A missing selected choice is
+retained as an unavailable identity until explicitly replaced. Editing a historical
+experiment does not substitute the current head. Names/question are labels; the
+experiment's stable ID stays fixed.
+
+Dataset/task pairing, split and training-configuration IDs are explicitly editable.
+Up/down controls preserve ordered semantic axes; remove affects the draft only.
+Renaming/removing an ID does not silently repair comparison references. Intrinsic
+validation explains resulting conflicts. Crossed mode requires an empty pair
+whitelist; paired mode requires explicit model–dataset/task entries. Changing mode
+keeps conflicting entries until explicitly removed. Exclusions require a reason
+and remain visible in preview rather than being dropped.
+
+The alphabetically browsed split methods are external, group, row and temporal.
+Row/group controls specify a separate split seed; group/time specify a literal
+field ID. Train/validation/test fractions stay explicit. External splits specify
+each role and excluded observations with one literal stable ID per line. Spaces
+and commas inside IDs are preserved, and neither sorting nor deduplication occurs.
+Each existing entry has a fixed method: changing it requires explicit remove/add
+and the desired ID, not a coercion that discards method-specific settings.
+
+Initialization seeds form an explicit ordered axis. The CPU float32/Adam version-1
+configuration exposes batch size, epochs/updates/examples/seconds bounds, evaluation
+interval, retained history points, learning rate, both betas, epsilon, weight decay,
+base initialization seed and independent shuffle seed/flag. Blank budget fields
+mean null/disabled; at least one positive finite bound is required. Execution stops
+at the first observed bound under the existing trainer contract. The experiment's
+initialization coordinate overrides the base protocol initialization seed; the
+shuffle seed remains independent. The UI labels fixed no-augmentation,
+last-successful-checkpoint and final-completed-only test policies. Adding a
+configuration explicitly inserts the same defaults as the authoritative Python
+factory; it does not train.
+
+Preview draft validates the intrinsic/dependency/head/UUID contract and computes
+the prospective hash, then returns at most 25 coordinate results using existing
+interface/split compatibility. It never admits a revision/run, fits preprocessing,
+allocates tensors, consumes global RNG state or checks RAM admission. Incompatible
+interfaces/splits and exclusions remain visible with reasons. An interface-compatible
+row does not guarantee training success. Total Cartesian size is also returned as
+an exact decimal string for counts beyond JavaScript's safe integer range; paging
+offsets remain within the existing exact-integer contract. The preview has no Run
+buttons: retain a valid revision first, then explicitly run its stored candidates.
+Typing/reordering/changing choices clears an old preview immediately. Late preview
+or metadata replies cannot repopulate another workspace UUID/draft. These optimistic
+checks do not prove same-UUID database replacement, ABA/event or crash safety.
+
+Candidate pages bound returned/rendered rows, not full inline dependency transport,
+manifest bytes, metadata lists or the number of authoring controls. All experiment
+axis cards currently render. Preview is not a lazy-data implementation or execution
+resource admission. Retain/check/no-op/undo/Save-reload use the same v6 rules as the
+other draft forms; no new SQL tables or parallel experiment store are introduced.
+
+### Stored candidates, run evidence and reports
+
 Experiment browsing displays its question and pages of 25 coordinates. All
 compatible, excluded and incompatible rows remain visible with reasons. Only
 compatible rows enable Run this candidate; it explicitly launches one fit, not
@@ -171,6 +232,7 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceReport | report reference | Read saved evidence or labelled rerun recipe |
 | scienceAuthorBegin | kind, optional exact reference or new id | Read-only draft with base/head/workspace capture |
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
+| scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |
 | scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
 | scienceTaskContext | exact model, dataset references | Read-only ordered port/field suggestions; no records or fitted state in response |
 | scienceTaskCompatibility | task draft, exact model/dataset references | Intrinsic draft check plus interface-only compatible/incompatible result |
@@ -197,6 +259,11 @@ valid intrinsic drafts with incompatible interfaces return a labelled result.
 Both actions are reads, including while a numerical job is active. GUI authoring
 controls are disabled while busy; native draft admission still uses the central
 pending-terminal guard before attempting to parse an edit.
+
+scienceAuthorPreview returns version 1, preview (the existing candidate-page
+schema with prospective experiment reference) and total_combinations_exact (decimal
+string). Invalid intrinsic drafts/dependencies/head/UUID, offsets or limits raise
+before writes. It is also a read action; GUI draft controls stay disabled while busy.
 
 `experiment_ui.capture` copies the exact experiment dependency closure, candidate
 manifest and longest prior history for retry, not unrelated registry datasets.
@@ -259,7 +326,7 @@ uses a private Qt+nbformat environment; user environments/config/files are untou
 
 353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
 layout checks. New rendered CSS regression checks 240 block/palette pairs.
-This is not full C completion. Experiment authoring/metric/predictor views, multi-run
+This is not full C completion. Richer metric/predictor views, multi-run
 report selection, GUI notebook execution, bounded metadata/raw-data presentation, rendered report
 figure review and requirement-by-requirement C convergence remain. D/E stay open.
 
@@ -289,3 +356,25 @@ the draft and preventing origin references from leaking into replacement state.
 Dark/GitHub/Math forms pass at fonts 14/18/28 and spacings 1/4/10; sandbox remains
 enabled and GUI-host Torch absent. These are bounded real examples, not proof of
 all task/operator combinations or complete Stage C.
+
+Experiment authoring adds thirteen pure tests and six helper tests: exact
+prospective hashes, read-only/no-fit/RNG isolation, paging, paired/excluded rows,
+all four actual split manifests, order/seed override, changed/archived heads,
+invalid grammar/dependencies/UUID and lossless Cartesian count formatting. The
+real sandboxed qt_experiment_authoring_smoke.py starts without stored experiments,
+authors every configuration field, checks the retained bytes and executes all
+eight two-model × two-dataset × two-initialization combinations through explicit
+GUI clicks. Group/time/external authored splits each execute another actual fit.
+A 96-row draft pages 25/25/25/21 with 48 compatible, 32 incompatible and 16
+reasoned exclusions; paired/crossed conflicts stay until explicitly corrected.
+Invalid text survives metadata refresh; exact historical/missing selections,
+no-op/undo/redo, stale heads, late preview workspace switch, pending delivery and
+v6 Save/reload are checked. Dark/GitHub/Math fonts 14/18/28 and spacing 1/4/10 pass;
+the form capture was inspected. No console errors or GUI-host Torch import.
+These are bounded correctness/authoring checks, not training-quality evidence,
+an implicit sweep or the remaining C/D/E gates.
+
+Current checkpoint: 394 Python tests (134.602 s), 83 JS tests, all three real
+authoring forms, the existing fit/retry/report/notebook-generation/recovery flow,
+11 native Qt lifecycle tests and inherited sandboxed editor pass. Compile/syntax/
+diff checks pass. Partial Stage C remains branch-only and unpublished.

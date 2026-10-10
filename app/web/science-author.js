@@ -1,6 +1,7 @@
 "use strict";
 (() => {
   let root, api, saved, draft=null, rowOffset=0, fieldOffset=0, generation=0, pending=false, contextGeneration=0, editGeneration=0;
+  let draftPage=null;
   const $=id=>root.getElementById(id), helpers=()=>window.LoomDatasetAuthoring;
   const el=(tag,value)=>{const result=root.createElement(tag);if(value!==undefined)result.textContent=value;return result;};
   const uid=()=>crypto.randomUUID();
@@ -25,13 +26,18 @@
     if(!draft)return;
     const stale=draft.workspace_id!==api.workspace();
     if(stale&&draft.kind==='task'){contextGeneration++;changed();window.LoomTaskForm.context(root,null);}
+    if(stale&&draft.kind==='experiment'){contextGeneration++;draftPage=null;window.LoomExperimentForm.clearPreview(root);}
+    const counts=draft.kind==='dataset'?draft.document.fields.length+' fields · '+draft.document.records.length+' observations':
+      draft.kind==='task'?draft.document.inputs.length+' input bindings · '+draft.document.heads.length+' objectives':
+      draft.document.models.length+' architectures · '+draft.document.data_tasks.length+' dataset/task pairings · '+draft.document.initialization_seeds.length+' initialization seeds';
     $('science-author-status').textContent=stale?'Workspace changed. This unsaved draft is retained for inspection; cancel and reopen it in the intended workspace.':
-      'Unsaved '+draft.kind+' draft · '+(draft.kind==='dataset'?draft.document.fields.length+' fields · '+draft.document.records.length+' observations':draft.document.inputs.length+' input bindings · '+draft.document.heads.length+' objectives')+' · validation never trains';
+      'Unsaved '+draft.kind+' draft · '+counts+' · validation never trains';
     controls();
   }
   function changed(){
     editGeneration++;
     $('science-task-compatibility-status').textContent='';
+    if(draft?.kind==='experiment'){draftPage=null;window.LoomExperimentForm.clearPreview(root);}
     if(draft&&draft.workspace_id===api.workspace())status();
   }
   function controls(){
@@ -40,9 +46,12 @@
     for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
     $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||!api.workspace();
     $('science-author-new-task').disabled=$('science-author-new').disabled;
-    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||!api.workspace()||!['dataset','task'].includes($('science-kind').value)||!$('science-object').value;
+    $('science-author-new-experiment').disabled=$('science-author-new').disabled;
+    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
     $('science-author-cancel').disabled=pending;
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
+    $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
+    $('science-experiment-next').disabled=blocked||!draftPage||draftPage.preview.next_offset===null||!Number.isSafeInteger(draftPage.preview.next_offset);
   }
   function fields(){
     const container=$('science-author-fields');container.replaceChildren();
@@ -98,14 +107,16 @@
   }
   function render(){
     $('science-author').hidden=!draft;if(!draft){controls();return;}
-    $('science-author-title').textContent=(draft.kind==='dataset'?'Dataset':'Task')+' draft';
+    $('science-author-title').textContent=draft.kind[0].toUpperCase()+draft.kind.slice(1)+' draft';
     $('science-author-id').textContent='Stable '+draft.kind+' ID: '+draft.id+' · '+(draft.base?'editing exact '+draft.base.revision.slice(0,12):'new object')+(draft.base&&draft.base.revision!==draft.expected_head?' · historical base, not current head':'');
     const name=$('science-author-name');name.value=draft.document.name;name.oninput=changed;name.onchange=()=>{changed();draft.document.name=name.value;status();};
     $('science-author-dataset').hidden=draft.kind!=='dataset';$('science-author-task').hidden=draft.kind!=='task';
+    $('science-author-experiment').hidden=draft.kind!=='experiment';
     if(draft.kind==='dataset'){
       fields();records();const metadata=$('science-author-metadata');metadata.replaceChildren();
       for(const key of ['provenance','usage'])optional(metadata,draft.document,key,key);
-    }else window.LoomTaskForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
+    }else if(draft.kind==='task')window.LoomTaskForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
+    else window.LoomExperimentForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
     status();
   }
   async function context(){
@@ -137,15 +148,39 @@
     const ticket=++generation,identity=api.workspace();
     const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
-    draft=result;rowOffset=0;fieldOffset=0;render();
+    draft=result;draftPage=null;rowOffset=0;fieldOffset=0;if(kind==='experiment')window.LoomExperimentForm.reset();render();
     if(kind==='task'){window.LoomTaskForm.context(root,null);await choices();}
+    else if(kind==='experiment')await experimentChoices();
+  }
+  async function experimentChoices(){
+    const selected=draft,ticket=++contextGeneration,identity=api.workspace();
+    const rows=await api.call('scienceIndex');
+    if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
+    window.LoomExperimentForm.refresh(root,draft.document,rows);
+  }
+  async function previewDraft(offset=0){
+    if(!flush())return;
+    const selected=draft,ticket=generation,edit=editGeneration,identity=api.workspace();
+    const result=await api.call('scienceAuthorPreview',{draft,offset,limit:25});
+    if(ticket!==generation||draft!==selected||edit!==editGeneration||identity!==api.workspace())return;
+    draftPage=result;const page=result.preview,container=$('science-experiment-preview-rows');container.replaceChildren();
+    page.candidates.forEach(row=>{const card=el('div');card.className='science-candidate';card.dataset.draftCandidate=row.status;
+      card.append(el('span',row.status+' · model '+row.coordinates.model.id+' @ '+row.coordinates.model.revision.slice(0,12)+' · '+row.coordinates.data_task+' · seed '+row.coordinates.initialization+' · '+row.coordinates.split+' · '+row.coordinates.protocol));
+      if(row.reason)card.append(el('small',row.reason));container.append(card);});
+    $('science-experiment-preview-status').textContent=page.offset+'–'+(page.offset+page.candidates.length)+' of '+result.total_combinations_exact+' · prospective '+page.experiment.revision.slice(0,12)+' · interface/split preview only, no fitting or RAM admission. Retain revision before explicit runs.';
+    controls();
   }
   window.LoomScienceAuthor={
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));
+      $('science-author-new-experiment').onclick=()=>act(()=>command(()=>begin('experiment')));
       $('science-author-edit').onclick=()=>act(()=>command(()=>{const reference=JSON.parse($('science-object').value);return begin(reference.kind,reference);}));
       $('science-author-cancel').onclick=()=>{draft=null;generation++;contextGeneration++;render();};
+      $('science-experiment-refresh').onclick=()=>act(()=>command(experimentChoices));
+      $('science-experiment-preview').onclick=()=>act(()=>command(()=>previewDraft()));
+      $('science-experiment-prev').onclick=()=>act(()=>command(()=>previewDraft(Math.max(0,draftPage.preview.offset-25))));
+      $('science-experiment-next').onclick=()=>act(()=>command(()=>previewDraft(draftPage.preview.next_offset)));
       $('science-task-context-refresh').onclick=()=>act(()=>command(choices));
       for(const id of ['science-task-model','science-task-dataset'])$(id).onchange=()=>act(()=>command(context));
       $('science-task-compatibility').onclick=()=>act(()=>command(async()=>{
@@ -161,10 +196,10 @@
       for(const [id,axis,delta] of [['science-author-fields-prev','field',-6],['science-author-fields-next','field',6],['science-author-rows-prev','row',-20],['science-author-rows-next','row',20]])$(id).onclick=()=>{if(!flush())return;if(axis==='field')fieldOffset=Math.max(0,fieldOffset+delta);else rowOffset=Math.max(0,rowOffset+delta);render();};
       $('science-author-check').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,edit=editGeneration,identity=api.workspace();
         const result=await api.call('scienceAuthorCheck',{draft});if(ticket!==generation||edit!==editGeneration||draft!==selected||identity!==api.workspace())return;
-        $('science-author-status').textContent='Valid '+(draft.kind==='dataset'?'DatasetSpec':'TaskSpec')+' · prospective revision '+result.revision+' · not saved, no training';}));
+        $('science-author-status').textContent='Valid '+draft.kind[0].toUpperCase()+draft.kind.slice(1)+'Spec · prospective revision '+result.revision+' · not saved, no training';}));
       $('science-author-save').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,identity=api.workspace();
         const result=await api.call('scienceAuthorSave',{draft});if(ticket!==generation||draft!==selected||identity!==api.workspace())return;
-        draft=null;contextGeneration++;render();await saved(result);api.toast((result.kind==='dataset'?'Dataset':'Task')+' revision retained. Save workspace to persist it on disk.');}));
+        draft=null;contextGeneration++;render();await saved(result);api.toast(result.kind[0].toUpperCase()+result.kind.slice(1)+' revision retained. Save workspace to persist it on disk.');}));
       controls();
     },
     stateChanged(){if(!api)return;if(draft)status();else controls();},

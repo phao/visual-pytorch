@@ -101,7 +101,7 @@ def retain_recovery(window, job, result, error):
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
-         'scienceTaskContext', 'scienceTaskCompatibility'}
+         'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview'}
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
 ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery'}
 
@@ -129,6 +129,9 @@ def dispatch(window, req):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action == 'scienceAuthorPreview':
+        from . import authoring
+        return authoring.experiment_preview(workspace, req['draft'], offset=req.get('offset', 0), limit=req.get('limit', 25))
     if action in {'scienceTaskContext', 'scienceTaskCompatibility'}:
         from . import authoring
         if action == 'scienceTaskContext': return authoring.task_context(workspace, req['model'], req['dataset'])

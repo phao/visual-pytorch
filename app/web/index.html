@@ -19,6 +19,8 @@
   <script src="dataset-authoring.js" defer></script>
   <script src="task-authoring.js" defer></script>
   <script src="task-form.js" defer></script>
+  <script src="experiment-authoring.js" defer></script>
+  <script src="experiment-form.js" defer></script>
   <script src="science-author.js" defer></script>
   <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
@@ -114,7 +116,7 @@
         <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
         <div id="science-panel" class="panel-content" hidden>
-          <div class="inline-actions"><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-edit">Edit selected revision</button></div>
+          <div class="inline-actions"><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
           <section id="science-author" hidden aria-label="Typed scientific object authoring">
             <h3 id="science-author-title">Dataset draft</h3><p id="science-author-id" class="tiny"></p>
             <label>Object name<input id="science-author-name" data-author-control maxlength="200"></label>
@@ -136,6 +138,13 @@
               <div id="science-task-bindings"></div>
               <p class="tiny">MSE/MAE use numerical targets. Cross-entropy uses raw logits and fixed categorical indices, with no target transforms. A mask excludes elements; sample weights weight observations/elements; objective weight scales this head. All outputs need a named head.</p>
               <button id="science-task-compatibility" data-author-control>Check exact interface compatibility</button><p id="science-task-compatibility-status" role="status" class="tiny"></p>
+            </div>
+            <div id="science-author-experiment" hidden>
+              <p class="tiny">An experiment selects exact architectures and dataset/task revisions, splits, independent initialization seeds and training configurations. Authoring and preview never fit or train. Retain a valid revision before explicitly running its candidates.</p>
+              <button id="science-experiment-refresh" data-author-control>Refresh available exact revisions</button><p id="science-experiment-context-status" class="tiny"></p>
+              <div id="science-experiment-bindings"></div>
+              <div class="inline-actions"><button id="science-experiment-preview" data-author-control>Preview draft candidates · no training</button><button id="science-experiment-prev">‹ Preview page</button><button id="science-experiment-next">Preview page ›</button></div>
+              <p id="science-experiment-preview-status" role="status" class="tiny"></p><div id="science-experiment-preview-rows"></div>
             </div>
             <p id="science-author-status" role="status" class="tiny"></p>
             <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-cancel">Cancel draft</button></div>

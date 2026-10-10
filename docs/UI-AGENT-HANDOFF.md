@@ -641,7 +641,7 @@ anchors are the owner's requested interaction design, not borrowed native behavi
 
 ## Typed scientific drafts (branch-only Visual PyTorch extension)
 
-The floating Experiment/history tab hosts typed dataset and task drafts. Reuse
+The floating Experiment/history tab hosts typed dataset, task and experiment drafts. Reuse
 their interaction pattern, not the domain grammar by accident: stable identities,
 exact historical base distinct from expected current head, private unsaved text,
 read-only validation, explicit immutable admission and separate file Save. Context
@@ -658,6 +658,14 @@ Task/dataset forms use theme colors, base-font controls and responsive grids ins
 the same scroll container. Task transform action buttons use intrinsic compact
 width, not equal-width expansion. All task bindings are currently rendered, while
 dataset cells page six fields/twenty records: neither is a full transport bound.
-Experiment visual authoring and richer report presentation remain unfinished.
+Experiment selections use explicit exact references, ordered axes, independent
+seeds, typed split/optimizer/budget controls and reasoned comparison exclusions.
+Refresh must preserve selected identities, including unavailable historical refs.
+Comparison-mode changes must not discard conflicting whitelist entries. External
+observation IDs are literal lines, not comma-separated or silently deduplicated.
+Train-free draft preview pages 25 coordinates with no Run buttons, clears on edits
+and returns exact decimal Cartesian counts. Retain first, then run explicitly.
+All experiment axis cards currently render; paging is not a metadata/transport or
+RAM bound. Richer report presentation and full C convergence remain unfinished.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
