@@ -55,6 +55,8 @@ class History:
         try:
             with closing(sqlite3.connect(source[-1])) as snapshot:snapshot.backup(candidate)
             candidate.execute('PRAGMA foreign_keys=ON')
+            from .revisions import merge_retained
+            merge_retained(candidate, workspace.db)
             # New training evidence survives reverting earlier edits for models
             # that exist in the restored collection. Deleted-model evidence is
             # recoverable through its history snapshot/redo, not an orphan FK row.

@@ -141,20 +141,19 @@ existing model/training memory admission still applies independently. No fixed
 64-feature limit is introduced. Tests inject observed RAM; users may explicitly
 disable constrained mode. Excluded records are not transformed into populations.
 
-## Persistence and migration route (pending)
+## Independent revision persistence
 
-Current `.vtw` version remains 4. The next migration must create independent,
-immutable DatasetSpec/TaskSpec/ExperimentSpec/RunRecord/ReportRecipe revisions
-and mutable browsing heads in the in-memory working copy before an explicit
-save, preserving v1–4 legacy architecture/dataset/checkpoint meanings. A revision
-table should use `(kind,id,revision)` primary keys with immutable documents;
-resolved runs must not cascade-delete with an editable architecture. Editing a
-head creates a revision, never overwrites historical bytes. CLI operations must
-participate in the existing atomic revision-checked ordered edit/save workflow;
-GUI history must retain independent run evidence when reverting drafts. References
-and all persisted hashes need validation on load, not merely SQLite integrity.
+Current `.vtw` version is 5 on the Stage C branch. DatasetSpec/TaskSpec and frozen
+ModelRevision documents are immutable independent revisions with mutable browsing
+heads. The migration runs only in the in-memory working copy before explicit
+save, preserving v1–4 legacy meanings. Hashes, relational identity, schema and
+immutability guards are checked on load/save. CLI writes use the existing atomic
+revision-checked ordered edit workflow. Undo restores browsing heads but retains
+immutable revision bytes. Exact semantics are in [revision-store.md](revision-store.md).
+ExperimentSpec/RunRecord/ReportRecipe persistence and task-aware trainer evidence
+remain pending; unknown placeholder kinds are not silently accepted.
 
-Next steps: implement this persistence and CLI protocol, task-aware minibatch
+Next steps: implement experiment/run/report revisions, task-aware minibatch
 losses/metrics and preprocessing checkpoint/export, experiment expansion and GUI,
 then result-report and explicit-rerun notebooks with real-kernel/portable-bundle
 tests. Stage C exits only after the complete end-to-end gates in the roadmap.

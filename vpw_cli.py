@@ -18,7 +18,23 @@ def apply_edits(workspace, edits):
     results = []
     for edit in edits:
         kind = edit['op']
-        if kind == 'create':
+        if kind == 'put-spec':
+            ref = workspace.put_spec(edit['kind'], edit['document'], edit.get('select', True))
+            results.append({'op': kind, 'reference': ref})
+            continue
+        elif kind == 'select-spec':
+            ref = edit['reference']
+            workspace.select_spec(ref['kind'], ref['id'], ref['revision'])
+            results.append({'op': kind, 'reference': ref})
+            continue
+        elif kind == 'archive-spec':
+            workspace.archive_spec(edit['kind'], edit['id'])
+            results.append({'op': kind, 'kind': edit['kind'], 'id': edit['id']})
+            continue
+        elif kind == 'freeze-model':
+            results.append({'op': kind, 'reference': workspace.freeze_model(edit['id'])})
+            continue
+        elif kind == 'create':
             doc = edit.get('document') or default_model(edit.get('name', 'New architecture'), edit.get('inputs', 2), edit.get('outputs', 1))
             if doc['id'] in workspace.models():
                 raise ValueError('Architecture ID already exists; use replace explicitly.')
@@ -98,6 +114,13 @@ def main(argv=None):
     for command in ('show','validate','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
+    specs = sub.add_parser('spec-list', help='Independent object browsing heads or all retained revisions')
+    specs.add_argument('--kind', choices=('dataset', 'model', 'task'))
+    specs.add_argument('--all-revisions', action='store_true')
+    show_spec = sub.add_parser('spec-show', help='Read an exact independent revision or the current browsing head')
+    show_spec.add_argument('kind', choices=('dataset', 'model', 'task'))
+    show_spec.add_argument('id')
+    show_spec.add_argument('--revision')
     preview = sub.add_parser('preview-dataset', help='Bounded typed dataset diagnostics; does not change the workspace')
     preview.add_argument('dataset', help='DatasetSpec JSON file')
     preview.add_argument('--limit', type=int, default=20)
@@ -109,6 +132,13 @@ def main(argv=None):
     splits.add_argument('--split', help='Explicit Split protocol JSON file')
     splits.add_argument('--manifest', help='Saved SplitManifest JSON file for replay')
     prepare.add_argument('--memory-limit-percent', type=float, help='Override the user-level constrained RAM percentage for preparation')
+    stored = sub.add_parser('prepare-stored', help='Read-only preparation of EXACT stored model/dataset/task revisions, never implicit heads')
+    for kind in ('model', 'dataset', 'task'):
+        stored.add_argument('--' + kind, nargs=2, metavar=('ID', 'REVISION'), required=True)
+    splits = stored.add_mutually_exclusive_group(required=True)
+    splits.add_argument('--split', help='Split protocol JSON file')
+    splits.add_argument('--manifest', help='Saved SplitManifest JSON file')
+    stored.add_argument('--memory-limit-percent', type=float)
     apply = sub.add_parser('apply', help='Atomic ordered JSON edit batch')
     apply.add_argument('edits', help='JSON file or - for stdin')
     apply.add_argument('--allow-invalid', action='store_true', help='Save semantically invalid drafts, still structurally checked')
@@ -134,9 +164,14 @@ def main(argv=None):
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],
                          'constrained_mode': workspace.constrained_mode,
                          'architectures': [{'id':d['id'],'name':d['name'],'nodes':len(d['graph']['nodes'])} for d in sorted(workspace.models().values(),key=lambda d:(d['name'].casefold(),d['id']))],
+                         'specifications': workspace.list_specs(),
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}
             elif args.command == 'show':
                 value = workspace.models()[args.id]
+            elif args.command == 'spec-list':
+                value = workspace.list_specs(args.kind, args.all_revisions)
+            elif args.command == 'spec-show':
+                value = workspace.get_spec(args.kind, args.id, args.revision)
             elif args.command == 'validate':
                 value = validate_model(workspace.models(), args.id)
             elif args.command == 'export':
@@ -146,7 +181,7 @@ def main(argv=None):
             elif args.command == 'preview-dataset':
                 from app.datasets import preview
                 value = preview(read_json(args.dataset), args.limit)
-            elif args.command == 'prepare-task':
+            elif args.command in ('prepare-task', 'prepare-stored'):
                 from app.datasets import make_split, prepare
                 from app.config import Config
                 percentage = args.memory_limit_percent
@@ -155,10 +190,21 @@ def main(argv=None):
                     if config.error:
                         raise ValueError('Invalid user configuration; repair it or explicitly provide --memory-limit-percent.')
                     percentage = config.values['memory_limit_percent']
-                dataset = read_json(args.dataset)
+                if args.command == 'prepare-stored':
+                    model = workspace.get_spec('model', *args.model)
+                    dataset = workspace.get_spec('dataset', *args.dataset)
+                    task = workspace.get_spec('task', *args.task)
+                    contract = validate_model(model['models'], model['root'])
+                else:
+                    dataset = read_json(args.dataset)
+                    task = read_json(args.task)
+                    contract = validate_model(workspace.models(), args.id)
                 manifest = read_json(args.manifest) if args.manifest else make_split(dataset, read_json(args.split))
-                value = prepare(dataset, read_json(args.task), validate_model(workspace.models(), args.id), manifest,
+                value = prepare(dataset, task, contract, manifest,
                                 constrained=workspace.constrained_mode, memory_limit_percent=percentage)
+                if args.command == 'prepare-stored':
+                    value['references'] = {kind: {'kind': kind, 'id': values[0], 'revision': values[1]}
+                                           for kind, values in (('model', args.model), ('dataset', args.dataset), ('task', args.task))}
             elif args.command == 'apply':
                 results = apply_edits(workspace, read_json(args.edits))
                 if not args.allow_invalid:

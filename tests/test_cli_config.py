@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest import mock
 from contextlib import redirect_stdout
-from app.core import Workspace, default_model, GraphError
+from app.core import Workspace, default_model, GraphError, VERSION
 from app.config import Config, DEFAULTS
 from app.file_sync import revision, save_lock
 import vpw_cli
@@ -99,9 +99,9 @@ class CLIConfigTests(unittest.TestCase):
             path=Path(td)/'legacy.vtw';w=Workspace();w.put(default_model());w.save(path);w.db.close()
             with sqlite3.connect(path) as db:db.execute('PRAGMA user_version=1')
             before=path.read_bytes();w=Workspace.load(path)
-            self.assertEqual(w.db.execute('PRAGMA user_version').fetchone()[0],4)
+            self.assertEqual(w.db.execute('PRAGMA user_version').fetchone()[0],VERSION)
             self.assertEqual(path.read_bytes(),before);w.save(path);w.db.close()
-            with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
+            with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],VERSION)
 
     def test_config_remembers_zoom_and_font_and_preserves_unknown_keys(self):
         with tempfile.TemporaryDirectory() as td:

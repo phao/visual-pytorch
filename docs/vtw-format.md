@@ -1,23 +1,25 @@
-# Visual Torch Workspace (.vtw): format specification, version 4
+# Visual Torch Workspace (.vtw): format specification, version 5
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
-app/file_sync.py and vpw_cli.py. The reusable GUI has a separate specification:
+app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separate specification:
 [UI-AGENT-HANDOFF.md](UI-AGENT-HANDOFF.md).
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 4. The current reader accepts versions 1, 2, 3 and 4; opening
-an older file copies it into memory and upgrades the working version to 4.
-Opening alone never rewrites the source; explicit Save writes version 4.
+PRAGMA user_version = 5. The current reader accepts versions 1–5; opening
+an older file copies it into memory and upgrades the working version to 5.
+Opening alone never rewrites the source; explicit Save writes version 5.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
 without changing SQL tables. Version 4 adds versioned structured operators,
 optional named sample axes and a checked recorded structured dataset adapter,
-without changing SQL tables. Older binaries are not expected to open version 4;
+without changing SQL tables. Version 5 adds independent immutable dataset/task/
+model revisions and mutable browsing heads, with guarded SQL and exact content
+validation. Older binaries are not expected to open version 5;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -31,7 +33,7 @@ training. These checks are not a hostile-file sandbox or memory guarantee.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -50,7 +52,34 @@ CREATE TABLE runs(
     architecture_id TEXT NOT NULL REFERENCES architectures(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL, graph_snapshot TEXT NOT NULL,
     result TEXT NOT NULL);
+CREATE TABLE spec_revisions(
+    kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
+    name TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL,
+    PRIMARY KEY(kind,id,revision));
+CREATE TABLE spec_heads(
+    kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
+    PRIMARY KEY(kind,id),
+    FOREIGN KEY(kind,id,revision)
+        REFERENCES spec_revisions(kind,id,revision));
+CREATE TRIGGER spec_revisions_no_update BEFORE UPDATE ON spec_revisions
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be updated'); END;
+CREATE TRIGGER spec_revisions_no_delete BEFORE DELETE ON spec_revisions
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be deleted'); END;
+CREATE TRIGGER spec_revisions_no_replace BEFORE INSERT ON spec_revisions
+WHEN EXISTS(SELECT 1 FROM spec_revisions
+            WHERE kind=NEW.kind AND id=NEW.id AND revision=NEW.revision)
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 ```
+
+Independent revision kinds are currently dataset/task/model (integer document
+version 1); other kinds/versions are rejected until their validators exist.
+Revisions are content-addressed finite JSON and never overwritten or cascaded
+from authoring architecture deletion. Browsing heads are mutable references to
+retained revisions. Exact schemas, frozen reference closures, hash/guard checks,
+working-copy-only migration, archive/reselection and undo retention are specified
+in [revision-store.md](revision-store.md). This is Stage C foundation work, not a
+completed experiment/run/report implementation. Legacy datasets/runs keep their
+original meaning and existing APIs; no automatic typed-data interpretation occurs.
 
 ### Metadata
 
@@ -87,7 +116,8 @@ round trips but do not acquire execution semantics.
 
 architecture_refs must exactly index every Module as (owner ID, node ID, ref ID).
 Targets must exist. A stale independent index is rejected; deleting a referenced
-target is blocked. Deleting an unreferenced architecture cascades its data/runs.
+target is blocked. Deleting an unreferenced architecture cascades its legacy
+data/runs, not independent revisions/frozen closures.
 The current API keeps at least one architecture once a collection is populated.
 
 ## 3. Graph identity, wires and ordering

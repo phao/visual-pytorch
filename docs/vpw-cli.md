@@ -15,13 +15,16 @@ python vpw_cli.py lab.vtw export ARCHITECTURE_ID
 python vpw_cli.py lab.vtw export-trained ARCHITECTURE_ID
 python vpw_cli.py lab.vtw preview-dataset observations.json --limit 20
 python vpw_cli.py lab.vtw prepare-task ARCHITECTURE_ID --dataset observations.json --task task.json --split split.json
+python vpw_cli.py lab.vtw spec-list --kind dataset --all-revisions
+python vpw_cli.py lab.vtw spec-show dataset DATASET_ID --revision DATASET_SHA256
+python vpw_cli.py lab.vtw prepare-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --split split.json
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
 
-init creates an empty version-4 collection, never overwriting a file. inspect
+init creates an empty version-5 collection, never overwriting a file. inspect
 returns working format version, exact SQLite DDL, architecture IDs/names/counts,
-policy and on-disk SHA-256 revision. Architecture summaries are alphabetical by
+policy, independent specification browsing selections and on-disk SHA-256 revision. Architecture summaries are alphabetical by
 case-folded name, with ID as tie-breaker. show returns a materialized document with
 dataset. validate derives the graph contract without allocation; export returns
 generated Python in the value.code field, with fresh parameter initialization.
@@ -37,7 +40,13 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 [dataset-task-contract.md](dataset-task-contract.md). `prepare-task` takes exactly
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
-Independent `.vtw` object persistence, experiment UI and notebooks are pending.
+Independent dataset/task/model persistence is implemented in `.vtw` v5;
+experiment/run/report kinds, task trainer/GUI integration and notebooks remain
+pending. [revision-store.md](revision-store.md) specifies validators/migration.
+`prepare-stored` requires exact model/dataset/task ID+revision pairs and the same
+explicit split/manifest/RAM settings; it never reads mutable heads as execution
+references. `spec-show` may read a browsing head when --revision is omitted;
+`spec-list --all-revisions` includes archived/unselected immutable documents.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
@@ -59,6 +68,10 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
+| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/task/model revision, optionally select for browsing |
+| select-spec | reference={kind,id,revision} | Select a retained exact revision, never edit its bytes |
+| archive-spec | kind, id | Hide browsing head; revision bytes are retained and recoverable |
+| freeze-model | id | Capture current valid architecture's complete reachable closure as an independent model revision |
 | rebind-dataset | id | Explicitly bind valid existing x/y columns to the current input/output port contract; no numerical reordering/transformation; clears current result, preserves historical runs |
 
 Create referenced targets before their owners. Custom documents follow

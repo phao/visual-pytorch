@@ -241,9 +241,59 @@ def make_split(spec, protocol):
     return check_manifest(spec, manifest)
 
 
+def validate_transforms(transforms):
+    """Intrinsic syntax is independent of a particular field/model revision."""
+    _require(isinstance(transforms, list), 'Transforms must be an ordered array.')
+    for transform in transforms:
+        _keys(transform, ('kind',), ('length', 'value', 'scale', 'offset'), 'Transform')
+        kind = transform['kind']
+        if kind in ('onehot', 'impute-mean', 'standardize'):
+            _require(set(transform) == {'kind'}, 'Transform has unsupported fields.')
+        elif kind == 'pad':
+            _require(set(transform) == {'kind', 'length', 'value'} and _integer(transform['length'], 1) and
+                     _number(transform['value']), 'pad requires positive length and finite value.')
+        elif kind == 'affine':
+            _require(set(transform) == {'kind', 'scale', 'offset'} and _number(transform['scale']) and
+                     _number(transform['offset']) and transform['scale'] != 0, 'affine requires finite nonzero scale and finite offset.')
+        else:
+            raise GraphError('Unsupported deterministic transform: ' + str(kind))
+
+
+def validate_task_spec(task):
+    """Validate reusable task grammar; field/port compatibility is a later gate."""
+    _keys(task, ('version', 'id', 'name', 'inputs', 'heads'), ('revision', 'description'), 'TaskSpec')
+    _version(task, 'TaskSpec')
+    _require(_identifier(task['id']) and _identifier(task['name']), 'Task needs an ID and name.')
+    _require(isinstance(task['inputs'], list) and task['inputs'] and isinstance(task['heads'], list) and task['heads'], 'Task inputs and heads must be nonempty arrays.')
+    for item in task['inputs']:
+        _keys(item, ('port', 'field', 'transforms'), ('derived', 'length'), 'Input binding')
+        _require(_identifier(item['port']) and _identifier(item['field']), 'Task bindings require stable port/field IDs.')
+        validate_transforms(item['transforms'])
+        if 'derived' in item:
+            _require(item['derived'] in ('length', 'mask') and item['transforms'] == [] and _integer(item.get('length'), 1), 'Derived binding needs length/mask, explicit length and no transforms.')
+        else:
+            _require('length' not in item, 'Only derived bindings declare length outside pad transforms.')
+    for item in task['heads']:
+        _keys(item, ('id', 'port', 'field', 'loss', 'weight', 'transforms'), ('mask', 'sample_weight'), 'Loss head')
+        _require(all(_identifier(item[key]) for key in ('id', 'port', 'field')) and item['loss'] in ('mse', 'mae', 'cross-entropy') and
+                 _number(item['weight']) and item['weight'] > 0, 'Head needs stable IDs, supported loss and positive weight.')
+        validate_transforms(item['transforms'])
+        _require(item['loss'] != 'cross-entropy' or item['transforms'] == [], 'Cross-entropy index targets do not have transforms.')
+        _require(all(key not in item or _identifier(item[key]) for key in ('mask', 'sample_weight')), 'Mask/weight requires a stable field ID.')
+    _require(len({i['port'] for i in task['inputs']}) == len(task['inputs']) and
+             len({i['port'] for i in task['heads']}) == len(task['heads']) and
+             len({i['id'] for i in task['heads']}) == len(task['heads']), 'Task input/output ports and head IDs must be unique.')
+    try:
+        value = digest({k: v for k, v in task.items() if k != 'revision'})
+    except (TypeError, ValueError, RecursionError) as error:
+        raise GraphError('Task metadata must be finite JSON.') from error
+    _require('revision' not in task or task['revision'] == value, 'Task revision does not match content.')
+    return copy.deepcopy(task)
+
+
 def _pipeline(field, transforms):
     """Validate order, resolve output shape/axes, and return deterministic semantics."""
-    _require(isinstance(transforms, list), 'Transforms must be an ordered array.')
+    validate_transforms(transforms)
     shape, dtype, axes = list(field['shape']), field['dtype'], field.get('axes')
     for transform in transforms:
         _keys(transform, ('kind',), ('length', 'value', 'scale', 'offset'), 'Transform')
@@ -315,6 +365,7 @@ def _apply_step(values, shape, field, transform, state=None):
 def validate_task(task, dataset, contract):
     """Stable field-to-port compatibility; names and record positions are not keys."""
     fields = validate_dataset(dataset)
+    validate_task_spec(task)
     _keys(task, ('version', 'id', 'name', 'inputs', 'heads'), ('revision', 'description'), 'TaskSpec')
     _version(task, 'TaskSpec')
     _require(_identifier(task['id']) and _identifier(task['name']), 'Task needs an ID and name.')

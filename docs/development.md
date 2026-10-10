@@ -98,11 +98,49 @@ claimed for this checkpoint. The previous A/B native checks remain prior evidenc
 See [the executable dataset/task contract](dataset-task-contract.md) for exact
 schema, CLI, semantics, memory estimate and boundaries.
 
-Next: independent immutable `.vtw` spec/run revisions and migration (v1–4 meanings
-preserved), revision-checked CLI writes/history, task-aware minibatch trainer with
-fitted checkpoint/export, experiment expansion and GUI, result-report versus
-explicit-rerun notebooks, actual Jupyter kernel and portable bundle gates.
-Current container remains v4. C's full exit gates and D/E are not achieved.
+At that first checkpoint the container was v4; the following checkpoint advances
+persistence. C's full exit gates and D/E are not achieved.
+
+### Independent revision checkpoint — still branch-only
+
+Container v5 adds independent immutable dataset/task/model documents and mutable
+browsing heads. Frozen models retain only the complete reachable normalized
+graph closure, preserving the Stage A scientific hash without node presentation
+or architecture-owned data/results. Deleting an authoring model cannot delete
+its frozen revision. Task syntax validates independently; selected field/port
+compatibility still gates preparation. Other experiment/run/report kinds are
+not accepted as unvalidated placeholder JSON.
+
+Working-copy migration accepts v1–4, leaves source bytes untouched until Save,
+retains legacy checkpoint identity and packing, and validates schema/guards and
+all content hashes. SQL guards block UPDATE, DELETE, REPLACE and duplicate-key
+UPSERT writes even with recursive triggers disabled. Head archival/reselection
+is recoverable. Undo/redo restores mutable heads/drafts while unioning retained
+revision bytes, not silently removing newly recorded scientific objects.
+
+CLI writes participate in the existing ordered atomic revision-checked save.
+`spec-list`/`spec-show` browse retained objects; `prepare-stored` requires EXACT
+model/dataset/task ID+revision pairs and explicit split/manifest. Changing a
+browsing head cannot substitute a different dataset into that preparation.
+Fresh CLI executions import no Torch/Qt/NumPy and preserve read-only file bytes.
+Specs: [revision storage](revision-store.md), [v5 format](vtw-format.md),
+[CLI](vpw-cli.md). The exact SQL code blocks are executed in a regression test.
+
+Verification: 255 Python/57 JS tests, compile/diff checks, native Qt history and
+binding checks, and the real sandboxed WebEngine GUI suite pass.
+Native disk-update polling also passes: clean workspaces reload agent writes,
+dirty workspaces retain unsaved edits, and display preferences persist.
+New tests include
+all four actual old SQL container versions, old two-input packing, current legacy
+checkpoint identity, malicious/missing guards and JSON/row/hash mismatches,
+frozen closure retention, undo/redo and fresh exact-revision CLI replay. User
+workspaces/configuration/live app were not changed; no new GUI menus claimed.
+
+Next: task-aware minibatch trainer/worker and preprocessing checkpoint/export;
+independent experiment/run/report validators and frozen execution protocol;
+model × dataset selections with invalid combinations visible; GUI/run history;
+result-report versus explicit-rerun notebooks with real kernel/portable-bundle
+gates. Persisting three object types does NOT satisfy those remaining gates.
 
 ## D — Symbolic families and mixed CNN/RNN composition
 

@@ -34,7 +34,8 @@ types/tensor dimensions, not a mislabeled Linear matrix for a convolution.
 
 ## Persistence and execution
 
-[vtw-format.md](vtw-format.md) specifies version-4 fields, defaults, unsupported
+[vtw-format.md](vtw-format.md) specifies v4-introduced operator fields within the
+current v5 container, defaults, unsupported
 options, axes and adapters. app/operators.py owns pure normalization, shape and
 constructor specs; native execution and generated code consume these specs.
 Grouped divisibility, layout and positive spatial sizes are checked before
@@ -111,6 +112,8 @@ Primary references:
 Our sample-axis numbering intentionally differs from raw Torch Flatten/Permute;
 the batch-axis translation is part of the file contract and independently tested.
 
-No classification task/loss, arbitrary image storage, BatchNorm, transpose
+The unfinished Stage C branch now has typed classification target preparation
+and independently verified indexed loss reductions, not a classification training
+workflow. No arbitrary image storage, BatchNorm, transpose
 convolution, symbolic/recurrent state, optimizer resume or detached backend is
 claimed. These require subsequent C/D/E contracts and tests.
