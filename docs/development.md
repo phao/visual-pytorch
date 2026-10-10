@@ -28,8 +28,14 @@ dataset/current-result invalidation and identity-bound trained predictor export.
 `.vtw` version 3 records stable input packing and explicit dataset bindings.
 Worker stdout/stderr are drained concurrently with bounded protocol handling.
 
-Remaining gates include adversarial worker transport tests, broader checkpoint
-roundtrips and independent predictions, binding/migration/CLI coverage, GUI
+The worker transport gate now has 26 focused tests with real private child
+processes (plus admission mocks), including simultaneous stdin/stdout/stderr
+backpressure, protocol corruption, bounded diagnostics, callback/startup failure,
+deadline cleanup and cooperative/forced cancellation. These reproduced gaps in
+the inherited transport and pass after the repairs. See [worker contract](worker-protocol.md).
+
+Remaining gates include broader checkpoint roundtrips and independent predictions,
+binding/migration/CLI coverage, GUI
 binding admission and honest evidence-status presentation. Do not mark A complete
 merely because its five initial regression counterexamples pass.
 
