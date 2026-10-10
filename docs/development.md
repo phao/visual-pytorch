@@ -1,0 +1,74 @@
+# Development state and roadmap
+
+The canonical source repository is https://github.com/phao/visual-pytorch,
+with integration branch `main`. Local research campaigns are separate from this
+public source tree. Do not maintain a second live application fork in a campaign.
+Campaigns can record product commits, research notes and frozen experimental
+snapshots. Concurrent product writers use separate worktrees and serialize
+integration as described in AGENTS.md; campaign locks alone are insufficient.
+
+## Initial source import
+
+The first curated import preserves the GitHub starter commit
+`4c249d9387173938cf1fec95ba41dfe345e5affd`. Application, assets, tests, licenses and
+portable specifications came from the local reviewed development checkpoint
+`1f43953cfbc836df7eb9345ce03c4bbb075b7e72`. Private campaign Git histories,
+research report closures, user workspaces, preferences, logs and receipts were
+not imported. Source files are copied once; future implementation happens here.
+
+The imported checkpoint passed 116 Python tests, 46 JavaScript tests, syntax/diff
+checks, real sandboxed WebEngine interaction tests and a native Qt/PyTorch worker
+fit. These are specific checks, not proof of full platform correctness.
+
+## A — Trustworthy computation and evidence (in progress)
+
+Implemented repairs include optional affine-summary isolation, post-update
+evaluation metrics, actual cancellation counts, stable input column identities,
+dataset/current-result invalidation and identity-bound trained predictor export.
+`.vtw` version 3 records stable input packing and explicit dataset bindings.
+Worker stdout/stderr are drained concurrently with bounded protocol handling.
+
+Remaining gates include adversarial worker transport tests, broader checkpoint
+roundtrips and independent predictions, binding/migration/CLI coverage, GUI
+binding admission and honest evidence-status presentation. Do not mark A complete
+merely because its five initial regression counterexamples pass.
+
+## B — Coherent tensor/operator composition
+
+Define and implement a bounded CNN workflow with explicit shape/layout, ports,
+padding and reference semantics. Check computation and gradients independently.
+Do not build a palette of operators without a usable end-to-end model.
+
+## C — Datasets and experiments
+
+Separate DatasetSpec/TaskSpec/ExperimentSpec/RunRecord/ReportRecipe. Strengthen
+explicit dataset bindings, immutable run evidence, group/time splits,
+training-only fitted transforms, minibatching and an experiment/history interface.
+Notebook reports must distinguish reading existing results from explicit
+retraining. Avoid silent changes to column meaning when ports change.
+
+## D — Symbolic families and mixed CNN/RNN composition
+
+Develop concrete-first architecture families with optional scoped symbols and
+specialization, explicit repetition versus tied weights, recurrent state,
+lengths/masks and independently tested mixed CNN/RNN compositions. Teaching
+links specification, mathematics, execution and measured evidence. Symbolic
+families, recurrent operators and notebook generation are not implemented yet.
+
+## E — Heavyweight execution
+
+Separate editing from detached jobs, durable receipts, checkpoint/attempt
+lineage, distributed reduction semantics, resource-aware execution, cancellation,
+progress and failure handling. External machines, paid services and remote jobs
+need appropriate operational authorization; the roadmap alone does not grant it.
+
+## UI contracts
+
+Keep icon folding visual-only. A compact icon is a drag surface, not solely an
+expansion button; single click selects, double-click restores, and Enter/Space
+toggles folding. Begin pointer capture after actual movement for compact blocks,
+so stationary double-click events remain targeted at the icon. Ports, snapping,
+preferred expanded dimensions and undo/redo remain functional.
+
+Preserve persistent selection on empty canvas and contextual Escape behavior,
+including typing/dialog safeguards. Group selection gestures remain deferred.
