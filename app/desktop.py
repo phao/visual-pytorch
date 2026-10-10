@@ -430,6 +430,7 @@ class Window(QMainWindow):
             "dirty": bool(self.workspace and self.workspace.dirty),
             "models": models, "recent": self.recent_files(),
             "training_id": self.job.mid if self.job and self.job.isRunning() else None,
+            "experiment_job": self.job.snapshot['run_id'] if self.job and self.job.isRunning() and hasattr(self.job, 'snapshot') else None,
             "torch_python": self.torch_python,
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,
@@ -554,7 +555,8 @@ class Window(QMainWindow):
                         view=self.tabs.widget(index)
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'}
+        from .desktop_experiments import EDITS
+        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         workspace=self.workspace
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
@@ -595,6 +597,8 @@ class Window(QMainWindow):
             return self.workspace.layout_preferences
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
+        from .desktop_experiments import ACTIONS, dispatch as science_dispatch
+        if action in ACTIONS: return science_dispatch(self, req)
         models = self.workspace.models()
         if action == "setConstrainedMode":
             if self.job and self.job.isRunning():

@@ -21,7 +21,7 @@
   const esc = str => String(str).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const modelID = () => location.hash.startsWith("#model=") ? location.hash.slice(7) : null;
   const node = id => doc?.graph.nodes.find(n => n.id === id);
-  const busy = () => Boolean(state.training_id);
+  const busy = () => Boolean(state.training_id || state.experiment_job);
   const shapeText = s => "[B, " + (s?.join(", ") || "?") + "]";
   function prepareModel(value) {
     value.view={x:0,y:0,zoom:1,...(value.view || {})};
@@ -116,6 +116,7 @@
     const layoutChanged=state.workspace_id!==value.workspace_id ||
       JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
     state = value;
+    window.LoomScience?.stateChanged();
     if(layoutChanged)renderLayoutPreferences();
     if (doc && state.models[doc.id]) {
       doc = prepareModel(clone(state.models[doc.id]));
@@ -654,7 +655,7 @@
     floating.open("experiment-dock");
     panel = name;
     document.querySelectorAll("[data-panel]").forEach(el => el.classList.toggle("active", el.dataset.panel === name));
-    for (const p of ["experiment", "code", "results"]) $(p + "-panel").hidden = p !== name;
+    for (const p of ["experiment", "code", "results", "science"]) $(p + "-panel").hidden = p !== name;
   }
   function renderResults() {
     const r = doc?.result;
@@ -1025,6 +1026,7 @@
 
   function onEvent(raw) {
     const event = JSON.parse(raw);
+    window.LoomScience?.event(event);
     if (event.kind === "state") hydrate(event.payload);
     else if(event.kind==='history'){state.history=event.payload;if(event.payload.notice)toast(event.payload.notice,true);}
     else if (event.kind === "navigate") navigate(event.payload);
@@ -1052,6 +1054,7 @@
       host = channel.objects.host;
       host.event.connect(onEvent);
       state = await call("state");
+      window.LoomScience.mount(document, {call, toast, busy, model:()=>doc?.id, workspace:()=>state.workspace_id});
       window.loom = {call, get document() { return clone(doc); }, get state() { return clone(state); }, fit,
         selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));},
         contextAt(x,y){

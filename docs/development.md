@@ -260,6 +260,22 @@ Selection/history/notebook GUI integration and full C convergence are next;
 then D/E remain required. This task branch stays separate from the initial public
 preview. Do not advertise its unfinished features as released.
 
+### Current Stage C GUI checkpoint — still branch-only
+
+The floating dock now browses exact scientific revisions, compatibility pages
+and independent run/attempt history. Explicit fits use a Qt thread with a separate
+captured Workspace and the validated task worker. Saved splits/retry meaning stay
+pinned. Reading recipes never trains; notebook generation is an explicit separate
+action. See [experiment GUI](experiment-gui.md) for bridge/thread/dependency contracts.
+
+349 Python/57 JS passed. The real sandboxed GUI fit/retry/history/report/generation/
+save/reload test passed in a private Qt+nbformat environment, with no host Torch.
+Inherited WebEngine gestures/themes and native layout checks pass. Seven pure
+boundary tests cover exact closure/head/retry/manifest and failed/excluded data.
+Richer authoring/metric/multi-run report controls, GUI notebook execution, late
+admission/cancel/recovery stress, rendered report figures and full C convergence
+remain open; this is not C completion/publication. D/E remain required.
+
 ## D — Symbolic families and mixed CNN/RNN composition
 
 Develop concrete-first architecture families with optional scoped symbols and

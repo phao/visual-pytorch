@@ -1,8 +1,9 @@
 # Portable notebook reports — branch-only Stage C checkpoint
 
 This contract describes executable code on `task/stage-c-experiments`, not the
-initial public release. Selection/history GUI integration and the full Stage C
-exit gates remain open. The CLI and helpers generate reports from exact stored
+initial public release. A bounded [experiment GUI](experiment-gui.md) now browses
+selection/history and generates bundles; full Stage C gates remain open.
+The CLI and helpers generate reports from exact stored
 ReportRecipe revisions; browsing heads never substitute for those revisions.
 
 ## Two honest modes
@@ -138,6 +139,6 @@ These are fixture/environment-specific results, not cross-platform bitwise promi
 Bundle execution runs trusted Python. Integrity checks are not a hostile-code
 sandbox, signatures, remote job receipts or optimizer resume. Source workspaces
 remain read-only and generated runs are bundle artifacts, not automatically
-imported into the lab workspace. GUI notebook actions, richer report UI, remote
+imported into the lab workspace. GUI notebook execution, richer report UI, remote
 execution and full Stage C completion are not claimed. Numerical SVG tests do
 not substitute for a final rendered-figure review before publication.

@@ -15,6 +15,7 @@
   <script src="tensor-operators.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
+  <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
 <body>
@@ -96,7 +97,7 @@
     <section class="workarea">
       <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div class="canvas-note">Drag blocks · drag arrow ends to reconnect · D deletes selection · wheel to zoom · drag empty space to pan</div><div id="validation-message" class="validation-chip">Checking graph…</div></div>
       <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
-        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
+        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
         <div id="experiment-scroll" class="scrollport">
         <div id="experiment-panel" class="experiment panel-content">
           <section class="data-section"><div class="section-line"><h3>1. Prepare x, y data</h3><span id="data-status" class="muted">No dataset yet</span></div>
@@ -107,6 +108,14 @@
         </div>
         <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
+        <div id="science-panel" class="panel-content" hidden>
+          <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
+          <p id="science-status" role="status" class="tiny">Browsing never trains. Exact revisions retain historical meaning.</p>
+          <div id="science-selection" hidden><p id="science-question"></p><div class="inline-actions"><button id="science-previous">‹ Previous</button><span id="science-page" class="tiny"></span><button id="science-next">Next ›</button><button id="science-stop" hidden>Stop run</button></div><div id="science-candidates"></div></div>
+          <div id="science-run" hidden><button id="science-retry" title="Fresh training using the saved selection and split, not optimizer continuation">Retry this run</button><label>Report question<input id="science-report-question" value="What does this saved trial show?" maxlength="20000"></label><button id="science-make-report">Create saved-result report</button></div>
+          <div id="science-report" hidden><p id="science-report-mode" class="tiny"></p><button id="science-generate" title="Creates a new complete notebook directory. Does not execute or train.">Generate notebook bundle…</button></div>
+          <details id="science-details"><summary>Specification / evidence · exact revision</summary><pre id="science-document"></pre></details>
+        </div>
         </div>
       </div>
     </section>

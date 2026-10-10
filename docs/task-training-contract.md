@@ -160,7 +160,9 @@ Python: `train_task`, `task_bundle`, `training_protocol`, `check_task_checkpoint
 Worker: `{"kind":"task-v1","bundle":...,"constrained":true,"memory_limit_percent":10}`.
 Qt: `TaskTrainingJob`, using the existing bounded JSONL transport and real signals.
 CLI: `train-stored` and `export-task-trained`; see [vpw-cli.md](vpw-cli.md).
-No editor task-selection controls have been added yet.
+Bounded exact experiment selection/history and notebook generation now have an
+editor interface; see [experiment GUI](experiment-gui.md). Rich schema authoring
+and full C GUI/evidence gates remain open.
 
 Tests independently derive two weighted MSE/MAE head gradients and two scalar Adam
 steps; verify finite exact budgets, all-mask skips, cancellation, injected corrupt
