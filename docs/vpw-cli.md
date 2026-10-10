@@ -13,6 +13,8 @@ python vpw_cli.py lab.vtw show ARCHITECTURE_ID
 python vpw_cli.py lab.vtw validate ARCHITECTURE_ID
 python vpw_cli.py lab.vtw export ARCHITECTURE_ID
 python vpw_cli.py lab.vtw export-trained ARCHITECTURE_ID
+python vpw_cli.py lab.vtw preview-dataset observations.json --limit 20
+python vpw_cli.py lab.vtw prepare-task ARCHITECTURE_ID --dataset observations.json --task task.json --split split.json
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
@@ -28,6 +30,14 @@ weights, strict state loading and evaluation mode for standalone inference.
 It also checks version, preprocessing, stable parameter IDs, exact weight keys/
 shapes and finite float32 values without importing Torch. Corrupt/unsupported
 checkpoints fail instead of producing a script that only fails when executed.
+
+Stage C task-branch commands `preview-dataset` and `prepare-task` are read-only:
+they do not save or train. Typed dataset/task schemas, explicit split protocols,
+manifest replay, fitted transforms and RAM-policy behavior are specified in
+[dataset-task-contract.md](dataset-task-contract.md). `prepare-task` takes exactly
+one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
+to user config and can be explicitly overridden with `--memory-limit-percent`.
+Independent `.vtw` object persistence, experiment UI and notebooks are pending.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every

@@ -72,6 +72,38 @@ training-only fitted transforms, minibatching and an experiment/history interfac
 Notebook reports must distinguish reading existing results from explicit
 retraining. Avoid silent changes to column meaning when ports change.
 
+### First executable checkpoint — not Stage C completion
+
+On `task/stage-c-experiments` (base main
+`283dd9028a349a802e97743598221f7479ad1480`), independent version-1 typed inline
+DatasetSpec/TaskSpec, fixed vocabularies, nullable/multimodal/sequence fields,
+stable field→port bindings, saved row/group/temporal/external split IDs and
+train-only fitted transform chains are executable. Explicit ragged padding has
+matching length/mask inputs and rejects silent truncation. Preparation admits
+expanded shapes against the existing user RAM policy before allocation.
+
+Read-only CLI `preview-dataset`/`prepare-task` works in fresh Python without
+Torch/Qt/NumPy and leaves workspace/config bytes untouched. Numerical-worker
+adapters tensorize stable port batches and execute named graph forward. MSE/MAE/
+indexed cross-entropy have independently tested scalar values/gradients, additive
+weighted numerators/denominators, explicit unavailable empty populations and
+checkpoint/population-bound accumulation. Unequal batches are not averaged as
+equally weighted means. A real 160-update minibatch fit uses these adapters;
+this is a test of the components, not a completed task trainer or experiment UI.
+
+Checkpoint verification: 234 Python tests (39 added), including 24 dense masked
+configurations under three batch partitions, and 57 JavaScript tests pass.
+Compile/diff checks pass. No GUI source changed; no fresh native Qt check is
+claimed for this checkpoint. The previous A/B native checks remain prior evidence.
+See [the executable dataset/task contract](dataset-task-contract.md) for exact
+schema, CLI, semantics, memory estimate and boundaries.
+
+Next: independent immutable `.vtw` spec/run revisions and migration (v1–4 meanings
+preserved), revision-checked CLI writes/history, task-aware minibatch trainer with
+fitted checkpoint/export, experiment expansion and GUI, result-report versus
+explicit-rerun notebooks, actual Jupyter kernel and portable bundle gates.
+Current container remains v4. C's full exit gates and D/E are not achieved.
+
 ## D — Symbolic families and mixed CNN/RNN composition
 
 Develop concrete-first architecture families with optional scoped symbols and

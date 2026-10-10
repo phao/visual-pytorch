@@ -98,6 +98,17 @@ def main(argv=None):
     for command in ('show','validate','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
+    preview = sub.add_parser('preview-dataset', help='Bounded typed dataset diagnostics; does not change the workspace')
+    preview.add_argument('dataset', help='DatasetSpec JSON file')
+    preview.add_argument('--limit', type=int, default=20)
+    prepare = sub.add_parser('prepare-task', help='Resolve stable task bindings, save split IDs in output and fit train-only transforms; no training or workspace edits')
+    prepare.add_argument('id', help='Architecture ID to bind')
+    prepare.add_argument('--dataset', required=True, help='DatasetSpec JSON file')
+    prepare.add_argument('--task', required=True, help='TaskSpec JSON file')
+    splits = prepare.add_mutually_exclusive_group(required=True)
+    splits.add_argument('--split', help='Explicit Split protocol JSON file')
+    splits.add_argument('--manifest', help='Saved SplitManifest JSON file for replay')
+    prepare.add_argument('--memory-limit-percent', type=float, help='Override the user-level constrained RAM percentage for preparation')
     apply = sub.add_parser('apply', help='Atomic ordered JSON edit batch')
     apply.add_argument('edits', help='JSON file or - for stdin')
     apply.add_argument('--allow-invalid', action='store_true', help='Save semantically invalid drafts, still structurally checked')
@@ -132,6 +143,22 @@ def main(argv=None):
                 value = {'code': generate_code(workspace.models(), args.id)}
             elif args.command == 'export-trained':
                 value={'code':generate_predictor(workspace.models(),args.id,workspace.models()[args.id].get('result'))}
+            elif args.command == 'preview-dataset':
+                from app.datasets import preview
+                value = preview(read_json(args.dataset), args.limit)
+            elif args.command == 'prepare-task':
+                from app.datasets import make_split, prepare
+                from app.config import Config
+                percentage = args.memory_limit_percent
+                if percentage is None:
+                    config = Config()
+                    if config.error:
+                        raise ValueError('Invalid user configuration; repair it or explicitly provide --memory-limit-percent.')
+                    percentage = config.values['memory_limit_percent']
+                dataset = read_json(args.dataset)
+                manifest = read_json(args.manifest) if args.manifest else make_split(dataset, read_json(args.split))
+                value = prepare(dataset, read_json(args.task), validate_model(workspace.models(), args.id), manifest,
+                                constrained=workspace.constrained_mode, memory_limit_percent=percentage)
             elif args.command == 'apply':
                 results = apply_edits(workspace, read_json(args.edits))
                 if not args.allow_invalid:
