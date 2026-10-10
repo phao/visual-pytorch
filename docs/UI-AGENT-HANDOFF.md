@@ -666,6 +666,41 @@ observation IDs are literal lines, not comma-separated or silently deduplicated.
 Train-free draft preview pages 25 coordinates with no Run buttons, clears on edits
 and returns exact decimal Cartesian counts. Retain first, then run explicitly.
 All experiment axis cards currently render; paging is not a metadata/transport or
-RAM bound. Richer report presentation and full C convergence remain unfinished.
+RAM bound. Full C convergence remains unfinished.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
+
+## Saved evidence and comparison recipes (branch-only domain extension)
+
+Reuse the separation between inspecting immutable facts and explicitly requesting
+execution. A structured view identifies its exact object revision and retained
+attempt, never quietly advancing to a mutable head. A failed latest attempt must
+not display an earlier success as its own result. Missing/unavailable values are
+different from numerical zero and from a metric that is not applicable. Actual
+execution counts and checkpoint identities are evidence, not decorative labels.
+Summary rounding is presentation-only; expandable ledgers expose original values.
+Tables keep numerical/status cells intact and scroll horizontally inside the
+floating panel without changing base fonts. User metadata is literal text, not
+HTML or implicitly interpreted math.
+
+An ordered transient selection basket explicitly chooses immutable run references.
+Adding the identical reference is a no-op; a different revision of the same
+logical run requires explicit removal, not silently counting a retry as another
+run. Create recipe is an explicit history-aware domain edit; file persistence is
+a separate Save action. Viewing that recipe never executes it. Drilldown uses
+the recipe's exact references, not current heads. Failures/cancellation/exclusion
+remain visible. The view must not assert independent replication or aggregate
+incompatible metrics merely because runs appear together.
+
+Workspace change clears the transient basket and fences late replies. Origin
+admission may already have happened; ignoring its late reply does not establish
+detached persistence or crash recovery. A UUID check is not same-UUID/ABA safety.
+Keep reads available during execution, with native mutations guarded through
+pending terminal delivery, not only visually disabled buttons. Page bounds are
+response/render limits, not a proof of bounded dependency/data validation.
+
+The concrete implementation uses app/run_views.py, app/web/run-evidence.js,
+app/web/evidence-view.js and app/web/science-results.js. Preserve their explicit
+domains when adapting them; another application must define its own identities,
+evidence grammar, units, history and statistical interpretation. See
+[saved-evidence-views.md](saved-evidence-views.md) for the executable contract.

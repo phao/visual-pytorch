@@ -23,6 +23,8 @@ python vpw_cli.py lab.vtw export-task-trained task-result-value.json
 python vpw_cli.py lab.vtw preview-experiment EXPERIMENT_ID EXPERIMENT_SHA256 --offset 0 --limit 100
 python vpw_cli.py lab.vtw run-candidate --experiment EXPERIMENT_ID EXPERIMENT_SHA256 --coordinates coordinates.json --run-id RUN_ID --name "Trial" --torch-python /path/to/numerical/python --timeout 60
 python vpw_cli.py lab.vtw report-data REPORT_ID REPORT_SHA256
+python vpw_cli.py lab.vtw run-evidence RUN_ID RUN_SHA256 --attempt 1 --offset 0 --limit 25
+python vpw_cli.py lab.vtw report-evidence REPORT_ID REPORT_SHA256 --offset 0 --limit 5
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
@@ -46,7 +48,8 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
 Independent dataset/experiment/model/report/run/task persistence is implemented
-in `.vtw` v6; the experiment selection/history GUI remains pending. Portable
+in `.vtw` v6; the branch-only selection/history GUI is described in
+[experiment-gui.md](experiment-gui.md). Portable
 notebook generation/explicit real-kernel execution are described below.
 [revision-store.md](revision-store.md) specifies validators/migration.
 `prepare-stored` requires exact model/dataset/task ID+revision pairs and the same
@@ -64,7 +67,8 @@ artifact was returned: inspect `value.status`/`failure`, not `ok`, to distinguis
 completed, failed, cancelled or unavailable training. Admission/process/protocol
 errors use the usual `ok:false` envelope for this read-only direct command.
 The separate run-candidate wrapper below stores terminal attempts.
-No background/detached execution or independent run-store UI is claimed.
+No background/detached execution is claimed. Saved runs are browsable in the
+branch-only GUI; this direct command does not store one.
 
 `export-task-trained` reads the saved **value object**, validates its frozen bundle
 and fitted inference checkpoint, and emits standalone Python in `value.code`.
@@ -117,6 +121,18 @@ Result-report and rerun modes are deliberately separate. This is JSON
 materialization, not notebook generation/execution (`notebook_status:not-generated`).
 See [experiment-objects.md](experiment-objects.md) for exact closed schemas,
 dependency validation, descriptive analysis and remaining capabilities.
+
+`run-evidence ID REVISION [--attempt N] [--offset 0 --limit 25]` and
+`report-evidence ID REVISION [--offset 0 --limit 5]` return the same structured
+read-only projections as Qt. Exact hashes are mandatory. Attempt defaults to the
+latest retained attempt of that exact revision, not a newer revision or earlier
+success. Metric limits are 1..25; report run limits 1..10. Invalid requests or
+missing/corrupt dependencies fail without changing file bytes. No workers,
+notebook execution, weights or raw observations are returned. Saved scalar
+metrics/denominators/counters retain head/population/checkpoint identity, including
+cancellation/unavailable cases. Report order follows the recipe; rerun recipes
+return labelled zero saved rows, not retraining. Paging bounds response rows,
+not full validation/inline data costs. See [saved-evidence-views.md](saved-evidence-views.md).
 
 `generate-report ID REVISION --output NEW_DIRECTORY` creates a portable notebook
 bundle from an exact ReportRecipe; it never executes cells or trains. Optional

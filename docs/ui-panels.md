@@ -67,8 +67,9 @@ undoable computational edit and invalidates current learned results. Tensor
 shape errors may still create a saveable non-runnable draft; no shape is guessed.
 Every diagram block has a bottom-right resize grip: Ctrl snaps that corner to the
 24-unit world grid, preserving top-left and readable minimums. Focused grips use
-8-unit arrow steps, or 24 with Shift/Ctrl. Inspector Width/Height and Automatic
-size are alternate controls. Sizes persist in .vtw, follow undo/redo, update wires/
+8-unit arrow steps, or 24 with Shift/Ctrl. The block context menu's Automatic size
+removes custom dimensions; Inspector exposes no dimension/removal controls.
+Sizes persist in .vtw, follow undo/redo, update wires/
 Fit and never change tensor shapes, datasets or learned weights. Linear footers
 always start Bias on/off; counts and weight dimensions use only the last axis.
 

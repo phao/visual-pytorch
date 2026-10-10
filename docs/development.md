@@ -202,6 +202,51 @@ rendering bounds, rendered report-figure review and a full C exit audit remain.
 D/E remain pending; unfinished C is not merged/published. The user app, workspace
 and configuration are unchanged.
 
+### Structured saved results and multi-run recipes — local task branch only
+
+The scientific tab now renders saved actual counters, population objectives,
+per-head metrics, exact additive ledgers and checkpoint/preprocessing/context
+identities. Explicit attempt selection never substitutes earlier successful
+metrics for a failed latest retry. Unavailable supervision is null, not zero;
+actual cancellation has partial counts and no invented test metrics. Summary
+rounding does not change the expandable saved ledger. Source unit metadata is
+not confused with transformed loss units. Literal user text cannot become HTML.
+
+An ordered exact-run basket creates normal immutable descriptive report recipes
+without training. Identical refs are idempotent; another revision of one logical
+run requires explicit removal, not extra replication. Report cards preserve
+recipe order including unsuccessful cases, and drilldown pins historical refs.
+Metric/report pages use 25/five rows. Shared Python/Qt/CLI run-evidence/report-evidence
+queries are read-only; .vtw v6 and existing ReportRecipe grammar are unchanged.
+The new composer checks workspace UUID before admission and fences late replies.
+Tables preserve whole numbers/statuses at larger fonts with panel-local scrolling.
+The [saved presentation contract](saved-evidence-views.md), CLI and reusable UI
+handoff describe the exact behavior and limitations.
+
+All 411 Python tests pass (142.522 s) and 88 JS tests pass. Seventeen new Python
+tests verify every saved scalar, exact histories, split hashes, mask/weight/target
+context, paging, SQL/RNG isolation, no-worker/no-new-split behavior, stdlib-only
+CLI equality and unchanged file bytes. Five new JS tests check basket identities
+and literal formatting. Real sandboxed Qt verifies weighted completed, failed
+retry, cancelled, all-masked and excluded results, 27 metric rows, seven-run recipe
+creation without numerical execution, exact drilldown, history/reload and busy/
+foreign UUID/late read/admission guards. Startup's existing initial Fit save is
+explicitly admitted with unchanged frozen closure/registry before the full SQL
+read-only baseline, not ignored. Dark/GitHub/Math fonts 14/18/28 and menu spacings
+1/4/10 pass; the actual capture was inspected and table word/number splitting fixed.
+
+Dataset/task/experiment GUI regressions, eight authored model/data/seed fits plus
+group/time/external fits, existing actual fit/retry/report/notebook-generation/
+recovery flow, all 11 native lifecycle tests and inherited editor gestures pass.
+No GUI-host Torch or console errors. Syntax/compile/diff checks pass.
+
+This remains unmerged/unpublished partial C. Paging bounds response/rendered rows,
+not complete dependency validation/inline data/metadata transport. It does not
+pool metrics, assert statistical independence, establish same-UUID/ABA/crash
+safety, implement GUI predictor export/notebook execution or close C's scalability,
+rendered notebook figure and complete exit gates. Whole-window large-font header
+convergence and D/E remain open. User app/workspace/configuration are unchanged.
+
 ### First executable checkpoint — not Stage C completion
 
 On `task/stage-c-experiments` (base main

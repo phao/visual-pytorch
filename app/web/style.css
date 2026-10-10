@@ -55,6 +55,16 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 #science-experiment-bindings>details{border-bottom:1px solid var(--line);padding:var(--menu-unit,4px) 0}
 #science-experiment-bindings p{font-size:calc(var(--ui-font-size,14px) - 2px);color:var(--muted);overflow-wrap:anywhere}
 #science-experiment-context-status,#science-experiment-preview-status{overflow-wrap:anywhere}
+.science-evidence{border:1px solid var(--line);border-radius:7px;padding:calc(2 * var(--menu-unit,4px));margin:calc(2 * var(--menu-unit,4px)) 0;overflow-wrap:anywhere;min-width:0;max-width:100%}
+#science-run-evidence{width:100%}
+.science-evidence-facts{display:grid;grid-template-columns:minmax(100px,1fr) minmax(140px,2fr);gap:var(--menu-unit,4px);margin:var(--menu-unit,4px) 0}
+.science-evidence-facts dt{color:var(--muted)}.science-evidence-facts dd{margin:0;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.science-evidence-table{max-width:100%;overflow:auto}.science-evidence-table table{border-collapse:collapse;min-width:100%;font-size:inherit}
+.science-evidence-table :is(th,td){padding:var(--menu-unit,4px);text-align:left;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap;overflow-wrap:normal}
+.science-evidence-table caption{text-align:left;color:var(--muted);padding:var(--menu-unit,4px) 0}
+#science-report-composer{border:1px solid var(--line);border-radius:7px;padding:calc(2 * var(--menu-unit,4px));margin:var(--menu-unit,4px) 0}
+.science-report-choice{display:flex;flex-wrap:wrap;align-items:center;gap:calc(2 * var(--menu-unit,4px));margin:var(--menu-unit,4px) 0}
+.science-report-choice span{overflow-wrap:anywhere}
 .validation-chip{left:calc(var(--library-width) + 30px);top:12px;max-width:calc(100% - var(--library-width) - var(--inspector-width) - 60px)}
 .floating-panel{position:absolute;z-index:2;border:1px solid #33495a;border-radius:11px;background:#0e1b27f5;box-shadow:0 8px 28px #0006;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0}
 .library{left:12px;top:12px;bottom:12px;width:var(--library-width);overflow:hidden}

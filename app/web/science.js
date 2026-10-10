@@ -23,6 +23,7 @@
   async function inspect(){
     const ticket=++generation,identity=api.workspace(),value=$('science-object').value;
     current=null;page=null;
+    window.LoomScienceResults.clear();
     for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;
     $('science-candidates').replaceChildren();$('science-document').textContent='';
     if(!value){$('science-status').textContent='No '+$('science-kind').selectedOptions[0].textContent.toLowerCase()+' stored yet. Use the dataset/task/experiment authoring controls, freeze an architecture, import a specification, or use the CLI.';window.LoomScienceAuthor?.selectionChanged();return;}
@@ -34,15 +35,17 @@
       $('science-selection').hidden=false;$('science-question').textContent=document.question;
       await preview();
     }else if(reference.kind==='run'){
-      $('science-run').hidden=false;$('science-details').open=true;
+      $('science-run').hidden=false;
       const last=document.attempts.at(-1);
       $('science-status').textContent='Attempt '+last.number+' · '+last.status+' · '+last.stage+(last.error?' · '+last.error.message:'')+' · exact '+reference.revision;
+      await window.LoomScienceResults.show(reference,document);
     }else if(reference.kind==='report'){
       const evidence=await request('scienceReport',{reference});
       if(ticket!==generation || identity!==api.workspace())return;
       $('science-report').hidden=false;
       $('science-report-mode').textContent=document.mode==='result-report'?'Saved-result report: reads these exact runs; no training.':'Explicit rerun recipe: generation does not train; running its notebook will train.';
-      $('science-document').textContent=JSON.stringify(evidence,null,2);$('science-details').open=true;
+      $('science-document').textContent=JSON.stringify(evidence,null,2);
+      await window.LoomScienceResults.show(reference,document);
     }
     controls();
     window.LoomScienceAuthor?.selectionChanged();
@@ -82,6 +85,7 @@
   function act(fn){Promise.resolve().then(fn).catch(error=>{if(!error.vpwNotified)api.toast(error.message,true);});}
   window.LoomScience={
     mount(document,services){root=document;api=services;
+      window.LoomScienceResults.mount(document,services,async reference=>{$('science-kind').value=reference.kind;await refresh(reference);});
       window.LoomScienceAuthor.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(refresh));
       $('science-refresh').onclick=()=>act(refresh);
@@ -99,7 +103,7 @@
       $('science-recovery-export').onclick=()=>act(async()=>{const result=await request('scienceExportRecovery',{id:$('science-recovery-object').value});if(result)api.toast('Recovery evidence exported: '+result.path);await recoveries();});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(recoveries));
     },
-    stateChanged(){if(!api)return;if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;offset=0;generation++;$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();},
+    stateChanged(){if(!api)return;window.LoomScienceResults.stateChanged();if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;offset=0;generation++;$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();},
     event(event){if(!api)return;
       if(event.kind==='scienceChanged' && !$('science-panel').hidden)act(refresh);
       if(event.kind==='scienceProgress')$('science-status').textContent='Active run '+event.payload.run_id+' · '+JSON.stringify(event.payload.point);

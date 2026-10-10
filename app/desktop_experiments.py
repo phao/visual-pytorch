@@ -101,7 +101,8 @@ def retain_recovery(window, job, result, error):
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
-         'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview'}
+         'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
+         'scienceRunEvidence', 'scienceReportEvidence'}
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
 ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery'}
 
@@ -129,6 +130,13 @@ def dispatch(window, req):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action in {'scienceRunEvidence', 'scienceReportEvidence'}:
+        from . import run_views
+        if action == 'scienceRunEvidence':
+            return run_views.run_view(workspace, req['reference'], attempt=req.get('attempt'),
+                offset=req.get('offset', 0), limit=req.get('limit', 25))
+        return run_views.report_view(workspace, req['reference'],
+            offset=req.get('offset', 0), limit=req.get('limit', 5))
     if action == 'scienceAuthorPreview':
         from . import authoring
         return authoring.experiment_preview(workspace, req['draft'], offset=req.get('offset', 0), limit=req.get('limit', 25))
@@ -161,6 +169,10 @@ def dispatch(window, req):
         ref = reference(req['reference'], req['reference']['kind'])
         workspace.select_spec(ref['kind'], ref['id'], ref['revision']); result = ref
     elif action == 'scienceResultReport':
+        if 'workspace_id' in req:
+            from .authoring import workspace_id
+            if req['workspace_id'] != workspace_id(workspace):
+                raise ValueError('Report selection belongs to another workspace. Select runs again.')
         result = experiment_ui.result_report(workspace, req['runs'], sid=req.get('id', uuid.uuid4().hex),
             name=req.get('name', 'Saved run evidence'), question=req['question'])
     elif action == 'scienceImport':

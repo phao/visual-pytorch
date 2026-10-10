@@ -209,8 +209,21 @@ Retry is explicit fresh training of the same selection/captured split, not
 optimizer resume; longest retained history wins after old-head selection.
 Create saved-result report points at the selected exact run revision and has an
 editable question. Reading saved or rerun recipes never launches fits. Rerun mode
-is labelled as such. Multi-run reports can be imported/created through the CLI;
-the current GUI creation action selects one run.
+is labelled as such. The existing one-run report action remains available.
+
+Saved-run cards show actual counters, population objectives, per-head metrics and
+expandable exact additive ledgers/checkpoint identities/captured context. Retained
+attempt selection is explicit; a failed latest retry never substitutes earlier
+metrics. Metric rows page by 25; raw JSON does not open automatically.
+
+Add exact run to comparison opens a transient ordered basket. An identical
+reference is idempotent; another revision of the same logical run requires
+explicit removal first, not counting a retry as another run. Name/question and
+Create saved comparison recipe retain an immutable result-report without training.
+Save workspace persists it. Cards page by five runs, including unsuccessful cases;
+Open exact run pins the recipe's reference, never the current head. No metrics
+are pooled or independence asserted. See [saved-evidence-views.md](saved-evidence-views.md)
+for response fields, attempt/units/guards and paging-versus-validation boundaries.
 
 Generate notebook bundle creates a new complete directory via a native chooser,
 without executing cells or overwriting files. Install optional
@@ -230,6 +243,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceShow | reference | Exact stored document, no execution |
 | sciencePreview | experiment reference, offset/limit | Existing bounded compatibility preview |
 | scienceReport | report reference | Read saved evidence or labelled rerun recipe |
+| scienceRunEvidence | exact run reference, optional attempt, offset/limit (default 0/25, limit 1..25) | Read-only saved-attempt projection; never execute |
+| scienceReportEvidence | exact report reference, offset/limit (default 0/5, limit 1..10) | Read-only exact saved-run projections; never execute |
 | scienceAuthorBegin | kind, optional exact reference or new id | Read-only draft with base/head/workspace capture |
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |
@@ -240,7 +255,7 @@ a null hash is rejected, not interpreted as a mutable head.
 | sciencePut | kind, document | Strict registry admission |
 | scienceSelect | reference | Explicit browsing-head change |
 | scienceImport | kind | Native JSON chooser, strict admission |
-| scienceResultReport | runs, question, optional id/name | Reading recipe over exact runs |
+| scienceResultReport | runs, question, optional id/name/workspace_id | Reading recipe over exact runs; supplied workspace UUID checked before admission |
 | scienceTrain | experiment reference, coordinates, optional run_id/name/retry | Explicit isolated fit/retry |
 | scienceGenerateNotebook | report reference, optional output/offset/limit/allow_partial | Generate, never execute |
 

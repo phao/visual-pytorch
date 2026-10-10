@@ -167,6 +167,14 @@ def main(argv=None):
     selections.add_argument('--offset', type=int, default=0); selections.add_argument('--limit', type=int, default=100)
     reporting = sub.add_parser('report-data', help='Read exact saved report recipe/evidence; does not train or execute notebooks')
     reporting.add_argument('id'); reporting.add_argument('revision')
+    for command,maximum in (('run-evidence',25),('report-evidence',10)):
+        evidence = sub.add_parser(command, help='Read paged exact saved evidence; never train or execute notebooks')
+        evidence.add_argument('id'); evidence.add_argument('revision')
+        evidence.add_argument('--offset', type=int, default=0)
+        evidence.add_argument('--limit', type=int, default=25 if command=='run-evidence' else 5,
+                              help='Response row limit in 1..'+str(maximum))
+        if command=='run-evidence':
+            evidence.add_argument('--attempt', type=int, help='Retained attempt number; default latest of this exact revision')
     notebook = sub.add_parser('generate-report', help='Export a NEW portable notebook bundle; does not train or execute cells')
     notebook.add_argument('id'); notebook.add_argument('revision'); notebook.add_argument('--output', required=True)
     notebook.add_argument('--offset', type=int, default=0); notebook.add_argument('--limit', type=int, default=100)
@@ -222,6 +230,12 @@ def main(argv=None):
             elif args.command == 'report-data':
                 from app.experiment_objects import report_data
                 value = report_data(workspace.get_spec('report', args.id, args.revision), workspace.get_spec)
+            elif args.command in ('run-evidence', 'report-evidence'):
+                from app.run_views import run_view,report_view
+                ref={'kind':'run' if args.command=='run-evidence' else 'report','id':args.id,'revision':args.revision}
+                options={'offset':args.offset,'limit':args.limit}
+                if args.command=='run-evidence':options['attempt']=args.attempt
+                value=(run_view if args.command=='run-evidence' else report_view)(workspace,ref,**options)
             elif args.command == 'generate-report':
                 from app.notebooks import create_bundle
                 value = create_bundle(workspace, {'kind': 'report', 'id': args.id, 'revision': args.revision}, args.output,

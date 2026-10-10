@@ -21,6 +21,9 @@
   <script src="task-form.js" defer></script>
   <script src="experiment-authoring.js" defer></script>
   <script src="experiment-form.js" defer></script>
+  <script src="run-evidence.js" defer></script>
+  <script src="evidence-view.js" defer></script>
+  <script src="science-results.js" defer></script>
   <script src="science-author.js" defer></script>
   <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
@@ -153,8 +156,11 @@
           <div class="inline-actions"><p id="science-status" role="status" class="tiny">Browsing never trains. Exact revisions retain historical meaning.</p><button id="science-stop" hidden>Stop run</button></div>
           <div id="science-recovery" hidden><p class="tiny">Unadmitted evidence is kept for this session. Export before closing; contains captured data and results, not a running-job receipt.</p><label>Recovery evidence<select id="science-recovery-object"></select></label><button id="science-recovery-show">Show recovery</button><button id="science-recovery-export">Export recovery JSON…</button></div>
           <div id="science-selection" hidden><p id="science-question"></p><div class="inline-actions"><button id="science-previous">‹ Previous</button><span id="science-page" class="tiny"></span><button id="science-next">Next ›</button></div><div id="science-candidates"></div></div>
-          <div id="science-run" hidden><button id="science-retry" title="Fresh training using the saved selection and split, not optimizer continuation">Retry this run</button><label>Report question<input id="science-report-question" value="What does this saved trial show?" maxlength="20000"></label><button id="science-make-report">Create saved-result report</button></div>
-          <div id="science-report" hidden><p id="science-report-mode" class="tiny"></p><button id="science-generate" title="Creates a new complete notebook directory. Does not execute or train.">Generate notebook bundle…</button></div>
+          <div id="science-run" hidden><div class="inline-actions"><button id="science-retry" title="Fresh training using the saved selection and split, not optimizer continuation">Retry this run</button><button id="science-report-add">Add exact run to comparison</button></div><label>Report question<input id="science-report-question" value="What does this saved trial show?" maxlength="20000"></label><button id="science-make-report">Create saved-result report</button>
+            <div class="inline-actions"><label>Retained attempt<input id="science-evidence-attempt" type="number" min="1" value="1"></label><button id="science-evidence-read">Read this attempt</button><button id="science-metrics-prev">‹ Metrics</button><button id="science-metrics-next">Metrics ›</button></div><div id="science-run-evidence" class="science-evidence"></div>
+          </div>
+          <details id="science-report-composer"><summary id="science-report-selection-label">Compare exact saved runs · 0 selected</summary><p class="tiny">Selection is transient. Create a recipe, then Save workspace. No training is launched. Revisions/retries of one logical run cannot be counted as extra runs.</p><div id="science-report-selection"></div><div class="science-author-grid"><label>Report name<input id="science-comparison-name" value="Saved run comparison" maxlength="200"></label><label>Research question<input id="science-comparison-question" value="How do these exact saved trials compare?" maxlength="20000"></label></div><button id="science-comparison-create">Create saved comparison recipe</button></details>
+          <div id="science-report" hidden><p id="science-report-mode" class="tiny"></p><button id="science-generate" title="Creates a new complete notebook directory. Does not execute or train.">Generate notebook bundle…</button><div class="inline-actions"><button id="science-report-prev">‹ Saved runs</button><span id="science-report-page" class="tiny"></span><button id="science-report-next">Saved runs ›</button></div><div id="science-report-evidence"></div></div>
           <details id="science-details"><summary>Specification / evidence · exact revision</summary><pre id="science-document"></pre></details>
         </div>
         </div>
