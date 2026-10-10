@@ -105,7 +105,9 @@ preferred expanded dimensions and undo/redo remain functional.
 
 Layout adds independent collapsed/expanded profiles with one implemented Layered
 style, LR/TB direction, model-unit gaps and optional rearrange/fit. Controls apply
-to the next action; an explicit save persists profiles in user configuration.
+to the next action; Save layout preferences updates the workspace draft, and
+Save workspace persists the profiles in `.vtw` metadata. Global configuration
+does not own these profiles; legacy global layout settings are ignored.
 Each bulk action is a single undoable visual edit. Small summaries remain visible
 on compact blocks. The algorithm is deterministic and size-aware, handles draft
 cycles without changing their graph, and reduces crossings heuristically rather
@@ -113,3 +115,24 @@ than promising optimal routing. See [layout contract](layout.md).
 
 Preserve persistent selection on empty canvas and contextual Escape behavior,
 including typing/dialog safeguards. Group selection gestures remain deferred.
+
+## Initial public preview — 0.1.0-alpha.1
+
+The public preview includes the verified A/B slices above and workspace-owned
+layout profiles. It does not include the incomplete Stage C development branch.
+Six focused workspace-layout tests cover independent files, validation, defaults,
+save/reload, presentation-only identity, undo/redo and atomic CLI edits. Native Qt
+checks also verify busy/empty guards and that global preferences remain untouched.
+The real WebEngine editor test checks that undo/redo restores the layout controls.
+
+Release validation: 199 Python tests and 57 JavaScript tests passed, along with
+native Qt workspace-layout and real sandboxed WebEngine UI/CNN checks. The CNN
+harness builds and edits its graph through real controls, trains an actual worker,
+checks a current checkpoint, save/reload and trained export, and captures the
+experiment, learned tensors and fresh-weight source views after painted frames.
+These are bounded local checks, not a clean-install/platform certification.
+
+Floating-panel geometry and visibility remain session-only. Moving remaining
+workspace-specific layout state into `.vtw` is an open portability item. Rich
+experiments/notebook reporting, symbolic/recurrent composition and detached jobs
+remain roadmap work; none are implied by this release's screenshots.

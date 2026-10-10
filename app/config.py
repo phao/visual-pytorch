@@ -9,24 +9,6 @@ from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent
 from .themes import resolve_theme
 
 DEFAULTS = {'ui_zoom': 1.15, 'font_size': 14, 'memory_limit_percent': DEFAULT_MEMORY_LIMIT_PERCENT, 'theme':'dark','spacing':4,'box_spacing':35}
-DEFAULTS['layout']={'version':1,
-    'collapsed':{'style':'layered','direction':'LR','layer_gap':48,'block_gap':16,'rearrange':True,'fit':True},
-    'expanded':{'style':'layered','direction':'LR','layer_gap':80,'block_gap':32,'rearrange':True,'fit':True}}
-
-
-def validate_layout(value):
-    if not isinstance(value,dict) or type(value.get('version')) is not int or value.get('version')!=1:
-        raise ValueError('Layout preferences require version 1.')
-    for mode in ('collapsed','expanded'):
-        profile=value.get(mode)
-        if not isinstance(profile,dict) or profile.get('style')!='layered' or profile.get('direction') not in ('LR','TB'):
-            raise ValueError('Choose a Layered layout and supported direction for each block state.')
-        for key in ('layer_gap','block_gap'):
-            v=profile.get(key)
-            if isinstance(v,bool) or not isinstance(v,int) or not 8<=v<=1000:
-                raise ValueError('Layout gaps must be integers from 8 to 1000 model units.')
-        for key in ('rearrange','fit'):
-            if not isinstance(profile.get(key),bool):raise ValueError('Layout toggles must be booleans.')
 
 
 class Config:
@@ -63,9 +45,10 @@ class Config:
         box=values.get('box_spacing',DEFAULTS['box_spacing'])
         if isinstance(box,bool) or not isinstance(box,int) or not 1<=box<=100:
             raise ValueError('NN box spacing must be an integer from 1 to 100.')
-        validate_layout(values.get('layout',DEFAULTS['layout']))
 
     def save(self, **changes):
+        if 'layout' in changes:
+            raise ValueError('Layout preferences belong to a .vtw workspace, not user configuration.')
         values = {**self.values, **changes}
         self.validate(values)
         # Do not silently overwrite a malformed file a user may want to repair.

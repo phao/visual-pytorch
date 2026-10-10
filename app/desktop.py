@@ -393,14 +393,16 @@ class Window(QMainWindow):
             'theme':theme,'theme_tokens':THEMES[theme],
             'theme_scheme':'light' if theme in ('light','github','math','retrofuturism','bauhaus') else 'dark',
             "binding": BINDING, "path": self.workspace.path if self.workspace else None,
+            "workspace_id": self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0] if self.workspace else None,
             "dirty": bool(self.workspace and self.workspace.dirty),
             "models": models, "recent": self.recent_files(),
             "training_id": self.job.mid if self.job and self.job.isRunning() else None,
             "torch_python": self.torch_python,
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,
+            "layout_preferences": self.workspace.layout_preferences if self.workspace else None,
             "memory_limit_percent": self.config.values['memory_limit_percent'] if hasattr(self, 'config') else DEFAULT_MEMORY_LIMIT_PERCENT,
-            "display": self.config.values if hasattr(self, 'config') else {'font_size':14,'ui_zoom':1.15},
+            "display": {k: v for k, v in self.config.values.items() if k != 'layout'} if hasattr(self, 'config') else {'font_size':14,'ui_zoom':1.15},
         }
 
     def broadcast(self, kind="state", payload=None, exclude=None):
@@ -519,7 +521,7 @@ class Window(QMainWindow):
                         view=self.tabs.widget(index)
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset'}
+        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'}
         workspace=self.workspace
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
@@ -551,9 +553,13 @@ class Window(QMainWindow):
             self.find()
             return True
         if action == 'setLayoutPreferences':
-            self.config.save(layout=req['layout'])
-            self.broadcast('layoutPreferences',self.config.values['layout'])
-            return self.config.values['layout']
+            if not self.workspace:
+                raise ValueError('Open a workspace before saving its layout preferences.')
+            if self.job and self.job.isRunning():
+                raise ValueError('Stop training before changing workspace layout preferences.')
+            self.workspace.set_layout_preferences(req['layout'])
+            self.broadcast()
+            return self.workspace.layout_preferences
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
         models = self.workspace.models()

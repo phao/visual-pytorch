@@ -26,6 +26,10 @@ def apply_edits(workspace, edits):
             workspace.set_constrained_mode(edit['enabled'])
             results.append({'op': kind, 'enabled': workspace.constrained_mode})
             continue
+        elif kind == 'layout':
+            workspace.set_layout_preferences(edit['value'])
+            results.append({'op': kind, 'value': workspace.layout_preferences})
+            continue
         elif kind == 'delete':
             workspace.delete(edit['id'])
             results.append({'op': kind, 'id': edit['id']})
@@ -122,6 +126,7 @@ def main(argv=None):
                 value = {'path': str(path), 'revision': workspace.disk_revision,
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],
                          'constrained_mode': workspace.constrained_mode,
+                         'layout_preferences': workspace.layout_preferences,
                          'architectures': [{'id':d['id'],'name':d['name'],'nodes':len(d['graph']['nodes'])} for d in sorted(workspace.models().values(),key=lambda d:(d['name'].casefold(),d['id']))],
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}
             elif args.command == 'show':
