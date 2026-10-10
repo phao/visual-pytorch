@@ -68,6 +68,7 @@ def estimate_memory(contract, *, samples=None, training=False, kind='auto'):
         # 104 B/parameter: results/state-list/JSON/host copies and serialization.
         components['parameters_optimizer_evidence'] = 128 * p
         components['activations_backward'] = 16 * batch * contract['activation_elements']
+        components['convolution_workspace'] = 32 * batch * contract.get('convolution_workspace_elements', 0)
         components['dataset_and_copies'] = 128 * (samples or 0) * (ni + no)
         components['affine_report'] = 128 * (ni * no + no) if contract['matrix_affine'] else 0
     elif samples is not None:
@@ -77,7 +78,8 @@ def estimate_memory(contract, *, samples=None, training=False, kind='auto'):
     else:
         components['parameters_construction'] = 8 * p
         components['activations_forward'] = 8 * contract['activation_elements']
-    return {'version': 1, 'operation': operation, 'batch': batch,
+        components['convolution_workspace'] = 8 * contract.get('convolution_workspace_elements', 0)
+    return {'version': 2, 'operation': operation, 'batch': batch,
             'parameter_bytes': 4 * p, 'components': components,
             'estimated_bytes': sum(components.values())}
 

@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 3
+# Visual Torch Workspace (.vtw): format specification, version 4
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -9,13 +9,15 @@ app/file_sync.py and vpw_cli.py. The reusable GUI has a separate specification:
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 3. The current reader accepts versions 1, 2 and 3; opening
-an older file copies it into memory and upgrades the working version to 3.
-Opening alone never rewrites the source; explicit Save writes version 3.
+PRAGMA user_version = 4. The current reader accepts versions 1, 2, 3 and 4; opening
+an older file copies it into memory and upgrades the working version to 4.
+Opening alone never rewrites the source; explicit Save writes version 4.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
-without changing SQL tables. Older binaries are not expected to open version 3;
+without changing SQL tables. Version 4 adds versioned structured operators,
+optional named sample axes and a checked recorded structured dataset adapter,
+without changing SQL tables. Older binaries are not expected to open version 4;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -29,7 +31,7 @@ training. These checks are not a hostile-file sandbox or memory guarantee.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -147,7 +149,7 @@ Current training tensors are float32.
 
 | Type | Computational fields | Meaning |
 | --- | --- | --- |
-| Input | shape; legacy features | Exact named sample shape; explicit shape takes precedence; features=d means shape=[d]. |
+| Input | shape; legacy features; optional axes | Exact named sample shape; explicit shape takes precedence; features=d means shape=[d]. axes lists unique sample-axis names (one per dimension), never B. |
 | Linear | features, bias (default true) | nn.Linear(in_last,out_features); last axis only, shared weights across all preceding sample positions. |
 | Activation | activation | ReLU, Tanh, Sigmoid or exact GELU; axes preserved. |
 | Reshape | shape | x.reshape(B,*resolved_shape); sample product preserved; one -1 inferred; B never reshaped. |
@@ -156,6 +158,29 @@ Current training tensors are float32.
 | Replicator | outputs=[port_id,...] | All ports alias the same full tensor; no clone or parameters. |
 | Module | ref | Independently instantiated graph reference; exact packed input shape match, canonical forward_tensor output. |
 | Output | optional shape, label | Identity boundary. Shape asserts incoming dimensions; it never implicitly reshapes. |
+
+Structured operators use integer op_version=1. Missing version is interpreted
+as 1; writes normalize it explicitly along with all defaults and scalar spatial
+parameters to two-element JSON arrays [height,width]. Unknown versions and
+unsupported fields/options are rejected, not silently ignored. Logical Conv2d
+layout is NCHW; this is separate from physical strides/memory format. Unnamed
+rank-3 samples are interpreted as CHW. Named incoming axes must be C,H,W.
+Permute, not Reshape, changes axis order and values; Reshape discards axis names.
+
+| Type | Version-1 computational fields/defaults | Meaning |
+| --- | --- | --- |
+| Conv2d | out_channels; kernel_size; stride=[1,1]; padding=[0,0]; dilation=[1,1]; groups=1; bias=true; padding_mode=zeros | Derive in_channels from C. Positive channels/kernel/stride/dilation/groups; both channel counts divisible by groups. Weight [out,in/groups,kH,kW], optional bias [out]. Spatial output floor((size+2p−d(k−1)−1)/s)+1 must be positive. Numeric zero-padding only; strings same/valid and other boundary modes are not version-1 options. |
+| AvgPool2d | kernel_size; stride=kernel_size; padding=[0,0]; ceil_mode=false; count_include_pad=true | CHW average windows; padding ≤ floor(kernel/2); floor spatial sizes. Include or exclude zero-padding from divisor as declared. No divisor_override option. |
+| MaxPool2d | kernel_size; stride=kernel_size; padding=[0,0]; dilation=[1,1]; ceil_mode=false | CHW maxima, negative-infinity padding, floor spatial sizes; padding ≤ floor(kernel/2). No return_indices option. |
+| AdaptiveAvgPool2d | output_size | Positive scalar/pair output H,W; channels preserved. [1,1] is global spatial average; PyTorch adaptive bin semantics, including overlapping bins. |
+| Flatten | start_dim=0; end_dim=-1 | Axes index SAMPLE dimensions, excluding B. Negative indices count from sample rank. Merge an ordered contiguous axis range; runtime nn.Flatten gets resolved sample axes plus 1. Batch never merged. |
+| Permute | dims | Permutation of sample axes 0..rank−1, excluding B. Runtime prepends batch axis 0 and shifts sample axes by 1. Example HWC→CHW: dims=[2,0,1]. |
+
+Shape contracts report propagated output_axes and operator constructor/kwargs,
+local parameters and weight_shape. Conv2d and averaging are affine for fixed
+weights; MaxPool2d is nonlinear. Structured operators conservatively disable the
+serial-vector matrix_affine report; they never build a dense global convolution
+matrix. See [CNN contract and verification](cnn-workflow.md).
 
 Router ports have at least two unique IDs. The UI Add port helper currently caps
 each router at eight; there is no eight-input-path limit. Concat.sources lists
@@ -209,6 +234,7 @@ rejected even when each internal DAG is acyclic. Its output presentation does no
 replace its canonical adapter.
 
 State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module
+and the six structured operators above,
 in topological order, nested through references. Boundary/Concat/router nodes
 do not occupy these operation indices. Paths can change after graph insertion/
 reordering; restore weights against their graph snapshot, not another architecture.
@@ -227,7 +253,17 @@ Reshape. Full-batch CPU Adam uses one worker thread and seeded shuffled 80/20 sp
 Epochs are positive integers; lr is finite in (0,1]; seed is 0 through 2^31-1.
 Parameter-free graphs compile but cannot train with this optimizer.
 
-Synthetic targets use a flat affine A,b or deterministic Tanh teacher. A shared-
+Synthetic targets use a flat affine A,b, deterministic Tanh teacher, or a spatial
+Conv2d→Tanh→global average→Linear teacher. Eligible CNNs choose spatial in Auto;
+other models keep the affine/nonlinear choice. Structured single-input synthetic
+datasets record adapter={version:1,kind:declared-row-major,sample_shape,axes}.
+Its exact shape/axis meaning is checked before runs and trained export; a
+mismatch cannot be repaired by column rebinding, which does not move values.
+Legacy flat datasets without this optional adapter remain supported through
+their recorded port/shape bindings. Bindings add axes only when named; old
+unnamed bindings/checkpoint identities keep their original meaning.
+
+A shared-
 position higher-rank Linear model may not represent an arbitrary flat target.
 Low loss is not guaranteed. Same graphs/seeds do not guarantee bitwise numerical
 reproducibility across Torch versions/hardware.

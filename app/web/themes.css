@@ -47,6 +47,12 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 #wire-arrow path{fill:var(--blue)}#pending-wire{stroke:var(--amber)}
 .node rect{fill:var(--node-input);stroke:var(--blue)}
 .node.Linear rect{fill:var(--node-linear);stroke:var(--purple)}
+.node.Conv2d rect{fill:var(--node-linear);stroke:var(--purple)}
+.node.AvgPool2d rect,.node.MaxPool2d rect,.node.AdaptiveAvgPool2d rect{fill:var(--node-output);stroke:var(--mint)}
+.node.Flatten rect,.node.Permute rect{fill:var(--node-reshape);stroke:var(--mint)}
+.node.Conv2d .node-header{fill:var(--purple)}
+.node.Conv2d .node-type-icon{stroke:var(--purple)}
+.node.AvgPool2d .node-type-icon,.node.MaxPool2d .node-type-icon,.node.AdaptiveAvgPool2d .node-type-icon,.node.Flatten .node-type-icon,.node.Permute .node-type-icon{stroke:var(--mint)}
 .node.Module rect,.node.Splitter rect,.node.Replicator rect{fill:var(--node-module);stroke:var(--amber)}
 .node.Activation rect,.node.Output rect{fill:var(--node-output);stroke:var(--mint)}
 .node.Reshape rect{fill:var(--node-reshape);stroke:var(--mint)}

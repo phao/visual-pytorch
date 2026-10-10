@@ -12,6 +12,7 @@
   <script src="graph-tools.js" defer></script>
   <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
+  <script src="tensor-operators.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
   <script src="editor.js" defer></script>
@@ -47,6 +48,7 @@
       <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
+      <div id="tensor-palette"></div>
       <label for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button>
       <div class="eyebrow">NAMED BOUNDARIES</div>
       <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
@@ -98,7 +100,7 @@
         <div id="experiment-scroll" class="scrollport">
         <div id="experiment-panel" class="experiment panel-content">
           <section class="data-section"><div class="section-line"><h3>1. Prepare x, y data</h3><span id="data-status" class="muted">No dataset yet</span></div>
-          <select id="target-kind" aria-label="Synthetic target" title="Auto selects affine versus nonlinear targets, not guaranteed representable by every architecture"><option value="auto">Auto: choose target family</option><option value="affine">Known affine map</option><option value="nonlinear">Nonlinear Tanh teacher</option></select>
+          <select id="target-kind" aria-label="Synthetic target" title="Auto chooses a target family, including spatial targets for eligible CNNs; arbitrary students need not represent it exactly"><option value="auto">Auto: choose target family</option><option value="affine">Known affine map</option><option value="nonlinear">Nonlinear Tanh teacher</option><option value="spatial">Spatial Conv2d teacher</option></select>
           <div class="inline-fields"><label>Samples<input id="sample-count" type="number" min="2" value="256"></label><label>Noise σ<input id="noise" type="number" min="0" max="1" step=".01" value="0"></label><label>Seed<input id="seed" type="number" min="0" max="2147483647" value="7"></label></div><div class="inline-actions"><button id="generate-data">Generate synthetic data</button><button id="import-data">Import CSV…</button></div><p class="tiny" id="data-help">Generate a known target or import numeric CSV.</p><details id="dataset-bindings" class="dataset-details"><summary>Column bindings · <span id="binding-status">No dataset</span></summary><p id="binding-notice" class="tiny" role="status"></p><pre id="binding-columns"></pre><button id="rebind-data" hidden>Use current port order…</button></details><input type="file" id="csv-file" accept=".csv,text/csv" hidden></section>
           <section class="train-section"><div class="section-line"><h3>2. Learn the model</h3><span id="training-state" class="muted">Ready when data is loaded</span></div><div class="inline-fields"><label>Epochs<input id="epochs" type="number" min="1" value="400"></label><label>Learning rate<input id="learning-rate" type="number" min=".000001" max="1" step=".01" value=".03"></label></div><div class="inline-actions"><button id="train" class="primary">▶ Train model</button><button id="stop" hidden>Stop</button><span id="loss-value" class="metric">—</span></div><p class="tiny">Seeded shuffled 80/20 split · MSE regression · one CPU worker thread. Output copies do not duplicate loss terms.</p><details class="safety-details"><summary id="safety-summary">Workspace run safety</summary><div id="safety-notice" role="status"></div><p id="safety-rules" class="tiny"></p></details></section>
           <section class="loss-section"><div class="section-line"><h3>Loss</h3><span class="tiny">log scale · train + held-out</span></div><svg id="loss-plot" viewBox="0 0 300 120" aria-label="Training and held-out loss curves"></svg><div class="plot-legend"><span class="mint-text">— training</span><span class="blue-text">— held-out</span></div></section>

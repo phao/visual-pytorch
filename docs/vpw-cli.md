@@ -17,7 +17,7 @@ python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
 
-init creates an empty version-3 collection, never overwriting a file. inspect
+init creates an empty version-4 collection, never overwriting a file. inspect
 returns working format version, exact SQLite DDL, architecture IDs/names/counts,
 policy and on-disk SHA-256 revision. Architecture summaries are alphabetical by
 case-folded name, with ID as tie-breaker. show returns a materialized document with
@@ -57,6 +57,13 @@ the graph and its users. When changing input/CSV packing, explicitly clear or
 replace the dataset rather than assuming old columns retain their meaning.
 For batch-local references, assign unique IDs in create documents: automatically
 generated UUIDs are reported only after the complete batch commits.
+
+Conv2d, pooling, Flatten and Permute use the same add-node/set-node/create/replace
+grammar as existing blocks. Writes normalize spatial scalars to explicit pairs
+and op_version=1. Normal apply checks grouped channel divisibility, layout and
+positive output sizes without importing Torch. Invalid batches leave disk bytes
+unchanged. A structured dataset adapter mismatch is not repaired by rebind-dataset.
+See [the CNN example](cnn-workflow.md) for a runnable workspace generator.
 
 Example layout repair (substitute actual IDs):
 

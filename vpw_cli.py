@@ -50,6 +50,8 @@ def apply_edits(workspace, edits):
                 if doc.get('dataset') is None:raise ValueError('There is no dataset to rebind.')
                 contract=validate_model(workspace.models(),doc['id'])
                 validate_dataset(doc['dataset'],contract['inputs'],contract['outputs'])
+                from app.tensor_data import check_adapter
+                check_adapter(doc['dataset'], contract)
                 doc['dataset_binding']=binding_for(contract)
                 doc['result']=None
             elif kind == 'set-node':

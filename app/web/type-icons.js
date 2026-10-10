@@ -15,6 +15,12 @@
     Splitter:'<path d="M3 12h6l7-7h5M9 12l7 7h5m-3-17 3 3-3 3m0 8 3 3-3 3"/>',
     Replicator:'<path d="M2 12h5m0 0V6h5m-5 6v6h5"/><path d="M13 3h8v6h-8zm0 12h8v6h-8z"/>',
     Module:'<path d="M3 3h18v18H3zm5 5h8v8H8zM3 12h5m8 0h5"/>',
+    Conv2d:'<path d="M3 3h14v14H3zm5 5h13v13H8zM3 8h5M8 3v5m5 5h3m-3 3h3"/>',
+    AvgPool2d:'<path d="M3 3h12v12H3zm6 0v12M3 9h12m2 8h4v4h-4zM10 19h5m-3-2 3 2-3 2"/>',
+    MaxPool2d:'<path d="M3 3h12v12H3zm3 9 3-6 3 6M17 17h4v4h-4zM10 19h5m-3-2 3 2-3 2"/>',
+    AdaptiveAvgPool2d:'<path d="M3 3h14v14H3zm4 0v14m5-14v14M3 9h14m1 9h3v3h-3zM9 20h6"/>',
+    Flatten:'<path d="M3 3h8v8H3zm4 0v8M3 7h8M14 6h7m-3-3 3 3-3 3M3 17h18v4H3zm4 0v4m5-4v4m5-4v4"/>',
+    Permute:'<path d="M3 5h4l10 14h4M3 19h4L17 5h4m-3-3 3 3-3 3m0 8 3 3-3 3"/>',
   };
   return {types:Object.keys(icons),svg:type=>icons[type] || '<path d="M4 4h16v16H4z"/>'};
 });

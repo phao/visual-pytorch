@@ -4,6 +4,7 @@
   const SVG = "http://www.w3.org/2000/svg";
   const G = window.LoomGraph;
   const L = window.LoomLayout;
+  const T = window.LoomTensorOperators;
   const floating = window.LoomPanels.initialize(document);
   const activationInfo = {
     ReLU: ["h = max(0, z)", "Keeps positive features; zeros negative ones."],
@@ -283,17 +284,19 @@
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
-      const note = n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? "Elementwise · 0 params" : "Named tensor · float32";
+      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? "Elementwise · 0 params" : "Named tensor · float32";
       const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(note,4.9,14));
       noteText.append(svgElement('title',{},note));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
+          n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
+          T.types.includes(n.type)?shapeText(s?.output_shape):
           n.type==='Activation'?n.activation:['Input','Output','Reshape'].includes(n.type)?line:
           n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
-        const small=svgElement('text',{x:m.width/2,y:height-(n.type==='Linear'?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
+        const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
-        if(n.type==='Linear')group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
+        if(['Linear','Conv2d'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
         group.append(svgElement('title',{},label+' · '+line+' · '+note));
       }
       for (const output of [false, true]) {
@@ -417,6 +420,14 @@
     if (n.type === "Linear") {
       html += '<label class="inspect-label" for="features">Output features</label><input id="features" class="inspect-input" type="number" min="1" value="' + n.features + '"' + (busy() ? ' disabled' : '') + '><label class="inspect-bias"><input id="bias" type="checkbox"' + (n.bias ? ' checked' : '') + (busy() ? ' disabled' : '') + '>Learn a bias b</label>';
       html += '<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'<br>A [' + n.features + ', ' + (s?.input_shape.at(-1) || "?") + ']<br>'+(n.bias!==false?'b ['+n.features+']':'Bias off · no b')+'</div><p class="inspect-note">Linear mixes only the last axis. Earlier dimensions are preserved and share the same weights.</p>';
+    } else if (T.types.includes(n.type)) {
+      for(const [key,kind] of Object.entries(T.definitions[n.type].fields)){
+        const value=n[key] ?? T.definitions[n.type].defaults[key],id='op-'+key;
+        const label=key.replaceAll('_',' ');
+        html+=kind==='bool'?'<label class="inspect-bias"><input data-op-field="'+key+'" id="'+id+'" type="checkbox"'+(value?' checked':'')+(busy()?' disabled':'')+'>'+esc(label)+'</label>':
+          '<label class="inspect-label" for="'+id+'">'+esc(label)+(kind==='pair' || kind==='padding'?' · H, W':'')+'</label><input data-op-field="'+key+'" id="'+id+'" class="inspect-input" value="'+esc(Array.isArray(value)?value.join(', '):value)+'"'+(busy()?' disabled':'')+'>';
+      }
+      html+='<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+(s?.output_axes?'<br>axes '+esc(s.output_axes.join(', ')):'')+(s?.operator?.weight_shape?'<br>W ['+s.operator.weight_shape.join(', ')+']':'')+'<br>operator version 1</div><p class="inspect-note">'+esc(T.definitions[n.type].explanation)+'</p>';
     } else if (n.type === "Input") {
       html += '<div class="contract-card">x '+shapeText(n.shape || [n.features])+'<br>dtype float32</div><p class="inspect-note">Specify sample dimensions, not B. Example: 3, 8 means [B, 3, 8]. This input can follow its own path before a later join.</p>';
     } else if (n.type === "Reshape") {
@@ -439,11 +450,24 @@
       html += '<div class="contract-card">ŷ '+shapeText(s?.output_shape)+'</div><p class="inspect-note">Optional shape declaration must match the incoming wire. Use a Reshape box to change dimensions. Empty means infer from the wire.</p>';
     }
     if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
+    if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
-    if (["Linear", "Module", "Activation", "Reshape", "Concat", "Splitter", "Replicator"].includes(n.type) ||
+    if (T.types.includes(n.type) || ["Linear", "Module", "Activation", "Reshape", "Concat", "Splitter", "Replicator"].includes(n.type) ||
         (["Input", "Output"].includes(n.type) && doc.graph.nodes.filter(v => v.type === n.type).length > 1)) html += '<div class="inspect-actions"><button id="remove-node"' + (busy() ? ' disabled' : '') + '>Remove block</button></div>';
     html += '<label class="inspect-label">Diagram size (world units)</label><div class="inline-fields"><label>Width<input id="block-width" type="number" step="any" min="'+G.minimumSize(n).width+'" max="100000" value="'+G.width(n)+'"'+(busy()?' disabled':'')+'></label><label>Height<input id="block-height" type="number" step="any" min="'+G.minimumSize(n).height+'" max="100000" value="'+G.height(n)+'"'+(busy()?' disabled':'')+'></label></div><button id="auto-block-size"'+(busy()?' disabled':'')+'>Automatic size</button>';
     content.innerHTML = html;
+    content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
+      if(busy())return;
+      try{n[input.dataset.opField]=T.parse(n.type,input.dataset.opField,input.type==='checkbox'?input.checked:input.value);invalidateRun();persist();}
+      catch(error){toast(error.message,true);renderInspector();}
+    });
+    if($('input-axes'))$('input-axes').onchange=()=>{
+      if(busy())return;
+      const text=$('input-axes').value.trim(),axes=text.split(/[,\s]+/),rank=(n.shape || [n.features]).length;
+      if(text && (axes.length!==rank || new Set(axes).size!==rank || axes.some(a=>a.length>32))){toast('Give one unique axis name per sample dimension, or leave empty.',true);renderInspector();return;}
+      if(text)n.axes=axes;else delete n.axes;
+      invalidateRun();persist();
+    };
     const resize=()=>{if(busy())return;try{G.resizeBlock(n,Number($("block-width").value),Number($("block-height").value));persist();}catch(error){toast(error.message,true);renderInspector();}};
     $("block-width").onchange=$("block-height").onchange=resize;
     $("auto-block-size").onclick=()=>{if(busy())return;delete n.width;delete n.height;persist();};
@@ -454,7 +478,7 @@
         if(!text || dims.length>8 || dims.some(d=>!Number.isSafeInteger(d) || (d<1 && !(n.type==="Reshape" && d===-1))) || dims.filter(d=>d===-1).length>1 || !Number.isSafeInteger(dims.filter(d=>d!==-1).reduce((a,b)=>a*b,1))) {
           toast("Use 1–8 positive sample dimensions; Reshape may contain one -1.",true);renderInspector();return;
         }
-        n.shape=dims;if(n.type==="Input"){delete n.features;doc.dataset=null;}
+        n.shape=dims;if(n.type==="Input"){delete n.features;doc.dataset=null;if(n.axes && n.axes.length!==dims.length)delete n.axes;}
       }
       invalidateRun();persist();
     };
@@ -493,7 +517,12 @@
     const activationTex={ReLU:'h=\\max(0,z)',Tanh:'h=\\tanh(z)',Sigmoid:'h=\\frac{1}{1+e^{-z}}',GELU:'h=z\\,\\Phi(z)'};
     const tex=n.type==='Activation'?activationTex[n.activation]:n.type==='Linear'?'y=xA^{\\mathsf T}'+(n.bias?'+b':''):n.type==='Replicator'?'y_i=x':n.type==='Module'?'y=\\operatorname{module}(x)':n.type==='Reshape'?'y=\\operatorname{reshape}(x,B,\\ldots)':n.type==='Concat'?'y=\\operatorname{cat}(x_1,\\ldots)':n.type==='Splitter'?'(y_1,\\ldots)=\\operatorname{split}(x)':'\\hat y=f_\\theta(x)';
     window.LoomMath.set($("equation"),tex).catch(()=>{}); // Keep readable plain formula on failure.
+    if(T.types.includes(n.type)){
+      $('equation').textContent=T.definitions[n.type].equation;
+      window.LoomMath.set($('equation'),T.definitions[n.type].tex).catch(()=>{});
+    }
     $("contract-explanation").textContent = n.type === "Linear" ? "Linear mixes the last axis: y = x @ A.T"+(n.bias!==false?" + b.":". Bias is off.")+" All preceding sample dimensions and B are preserved." : "Ports carry float32 tensors [B, …sample dimensions]. Splits use the last axis; reshapes preserve B. Wires name their source ports.";
+    if(T.types.includes(n.type))$('contract-explanation').textContent=T.definitions[n.type].explanation;
   }
 
   function invalidateRun() {
@@ -513,6 +542,7 @@
     if (type === "Linear") Object.assign(block, {features: shape(after)?.output || 1, bias: true});
     else if (type === "Activation") block.activation = $("activation-select").value;
     else if (type === "Reshape") block.shape = shape(after)?.output_shape || [-1];
+    else if(T.types.includes(type))Object.assign(block,T.defaults(type,shape(after)?.output_shape));
     else if (type === "Concat") {block.sources=[port?after.id+"@"+port:after.id];block.flatten=true;}
     else block.ref = ref;
     if (next) {
@@ -645,12 +675,13 @@
       if (Number.isFinite(r.b_error)) html += '<p>Max b error: ' + r.b_error.toExponential(3) + '</p>';
       html += '</section></div>';
     } else html += '<p>'+ (r.kind==="affine"?'This is affine, but its branching or tensor geometry is not represented by the serial-vector A,b report.':r.kind==="nonlinear"?'This model is nonlinear: no single matrix A,b describes the full forward map.':'Optional model analysis was not recorded.') +' Inspect the learned layers below.</p>';
-    if (truth?.kind === "nonlinear") html += '<p>Known target: ' + esc(truth.equation) + '. Layer weights need not match the teacher; compare predictions and held-out error.</p>';
+    if (["nonlinear","spatial"].includes(truth?.kind)) html += '<p>Known target: ' + esc(truth.equation) + '. Layer weights need not match the teacher; compare predictions and held-out error.</p>';
     html += '<div class="learned-layers">';
     for (const layer of Array.isArray(r.layers)?r.layers:[]) {
       const weight = r.weights?.[layer.path + ".weight"], bias = r.weights?.[layer.path + ".bias"];
-      if (!weight) { html += '<div class="learned-activation">' + esc(layer.path) + ' · ' + esc(layer.type) + ' · shape preserved · 0 parameters</div>'; continue; }
-      html += '<details><summary>' + esc(layer.architecture) + ' / ' + esc(layer.node_id) + ' · Linear ' + layer.input + ' → ' + layer.output + '</summary><p>' + esc(layer.path) + '.weight · [' + layer.output + ', ' + layer.input + ']</p><pre>' + esc(format(weight)) + '</pre><p>Bias</p><pre>' + (bias ? esc(format(bias)) : 'Disabled') + '</pre></details>';
+      if (!weight) { html += '<div class="learned-activation">' + esc(layer.path) + ' · ' + esc(layer.type) + ' · '+esc(shapeText(layer.input_shape))+' → '+esc(shapeText(layer.output_shape))+' · 0 parameters</div>'; continue; }
+      const weightShape=layer.operator?.weight_shape || [layer.output,layer.input];
+      html += '<details><summary>' + esc(layer.architecture) + ' / ' + esc(layer.node_id) + ' · '+esc(layer.type)+' '+esc(shapeText(layer.input_shape))+' → '+esc(shapeText(layer.output_shape))+'</summary><p>' + esc(layer.path) + '.weight · [' + weightShape.join(', ') + ']</p><pre>' + esc(format(weight)) + '</pre><p>Bias</p><pre>' + (bias ? esc(format(bias)) : 'Disabled') + '</pre></details>';
     }
     html += '</div><h3>Held-out predictions by named output</h3><table class="result-table"><tr><th>Port</th><th>Target</th><th>Prediction</th></tr>';
     const groups = r.output_groups || [{name: "output", start: 0, stop: r.preview?.[0]?.target.length || 1}];
@@ -1059,6 +1090,11 @@
     for (const id of ["new-workspace", "open-workspace", "welcome-open"]) $(id).disabled = true;
   }
   $("dots").querySelector("circle").setAttribute("cx", 0);
+  T.types.forEach(type=>{
+    const button=document.createElement('button');button.className='palette';button.dataset.tensorType=type;
+    button.innerHTML='<svg class="type-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">'+window.LoomTypeIcons.svg(type)+'</svg><span><b>'+type+'</b><small>'+T.definitions[type].explanation+'</small></span><span>+</span>';
+    button.onclick=()=>insertBlock(type);$('tensor-palette').append(button);
+  });
   document.querySelectorAll('.palette').forEach(button=>{
     const name=button.querySelector('b')?.textContent.trim() || button.childNodes[0]?.textContent.trim();
     const description=button.id==='add-reference' ? 'Inspect its interface; open details from Inspector.' : button.querySelector('small')?.textContent.trim();
@@ -1067,7 +1103,8 @@
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
   const buildingGroups=[[$('activation-select').previousElementSibling,$('activation-select'),$('add-activation')],
-    [$('reference-select').previousElementSibling,$('reference-select'),$('add-reference')],[$('add-concat')],[$('add-linear')],[$('add-reshape')]];
+    [$('reference-select').previousElementSibling,$('reference-select'),$('add-reference')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
+    ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-replicator','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));

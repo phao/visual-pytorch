@@ -1,5 +1,6 @@
 """Pure shape propagation and port-aware DAG execution plans (no Torch imports)."""
 import math
+from .operators import TENSOR_OPERATORS, LAYER_TYPES, axes_for, describe
 
 
 def topology(model):
@@ -81,10 +82,14 @@ def contract(models, mid, ancestry=(), cache=None):
     groups = boundary_groups(inputs, [math.prod(input_shape(n)) for n in inputs])
     for g, n in zip(groups, inputs):
         g['shape'] = input_shape(n)
+        axes = axes_for(n, len(g['shape']))
+        if axes is not None:
+            g['axes'] = axes
     total_in = feature_count(sum(g['features'] for g in groups))
     initial = groups[0]['shape'] if len(groups) == 1 else [total_in]
     shapes, ports, origins, plan = {}, {}, {}, []
     params = ops = activation_elements = 0
+    convolution_workspace_elements = 0
     max_width = max_input = total_in
     affine, matrix_affine = True, True
     operation_index = 0
@@ -109,6 +114,8 @@ def contract(models, mid, ancestry=(), cache=None):
         resolved = [source(e) for e in incoming]
         before = resolved[0][1] if resolved else input_shape(n)
         current = list(before)
+        axes = shapes[resolved[0][0]['node']]['output_axes'] if resolved else axes_for(n, len(before))
+        operator = None
         item = {'id': nid, 'type': kind, 'sources': [r[0] for r in resolved]}
         origin = resolved[0][2] if resolved else (nid, None)
         if kind == 'Input':
@@ -125,14 +132,28 @@ def contract(models, mid, ancestry=(), cache=None):
             origin = (nid, None)
         elif kind == 'Reshape':
             current = reshape_shape(before, n.get('shape'))
+            axes = None
+            origin = (nid, None)
+        elif kind in TENSOR_OPERATORS:
+            operator = describe(n, before, axes)
+            current, axes = operator['output_shape'], operator['output_axes']
+            if kind == 'Conv2d':
+                convolution_workspace_elements += before[0] * math.prod(operator['weight_shape'][2:]) * math.prod(current[1:])
+            params += operator['parameters']
+            affine = affine and operator['affine']
+            matrix_affine = matrix_affine and operator['matrix_affine']
             origin = (nid, None)
         elif kind == 'Module':
             ref = contract(models, n['ref'], (*ancestry, mid), cache)
             if before != ref['input_shape']:
                 raise GraphError(f"{models[n['ref']]['name']} needs {ref['inputs']} features with sample shape {ref['input_shape']}; incoming shape {before}. Use Reshape.")
+            if ref['input_axes'] is not None and axes != ref['input_axes']:
+                raise GraphError('Module input axes differ; use an explicit axis adapter.')
             current = ref['output_shape']
+            axes = ref['output_axes']
             params += ref['parameters']
             activation_elements += ref['activation_elements']
+            convolution_workspace_elements += ref['convolution_workspace_elements']
             ops += ref['operations']
             max_width = max(max_width, ref['max_width'])
             max_input = max(max_input, ref['max_input'])
@@ -143,10 +164,13 @@ def contract(models, mid, ancestry=(), cache=None):
             item['flatten'] = n.get('flatten', True)
             if item['flatten']:
                 current = [sum(math.prod(r[1]) for r in resolved)]
+                axes = None
             else:
                 if any(r[1][:-1] != before[:-1] for r in resolved):
                     raise GraphError('Last-axis Concat requires matching other sample dimensions.')
                 current = before[:-1] + [sum(r[1][-1] for r in resolved)]
+                if any(shapes[r[0]['node']]['output_axes'] != axes for r in resolved):
+                    axes = None
             origin = (nid, None)
         elif kind in {'Splitter', 'Replicator'}:
             ids = [p['output'] for p in n.get('parts', [])] if kind == 'Splitter' else n.get('outputs', [])
@@ -167,10 +191,13 @@ def contract(models, mid, ancestry=(), cache=None):
         feature_count(math.prod(current))
         activation_elements += math.prod(current)
         shapes[nid] = {'input': before[-1], 'output': current[-1],
-                       'input_shape': list(before), 'output_shape': list(current)}
+                       'input_shape': list(before), 'output_shape': list(current),
+                       'output_axes': axes}
+        if operator is not None:
+            shapes[nid]['operator'] = operator
         origins[(nid, None)] = origin
         max_width = max(max_width, math.prod(current))
-        if kind in {'Linear', 'Activation', 'Reshape', 'Module'}:
+        if kind in LAYER_TYPES:
             item['layer'] = f'layer_{operation_index}'
             operation_index += 1
             if kind != 'Module':
@@ -183,6 +210,9 @@ def contract(models, mid, ancestry=(), cache=None):
     out_groups = boundary_groups(terminals, [math.prod(shapes[n['id']]['output_shape']) for n in terminals])
     for g in out_groups:
         g['shape'] = shapes[g['id']]['output_shape']
+        axes = shapes[g['id']]['output_axes']
+        if axes is not None:
+            g['axes'] = axes
     output_items = [p for p in plan if p['type'] == 'Output']
     shared_source = output_items[0]['sources'][0]['node']
     router = lookup[shared_source]
@@ -230,9 +260,12 @@ def contract(models, mid, ancestry=(), cache=None):
         any(lookup[e['to']]['type'] != 'Output' for e in model['graph']['edges'] if e['from'] == n['id']) for n in order)
     result = {'inputs': total_in, 'outputs': math.prod(final_shape), 'parameters': params,
               'affine': affine, 'matrix_affine': matrix_affine, 'input_shape': initial,
+              'input_axes': groups[0].get('axes') if len(groups) == 1 else None,
+              'output_axes': shapes[tensor_source]['output_axes'] if tensor_source is not None else None,
               'output_shape': final_shape, 'max_width': max_width, 'max_input': max_input,
               'operations': ops, 'shapes': shapes, 'order': [n['id'] for n in order],
               'activation_elements': activation_elements,
+              'convolution_workspace_elements': convolution_workspace_elements,
               'input_groups': groups, 'output_groups': out_groups, 'output_mode': mode,
               'plan': plan, 'tensor_source': tensor_source}
     cache[mid] = result

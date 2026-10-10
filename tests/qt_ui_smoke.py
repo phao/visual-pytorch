@@ -117,7 +117,7 @@ with tempfile.TemporaryDirectory() as td:
     assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Tanh"]'
     assert js('document.getElementById("activation-select").value') == 'ReLU'
     assert js('JSON.stringify([...document.querySelectorAll("#pack-menus button")].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()))') == '["Architectures","Building blocks","Experiment","Inspector","Layout"]'
-    assert js('JSON.stringify([...document.querySelectorAll("#library-scroll .palette b")].map(e=>e.textContent))') == '["Activation","Architecture reference","Concat","Linear","Reshape","Input part","Output","Replicator","Splitter"]'
+    assert js('JSON.stringify([...document.querySelectorAll("#library-scroll .palette b")].map(e=>e.textContent))') == '["Activation","AdaptiveAvgPool2d","Architecture reference","AvgPool2d","Concat","Conv2d","Flatten","Linear","MaxPool2d","Permute","Reshape","Input part","Output","Replicator","Splitter"]'
     samples = []
     for theme in ('github', 'math', 'metallic'):
         for font, spacing in ((14, 1), (18, 4), (28, 10)):
