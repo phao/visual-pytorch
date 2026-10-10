@@ -46,8 +46,12 @@ def apply_edits(workspace, edits):
                 node.update(width=edit['width'], height=edit['height'])
             elif kind == 'rebind-dataset':
                 from app.evidence import binding_for
+                from app.core import validate_dataset
                 if doc.get('dataset') is None:raise ValueError('There is no dataset to rebind.')
-                doc['dataset_binding']=binding_for(validate_model(workspace.models(),doc['id']))
+                contract=validate_model(workspace.models(),doc['id'])
+                validate_dataset(doc['dataset'],contract['inputs'],contract['outputs'])
+                doc['dataset_binding']=binding_for(contract)
+                doc['result']=None
             elif kind == 'set-node':
                 node = next(n for n in doc['graph']['nodes'] if n['id'] == edit['node'])
                 if set(edit['values']) & {'id', 'type'}:

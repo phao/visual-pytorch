@@ -519,7 +519,7 @@ class Window(QMainWindow):
                         view=self.tabs.widget(index)
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode'}
+        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset'}
         workspace=self.workspace
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
@@ -621,6 +621,29 @@ class Window(QMainWindow):
             return {"rows": len(data["x"]), "kind": data["truth"]["kind"]}
         if action == "compile":
             return generate_code(models, req["id"])
+        if action == 'rebindDataset':
+            if self.job and self.job.isRunning():
+                raise ValueError('Stop training before rebinding dataset columns.')
+            from .evidence import binding_for, dataset_report
+            doc=models[req['id']]
+            contract=validate_model(models,doc['id'])
+            report=dataset_report(doc,contract)
+            if not report['can_rebind']:
+                raise ValueError('Rebinding is only needed for unbound or incompatible columns; '+report['reason'])
+            answer=QMessageBox.question(self, APP_NAME+' — Rebind dataset',
+                'Use the current declared input/output port order for these existing numeric columns? '
+                'This reinterprets column meaning without moving values. The current result will be cleared; '
+                'historical runs remain unchanged. Review Column bindings before continuing.',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer!=QMessageBox.StandardButton.Yes:return False
+            # A modal dialog can process queued external workspace notifications.
+            if self.workspace.models().get(doc['id'])!=doc:
+                raise ValueError('Architecture changed during confirmation. Review its bindings again.')
+            doc.update(dataset_binding=binding_for(contract),result=None)
+            self.workspace.put(doc)
+            self.broadcast()
+            return True
         if action == "exportCode":
             code = generate_code(models, req["id"])
             path, _ = QFileDialog.getSaveFileName(self, "Export PyTorch model", "model.py", "Python module (*.py)")
@@ -636,6 +659,9 @@ class Window(QMainWindow):
                       samples=len(data["x"]) if isinstance(data, dict) and isinstance(data.get("x"), list) else None,
                       epochs=doc.get("training", {}).get("epochs", 400),
                       memory_limit_percent=self.state()['memory_limit_percent'])
+            from .evidence import dataset_report
+            admission=dataset_report(doc,validate_model(models,doc['id']))
+            if not admission['allowed']:raise ValueError(admission['reason'])
             if not self.torch_python:
                 raise ValueError("Select a Python with PyTorch using --torch-python /path/to/python.")
             if self.job:
@@ -659,8 +685,12 @@ class Window(QMainWindow):
     def describe(self, mid):
         models = self.workspace.models()
         try:
+            from .evidence import dataset_report, checkpoint_report
+            contract=validate_model(models,mid)
             interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] == "Module"}
-            return {"valid": True, "contract": validate_model(models, mid), "interfaces": interfaces,
+            return {"valid": True, "contract": contract, "interfaces": interfaces,
+                    'dataset_admission':dataset_report(models[mid],contract),
+                    'checkpoint_status':checkpoint_report(models,mid),
                     "code": generate_code(models, mid),
                     "model_safety": safety_report(models, mid, self.workspace.constrained_mode,
                         memory_limit_percent=self.state()['memory_limit_percent']),
@@ -674,6 +704,12 @@ class Window(QMainWindow):
     def training_complete(self, payload):
         result = json.loads(payload)
         mid = self.job.mid
+        from .evidence import normalize_models, check_checkpoint
+        try:
+            check_checkpoint(normalize_models(self.job.models,mid),mid,result)
+        except ValueError as error:
+            self.broadcast('trainingError','Worker returned an invalid checkpoint: '+str(error))
+            return
         doc = self.workspace.models()[mid]
         doc["result"] = result
         self.workspace.put(doc)

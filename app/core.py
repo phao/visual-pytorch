@@ -592,7 +592,7 @@ def generate_code(models, model_id):
         for index, node in enumerate(order):
             if node["type"] == "Linear":
                 s = contract["shapes"][node["id"]]
-                op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)})'
+                op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
             elif node["type"] == "Activation":
                 op = ACTIVATIONS[activation_name(node.get("activation"))]
             elif node["type"] == "Reshape":
@@ -632,7 +632,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
     for index, node in enumerate(operation_nodes(models[mid])):
         if node["type"] == "Linear":
             shape = contract["shapes"][node["id"]]
-            layer = nn.Linear(shape["input"], shape["output"], bias=node.get("bias", True))
+            layer = nn.Linear(shape["input"], shape["output"], bias=node.get("bias", True),
+                              device='cpu', dtype=torch.float32)
         elif node["type"] == "Activation":
             name = activation_name(node.get("activation"))
             layer = getattr(nn, name)()
@@ -756,10 +757,9 @@ def affine_summary(model, contract):
 
 
 def restore_predictor(models, mid, result, *, constrained=True):
-    from .evidence import normalize_models, identity
+    from .evidence import normalize_models, check_checkpoint
     models=normalize_models(models,mid)
-    if not isinstance(result,dict) or result.get('identity')!=identity(models,mid):
-        raise GraphError('Checkpoint identity does not match this architecture, data, binding and training snapshot.')
+    check_checkpoint(models,mid,result)
     import torch
     model=compile_model(models,mid,constrained=constrained)
     model.load_state_dict({k:torch.tensor(v,dtype=torch.float32) for k,v in result['weights'].items()},strict=True)
@@ -769,10 +769,9 @@ def restore_predictor(models, mid, result, *, constrained=True):
 
 def generate_predictor(models, mid, result):
     """Standalone trained inference export, rather than a freshly initialized template."""
-    from .evidence import normalize_models, identity
+    from .evidence import normalize_models, check_checkpoint
     models=normalize_models(models,mid)
-    if not isinstance(result,dict) or result.get('identity')!=identity(models,mid):
-        raise GraphError('Checkpoint identity does not match this snapshot.')
+    check_checkpoint(models,mid,result)
     return generate_code(models,mid)+(
         "\n# Frozen checkpoint; use model.eval() for inference. No retraining occurs.\n"
         f"_checkpoint = {result['weights']!r}\n"

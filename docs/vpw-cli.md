@@ -25,6 +25,9 @@ dataset. validate derives the graph contract without allocation; export returns
 generated Python in the value.code field, with fresh parameter initialization.
 export-trained requires a matching current checkpoint identity and embeds learned
 weights, strict state loading and evaluation mode for standalone inference.
+It also checks version, preprocessing, stable parameter IDs, exact weight keys/
+shapes and finite float32 values without importing Torch. Corrupt/unsupported
+checkpoints fail instead of producing a script that only fails when executed.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
@@ -46,7 +49,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
-| rebind-dataset | id | Explicitly bind existing dataset columns to the current valid input/output port contract; no numerical reordering/transformation |
+| rebind-dataset | id | Explicitly bind valid existing x/y columns to the current input/output port contract; no numerical reordering/transformation; clears current result, preserves historical runs |
 
 Create referenced targets before their owners. Custom documents follow
 [vtw-format.md](vtw-format.md). Computational edits invalidate current results in

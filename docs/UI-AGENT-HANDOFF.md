@@ -575,6 +575,30 @@ adapter tests still use a stub Hub, not an asserted rendered-equation audit.
 Normal-desktop mouse, dialog, readability and Alt-Tab checks remain necessary.
 Never disable browser security just to declare a visual test passed.
 
+## Domain evidence and dataset admission (Visual PyTorch extension)
+
+Graph validation and run admission are distinct. The Experiment menu's Train
+button is disabled for incompatible/unbound/invalid datasets even when graph
+geometry and compilation are valid. Its Column bindings disclosure shows both
+recorded and current declared input/output IDs, sample shapes and packed x/y
+offsets. It opens automatically for a binding problem. A Use current port order
+button appears only when valid existing numeric rows can be explicitly rebound.
+The native confirmation has a human app/action title and Cancel as default; a
+cancelled or stale confirmation does not edit. Accepted rebind is one undoable
+operation, does not move numeric values and retains historical runs. Training
+disables the action. This is domain-specific content inside the existing floating
+Experiment menu, not a new menu architecture.
+
+Result labels distinguish current compatible checkpoints, unverified legacy
+results, stale/invalid evidence and no result. Legacy metrics have an explicit
+Unverified label; stale/invalid evidence cannot supply displayed current loss
+curves. Results explain update counts, stop reason, post-update/eval timing and
+optional analysis availability separately from successful execution. The PyTorch
+forward view/export is explicitly a fresh-weight architecture template, not
+trained inference; the CLI/API supplies validated trained export. Do not copy a
+domain result label into a generic reusable interface without its actual admission
+contract. Native/WebEngine tests assert these distinctions through the real bridge.
+
 Design reference: [Qt tool-palette controls](https://doc.qt.io/qt-6/qdockwidget.html)
 informed movable/closable/expandable affordances. The implemented menus are HTML,
 not QDockWidget instances. The pack, independent layer gestures and snapping
