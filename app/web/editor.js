@@ -113,7 +113,10 @@
   }
 
   function hydrate(value) {
+    const layoutChanged=state.workspace_id!==value.workspace_id ||
+      JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
     state = value;
+    if(layoutChanged)renderLayoutPreferences();
     if (doc && state.models[doc.id]) {
       doc = prepareModel(clone(state.models[doc.id]));
       render();
@@ -370,7 +373,7 @@
   }
 
   function renderLayoutPreferences(){
-    const options=state.display?.layout || L.defaults();
+    const options=state.layout_preferences || L.defaults();
     for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries(options[mode])){
       const control=$('layout-'+mode+'-'+key);if(!control)continue;
       if(control.type==='checkbox')control.checked=value;else control.value=value;
@@ -402,8 +405,8 @@
     try{
       const layout=readLayoutPreferences();
       await call('setLayoutPreferences',{layout});
-      state.display ||= {};state.display.layout=layout;
-      toast('Layout preferences saved for future sessions.');
+      state.layout_preferences=layout;
+      toast('Layout preferences updated for this workspace. Save workspace to keep them on disk.');
     }catch(error){toast(error.message,true);}
   };
 
@@ -1023,7 +1026,6 @@
   function onEvent(raw) {
     const event = JSON.parse(raw);
     if (event.kind === "state") hydrate(event.payload);
-    else if(event.kind==='layoutPreferences'){state.display ||= {};state.display.layout=event.payload;renderLayoutPreferences();}
     else if(event.kind==='history'){state.history=event.payload;if(event.payload.notice)toast(event.payload.notice,true);}
     else if (event.kind === "navigate") navigate(event.payload);
     else if (event.kind === "progress" && doc?.id === event.payload.id) {

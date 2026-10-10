@@ -42,6 +42,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | rename | id, name | Display name |
 | move | id, node ID, x, y | Layout only; latest learned result retained |
 | resize | id, node ID, width, height | Preferred world-unit diagram size; finite positive numbers ≤100000; data/results/forward unchanged |
+| layout | value | Workspace layout profile version 1; read-only inspect returns layout_preferences. Never changes global preferences. |
 | set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
 | add-node | id, node object | Explicit new block |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |

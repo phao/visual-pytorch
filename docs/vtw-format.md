@@ -61,6 +61,7 @@ CREATE TABLE runs(
 | created_at | UTC ISO-8601 string with timezone |
 | name | Workspace display name; initially Untitled workspace |
 | constrained_mode | Text true or false; absent legacy key means true |
+| layout_preferences | Optional closed finite JSON layout profile version 1; absent uses defaults. See [layout.md](layout.md). |
 
 Unknown metadata keys are preserved, not executed. Timestamps are write/run
 evidence, not graph order or semantic versions. SQLite rowid determines the
