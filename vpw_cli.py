@@ -162,6 +162,10 @@ def main(argv=None):
     trained_task = sub.add_parser('export-task-trained', help='Validate saved task result and emit standalone fitted predictor source; no training')
     trained_task.add_argument('result', help='Task-training-result JSON file (the value object from train-stored)')
     trained_task.add_argument('--memory-limit-percent', type=float)
+    trained_run = sub.add_parser('export-run-trained', help='Generate exact saved-attempt inference source; never train or execute it')
+    trained_run.add_argument('id'); trained_run.add_argument('revision')
+    trained_run.add_argument('--attempt', type=int, help='Retained attempt; default latest of this exact revision')
+    trained_run.add_argument('--memory-limit-percent', type=float)
     selections = sub.add_parser('preview-experiment', help='Read-only bounded exact-revision selection preview; no fitting/training')
     selections.add_argument('id'); selections.add_argument('revision')
     selections.add_argument('--offset', type=int, default=0); selections.add_argument('--limit', type=int, default=100)
@@ -267,6 +271,10 @@ def main(argv=None):
                 result = read_json(args.result)
                 value = {'code': generate_task_predictor(result['bundle'], result['checkpoint'],
                          constrained=workspace.constrained_mode, memory_limit_percent=ram_percentage(args.memory_limit_percent))}
+            elif args.command == 'export-run-trained':
+                from app.run_export import predictor_source
+                value = predictor_source(workspace, {'kind': 'run', 'id': args.id, 'revision': args.revision},
+                    attempt=args.attempt, memory_limit_percent=ram_percentage(args.memory_limit_percent))
             elif args.command == 'preview-dataset':
                 from app.datasets import preview
                 value = preview(read_json(args.dataset), args.limit)

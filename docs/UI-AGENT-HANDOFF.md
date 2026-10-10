@@ -704,3 +704,22 @@ app/web/evidence-view.js and app/web/science-results.js. Preserve their explicit
 domains when adapting them; another application must define its own identities,
 evidence grammar, units, history and statistical interpretation. See
 [saved-evidence-views.md](saved-evidence-views.md) for the executable contract.
+
+### Exact retained artifact preview/export
+
+An artifact action uses the displayed verified object/attempt, not unread input
+text or a newer mutable head. Preview is literal source, scoped as generation
+only; producing code is not executing it. Status/update counts travel with the
+artifact so cancellation or an initial zero-update state cannot masquerade as
+successful work. Scrolling long source inside the existing panel preserves user
+font size rather than shrinking content to fit. Changing the displayed selection
+clears old source and invalidates late preview replies.
+
+External file creation is explicit and separate from domain history/file Save.
+Capture verified exact artifact bytes before entering a native chooser's nested
+event loop; recheck origin object/identity and busy state before creation. Cancel
+does nothing. Refuse existing files/final symlinks rather than silently replacing
+them. A file-write receipt identifies actual source hash and origin, not execution
+or crash-safe recovery. Metadata/learned states may be sensitive even if record
+payloads are omitted. In Visual PyTorch, app/run_export.py reuses the existing
+inference lowering; see [saved-predictor-export.md](saved-predictor-export.md).

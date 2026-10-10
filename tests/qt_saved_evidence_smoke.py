@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -18,6 +19,7 @@ from app.core import Workspace,default_model
 from app.desktop import Bridge,Window,find_torch_python
 from app.authoring import workspace_id
 from app.revisions import model_document
+from app.run_export import predictor_source
 from evidence_fixture import populate
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
@@ -96,10 +98,45 @@ with tempfile.TemporaryDirectory() as directory:
             assert '0.75' in text('science-run-evidence') and '"mask":"valid"' in text('science-run-evidence')
             assert 'transformed target space' in text('science-run-evidence')
             assert h.workspace.db.serialize()==before,h.writes[write_mark:]
+            # Preview/Qt chooser use this displayed exact attempt. Source is
+            # literal text, and generation/export never executes or changes SQL.
+            source=predictor_source(h.workspace,f['first']['reference'])
+            click('science-predictor-view')
+            until('!document.getElementById("science-predictor").hidden && document.getElementById("science-predictor-code").textContent.includes("saved_run_provenance")')
+            assert text('science-predictor-code')==source['code']
+            assert '3 successful updates' in text('science-predictor-status')
+            assert js('document.querySelectorAll("#science-predictor-code img,#science-predictor-code svg,#science-predictor-code script").length')==0
+            assert h.workspace.db.serialize()==before
+            for theme,font,spacing in [('dark',14,1),('github',18,4),('math',28,10)]:
+                h.config.values.update(theme=theme,font_size=font,spacing=spacing);h.broadcast()
+                until('getComputedStyle(document.body).getPropertyValue("--ui-font-size").trim()==='+json.dumps(str(font)+'px'))
+                assert js('parseFloat(getComputedStyle(document.getElementById("science-predictor-code")).fontSize)')>=font-2
+                assert js('document.getElementById("science-predictor-code").getBoundingClientRect().width<=document.getElementById("science-panel").getBoundingClientRect().width')
+            h.config.values.update(theme='github',font_size=18,spacing=4);h.broadcast()
+            if os.environ.get('VTW_PREDICTOR_SCREENSHOT'):
+                js('document.getElementById("toast-close").click();document.getElementById("science-predictor").scrollIntoView({block:"start"});')
+                loop=QEventLoop();QTimer.singleShot(300,loop.quit);loop.exec();assert view.grab().save(os.environ['VTW_PREDICTOR_SCREENSHOT'])
+            exported=folder/'retained_predictor.py'
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=(str(exported),'Python source (*.py)')) as chooser:
+                click('science-predictor-export')
+                until('!document.getElementById("science-predictor-export").disabled && document.getElementById("toast-message").textContent.includes("not executed")')
+                assert chooser.call_args.args[1]=='Export retained checkpoint predictor'
+            assert exported.read_text()==source['code'];assert h.workspace.db.serialize()==before
+            script="import sys,json,retained_predictor as p;assert not any(m=='app' or m.startswith('app.') for m in sys.modules);assert not p.model.training;o=p.predict_records([{'a':[3.],'b':None}]);print(json.dumps({'shapes':{k:list(v.shape) for k,v in o.items()},'provenance':p.saved_run_provenance}))"
+            proc=subprocess.run([h.torch_python,'-c',script],cwd=folder,capture_output=True,text=True,timeout=20)
+            assert proc.returncode==0,proc.stderr
+            assert json.loads(proc.stdout)=={'shapes':{'category':[1,3],'estimate':[1,1]},'provenance':source['provenance']}
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=(str(exported),'')):
+                click('science-predictor-export');until('!document.getElementById("science-predictor-export").disabled && document.getElementById("toast-message").textContent.includes("File exists")')
+            assert exported.read_text()==source['code'];assert h.workspace.db.serialize()==before
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=('','')):
+                click('science-predictor-export');until('!document.getElementById("science-predictor-export").disabled')
+            assert h.workspace.db.serialize()==before
             click('science-report-add');assert len(report_choices())==1
             choose(f['retry']['reference'])
             assert 'No numerical result retained' in text('science-run-evidence')
             assert 'Successful updates' not in text('science-run-evidence')
+            assert js('document.getElementById("science-predictor-export").disabled && document.getElementById("science-predictor-view").disabled')
             before=h.workspace.db.serialize();click('science-report-add')
             until('document.getElementById("toast-message").textContent.includes("Another revision")')
             assert report_choices()==[{'id':f['first']['reference']['id'],'revision':f['first']['reference']['revision']}]
@@ -107,6 +144,12 @@ with tempfile.TemporaryDirectory() as directory:
             js('document.getElementById("science-evidence-attempt").value="1"');click('science-evidence-read')
             until('document.getElementById("science-run-evidence").textContent.includes("attempt 1 of 2") && !document.getElementById("science-evidence-read").disabled')
             assert 'Successful updates3' in text('science-run-evidence')
+            # Unread edit must not silently change the export target to attempt 2.
+            js('document.getElementById("science-evidence-attempt").value="2"')
+            earlier=folder/'explicit_earlier.py'
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=(str(earlier),'')):
+                click('science-predictor-export');until('!document.getElementById("science-predictor-export").disabled')
+            assert earlier.read_text()==predictor_source(h.workspace,f['retry']['reference'],attempt=1)['code']
             js('document.getElementById("science-evidence-attempt").value="3"');click('science-evidence-read')
             until('document.getElementById("toast-message").textContent.includes("finite/exact range")')
             assert js('document.getElementById("science-evidence-attempt").value')=='3'
@@ -167,6 +210,12 @@ with tempfile.TemporaryDirectory() as directory:
             h.job=SimpleNamespace(isRunning=lambda:False,awaiting_terminal=True,mid=None,snapshot={'run_id':'busy'});h.broadcast()
             until('document.getElementById("science-comparison-create").disabled')
             before=h.workspace.db.serialize()
+            assert js('document.getElementById("science-predictor-export").disabled && !document.getElementById("science-predictor-view").disabled')
+            assert h.dispatch({'action':'scienceRunPredictor','reference':f['first']['reference'],
+                'attempt':1,'workspace_id':workspace_id(h.workspace)},None)['code']==source['code']
+            try:h.dispatch({'action':'scienceExportRunPredictor'},None)
+            except ValueError as error:assert 'Stop' in str(error)
+            else:raise AssertionError('Pending delivery admitted predictor export')
             try:h.dispatch({'action':'scienceResultReport'},None)
             except ValueError as error:assert 'Stop' in str(error)
             else:raise AssertionError('Pending delivery admitted a report')
@@ -180,6 +229,36 @@ with tempfile.TemporaryDirectory() as directory:
             else:raise AssertionError('Foreign report selection admitted')
             assert original.db.serialize()==before
             dispatch=h.dispatch
+            # Native modal guard checks the actual working copy again after a
+            # chooser, before creating any destination (not just its old UUID).
+            denied=folder/'not_exported.py'
+            def replace_in_chooser(*args,**kwargs):h.workspace=replacement;h.broadcast();return str(denied),''
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',side_effect=replace_in_chooser):
+                try:dispatch({'action':'scienceExportRunPredictor','reference':f['first']['reference'],
+                    'attempt':1,'workspace_id':workspace_id(original)},None)
+                except ValueError as error:assert 'Nothing exported' in str(error)
+                else:raise AssertionError('Changed workspace exported origin predictor')
+            assert not denied.exists();assert original.db.serialize()==before
+            h.workspace=original;h.broadcast();choose(f['first']['reference'])
+            def become_busy_in_chooser(*args,**kwargs):
+                h.job=SimpleNamespace(isRunning=lambda:False,awaiting_terminal=True,mid=None,snapshot={'run_id':'modal-busy'})
+                h.broadcast();return str(denied),''
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName',side_effect=become_busy_in_chooser):
+                try:dispatch({'action':'scienceExportRunPredictor','reference':f['first']['reference'],
+                    'attempt':1,'workspace_id':workspace_id(original)},None)
+                except ValueError as error:assert 'Nothing exported' in str(error)
+                else:raise AssertionError('Busy modal loop exported source')
+            assert not denied.exists();assert original.db.serialize()==before
+            h.job=None;h.broadcast()
+            def switch_on_source(req,target):
+                result=dispatch(req,target)
+                if req['action']=='scienceRunPredictor':h.workspace=replacement;h.broadcast()
+                return result
+            with patch.object(h,'dispatch',side_effect=switch_on_source):
+                click('science-predictor-view');until('document.getElementById("science-run").hidden')
+            assert js('document.getElementById("science-predictor-code").textContent')==''
+            assert js('document.getElementById("science-predictor").hidden');assert original.db.serialize()==before
+            h.workspace=original;h.broadcast();choose(f['first']['reference'])
             def switch_on_read(req,target):
                 result=dispatch(req,target)
                 if req['action']=='scienceRunEvidence':h.workspace=replacement;h.broadcast()
@@ -208,6 +287,8 @@ with tempfile.TemporaryDirectory() as directory:
             'completed_failed_cancelled_masked_excluded':'PASS','metric_and_report_paging':'PASS',
             'explicit_seven_run_recipe_no_training':'PASS','exact_duplicate_retry_and_drilldown':'PASS',
             'safe_literal_labels_fonts_themes':'PASS','history_reload_pending_workspace_late_reply_guards':'PASS',
+            'predictor_source_preview_chooser_exact_displayed_attempt':'PASS',
+            'standalone_export_actual_inference_no_app_import':'PASS','predictor_no_overwrite_cancel_busy_modal_late_guards':'PASS',
             'console_errors':errors,'host_torch':False}))
     finally:
         h.job=None

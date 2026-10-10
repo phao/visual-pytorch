@@ -247,6 +247,48 @@ safety, implement GUI predictor export/notebook execution or close C's scalabili
 rendered notebook figure and complete exit gates. Whole-window large-font header
 convergence and D/E remain open. User app/workspace/configuration are unchanged.
 
+### Exact retained predictor preview/export — local task branch only
+
+Saved-run controls now preview/export standalone fitted inference source from the
+displayed exact retained attempt. Unread number edits cannot change that target;
+failed latest retries cannot borrow earlier success. Actual cancelled/zero-update
+checkpoints keep their status/update counts. Source captures the saved manifest,
+dependencies, fitted states and strict weights, with exact run/attempt/checkpoint
+provenance and a complete source hash. Generation executes no inference/training
+and imports no Torch. Outputs remain stable-ID logits/declared transformed target
+space; optimizer resume is not implied. Source may contain sensitive metadata/
+learned states, though DatasetSpec.records payload is omitted.
+
+Qt source preview is literal text in a readable themed scroll pane. Export
+captures verified exact source before a native chooser, then checks the actual
+origin working-copy object/UUID and pending-work state before exclusive UTF-8/LF
+file creation. Existing files/final symlinks are refused; Cancel does nothing.
+Late preview replies cannot populate another workspace UUID. Source/receipts are
+separate from domain history and `.vtw` Save. Shared CLI export-run-trained returns
+the same artifact without creating a file or changing `.vtw` bytes. Contracts in
+[saved-predictor-export.md](saved-predictor-export.md), the GUI/CLI specifications
+and reusable handoff stay aligned; no SQL schema or stored object grammar changes.
+
+All 423 Python tests pass (152.893 s), all 90 JS tests pass. Twelve new Python
+tests cover exact histories/no fallback, actual partial/initial checkpoints,
+immutable heads, hashes, SQL/RNG/no-worker/no-new-split/no-inference generation,
+RAM policy, stdlib-only CLI equality/errors/file preservation, exclusive/symlink
+creation and bitwise standalone/restored weighted multi-input and ragged-derived
+predictions. Two JS tests pin the displayed exact attempt. The expanded actual
+sandboxed Qt test previews/exports through the chooser, executes the produced
+module independently with no app import, verifies literal source/unread input/
+overwrite/cancel/pending/post-modal busy/workspace and late-source guards, and
+preserves complete browsing SQL isolation. Dark/GitHub/Math fonts 14/18/28 and
+spacings 1/4/10 keep code readable and panel-bounded; actual capture inspected.
+
+All three authoring forms/actual fits, existing fit/retry/report/notebook-generation/
+recovery flow, 11 native lifecycle checks and inherited editor gestures also pass,
+with no console errors or GUI-host Torch. Compile/JS syntax/diff checks pass.
+Partial C remains unmerged/unpublished, main/user state unchanged. Next explicit
+GUI notebook execution, report figures, complete transport/metadata/rendering
+bounds and pinned C exit audit, then D/E. General same-UUID/ABA/crash/detached and
+large-font whole-header convergence are not established by this checkpoint.
+
 ### First executable checkpoint — not Stage C completion
 
 On `task/stage-c-experiments` (base main

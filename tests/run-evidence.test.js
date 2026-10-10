@@ -22,3 +22,15 @@ test('exact ledger formatting preserves numbers and literal untrusted labels',()
   assert.equal(H.literal(null),'Not retained');assert.equal(H.literal('<img onerror=x>'),'<img onerror=x>');
   assert.equal(H.literal({weight:0}),JSON.stringify({weight:0}));
 });
+test('predictor target pins the displayed retained attempt, not a mutable head or unread input',()=>{
+  const page={scope:'read-saved-evidence-only',reference:r(),attempt:{number:1},execution:{checkpoint_id:'c'.repeat(64)}};
+  const request=H.predictorRequest(page,'workspace');assert.deepEqual(request,{reference:r(),attempt:1,workspace_id:'workspace'});
+  request.reference.id='other';assert.equal(page.reference.id,'run');
+  page.attempt.number=2;assert.equal(H.predictorRequest(page,'workspace').attempt,2);
+});
+test('missing numerical checkpoint, implicit references or nonexact attempt cannot export',()=>{
+  const page={scope:'read-saved-evidence-only',reference:r(),attempt:{number:1},execution:{checkpoint_id:'c'.repeat(64)}};
+  for(const bad of [null,{...page,execution:null},{...page,execution:{}},{...page,reference:{...r(),revision:null}},
+    {...page,attempt:{number:true}},{...page,attempt:{number:0}},{...page,scope:'rerun'}])assert.throws(()=>H.predictorRequest(bad,'workspace'));
+  assert.throws(()=>H.predictorRequest(page,''));
+});

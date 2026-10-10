@@ -101,7 +101,8 @@ untrusted math. Raw stored JSON remains explicitly expandable.
 
 Pages bound projected/rendered rows, NOT full dependency validation, inline data
 cost or metadata bytes. Existing scienceShow/scienceReport materialize complete
-documents. This is not lazy storage, predictor export UI, GUI notebook execution,
+documents. Predictor source preview/export is specified separately in
+[saved-predictor-export.md](saved-predictor-export.md). Paging is not lazy storage, GUI notebook execution,
 full scalability or Stage C completion. Refresh can reset the presentation page
 while retaining the exact dropdown identity.
 

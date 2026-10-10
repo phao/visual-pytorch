@@ -102,9 +102,9 @@ def retain_recovery(window, job, result, error):
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
-         'scienceRunEvidence', 'scienceReportEvidence'}
+         'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'}
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
-ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery'}
+ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'}
 
 
 def dispatch(window, req):
@@ -130,6 +130,23 @@ def dispatch(window, req):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action in {'scienceRunPredictor', 'scienceExportRunPredictor'}:
+        from .authoring import workspace_id
+        from .run_export import predictor_source, write_new_predictor
+        if req.get('workspace_id') != workspace_id(workspace):
+            raise ValueError('Predictor selection belongs to another workspace. Select the saved run again.')
+        # Capture exact validated source before Qt's nested modal event loop.
+        source = predictor_source(workspace, req['reference'], attempt=req.get('attempt'),
+                                  memory_limit_percent=window.state()['memory_limit_percent'])
+        if action == 'scienceRunPredictor': return source
+        path = req.get('output')
+        if not path:
+            path, _ = QFileDialog.getSaveFileName(window, 'Export retained checkpoint predictor',
+                                                 'trained-predictor.py', 'Python source (*.py)')
+        if not path: return None
+        if window.workspace is not workspace or req['workspace_id'] != workspace_id(window.workspace) or job_busy(window.job):
+            raise ValueError('Workspace or active work changed while selecting a destination. Nothing exported; try again.')
+        return write_new_predictor(source, path)
     if action in {'scienceRunEvidence', 'scienceReportEvidence'}:
         from . import run_views
         if action == 'scienceRunEvidence':

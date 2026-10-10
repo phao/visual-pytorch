@@ -2,6 +2,7 @@
 (() => {
   let root,api,selectExact,current=null,workspace=null,selection=[],runOffset=0,reportOffset=0,attempt=null;
   let page=null,generation=0,reading=null,writing=false;
+  let sourceGeneration=0,sourceReading=null,exportGeneration=0,exporting=null;
   const $=id=>root.getElementById(id),H=()=>window.LoomRunEvidence;
   const el=(tag,value)=>{const node=root.createElement(tag);if(value!==undefined)node.textContent=value;return node;};
   const act=fn=>Promise.resolve().then(fn).catch(error=>api.toast(error.message,true));
@@ -19,6 +20,30 @@
     $('science-metrics-next').disabled=wait||current?.reference.kind!=='run'||!page||page.metrics.next_offset===null;
     $('science-report-prev').disabled=wait||current?.reference.kind!=='report'||!page||reportOffset===0;
     $('science-report-next').disabled=wait||current?.reference.kind!=='report'||!page||page.runs.next_offset===null;
+    const checkpoint=current?.reference.kind==='run'&&page?.execution;
+    $('science-predictor-view').disabled=wait||sourceReading!==null||!checkpoint;
+    $('science-predictor-export').disabled=wait||exporting!==null||api.busy()||!checkpoint;
+  }
+  function clearSource(){
+    sourceGeneration++;exportGeneration++;sourceReading=null;exporting=null;
+    $('science-predictor').hidden=true;$('science-predictor-code').textContent='';$('science-predictor-status').textContent='';
+  }
+  async function predictor(save){
+    const selected=current,evidence=page,identity=api.workspace(),request=H().predictorRequest(evidence,identity);
+    const ticket=save?++exportGeneration:++sourceGeneration;
+    if(save)exporting=ticket;else sourceReading=ticket;controls();
+    try{
+      const result=await api.call(save?'scienceExportRunPredictor':'scienceRunPredictor',request);
+      if(!result||identity!==api.workspace())return;
+      if(save){if(ticket===exportGeneration)api.toast('Checkpoint predictor source exported (not executed): '+result.path);}
+      else if(ticket===sourceGeneration&&current===selected&&page===evidence){
+        $('science-predictor').hidden=false;$('science-predictor').open=true;
+        $('science-predictor-status').textContent='Retained attempt '+result.provenance.attempt+' · '+result.provenance.status+
+          ' · '+result.provenance.completed_updates+' successful updates · source SHA-256 '+result.code_sha256+
+          ' · stable output IDs; classification logits; declared transformed target space. No optimizer resume.';
+        $('science-predictor-code').textContent=result.code;
+      }
+    }finally{if(save&&exporting===ticket)exporting=null;if(!save&&sourceReading===ticket)sourceReading=null;controls();}
   }
   function selectionView(){
     const list=$('science-report-selection');list.replaceChildren();
@@ -36,6 +61,7 @@
         {reference:selected.reference,...(selected.reference.kind==='run'?{attempt,offset:runOffset,limit:25}:{offset:reportOffset,limit:5})});
       if(ticket!==generation||current!==selected||identity!==api.workspace())return;
       page=result;
+      clearSource();
       if(selected.reference.kind==='run'){
         $('science-evidence-attempt').value=result.attempt.number;
         $('science-evidence-attempt').max=result.attempt_count;
@@ -80,10 +106,12 @@
       $('science-metrics-next').onclick=()=>act(()=>{runOffset=page.metrics.next_offset;return read();});
       $('science-report-prev').onclick=()=>act(()=>{reportOffset=Math.max(0,reportOffset-5);return read();});
       $('science-report-next').onclick=()=>act(()=>{reportOffset=page.runs.next_offset;return read();});
+      $('science-predictor-view').onclick=()=>act(()=>predictor(false));
+      $('science-predictor-export').onclick=()=>act(()=>predictor(true));
       selectionView();
     },
     show,
-    clear(){current=null;page=null;generation++;reading=null;$('science-run-evidence').replaceChildren();delete $('science-run-evidence').dataset.runEvidence;$('science-report-evidence').replaceChildren();$('science-report-page').textContent='';controls();},
+    clear(){current=null;page=null;generation++;reading=null;clearSource();$('science-run-evidence').replaceChildren();delete $('science-run-evidence').dataset.runEvidence;$('science-report-evidence').replaceChildren();$('science-report-page').textContent='';controls();},
     stateChanged(){
       if(workspace!==api.workspace()){workspace=api.workspace();selection=[];writing=false;this.clear();selectionView();}
       controls();

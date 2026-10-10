@@ -225,6 +225,15 @@ Open exact run pins the recipe's reference, never the current head. No metrics
 are pooled or independence asserted. See [saved-evidence-views.md](saved-evidence-views.md)
 for response fields, attempt/units/guards and paging-versus-validation boundaries.
 
+View/Export checkpoint predictor use the displayed retained attempt, not an unread
+number or mutable latest head. Generated source contains saved preprocessing and
+strict weights; generation never executes it. A native chooser exclusively creates
+a new Python file after rechecking origin/busy state. Missing result disables
+export; cancelled or zero-update checkpoints keep their actual status/counts.
+Preview is safe literal source in a themed base-font scroll pane. See
+[saved-predictor-export.md](saved-predictor-export.md) for exact source/receipt/CLI,
+prediction units, privacy and validation-resource boundaries.
+
 Generate notebook bundle creates a new complete directory via a native chooser,
 without executing cells or overwriting files. Install optional
 `requirements-report.txt` in the GUI interpreter for authoring; the numerical
@@ -245,6 +254,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceReport | report reference | Read saved evidence or labelled rerun recipe |
 | scienceRunEvidence | exact run reference, optional attempt, offset/limit (default 0/25, limit 1..25) | Read-only saved-attempt projection; never execute |
 | scienceReportEvidence | exact report reference, offset/limit (default 0/5, limit 1..10) | Read-only exact saved-run projections; never execute |
+| scienceRunPredictor | workspace_id, exact run reference, optional attempt | Read-only retained inference source generation; never execute |
+| scienceExportRunPredictor | workspace_id, exact run reference, optional attempt/output | New source file; modal origin/busy recheck, no overwrite/execution |
 | scienceAuthorBegin | kind, optional exact reference or new id | Read-only draft with base/head/workspace capture |
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |

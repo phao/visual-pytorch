@@ -20,6 +20,7 @@ python vpw_cli.py lab.vtw spec-show dataset DATASET_ID --revision DATASET_SHA256
 python vpw_cli.py lab.vtw prepare-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --split split.json
 python vpw_cli.py lab.vtw train-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --manifest manifest.json --protocol protocol.json --torch-python /path/to/numerical/python
 python vpw_cli.py lab.vtw export-task-trained task-result-value.json
+python vpw_cli.py lab.vtw export-run-trained RUN_ID RUN_SHA256 --attempt 1
 python vpw_cli.py lab.vtw preview-experiment EXPERIMENT_ID EXPERIMENT_SHA256 --offset 0 --limit 100
 python vpw_cli.py lab.vtw run-candidate --experiment EXPERIMENT_ID EXPERIMENT_SHA256 --coordinates coordinates.json --run-id RUN_ID --name "Trial" --torch-python /path/to/numerical/python --timeout 60
 python vpw_cli.py lab.vtw report-data REPORT_ID REPORT_SHA256
@@ -80,6 +81,18 @@ metadata is exported alongside preprocessing and strict weights. See
 [task-training-contract.md](task-training-contract.md) for the exact artifact
 protocol, terminal behavior, RAM and verification limits. Export uses the same
 read-only user RAM preference/override as preparation/training.
+
+`export-run-trained RUN_ID RUN_SHA256 [--attempt N] [--memory-limit-percent P]`
+generates the same source artifact as the branch-only Qt checkpoint-predictor
+preview. It returns code/code_sha256 plus exact attempt/status/checkpoint/update
+provenance, creating no source file and preserving `.vtw` bytes. Omission selects
+the latest retained attempt of that exact revision, NOT a newer head. A failed
+latest attempt without a checkpoint fails; explicitly select an earlier retained
+attempt instead. Valid cancelled/zero-update checkpoints are honestly labelled.
+Generation validates under workspace RAM/preparation policy, without importing
+Torch or executing/training. Outputs remain stable-ID logits/declared target space;
+no optimizer resume is available. See [saved-predictor-export.md](saved-predictor-export.md)
+for exact artifacts, units, privacy and exclusive Qt file creation.
 
 `preview-experiment ID REVISION` reads an exact ExperimentSpec, never its mutable
 head. `--offset` defaults to 0; `--limit` defaults to 100 and is in 1..1000.

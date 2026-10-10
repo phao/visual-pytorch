@@ -10,5 +10,12 @@
   }
   function value(number){return typeof number==='number'&&Number.isFinite(number)?number.toPrecision(6):'Unavailable';}
   function literal(value){return value===null||value===undefined?'Not retained':typeof value==='object'?JSON.stringify(value):String(value);}
-  return Object.freeze({key,add,value,literal});
+  function predictorRequest(page,workspace){
+    if(!page||page.scope!=='read-saved-evidence-only'||!page.execution||!/^[0-9a-f]{64}$/.test(page.execution.checkpoint_id)||page.reference?.kind!=='run'||
+      !Number.isSafeInteger(page.attempt?.number)||page.attempt.number<1||typeof workspace!=='string'||!workspace)
+      throw Error('Read an exact retained attempt with an inference checkpoint first.');
+    add([],page.reference);
+    return {reference:{kind:'run',id:page.reference.id,revision:page.reference.revision},attempt:page.attempt.number,workspace_id:workspace};
+  }
+  return Object.freeze({key,add,value,literal,predictorRequest});
 });
