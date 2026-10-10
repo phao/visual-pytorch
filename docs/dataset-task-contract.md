@@ -5,7 +5,8 @@ currently a Python/CLI API on the task branch, not a new GUI menu. Independent
 dataset/task/model revisions persist in `.vtw` v6; fitted task training/export is
 now executable. Architecture-owned legacy `dataset.x/y` continues unchanged.
 Experiment/run/report persistence is specified in [experiment-objects.md](experiment-objects.md).
-The full Stage C GUI/notebook exit gates remain pending.
+The full Stage C end-to-end exit gates remain pending; notebook APIs and actual
+kernel evidence now have their own [contract](notebook-reports.md).
 
 ## Independent objects and identities
 
@@ -160,9 +161,9 @@ execution captures its validated evidence in an independent RunRecord, retaining
 actual manifests and exact dependencies instead of duplicating raw datasets.
 Unknown placeholder kinds are not silently accepted.
 
-Next steps: integrate experiment selection/history GUI, then result-report and
-explicit-rerun notebooks with real-kernel/portable-bundle
-tests. Stage C exits only after the complete end-to-end gates in the roadmap.
+Next steps: integrate experiment selection/history/notebook GUI using the
+implemented result-report/explicit-rerun bundle APIs and actual-kernel tests.
+Stage C exits only after the complete end-to-end gates in the roadmap.
 
 ## References and decisions
 

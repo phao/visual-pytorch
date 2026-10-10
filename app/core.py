@@ -327,6 +327,24 @@ class Workspace:
         self.disk_stamp = None
 
     @property
+    def layout_preferences(self):
+        from .presentation import LAYOUT_DEFAULTS, validate_layout
+        row = self.db.execute("SELECT value FROM metadata WHERE key='layout_preferences'").fetchone()
+        try:
+            return validate_layout(json.loads(row[0]) if row else LAYOUT_DEFAULTS)
+        except (ValueError, TypeError) as error:
+            raise GraphError('Invalid workspace layout_preferences metadata: ' + str(error)) from error
+
+    def set_layout_preferences(self, value):
+        from .presentation import validate_layout
+        value = validate_layout(value)
+        if value != self.layout_preferences:
+            with self.db:
+                self.db.execute("INSERT OR REPLACE INTO metadata VALUES ('layout_preferences', ?)",
+                                (json.dumps(value, sort_keys=True, allow_nan=False),))
+            self.dirty = True
+
+    @property
     def constrained_mode(self):
         row = self.db.execute("SELECT value FROM metadata WHERE key='constrained_mode'").fetchone()
         if row is None:
@@ -547,6 +565,7 @@ class Workspace:
                 if loaded[mid]['id'] != mid or loaded[mid]['name'].strip() != name:
                     raise GraphError('Architecture row ID/name does not match its document.')
             w.constrained_mode
+            w.layout_preferences
             if version<3:
                 # Working-copy migration only; the disk snapshot stays untouched until Save.
                 for doc in loaded.values():w.put(doc)

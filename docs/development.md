@@ -236,6 +236,30 @@ Retain failed-cell evidence and distinguish requested from executed notebooks.
 These are required C exit gates, not optional polish. Then D/E remain required.
 This unfinished branch stays unmerged into main.
 
+### Portable notebook and workspace-layout checkpoint — branch-only
+
+Both notebook modes now generate self-contained, integrity-checked bundles from
+exact report revisions. Generation never executes; result-report reads evidence
+without fits, while executing rerun explicitly trains the captured selection.
+Real fresh ipykernels retain requested/executed documents, errors, timeouts and
+receipts. Portability and fitted predictor tests run outside the producer checkout.
+Captured manifests survive replay; retry substitution is refused before launch.
+Metric/curve artifacts retain checkpoint/population identity and unavailable
+values. See [notebook contract](notebook-reports.md) for schemas and limitations.
+
+342 Python/57 JS tests passed, including 16 notebook tests and six workspace-layout
+tests; native Qt layout/history/config-isolation checks and real sandboxed
+WebEngine gestures/save/reload/undo controls passed. SVG coordinate tests are
+numerical evidence; final rendered-figure review remains open before publication.
+These additions are a useful partial C checkpoint, not all C exit gates.
+
+Collapsed/expanded layout profiles now belong to `.vtw` metadata and participate
+in undo/redo, atomic CLI edits and cross-tab state, not global config. Floating
+panel geometry/visibility remains session-only and is still a portability item.
+Selection/history/notebook GUI integration and full C convergence are next;
+then D/E remain required. This task branch stays separate from the initial public
+preview. Do not advertise its unfinished features as released.
+
 ## D — Symbolic families and mixed CNN/RNN composition
 
 Develop concrete-first architecture families with optional scoped symbols and
@@ -269,7 +293,9 @@ preferred expanded dimensions and undo/redo remain functional.
 
 Layout adds independent collapsed/expanded profiles with one implemented Layered
 style, LR/TB direction, model-unit gaps and optional rearrange/fit. Controls apply
-to the next action; an explicit save persists profiles in user configuration.
+to the next action; Save layout preferences updates the workspace draft, and
+Save workspace persists profiles in `.vtw`. Global configuration does not own
+these profiles; legacy global layout settings are ignored.
 Each bulk action is a single undoable visual edit. Small summaries remain visible
 on compact blocks. The algorithm is deterministic and size-aware, handles draft
 cycles without changing their graph, and reduces crossings heuristically rather

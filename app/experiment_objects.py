@@ -290,7 +290,8 @@ def validate_dependencies(kind, doc, resolve):
 
 
 def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, python=sys.executable,
-                      retry=False, progress=None, cancel=None, memory_limit_percent=10., timeout=None):
+                      retry=False, progress=None, cancel=None, memory_limit_percent=10., timeout=None,
+                      saved_manifest=None):
     """Explicit synchronous execution + terminal storage; never silently retries.
 
     Caller performs atomic Save. No pending/detached receipt is claimed here.
@@ -310,7 +311,10 @@ def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, p
         _require(digest(previous['selection']) == digest(selection), 'Retry cannot substitute another experiment/selection.')
         attempts = copy.deepcopy(previous['attempts'])
         resolved = copy.deepcopy(previous['resolved'])
-    selected = candidate(experiment, coordinates, workspace.get_spec, saved_manifest=resolved['manifest'] if resolved is not None else None)
+    if resolved is not None and saved_manifest is not None:
+        _require(digest(saved_manifest) == digest(resolved['manifest']), 'Retry cannot substitute the captured split manifest.')
+    selected = candidate(experiment, coordinates, workspace.get_spec,
+                         saved_manifest=resolved['manifest'] if resolved is not None else saved_manifest)
     if resolved is None and selected['status'] == 'compatible':
         resolved = {'version': 1, 'references': copy.deepcopy(selected['references']),
                     'manifest': copy.deepcopy(selected['manifest']), 'protocol': copy.deepcopy(selected['protocol'])}

@@ -85,7 +85,8 @@ in [revision-store.md](revision-store.md). Exact experiment, terminal run and re
 recipe schemas are in [experiment-objects.md](experiment-objects.md).
 Their JSON references are checked by the application on admission/load/save;
 only head→revision references are SQL foreign keys. This is a Stage C component,
-not the completed experiment GUI or notebook system. Legacy datasets/runs keep their
+not the completed experiment GUI. Notebook artifacts are separately specified in
+[notebook-reports.md](notebook-reports.md). Legacy datasets/runs keep their
 original meaning and existing APIs; no automatic typed-data interpretation occurs.
 
 ### Metadata
@@ -97,6 +98,7 @@ original meaning and existing APIs; no automatic typed-data interpretation occur
 | created_at | UTC ISO-8601 string with timezone |
 | name | Workspace display name; initially Untitled workspace |
 | constrained_mode | Text true or false; absent legacy key means true |
+| layout_preferences | Optional finite JSON, closed layout profile version 1; absent means independent defaults. See [layout.md](layout.md). |
 
 Unknown metadata keys are preserved, not executed. Timestamps are write/run
 evidence, not graph order or semantic versions. SQLite rowid determines the
@@ -285,7 +287,7 @@ predictor, specified in [task-training-contract.md](task-training-contract.md).
 It does not silently write that artifact into legacy `runs` or `result`.
 The v6 `run-candidate` wrapper explicitly stores its validated terminal evidence
 as an independent RunRecord, with exact dependencies and captured actual manifest.
-See [experiment-objects.md](experiment-objects.md). GUI/history/notebook
+See [experiment-objects.md](experiment-objects.md). GUI/history
 integration remains a subsequent Stage C gate.
 
 datasets.payload contains matching x/y arrays with at least two flat rows.
@@ -346,7 +348,8 @@ admission. This is an inference checkpoint, not an optimizer/resume checkpoint
 or authenticated proof of how a manually supplied result was obtained. Historical runs are
 not rewritten. Regular source exports instantiate fresh weights; export-trained
 embeds the matched trained state for evaluation-mode inference. A history browser
-and notebook generation are not implemented.
+is not implemented. Exact-revision result/rerun notebook bundles are implemented
+separately; they do not silently reinterpret this legacy result format.
 
 Existing datasets retain their binding when only the graph changes. Training
 rejects an incompatible binding rather than silently assigning old columns to
@@ -368,8 +371,10 @@ is explicitly labelled a fresh-weight template; trained inference uses the
 validated trained export API/CLI. Worker completions are checked against their
 captured snapshot before entering current/history storage.
 
-Future notebook generation may create .ipynb directly or via an agent prompt.
-No notebook schema/command/protocol is claimed or reserved in this version.
+Notebook bundles use `.ipynb` v4 plus a closed version-1 input manifest and exact
+revision closure, outside the SQLite container. Generation and actual-kernel
+execution are distinct explicit commands; neither writes the source workspace.
+See [notebook-reports.md](notebook-reports.md) for exact contracts and limitations.
 
 ## 7. Run policy is not graph meaning
 

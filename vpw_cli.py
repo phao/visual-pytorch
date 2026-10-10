@@ -53,6 +53,10 @@ def apply_edits(workspace, edits):
             workspace.set_constrained_mode(edit['enabled'])
             results.append({'op': kind, 'enabled': workspace.constrained_mode})
             continue
+        elif kind == 'layout':
+            workspace.set_layout_preferences(edit['value'])
+            results.append({'op': kind, 'value': workspace.layout_preferences})
+            continue
         elif kind == 'delete':
             workspace.delete(edit['id'])
             results.append({'op': kind, 'id': edit['id']})
@@ -163,6 +167,14 @@ def main(argv=None):
     selections.add_argument('--offset', type=int, default=0); selections.add_argument('--limit', type=int, default=100)
     reporting = sub.add_parser('report-data', help='Read exact saved report recipe/evidence; does not train or execute notebooks')
     reporting.add_argument('id'); reporting.add_argument('revision')
+    notebook = sub.add_parser('generate-report', help='Export a NEW portable notebook bundle; does not train or execute cells')
+    notebook.add_argument('id'); notebook.add_argument('revision'); notebook.add_argument('--output', required=True)
+    notebook.add_argument('--offset', type=int, default=0); notebook.add_argument('--limit', type=int, default=100)
+    notebook.add_argument('--allow-partial', action='store_true'); notebook.add_argument('--memory-limit-percent', type=float)
+    notebook.add_argument('--worker-timeout', type=float)
+    execution = sub.add_parser('execute-report', help='Explicitly execute a verified notebook bundle using a real Jupyter kernel')
+    execution.add_argument('bundle'); execution.add_argument('--kernel-python', default=sys.executable)
+    execution.add_argument('--cell-timeout', type=int, default=600)
     run = sub.add_parser('run-candidate', help='Explicit frozen selection execution and terminal RunRecord save; never silently retry')
     run.add_argument('--experiment', nargs=2, metavar=('ID', 'REVISION'), required=True)
     run.add_argument('--coordinates', required=True, help='Coordinates JSON from selection preview')
@@ -193,6 +205,7 @@ def main(argv=None):
                 value = {'path': str(path), 'revision': workspace.disk_revision,
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],
                          'constrained_mode': workspace.constrained_mode,
+                         'layout_preferences': workspace.layout_preferences,
                          'architectures': [{'id':d['id'],'name':d['name'],'nodes':len(d['graph']['nodes'])} for d in sorted(workspace.models().values(),key=lambda d:(d['name'].casefold(),d['id']))],
                          'specifications': workspace.list_specs(),
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}
@@ -209,6 +222,14 @@ def main(argv=None):
             elif args.command == 'report-data':
                 from app.experiment_objects import report_data
                 value = report_data(workspace.get_spec('report', args.id, args.revision), workspace.get_spec)
+            elif args.command == 'generate-report':
+                from app.notebooks import create_bundle
+                value = create_bundle(workspace, {'kind': 'report', 'id': args.id, 'revision': args.revision}, args.output,
+                    offset=args.offset, limit=args.limit, allow_partial=args.allow_partial,
+                    memory_limit_percent=ram_percentage(args.memory_limit_percent), worker_timeout=args.worker_timeout)
+            elif args.command == 'execute-report':
+                from app.notebooks import execute_bundle
+                value = execute_bundle(args.bundle, python=args.kernel_python, timeout=args.cell_timeout)
             elif args.command == 'run-candidate':
                 from app.experiment_objects import execute_candidate
                 value = execute_candidate(workspace, {'kind': 'experiment', 'id': args.experiment[0], 'revision': args.experiment[1]},

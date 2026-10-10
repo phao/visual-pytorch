@@ -5,8 +5,10 @@ All Blocks Collapsed and All Blocks Expanded are separate collapsible sections,
 each with its own options and Minimize all/Expand all action.
 
 Current control values are used immediately by the respective button. Save layout
-preferences stores both profiles in user configuration; changing a preference
-alone neither moves blocks nor edits a workspace. Defaults are:
+preferences updates both profiles in the current `.vtw` working workspace as one
+undoable edit; explicit Save workspace persists them to disk. Profiles are shared
+by its architectures/tabs, not by all workspaces on the computer. Editing controls
+alone does not store a preference; storing profiles does not move blocks. Defaults are:
 
 | Profile | Style/direction | Layer gap | Block gap | Rearrange | Fit |
 | --- | --- | --- | --- | --- | --- |
@@ -20,7 +22,7 @@ disable Fit to preserve the viewport. Each bulk operation, including fit when
 possible, is one undoable edit. Both operations are disabled during training.
 They leave computation, weights, data, bindings and preferred expanded sizes intact.
 
-The persisted config field is `layout`:
+The persisted `metadata` key is `layout_preferences`; its TEXT value is JSON:
 
 ```json
 {"version":1,
@@ -30,7 +32,17 @@ The persisted config field is `layout`:
 
 Only `layered` is implemented. Future styles need an explicit implementation and
 validated option contract, not a selector entry pretending to work. Existing
-configs lacking layout use defaults without being rewritten on open.
+workspaces lacking this optional key use independent defaults without being
+rewritten on open. Invalid stored JSON/profiles are rejected. Root/profile keys
+are closed; types are strict, including integer version and Boolean switches.
+The old user configuration `layout` key is inert and is not imported into a
+workspace; existing bytes are not rewritten merely to remove it. Appearance
+(font/theme/spacing/zoom) remains user-level. The CLI `layout` edit and read-only
+`inspect.layout_preferences` use the same pure contract in app/presentation.py.
+Profile edits preserve computation, dataset bindings, results and immutable
+scientific model revisions; no SQL table/container-version change is needed for
+this optional presentation metadata. No-op profile updates create no undo entry.
+Layout updates are refused without a workspace or during active training.
 
 ## Algorithm and evidence boundaries
 
@@ -56,7 +68,7 @@ Node tests cover profile validation, deterministic/idempotent layout, spacing,
 preferred sizes, ordering/semantic preservation, cycles, disconnected graphs,
 many-port routers, atomic failures and 100 uneven 64-node DAG configurations.
 Real Qt WebEngine tests exercise the buttons, single-entry undo, viewport restore,
-configuration persistence and unchanged scientific identity.
+workspace persistence, undo/redo control synchronization and unchanged scientific identity.
 
 ## Compact block content
 

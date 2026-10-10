@@ -46,7 +46,8 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
 Independent dataset/experiment/model/report/run/task persistence is implemented
-in `.vtw` v6; the experiment selection/history GUI and notebooks remain pending.
+in `.vtw` v6; the experiment selection/history GUI remains pending. Portable
+notebook generation/explicit real-kernel execution are described below.
 [revision-store.md](revision-store.md) specifies validators/migration.
 `prepare-stored` requires exact model/dataset/task ID+revision pairs and the same
 explicit split/manifest/RAM settings; it never reads mutable heads as execution
@@ -117,6 +118,28 @@ materialization, not notebook generation/execution (`notebook_status:not-generat
 See [experiment-objects.md](experiment-objects.md) for exact closed schemas,
 dependency validation, descriptive analysis and remaining capabilities.
 
+`generate-report ID REVISION --output NEW_DIRECTORY` creates a portable notebook
+bundle from an exact ReportRecipe; it never executes cells or trains. Optional
+`--offset 0 --limit 100 --allow-partial` selects an explicitly bounded rerun page
+(limit 1..1000); without `--allow-partial`, incomplete coverage is rejected.
+Result-report recipes select exact runs and reject candidate paging flags.
+`--memory-limit-percent` overrides the read-only user preference; optional
+`--worker-timeout` bounds each numerical worker in the rerun notebook.
+The directory must not exist; no files are overwritten. Bundles include raw
+inline observations and weights: review privacy before sharing.
+
+`execute-report BUNDLE --kernel-python PYTHON --cell-timeout SECONDS` explicitly
+executes trusted notebook code with a fresh real ipykernel. Defaults are the CLI
+interpreter and 600 seconds per cell (positive integer). It verifies requested
+bytes/input closure, retains requested/executed notebook copies, terminal receipt
+and partial outputs under a new attempt directory. `ok:true` means a receipt was
+produced: inspect `value.execution.status` for kernel success and each retained
+run's status independently. Source `.vtw` bytes remain unchanged. The positional
+workspace is still required as CLI context, but the bundle's exact inputs, not its
+current heads/drafts, determine execution. Manual Jupyter execution works from
+the bundle directory without the product checkout; install its requirements.
+See [notebook-reports.md](notebook-reports.md), including trusted-code and replay limits.
+
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
 graph, including affected references. --allow-invalid explicitly permits semantic
@@ -130,6 +153,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | rename | id, name | Display name |
 | move | id, node ID, x, y | Layout only; latest learned result retained |
 | resize | id, node ID, width, height | Preferred world-unit diagram size; finite positive numbers ≤100000; data/results/forward unchanged |
+| layout | value | Closed layout profile version 1 in workspace metadata, not global config; inspect returns layout_preferences |
 | set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
 | add-node | id, node object | Explicit new block |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
@@ -183,9 +207,11 @@ not part of a .vtw edit batch; workspace mode is. Editing values or validating a
 graph does not promise that the local execution memory policy will admit it.
 
 The CLI does not control an unsaved GUI buffer/modal dialogs/active jobs or
-execute arbitrary Python or generate notebooks. Training is only through the
-explicit isolated-worker commands above. Notebook/prompt generation is
-future design work, not a hidden feature of this interface.
+execute arbitrary Python through edit operations. Notebook generation does not
+execute code; explicit execute-report runs trusted notebook cells in an isolated
+kernel, not a hostile-code sandbox. Training is only through explicit commands
+or the clearly labelled rerun resolution cell. Agent-prompt generation is not
+implemented.
 
 ## Destination rewiring and GUI alignment
 

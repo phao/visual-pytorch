@@ -1,7 +1,7 @@
 """Frozen CPU task execution contracts; importing this module allocates no tensors.
 
-This is the execution component of Stage C, not yet an ExperimentSpec/RunRecord
-store. Legacy identity-preprocessing checkpoints remain a separate protocol.
+This is the execution component of Stage C; experiment_objects handles independent
+terminal storage. Legacy identity-preprocessing checkpoints are separate.
 """
 import copy
 import inspect

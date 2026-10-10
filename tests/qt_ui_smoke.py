@@ -323,11 +323,21 @@ with tempfile.TemporaryDirectory() as td:
     js('window.loom.perform("undo");')
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(before_bulk))
     assert js('JSON.stringify(window.loom.document.view)')==view_before_bulk
+    config_before=h.config.path.read_bytes() if h.config.path.exists() else None
     js('document.getElementById("layout-expanded-direction").value="TB";document.getElementById("layout-expanded-layer_gap").value="123";document.getElementById("save-layout-preferences").click();')
-    until('window.loom.state.display.layout.expanded.layer_gap===123')
-    assert Config(h.config.path).values['layout']['expanded']['direction']=='TB'
-    assert Config(h.config.path).values['layout']['collapsed']['layer_gap']==48
-    assert len(h.workspace.history.undo_stack)==history_before
+    until('window.loom.state.layout_preferences.expanded.layer_gap===123')
+    assert h.workspace.layout_preferences['expanded']['direction']=='TB'
+    assert h.workspace.layout_preferences['collapsed']['layer_gap']==48
+    assert (h.config.path.read_bytes() if h.config.path.exists() else None)==config_before
+    assert len(h.workspace.history.undo_stack)==history_before+1
+    layout_path=h.config.path.parent/'layout.vtw';h.workspace.save(layout_path)
+    loaded=Workspace.load(layout_path)
+    assert loaded.layout_preferences==h.workspace.layout_preferences;loaded.db.close()
+    js('window.loom.perform("undo");')
+    until('window.loom.state.layout_preferences.expanded.layer_gap===80')
+    assert js('document.getElementById("layout-expanded-direction").value')=='LR'
+    js('window.loom.perform("redo");')
+    until('window.loom.state.layout_preferences.expanded.layer_gap===123')
     js('window.loom.perform("reset-panels");')
     context_script = """(() => {
         const group=[...document.querySelectorAll('.node')].find(n=>n.dataset.id===%s);

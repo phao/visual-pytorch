@@ -297,8 +297,14 @@ Gaps are integers 8–1000 world units, independent of diagram/UI zoom and paddi
 Directions LR and TB mean left-to-right/top-to-bottom node ranking; ports retain
 their existing left/right positions in both. Style/profile controls do not alter
 port identity or compute order. Current control values apply on each button press;
-Save layout preferences explicitly persists both profiles at user level. Settings
-do not live in .vtw and do not create workspace undo entries.
+Save layout preferences updates both profiles in the current workspace's
+`metadata.layout_preferences` JSON, as one session undo entry. Explicit Save
+workspace writes the `.vtw` snapshot. Full state carries `workspace_id` and
+`layout_preferences` outside per-user `display`. Tabs refresh controls when the
+workspace identity/profiles change, including undo/redo, but unrelated state
+updates do not discard unsaved control edits. Missing metadata uses independent
+defaults. Legacy global `layout` is inert, never imported. Updates require a
+workspace and no active training; no-op changes create no history entry.
 
 The offline bounded Layered kernel uses SCC condensation for cyclic drafts,
 longest-path ranks, four alternating port-aware barycentric ordering sweeps and

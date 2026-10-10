@@ -1,7 +1,8 @@
 # Concrete experiments, terminal runs and report recipes — version 1
 
 This is the executable Stage C task-branch contract, not a completed experiment
-GUI or notebook generator. Reference implementations are
+GUI. The separate concrete notebook generator/runtime are specified in
+[notebook-reports.md](notebook-reports.md). Reference implementations are
 `app/experiment_objects.py`, `app/task_result.py` and `app/revisions.py`.
 All three object kinds require a `.vtw` container with `user_version=6`.
 The SQL tables and reference JSON hash convention are in

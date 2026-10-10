@@ -132,7 +132,8 @@ or manifest. It executes preparation, not training, and never follows a changed
 head to substitute another dataset/model. `preview-experiment` is read-only and
 paged; `run-candidate` explicitly executes and atomically saves a terminal run;
 `report-data` reads exact selected evidence without execution. Full experiment
-GUI/notebook integration remains pending. Filesystem revision polling continues
+GUI integration remains pending. Notebook export consumes exact revisions without
+changing SQLite bytes; see [notebook-reports.md](notebook-reports.md). Filesystem revision polling continues
 to use the existing protocol.
 
 ## References

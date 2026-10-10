@@ -3,7 +3,8 @@
 This task-branch component is executable through Python, CLI and a native Qt
 worker adapter. Independent terminal RunRecord storage now wraps this component;
 see [experiment-objects.md](experiment-objects.md). It is **not** the final
-experiment selection GUI, notebook reporting, symbolic families or detached jobs.
+experiment selection GUI, symbolic families or detached jobs. Concrete notebook
+reporting is specified separately in [notebook-reports.md](notebook-reports.md).
 Legacy regression workers and identity-preprocessing checkpoints are unchanged.
 
 ## Frozen execution input
@@ -176,6 +177,6 @@ checks this implementation, not just agreement between two uses of the same API.
 motivates separate captured streams/environment and scoped replay claims. No
 cross-version/platform determinism promise is made from these bounded local tests.
 
-Next: GUI selection/history and result/rerun notebooks with real-kernel portable
-closure, using the implemented independent objects and bounded selection preview.
+Next: GUI selection/history and notebook controls, using the implemented
+independent objects, bounded selection and real-kernel portable notebook APIs.
 Then proceed to D/E; this component does not satisfy those full exit gates.
