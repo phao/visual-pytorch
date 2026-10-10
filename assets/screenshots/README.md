@@ -12,6 +12,8 @@ python -m tests.qt_ui_smoke
 ```
 
 The harness captures GitHub/Math/Metallic examples and a resized Linear block.
+It also captures `interface-collapsed.png` and `interface-expanded.png`, showing
+the Layout profiles and their actual bulk state/geometry changes.
 The final `interface.png` can show a deliberately edited draft; use
 `interface-resized.png` for the README's valid model. It demonstrates diagram
 editing and shape inspection, not a completed training run. Future training and

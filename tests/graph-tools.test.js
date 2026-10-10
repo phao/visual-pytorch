@@ -19,11 +19,11 @@ test('Compact boxes retain distinct ports and expanded preferences through movem
   for(const type of ['Linear','Concat','Splitter','Replicator']){
     const n={id:'n',type,x:48,y:72,width:300,height:220,sources:['a','b','c'],
       parts:[{output:'a',features:1},{output:'b',features:1},{output:'c',features:1}],outputs:['a','b','c']};
-    n.collapsed=true;assert.equal(G.width(n),42);
+    n.collapsed=true;assert.equal(G.width(n),72);
     for(const output of [false,true]){
       const points=G.slots(n,output).map(peer=>G.portPoint(n,output,peer));
       assert.equal(new Set(points.map(p=>p.y)).size,points.length);
-      assert.ok(points.every(p=>p.x===n.x+(output?42:0) && p.y>n.y && p.y<n.y+G.height(n)));
+      assert.ok(points.every(p=>p.x===n.x+(output?72:0) && p.y>n.y && p.y<n.y+G.height(n)));
       const before=points.map(p=>({...p}));n.x+=24;n.y-=48;
       assert.deepEqual(G.slots(n,output).map(peer=>G.portPoint(n,output,peer)),before.map(p=>({x:p.x+24,y:p.y-48})));
     }

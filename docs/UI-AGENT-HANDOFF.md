@@ -76,10 +76,10 @@ The collapsed icon remains the event/click target during drag so browser
 double-click recognition survives. Dragging it must not leave fixed 42px dimensions
 on the expanded pack. Clear compact width/height before restoring natural size.
 
-Current pack menus are Architectures, Building blocks, Experiment and Inspector,
+Current pack menus are Architectures, Building blocks, Experiment, Inspector and Layout,
 in alphabetical browsing order.
 Only their labels/content are domain-specific. There is no architectural reason
-to limit other projects to four menus. Each menu must have exactly one launcher
+to limit other projects to five menus. Each menu must have exactly one launcher
 binding. Menus are rectangles: they can be wide/horizontal, not mandatory sidebars.
 
 ## 4. Menu state, controls and geometry
@@ -244,13 +244,18 @@ non-bias operations contain bias or collapse a module's heterogeneous internals
 into one misleading bias flag.
 Distinct 20-unit vector type icons occupy top-right, scaled from 24-unit paths.
 They are accessible, focusable folding controls. Clicking an expanded box's
-icon collapses the box to an icon-only body; clicking a compact icon selects it
+icon collapses the box to a compact icon-and-summary body; clicking a compact icon selects it
 without expanding. Dragging that compact icon moves the block with the same
 world-coordinate and Ctrl-snap behavior as an expanded block. Double-click
 restores its details; Enter/Space toggles folding on a focused icon. Dragging
 must not expand or collapse it, and sockets remain separately clickable.
-Compact width is 42 world units; height is at least 42 and increases to keep
-multiple ports distinct. Folding preserves preferred expanded sizes, tensor
+Compact width is 72 world units; height is at least 54 for Linear or 44 otherwise,
+increasing to keep multiple ports distinct. Small 9-unit monospace text shows
+input/output shape, Linear last-axis in→out widths, activation name or type-specific
+summary. Linear also has an 8-unit Bias on/off line. Summaries truncate after
+13 characters with full hover text; missing inferred dimensions show ?. The type
+icon sits at the compact body's top-center and remains directly draggable.
+Folding preserves preferred expanded sizes, tensor
 semantics, datasets and results. Its boolean collapsed flag persists with the
 block and participates in undo/redo. Training disables folding and movement.
 Bézier bend is at least 50
@@ -273,6 +278,41 @@ resizing. Saved sizes participate in workspace undo/redo, but preserve code,
 contracts, datasets and learned results because they are presentation-only.
 
 Single click selects but need not open a hidden Inspector; double-click opens it.
+
+### Bulk block layout tools
+
+Layout is a floating major menu with a launcher button and native context-menu
+entry. Its independent details sections are All Blocks Collapsed (initially open)
+and All Blocks Expanded (initially closed); both can be folded/expanded using
+standard accessible HTML summary controls. Each contains a layout style selector,
+direction, between-layer/between-block gaps, Rearrange blocks checkbox, Fit after
+action checkbox and its Minimize all/Expand all button. Layered is the only
+implemented style; future styles are additions to this explicit dispatch boundary.
+
+Collapsed defaults: LR, layer gap 48, block gap 16, rearrange=true, fit=true.
+Expanded defaults: LR, layer gap 80, block gap 32, rearrange=true, fit=true.
+Gaps are integers 8–1000 world units, independent of diagram/UI zoom and padding.
+Directions LR and TB mean left-to-right/top-to-bottom node ranking; ports retain
+their existing left/right positions in both. Style/profile controls do not alter
+port identity or compute order. Current control values apply on each button press;
+Save layout preferences explicitly persists both profiles at user level. Settings
+do not live in .vtw and do not create workspace undo entries.
+
+The offline bounded Layered kernel uses SCC condensation for cyclic drafts,
+longest-path ranks, four alternating port-aware barycentric ordering sweeps and
+size-aware, centered non-overlapping rank placement. It does not import ELK/Dagre
+or guarantee crossing-free/optimal routing. Concat source arrays, tensor packing,
+graph arrays/edges and reusable module contents are not reordered or unfolded.
+Disconnected/cyclic drafts remain drafts; layout never repairs computation.
+
+Prepare the changed graph on a private clone, applying all compact flags before
+measuring layout dimensions. Reject bad preferences/endpoints or coordinates
+outside ±100000 without replacing the original diagram. Apply state, geometry and
+optional fitting as exactly one workspace/history edit. Undo restores previous
+folding, positions and view; expanded width/height preferences are retained.
+Keep current scientific results/datasets/bindings intact. Do not allow either
+button during training or an active block gesture. Fit honors floating overlays
+and may request more visible room when panels cover the canvas.
 Single selection may also target a directed wire, keyed by (from,to,from_port),
 not by a mutable array index. Group selection is deliberately not implemented.
 Unmodified D deletes the selected box or precise wire through normal history;

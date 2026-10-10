@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import torch
-from app.core import Workspace, default_model, compile_model, validate_model, train_model
+from app.core import Workspace, default_model, compile_model, validate_model, train_model, restore_predictor, generate_predictor
 
 torch.set_num_threads(1)
 
@@ -29,6 +29,27 @@ def independent(widths=(1, 1)):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_bulk_presentation_keeps_real_checkpoint_predictor_and_export(self):
+        d=default_model();d['training']['epochs']=2
+        d['dataset']={'x':[[0.,1.],[1.,0.],[2.,1.]],'y':[[1.],[2.],[3.]]}
+        w=Workspace()
+        try:
+            w.put(d);d=w.models()[d['id']];d['result']=train_model(w.models(),d['id']);w.put(d)
+            result=w.models()[d['id']]['result']
+            x=torch.tensor([[3.,2.]])
+            before=restore_predictor(w.models(),d['id'],result).forward_tensor(x)
+            exported=generate_predictor(w.models(),d['id'],result)
+            for collapsed in (True,False):
+                current=w.models()[d['id']]
+                for i,n in enumerate(current['graph']['nodes']):
+                    n.update(collapsed=collapsed,x=i*100,y=i*24)
+                w.put(current)
+                self.assertEqual(w.models()[d['id']]['result'],result)
+                after=restore_predictor(w.models(),d['id'],result).forward_tensor(x)
+                torch.testing.assert_close(after,before,rtol=0,atol=0)
+                self.assertEqual(generate_predictor(w.models(),d['id'],result),exported)
+        finally:w.db.close()
+
     def test_independent_affine_paths_do_not_fake_serial_composition(self):
         for widths in [(1,1),(2,3)]:
             with self.subTest(widths=widths):

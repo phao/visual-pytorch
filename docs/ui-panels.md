@@ -6,7 +6,7 @@ The portable design contract for reuse in other projects is
 
 ## Menus and independent layers
 
-Architectures, Building blocks, Experiment and Inspector start hidden. One floating
+Architectures, Building blocks, Experiment, Inspector and Layout start hidden. One floating
 vertical PANELS pack independently opens/hides each. Click its icon to hide all
 menus and shrink the pack. Double-click the compact icon, or focused Enter/Space,
 restores only the menu buttons. Palettes are arbitrary rectangles, not fixed sidebars.

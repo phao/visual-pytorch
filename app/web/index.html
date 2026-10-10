@@ -10,6 +10,7 @@
   <script src="math.js" defer></script>
   <script src="vendor/mathjax/MathJax.js?config=TeX-AMS_SVG-full" defer onerror="window.LoomMath.failed()"></script>
   <script src="graph-tools.js" defer></script>
+  <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
@@ -36,7 +37,7 @@
   <main id="editor" class="editor" hidden>
     <nav id="menu-pack" class="menu-pack" aria-label="Floating panel menus">
       <div class="pack-heading"><span class="pack-grip" title="Drag menu pack">PANELS</span><button id="pack-toggle" aria-label="Shrink menu pack" aria-expanded="true" aria-controls="pack-menus" title="Shrink to one icon · double-click icon to restore"><svg class="panel-pack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5V3h13v13h-2"/><rect x="3" y="8" width="13" height="13" rx="2"/><path d="M3 12h13"/><path d="M6 10h1"/></svg></button></div>
-      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button></div>
+      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
     </nav>
     <aside id="library-panel" class="library floating-panel" hidden>
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
@@ -59,6 +60,35 @@
     <aside id="architectures-panel" class="architectures floating-panel" hidden>
       <div class="floating-heading" data-drag-handle><span>ARCHITECTURES</span><div class="panel-controls"><button id="add-model" class="icon" aria-label="New architecture" title="New architecture">+</button><button data-expand-panel aria-label="Expand architectures" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide architectures" aria-controls="architectures-scroll" title="Hide">×</button></div></div>
       <div id="architectures-scroll" class="scrollport"><section id="architecture-bookkeeping" class="architecture-bookkeeping" aria-label="Currently open architecture"></section><div id="model-list" class="model-list"></div></div>
+    </aside>
+
+    <aside id="layout-panel" class="layout-panel floating-panel" hidden>
+      <div class="floating-heading" data-drag-handle><span>LAYOUT</span><div class="panel-controls"><button data-expand-panel aria-label="Expand layout panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide layout panel" aria-controls="layout-scroll" title="Hide">×</button></div></div>
+      <div id="layout-scroll" class="scrollport">
+        <details id="layout-collapsed-section" class="layout-section" open>
+          <summary>All Blocks Collapsed</summary>
+          <div class="layout-options">
+            <label for="layout-collapsed-style">Layout style</label><select id="layout-collapsed-style"><option value="layered">Layered</option></select>
+            <label for="layout-collapsed-direction">Direction</label><select id="layout-collapsed-direction"><option value="LR">Left to right</option><option value="TB">Top to bottom</option></select>
+            <div class="inline-fields"><label>Between layers<input id="layout-collapsed-layer_gap" type="number" min="8" max="1000" step="1" value="48"></label><label>Between blocks<input id="layout-collapsed-block_gap" type="number" min="8" max="1000" step="1" value="16"></label></div>
+            <label class="layout-check"><input id="layout-collapsed-rearrange" type="checkbox" checked>Rearrange blocks</label>
+            <label class="layout-check"><input id="layout-collapsed-fit" type="checkbox" checked>Fit after minimizing</label>
+            <button id="minimize-all" class="primary">Minimize all</button>
+          </div>
+        </details>
+        <details id="layout-expanded-section" class="layout-section">
+          <summary>All Blocks Expanded</summary>
+          <div class="layout-options">
+            <label for="layout-expanded-style">Layout style</label><select id="layout-expanded-style"><option value="layered">Layered</option></select>
+            <label for="layout-expanded-direction">Direction</label><select id="layout-expanded-direction"><option value="LR">Left to right</option><option value="TB">Top to bottom</option></select>
+            <div class="inline-fields"><label>Between layers<input id="layout-expanded-layer_gap" type="number" min="8" max="1000" step="1" value="80"></label><label>Between blocks<input id="layout-expanded-block_gap" type="number" min="8" max="1000" step="1" value="32"></label></div>
+            <label class="layout-check"><input id="layout-expanded-rearrange" type="checkbox" checked>Rearrange blocks</label>
+            <label class="layout-check"><input id="layout-expanded-fit" type="checkbox" checked>Fit after expanding</label>
+            <button id="expand-all" class="primary">Expand all</button>
+          </div>
+        </details>
+        <div class="layout-footer"><p class="tiny">Spacing is in model units, independent of interface zoom. Each action is one undoable visual edit. Ports remain on the left/right in both directions.</p><button id="save-layout-preferences">Save layout preferences</button></div>
+      </div>
     </aside>
 
     <section class="workarea">

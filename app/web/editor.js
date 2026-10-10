@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   const SVG = "http://www.w3.org/2000/svg";
   const G = window.LoomGraph;
+  const L = window.LoomLayout;
   const floating = window.LoomPanels.initialize(document);
   const activationInfo = {
     ReLU: ["h = max(0, z)", "Keeps positive features; zeros negative ones."],
@@ -70,6 +71,7 @@
     $("resume-area").hidden = !Object.keys(state.models).length;
     $("runtime").textContent = (state.binding || "Qt webview") + " · SQLite workspace" +
       (state.rendering?.mode === "software" ? " · software webview" : "");
+    for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy();
   }
 
   function recentFiles() {
@@ -268,7 +270,7 @@
       const shortened=(text,charWidth,reserve=0)=>{const max=Math.floor((m.width-2*m.padding-reserve)/charWidth);return text.length>max?text.slice(0,max-1)+'…':text;};
       group.append(svgElement("rect", {width:m.width,height,rx:7}));
       group.append(svgElement("text", {x:m.padding,y:m.headerY,class:"node-header"}, n.type === "Module" ? "ARCHITECTURE ↗" : n.type.toUpperCase()));
-      const icon=svgElement('g',{class:'node-type-icon',transform:n.collapsed?'translate(11,'+(height/2-10)+') scale(0.833333)':'translate('+(m.width-m.padding-20)+','+Math.max(2,m.padding-7)+') scale(0.833333)',role:'button',tabindex:busy()?-1:0,'aria-expanded':String(!n.collapsed),'aria-disabled':String(busy()),'aria-label':n.collapsed?'Expand '+title(n)+' block (double-click or Enter)':'Collapse '+title(n)+' block'});
+      const icon=svgElement('g',{class:'node-type-icon',transform:n.collapsed?'translate('+(m.width/2-10)+',4) scale(0.833333)':'translate('+(m.width-m.padding-20)+','+Math.max(2,m.padding-7)+') scale(0.833333)',role:'button',tabindex:busy()?-1:0,'aria-expanded':String(!n.collapsed),'aria-disabled':String(busy()),'aria-label':n.collapsed?'Expand '+title(n)+' block (double-click or Enter)':'Collapse '+title(n)+' block'});
       icon.innerHTML=window.LoomTypeIcons.svg(n.type);
       icon.append(svgElement('rect',{class:'icon-hit',x:-3,y:-3,width:30,height:30,rx:3}));
       icon.append(svgElement('title',{},n.type+' block · '+(n.collapsed?'Drag to move · double-click to expand':'Click to collapse')));group.append(icon);
@@ -286,6 +288,12 @@
       noteText.append(svgElement('title',{},note));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
+        const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
+          n.type==='Activation'?n.activation:['Input','Output','Reshape'].includes(n.type)?line:
+          n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
+        const small=svgElement('text',{x:m.width/2,y:height-(n.type==='Linear'?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
+        small.append(svgElement('title',{},compact));group.append(small);
+        if(n.type==='Linear')group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
         group.append(svgElement('title',{},label+' · '+line+' · '+note));
       }
       for (const output of [false, true]) {
@@ -345,7 +353,7 @@
     updateViewport();
     persist();
   }
-  function fit() {
+  function fit(save=true) {
     if (!doc) return;
     const rect = floating.available(), nodes = doc.graph.nodes;
     if (!rect || rect.width<80 || rect.height<80) {toast("Hide or move a panel to make room, then Fit the graph.");return;}
@@ -355,8 +363,46 @@
     const fittedScale = Math.max(.05, scale);
     doc.view = {zoom: fittedScale, x: rect.x + (rect.width - (right - left) * fittedScale) / 2 - left * fittedScale, y: rect.y + (rect.height - (bottom - top) * fittedScale) / 2 - top * fittedScale, fitted: true};
     updateViewport();
-    persist();
+    if(save)persist();
   }
+
+  function renderLayoutPreferences(){
+    const options=state.display?.layout || L.defaults();
+    for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries(options[mode])){
+      const control=$('layout-'+mode+'-'+key);if(!control)continue;
+      if(control.type==='checkbox')control.checked=value;else control.value=value;
+    }
+  }
+  function readLayoutProfile(mode){
+    const p={};for(const key of ['style','direction','layer_gap','block_gap','rearrange','fit']){
+      const control=$('layout-'+mode+'-'+key);
+      p[key]=control.type==='checkbox'?control.checked:control.type==='number'?Number(control.value):control.value;
+    }
+    return L.validate(p);
+  }
+  function readLayoutPreferences(){
+    return {version:1,collapsed:readLayoutProfile('collapsed'),expanded:readLayoutProfile('expanded')};
+  }
+  function bulkBlocks(collapsed){
+    if(!doc || busy() || drag)return;
+    try{
+      const options=readLayoutProfile(collapsed?'collapsed':'expanded');
+      const updated=L.apply(doc,collapsed,options,G);
+      doc=updated;connecting=null;$('pending-wire').setAttribute('hidden','');
+      render();if(options.fit)fit(false);persist();
+      toast(collapsed?'All blocks minimized. Undo restores the previous layout.':'All blocks expanded. Undo restores the previous layout.');
+    }catch(error){toast(error.message,true);}
+  }
+  $('minimize-all').onclick=()=>bulkBlocks(true);
+  $('expand-all').onclick=()=>bulkBlocks(false);
+  $('save-layout-preferences').onclick=async()=>{
+    try{
+      const layout=readLayoutPreferences();
+      await call('setLayoutPreferences',{layout});
+      state.display ||= {};state.display.layout=layout;
+      toast('Layout preferences saved for future sessions.');
+    }catch(error){toast(error.message,true);}
+  };
 
   function renderInspector() {
     const n = node(selected), content = $("inspector-content");
@@ -927,6 +973,7 @@
   function onEvent(raw) {
     const event = JSON.parse(raw);
     if (event.kind === "state") hydrate(event.payload);
+    else if(event.kind==='layoutPreferences'){state.display ||= {};state.display.layout=event.payload;renderLayoutPreferences();}
     else if(event.kind==='history'){state.history=event.payload;if(event.payload.notice)toast(event.payload.notice,true);}
     else if (event.kind === "navigate") navigate(event.payload);
     else if (event.kind === "progress" && doc?.id === event.payload.id) {
@@ -975,12 +1022,15 @@
           else if(command==="validate")$("validate").click();
           else if(command==="library")floating.open("library-panel");
           else if(command==="architectures")floating.open("architectures-panel");
+          else if(command==='layout')floating.open('layout-panel');
+          else if(command==='compact-all')bulkBlocks(true);
+          else if(command==='expand-all')bulkBlocks(false);
           else if(command==="inspector")floating.open("inspector-panel");
           else if(command==="experiment")showPanel("experiment");
           else if(command==="code")showPanel("code");
           else if(command==="results")showPanel("results");
         }};
-      await route();
+      renderLayoutPreferences();await route();
     });
   }
   if (window.qt && window.QWebChannel) initialize();

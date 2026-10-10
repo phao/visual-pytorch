@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory() as td:
     assert js('JSON.stringify([...document.getElementById("reference-select").options].map(e=>e.textContent))') == '["Alpha","zeta"]'
     assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Tanh"]'
     assert js('document.getElementById("activation-select").value') == 'ReLU'
-    assert js('JSON.stringify([...document.querySelectorAll("#pack-menus button")].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()))') == '["Architectures","Building blocks","Experiment","Inspector"]'
+    assert js('JSON.stringify([...document.querySelectorAll("#pack-menus button")].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()))') == '["Architectures","Building blocks","Experiment","Inspector","Layout"]'
     assert js('JSON.stringify([...document.querySelectorAll("#library-scroll .palette b")].map(e=>e.textContent))') == '["Activation","Architecture reference","Concat","Linear","Reshape","Input part","Output","Replicator","Splitter"]'
     samples = []
     for theme in ('github', 'math', 'metallic'):
@@ -237,6 +237,8 @@ with tempfile.TemporaryDirectory() as td:
     QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,block_center(icon_selector))
     until('window.loom.document.graph.nodes.find(n=>n.type==="Linear").collapsed===true')
     assert js('document.querySelector(".node.Linear .node-title")===null')
+    assert js('document.querySelector(".node.Linear .node-compact-label").firstChild.nodeValue==="3 → 4"')
+    assert js('document.querySelector(".node.Linear .node-compact-bias").textContent==="Bias on"')
     assert js('document.querySelector(".node.Linear .port-in")!==null && document.querySelector(".node.Linear .port-out")!==null')
     assert js('[...document.querySelectorAll(".node.Linear title")].some(t=>t.textContent.includes("Bias on"))')
     before_move=js('window.loom.document.graph.nodes.find(n=>n.type==="Linear").x')
@@ -283,6 +285,50 @@ with tempfile.TemporaryDirectory() as td:
     until('window.loom.document.graph.nodes.find(n=>n.type==="Linear").collapsed===true')
     js('window.loom.perform("undo");')
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(graph_before_fold))
+    # Bulk layout is a single visual/history edit; independent profiles do not
+    # change shapes, bindings, code or checkpoint identity.
+    before_bulk=js('JSON.stringify(window.loom.document.graph)')
+    view_before_bulk=js('JSON.stringify(window.loom.document.view)')
+    history_before=len(h.workspace.history.undo_stack)
+    js('window.loom.perform("layout");')
+    until('!document.getElementById("layout-panel").hidden')
+    assert js('document.getElementById("layout-collapsed-section").open && !document.getElementById("layout-expanded-section").open')
+    js('document.getElementById("layout-expanded-layer_gap").value="7";')
+    QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,block_center('#minimize-all'))
+    until('window.loom.document.graph.nodes.every(n=>n.collapsed)')
+    assert js('document.querySelector(".node.Input .node-compact-label").firstChild.nodeValue==="[B, 2, 3]"')
+    assert js('document.querySelector(".node.Output .node-compact-label").firstChild.nodeValue==="[B, 2, 4]"')
+    QTest.qWait(100)
+    assert len(h.workspace.history.undo_stack)==history_before+1
+    assert identity(h.workspace.models(),h.model['id'])==signature_before_fold
+    small_doc=js('JSON.stringify(window.loom.document.graph)')
+    small_extent=js('Math.max(...window.loom.document.graph.nodes.map(n=>n.x+LoomGraph.width(n)))')
+    screenshot=os.environ.get('VTW_SMOKE_SCREENSHOT')
+    if screenshot:
+        QTest.qWait(100)
+        assert view.grab().save(str(Path(screenshot).with_name(Path(screenshot).stem+'-collapsed.png')))
+    js('document.getElementById("layout-collapsed-section").open=false;document.getElementById("layout-expanded-section").open=true;')
+    js('document.getElementById("layout-expanded-layer_gap").value="80";')
+    QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,block_center('#expand-all'))
+    until('window.loom.document.graph.nodes.every(n=>n.collapsed===false)')
+    QTest.qWait(100)
+    assert len(h.workspace.history.undo_stack)==history_before+2
+    assert identity(h.workspace.models(),h.model['id'])==signature_before_fold
+    assert js('Math.max(...window.loom.document.graph.nodes.map(n=>n.x+LoomGraph.width(n)))')>small_extent
+    if screenshot:
+        QTest.qWait(100)
+        assert view.grab().save(str(Path(screenshot).with_name(Path(screenshot).stem+'-expanded.png')))
+    js('window.loom.perform("undo");')
+    until('JSON.stringify(window.loom.document.graph)==='+json.dumps(small_doc))
+    js('window.loom.perform("undo");')
+    until('JSON.stringify(window.loom.document.graph)==='+json.dumps(before_bulk))
+    assert js('JSON.stringify(window.loom.document.view)')==view_before_bulk
+    js('document.getElementById("layout-expanded-direction").value="TB";document.getElementById("layout-expanded-layer_gap").value="123";document.getElementById("save-layout-preferences").click();')
+    until('window.loom.state.display.layout.expanded.layer_gap===123')
+    assert Config(h.config.path).values['layout']['expanded']['direction']=='TB'
+    assert Config(h.config.path).values['layout']['collapsed']['layer_gap']==48
+    assert len(h.workspace.history.undo_stack)==history_before
+    js('window.loom.perform("reset-panels");')
     context_script = """(() => {
         const group=[...document.querySelectorAll('.node')].find(n=>n.dataset.id===%s);
         const r=group.querySelector('.node-title').getBoundingClientRect();
@@ -313,6 +359,8 @@ with tempfile.TemporaryDirectory() as td:
     h.job=SimpleNamespace(mid=h.model['id'],isRunning=lambda:True)
     h.broadcast()
     until('window.loom.state.training_id !== null')
+    assert js('document.getElementById("minimize-all").disabled && document.getElementById("expand-all").disabled')
+    js('window.loom.perform("compact-all");window.loom.perform("expand-all");')
     assert js('document.querySelector(".node.Linear .node-resize").getAttribute("aria-disabled")==="true"')
     js("document.querySelector('.node.Linear .node-resize').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));")
     assert not any('width' in n for n in js('window.loom.document.graph.nodes'))
@@ -326,6 +374,7 @@ with tempfile.TemporaryDirectory() as td:
     h.job=None
     h.broadcast()
     until('window.loom.state.training_id === null')
+    assert js('!document.getElementById("minimize-all").disabled && !document.getElementById("expand-all").disabled')
     # Later selection does not redirect the explicit deletion target.
     assert js(context_script % json.dumps(input_id))['id'] == input_id
     js('window.loom.perform("delete-block",'+json.dumps(linear)+',"other-model");')
@@ -454,5 +503,5 @@ with tempfile.TemporaryDirectory() as td:
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     profile.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-print(json.dumps({'real_webengine':'PASS','layouts':samples,'reset_origin':'PASS','mouse_resize_undo_redo':'PASS','mouse_destination_rewire_undo_redo':'PASS','rewire_cancel':'PASS','D_box_and_wire_deletion':'PASS','D_typing_training_guards':'PASS','bias_state':'PASS','alphabetical_lists':'PASS',
+print(json.dumps({'real_webengine':'PASS','layouts':samples,'reset_origin':'PASS','mouse_resize_undo_redo':'PASS','mouse_compact_icon_drag_snap_restore':'PASS','bulk_layout_single_undo':'PASS','layout_preferences_persistence':'PASS','compact_dimensions_bias':'PASS','mouse_destination_rewire_undo_redo':'PASS','rewire_cancel':'PASS','D_box_and_wire_deletion':'PASS','D_typing_training_guards':'PASS','bias_state':'PASS','alphabetical_lists':'PASS',
     'clicked_block_delete_undo_redo':'PASS','training_guard':'PASS','console_errors':errors}))

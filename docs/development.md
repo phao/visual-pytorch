@@ -64,11 +64,27 @@ need appropriate operational authorization; the roadmap alone does not grant it.
 
 ## UI contracts
 
+The Layout/compact-summary change passed 119 Python tests and 54 JavaScript tests,
+native menu checks and real sandboxed WebEngine gestures. A real trained
+checkpoint retains bitwise-identical inference and identical trained export
+across presentation-only bulk folding/position edits. The new layered layout
+tests include 100 uneven 64-node DAG configurations, cyclic/disconnected drafts,
+ports, geometry bounds and deterministic repeat layout. This does not complete
+the outstanding Stage A backend gates listed above.
+
 Keep icon folding visual-only. A compact icon is a drag surface, not solely an
 expansion button; single click selects, double-click restores, and Enter/Space
 toggles folding. Begin pointer capture after actual movement for compact blocks,
 so stationary double-click events remain targeted at the icon. Ports, snapping,
 preferred expanded dimensions and undo/redo remain functional.
+
+Layout adds independent collapsed/expanded profiles with one implemented Layered
+style, LR/TB direction, model-unit gaps and optional rearrange/fit. Controls apply
+to the next action; an explicit save persists profiles in user configuration.
+Each bulk action is a single undoable visual edit. Small summaries remain visible
+on compact blocks. The algorithm is deterministic and size-aware, handles draft
+cycles without changing their graph, and reduces crossings heuristically rather
+than promising optimal routing. See [layout contract](layout.md).
 
 Preserve persistent selection on empty canvas and contextual Escape behavior,
 including typing/dialog safeguards. Group selection gestures remain deferred.

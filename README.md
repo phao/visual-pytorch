@@ -24,14 +24,20 @@ independent human review and contributions.
   held-out loss and learned parameters. This initial workflow targets regression.
 - A compact canvas with floating tools, readable display preferences, many
   themes, independent menu/block spacing, resizable blocks and undo/redo.
-- Icon-only blocks: click a type icon to compact a block, drag that same icon
-  to move it, and double-click to restore it. Ports remain usable.
+- Compact blocks: click a type icon to compact a block, drag that same icon
+  to move it, and double-click to restore it. Small dimension/activation labels,
+  bias state and ports remain available.
+- Layout tools with separate collapsible "All Blocks Collapsed" and "All Blocks
+  Expanded" profiles. Minimize/expand all and rearrange automatically, with
+  independent direction, layer/block gaps and automatic fitting preferences.
 - `.vtw` SQLite workspaces and an agent-friendly CLI for atomic, revision-checked
   edits. The desktop notices external changes without silently replacing dirty work.
 
 CNN/RNN operators, notebook generation and richer experiment management remain
 future work. Backend hardening is in progress; see [development](docs/development.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
+
+![Compact blocks retain dimensions and bias; bulk layout has independent profiles](assets/screenshots/interface-collapsed.png)
 
 ## Run
 
