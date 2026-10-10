@@ -32,9 +32,18 @@ assert all(group==sorted(group,key=str.casefold) for group in groups),groups
 assert not any(s in " ".join(actions).lower() for s in ("save page","view page source","reload"))
 assert 'Delete block' not in actions,"Empty space must not delete an earlier selection"
 assert 'Inspect block' not in actions
-block_menu=build_context_menu(view,window,{'id':'linear1','modelId':'model','canDelete':True})
+palette=build_context_menu(view,window,{'palette':{'id':'add-linear','name':'Linear'}})
+assert palette.actions()[0].text()=='About Linear' and palette.actions()[0].isEnabled()
+assert palette.actions()[1].isSeparator()
+assert not any(a.text() in ('Inspect block','Delete block','Automatic size') for a in palette.actions())
+palette.actions()[0].trigger()
+assert called[-1]=='window.loom && window.loom.perform("about-building-block","add-linear");'
+block_menu=build_context_menu(view,window,{'id':'linear1','modelId':'model','canDelete':True,'canResize':True})
 assert [a.text() for a in block_menu.actions()[:2]]==['Inspect block','Delete block']
-assert block_menu.actions()[2].isSeparator()
+assert block_menu.actions()[2].text()=='Automatic size'
+assert block_menu.actions()[3].isSeparator()
+automatic=block_menu.actions()[2];assert automatic.isEnabled()
+automatic.trigger();assert called[-1]=='window.loom && window.loom.perform("automatic-block-size","linear1","model");'
 inspect=block_menu.actions()[0]
 assert inspect.isEnabled()
 inspect.trigger();assert called[-1]=='window.loom && window.loom.perform("inspect-block","linear1","model");'
@@ -44,9 +53,11 @@ delete.trigger();assert called[-1]=='window.loom && window.loom.perform("delete-
 locked=build_context_menu(view,window,{'id':'linear1','modelId':'model','canDelete':False})
 assert not next(a for a in locked.actions() if a.text()=='Delete block').isEnabled()
 assert next(a for a in locked.actions() if a.text()=='Inspect block').isEnabled()
+assert not next(a for a in locked.actions() if a.text()=='Automatic size').isEnabled()
 other=build_context_menu(view,window,{'id':'linear1','modelId':'other','canDelete':True})
 assert not next(a for a in other.actions() if a.text()=='Delete block').isEnabled()
 assert not next(a for a in other.actions() if a.text()=='Inspect block').isEnabled()
+assert not next(a for a in other.actions() if a.text()=='Automatic size').isEnabled()
 actions["Building blocks panel"].trigger()
 assert called[-1]=='window.loom && window.loom.perform("library");'
 actions["Layout panel"].trigger()
@@ -73,5 +84,6 @@ view.mid=None;home=build_context_menu(view,window)
 assert not next(a for a in home.actions() if a.text()=="Fit graph").isEnabled()
 assert 'Delete block' not in [a.text() for a in home.actions()]
 assert 'Inspect block' not in [a.text() for a in home.actions()]
+assert 'Automatic size' not in [a.text() for a in home.actions()]
 print(json.dumps({"context_menu":"PASS","browser_actions_absent":True,"select_before_popup":True,
     "zoom_coordinates":True,"native_actions":list(actions)}))

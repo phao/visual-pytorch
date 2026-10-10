@@ -151,6 +151,10 @@ with tempfile.TemporaryDirectory() as td:
             if theme == 'metallic':
                 assert metrics['background'].startswith('linear-gradient'), metrics
             samples.append({'theme':theme,'font':font,'spacing':spacing})
+            js('window.loom.perform("about-building-block","add-linear");')
+            assert js('getComputedStyle(document.querySelector("#block-about-content p")).fontSize')==str(font)+'px'
+            assert js('(() => {const r=document.getElementById("block-about-dialog").getBoundingClientRect();return r.width<=innerWidth && r.height<=innerHeight;})()')
+            js('document.getElementById("block-about-dialog").close();')
             screenshot = os.environ.get('VTW_SMOKE_SCREENSHOT')
             if screenshot and font == 18:
                 js('window.loom.fit();')
@@ -169,6 +173,30 @@ with tempfile.TemporaryDirectory() as td:
     h.config.values.update(theme='math',font_size=18,spacing=4)
     h.broadcast()
     until('document.documentElement.dataset.theme=="math"')
+    # Palette context help is read-only, targets nested icons/text, and covers
+    # every actual button rather than only a detached descriptor unit test.
+    before_help=h.workspace.db.serialize()
+    help_graph=js('JSON.stringify(window.loom.document.graph)')
+    js('window.loom.perform("library");')
+    palette_buttons=js('[...document.querySelectorAll("#library-panel .palette")].map(b=>({id:b.id,name:b.querySelector("b").textContent.trim()}))')
+    for button in palette_buttons:
+        js('document.getElementById('+json.dumps(button['id'])+').scrollIntoView({block:"center"});')
+        context=js('(() => {const b=document.getElementById('+json.dumps(button['id'])+');const r=b.querySelector("b").getBoundingClientRect();return window.loom.contextAt(r.left+r.width/2,r.top+r.height/2);})()')
+        assert context=={'palette':button},context
+        js('window.loom.perform("about-building-block",'+json.dumps(button['id'])+');')
+        assert js('document.getElementById("block-about-dialog").open')
+        assert js('document.getElementById("block-about-title").textContent')=='About '+button['name']
+        assert js('document.querySelectorAll("#block-about-content p").length')>=4
+        assert js('JSON.stringify(window.loom.document.graph)')==help_graph
+        js('document.getElementById("block-about-dialog").close();')
+    js('document.getElementById("activation-select").value="Sigmoid";window.loom.perform("about-building-block","add-activation");')
+    assert js('document.getElementById("block-about-content").textContent.includes("Sigmoid") && document.getElementById("block-about-content").textContent.includes("does not choose a classification loss")')
+    QTest.keyClick(view.focusProxy() or view,Qt.Key.Key_Escape)
+    until('!document.getElementById("block-about-dialog").open')
+    assert h.workspace.db.serialize()==before_help
+    js('document.getElementById("activation-select").value="ReLU";window.loom.perform("about-building-block","missing");')
+    assert not js('document.getElementById("block-about-dialog").open')
+    js('window.loom.perform("reset-panels");')
     js('window.loom.fit();')
     linear = next(n['id'] for n in h.model['graph']['nodes'] if n['type']=='Linear')
     input_id = next(n['id'] for n in h.model['graph']['nodes'] if n['type']=='Input')
@@ -207,13 +235,30 @@ with tempfile.TemporaryDirectory() as td:
     until('!("width" in window.loom.document.graph.nodes.find(n=>n.type==="Linear"))')
     js('window.loom.perform("redo");')
     until('window.loom.document.graph.nodes.find(n=>n.type==="Linear").width>180')
-    js('window.loom.perform("inspector");document.getElementById("auto-block-size").click();')
+    linear_id=js('window.loom.document.graph.nodes.find(n=>n.type==="Linear").id')
+    model_id=h.model['id']
+    js('window.loom.perform("inspector");')
+    assert js('!["remove-node","block-width","block-height","auto-block-size"].some(id=>document.getElementById(id))')
+    sized_graph=js('JSON.stringify(window.loom.document.graph)')
+    from app.evidence import identity
+    before_size_reset=identity(h.workspace.models(),model_id)
+    js('window.loom.perform("automatic-block-size",'+json.dumps(linear_id)+',"wrong-model");window.loom.perform("automatic-block-size","missing",'+json.dumps(model_id)+');')
+    assert js('JSON.stringify(window.loom.document.graph)')==sized_graph
+    js('window.loom.perform("automatic-block-size",'+json.dumps(linear_id)+','+json.dumps(model_id)+');')
     until('!("width" in window.loom.document.graph.nodes.find(n=>n.type==="Linear"))')
+    assert identity(h.workspace.models(),model_id)==before_size_reset
+    js('window.loom.perform("undo");')
+    until('JSON.stringify(window.loom.document.graph)==='+json.dumps(sized_graph))
+    js('window.loom.perform("redo");')
+    until('!("width" in window.loom.document.graph.nodes.find(n=>n.type==="Linear"))')
+    history_count=len(h.workspace.history.undo_stack)
+    js('window.loom.perform("automatic-block-size",'+json.dumps(linear_id)+','+json.dumps(model_id)+');')
+    assert len(h.workspace.history.undo_stack)==history_count
     js("document.querySelector('.node.Linear .node-resize').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',ctrlKey:true,bubbles:true}));")
     until('"width" in window.loom.document.graph.nodes.find(n=>n.type==="Linear")')
     corner=js("""(() => {const n=window.loom.document.graph.nodes.find(n=>n.type==='Linear');return {x:n.x+n.width,y:n.y+n.height};})()""")
     assert corner['x']%24==corner['y']%24==0,corner
-    js('document.getElementById("auto-block-size").click();')
+    js('window.loom.perform("automatic-block-size",'+json.dumps(linear_id)+','+json.dumps(model_id)+');')
     until('!("width" in window.loom.document.graph.nodes.find(n=>n.type==="Linear"))')
     js('document.getElementById("bias").click();')
     until('document.querySelector(".node.Linear .node-params").textContent.startsWith("Bias off")')
@@ -345,7 +390,7 @@ with tempfile.TemporaryDirectory() as td:
         return window.loom.contextAt(r.left+r.width/2,r.top+r.height/2);
     })()"""
     context = js(context_script % json.dumps(linear))
-    assert context == {'id':linear,'modelId':h.model['id'],'canDelete':True}, context
+    assert context == {'id':linear,'modelId':h.model['id'],'canDelete':True,'canResize':True}, context
     # Empty canvas clicks/pan do not discard selection. Escape is two-stage:
     # clear selection, then hide panels and collapse the launcher, not reset geometry.
     QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,QPoint(900,120))
@@ -375,6 +420,12 @@ with tempfile.TemporaryDirectory() as td:
     js("document.querySelector('.node.Linear .node-resize').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));")
     assert not any('width' in n for n in js('window.loom.document.graph.nodes'))
     assert js(context_script % json.dumps(linear))['canDelete'] is False
+    assert js(context_script % json.dumps(linear))['canResize'] is False
+    js('window.loom.perform("about-building-block","add-linear");')
+    assert js('document.getElementById("block-about-dialog").open')
+    js('document.getElementById("block-about-dialog").close();')
+    js('window.loom.perform("automatic-block-size",'+json.dumps(linear)+','+json.dumps(h.model['id'])+');')
+    assert js('JSON.stringify(window.loom.document.graph)')==before_inspection
     js('window.loom.perform("inspect-block",'+json.dumps(linear)+','+json.dumps(h.model['id'])+');')
     assert js('!document.getElementById("inspector-panel").hidden')
     assert js('JSON.stringify(window.loom.document.graph)')==before_inspection
