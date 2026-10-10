@@ -18,6 +18,8 @@ independent human review and contributions.
 
 - Executable, port-aware graphs: Linear, ReLU/Tanh/Sigmoid/GELU, Reshape,
   Concat, Splitter, Replicator and reusable architecture references.
+- Structured CNN regression: Conv2d (including groups), spatial pooling,
+  Flatten and Permute, with explicit CHW/axis adapters and learned tensor export.
 - Multiple multidimensional inputs, independent branches and ordered joins.
   Tensor validation, shape propagation and generated PyTorch forward code.
 - Real CPU PyTorch training with full-batch Adam/MSE, synthetic or CSV data,
@@ -33,8 +35,9 @@ independent human review and contributions.
 - `.vtw` SQLite workspaces and an agent-friendly CLI for atomic, revision-checked
   edits. The desktop notices external changes without silently replacing dirty work.
 
-CNN/RNN operators, notebook generation and richer experiment management remain
-future work. Backend hardening is in progress; see [development](docs/development.md).
+Recurrent operators, notebook generation and richer experiment management remain
+future work. See [development](docs/development.md) and the
+[verified first CNN workflow](docs/cnn-workflow.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
 ![Compact blocks retain dimensions and bias; bulk layout has independent profiles](assets/screenshots/interface-collapsed.png)
@@ -73,6 +76,11 @@ Double-click a block to inspect its dimensions and parameters. Connect source
 and destination sockets; split paths and rejoin them with Concat when needed.
 Open Experiment, generate synthetic data, then Train model. Inspect loss,
 learned weights and the PyTorch forward tab.
+
+For a structured CNN example, create a new workspace with
+python -m examples.cnn_regression /path/to/new-cnn.vtw, then open it in the app.
+It includes explicit Conv2d/Tanh/pooling/Flatten/Linear blocks and synthetic data;
+add --train for a bounded one-thread fit before opening. Existing files are refused.
 
 `A`, `B`, `E`, `I` toggle Architectures, Building blocks, Experiment and Inspector.
 `D` deletes the selection; undo/redo repairs accidental edits. Empty canvas

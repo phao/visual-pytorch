@@ -17,9 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
+from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 3
+VERSION = 4
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 ACTIVATIONS = {
     "ReLU": "nn.ReLU(inplace=False)",
@@ -91,6 +92,26 @@ def default_mlp(name="MLP regression", inputs=2, outputs=1, hidden=(16, 16), act
     return doc
 
 
+def default_cnn(name="Spatial regression"):
+    """Small explicit CHW image-regression example, not a hidden composite block."""
+    doc = default_model(name)
+    nodes = [
+        {'id': 'input', 'type': 'Input', 'shape': [1, 6, 5], 'axes': ['C', 'H', 'W']},
+        normalized({'id': 'conv', 'type': 'Conv2d', 'out_channels': 2, 'kernel_size': [3, 2]}),
+        {'id': 'activation', 'type': 'Activation', 'activation': 'Tanh'},
+        normalized({'id': 'pool', 'type': 'AdaptiveAvgPool2d', 'output_size': [1, 1]}),
+        normalized({'id': 'flatten', 'type': 'Flatten'}),
+        {'id': 'head', 'type': 'Linear', 'features': 1, 'bias': True},
+        {'id': 'output', 'type': 'Output'},
+    ]
+    for i, node in enumerate(nodes):
+        node.update(x=90 + 210 * i, y=170)
+    doc['graph'] = {'nodes': nodes, 'edges': [
+        {'from': a['id'], 'to': b['id']} for a, b in zip(nodes, nodes[1:])]}
+    doc['training'] = {'epochs': 450, 'lr': .03, 'seed': 7}
+    return doc
+
+
 def feature_count(value):
     if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= MAX_INTEGER:
         raise GraphError("Feature counts must be positive integers representable exactly by the editor.")
@@ -134,7 +155,7 @@ def ordered_nodes(model):
 
 
 def operation_nodes(model):
-    return [n for n in ordered_nodes(model) if n["type"] in {"Linear", "Activation", "Module", "Reshape"}]
+    return [n for n in ordered_nodes(model) if n["type"] in LAYER_TYPES]
 
 
 def boundary_groups(nodes, widths):
@@ -212,8 +233,10 @@ def check_document(doc):
         if not isinstance(node.get("id"), str) or node["id"] in ids:
             raise GraphError("Block IDs must be unique strings.")
         ids.add(node["id"])
-        if node.get("type") not in {"Input", "Linear", "Activation", "Module", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
-            raise GraphError("Unsupported block type in this MLP prototype.")
+        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
+            raise GraphError("Unsupported block type.")
+        if node['type'] in TENSOR_OPERATORS:
+            normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
         if node["type"] in {"Concat", "Replicator"}:
@@ -229,7 +252,9 @@ def check_document(doc):
             for part in node["parts"]:
                 feature_count(part.get("features"))
         if node["type"] == "Input":
-            input_shape(node)
+            axes_for(node, len(input_shape(node)))
+        elif 'axes' in node:
+            raise GraphError('Only Input declares axes; adapters propagate or discard their meaning.')
         if node["type"] in {"Reshape", "Output"} and "shape" in node:
             tensor_shape(node["shape"], infer=node["type"] == "Reshape")
         if node["type"] == "Reshape" and "shape" not in node:
@@ -269,7 +294,7 @@ class Workspace:
         self.db = sqlite3.connect(":memory:")
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.executescript("""
-            PRAGMA user_version=3;
+            PRAGMA user_version=4;
             CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE architectures(
                 id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -354,6 +379,7 @@ class Workspace:
                 if not self.db.execute("SELECT 1 FROM architectures WHERE id=?", (node["ref"],)).fetchone():
                     raise GraphError("The referenced architecture does not exist in this workspace.")
         document = copy.deepcopy(doc)
+        document['graph']['nodes'] = [normalized(n) for n in document['graph']['nodes']]
         data = document.pop("dataset", None)
         old = self.db.execute("SELECT document FROM architectures WHERE id=?", (doc["id"],)).fetchone()
         from .evidence import pin_input_order, graph_signature, binding_for, identity, digest
@@ -475,7 +501,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, VERSION} or magic != (FORMAT,):
+            if version not in {1, 2, 3, VERSION} or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -496,7 +522,7 @@ class Workspace:
             if version<3:
                 # Working-copy migration only; the disk snapshot stays untouched until Save.
                 for doc in loaded.values():w.put(doc)
-            w.db.execute('PRAGMA user_version=3')
+            w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:
                 raise GraphError('Workspace changed while opening it. Retry.')
@@ -571,7 +597,10 @@ def generate_code(models, model_id):
              inspect.getsource(_graph_values), inspect.getsource(_graph_tensor),
              "class _Reshape(nn.Module):", "    def __init__(self, shape):",
              "        super().__init__()", "        self.shape = tuple(shape)",
-             "    def forward(self, x):", "        return x.reshape(x.shape[0], *self.shape)", ""]
+             "    def forward(self, x):", "        return x.reshape(x.shape[0], *self.shape)", "",
+             "class _Permute(nn.Module):", "    def __init__(self, dims):",
+             "        super().__init__()", "        self.dims = tuple(dims)",
+             "    def forward(self, x):", "        return x.permute(*self.dims)", ""]
     emitted = set()
 
     def cname(mid):
@@ -597,6 +626,8 @@ def generate_code(models, model_id):
                 op = ACTIVATIONS[activation_name(node.get("activation"))]
             elif node["type"] == "Reshape":
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
+            elif node['type'] in TENSOR_OPERATORS:
+                op = constructor_code(contract['shapes'][node['id']]['operator'])
             else:
                 op = f'{cname(node["ref"])}()'
             lines.append(f"        self.layer_{index} = {op}")
@@ -628,6 +659,14 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         def forward(self, x):
             return x.reshape(x.shape[0], *self.shape)
 
+    class Permute(nn.Module):
+        def __init__(self, dims):
+            super().__init__()
+            self.dims = tuple(dims)
+
+        def forward(self, x):
+            return x.permute(*self.dims)
+
     layers = OrderedDict()
     for index, node in enumerate(operation_nodes(models[mid])):
         if node["type"] == "Linear":
@@ -639,6 +678,12 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             layer = getattr(nn, name)()
         elif node["type"] == "Reshape":
             layer = Reshape(contract["shapes"][node["id"]]["output_shape"])
+        elif node['type'] in TENSOR_OPERATORS:
+            spec = contract['shapes'][node['id']]['operator']
+            kwargs = dict(spec['kwargs'])
+            if 'dtype' in kwargs:
+                kwargs['dtype'] = torch.float32
+            layer = (Permute if node['type'] == 'Permute' else getattr(nn, spec['constructor']))(**kwargs)
         else:
             layer = compile_model(models, node["ref"], constrained=False)
         layers[f"layer_{index}"] = layer
@@ -684,6 +729,7 @@ def layer_descriptions(models, mid, prefix="", stable_prefix=None):
             layers.append({"path": path, "node_id": node["id"], "architecture": models[mid]["name"],
                            "stable_id":stable_prefix+'/'+node['id'],
                            "type": node.get("activation", node["type"]),
+                           **({'bias': node.get('bias', True)} if node['type'] in {'Linear', 'Conv2d'} else {}),
                            **contract["shapes"][node["id"]]})
     return layers
 
@@ -692,18 +738,23 @@ def generate_dataset(models, mid, samples=256, noise=0., seed=7, kind="auto", *,
                      memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
     """Small reproducible regression trials; no Torch import needed by the UI host."""
     contract = validate_model(models, mid)
-    preflight(models, mid, constrained, samples=samples, memory_limit_percent=memory_limit_percent, kind=kind)
     if isinstance(noise, bool) or not isinstance(noise, (int, float)) or not math.isfinite(noise) or not 0 <= noise <= 1:
         raise GraphError("Noise must be between 0 and 1.")
     if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2**31 - 1:
         raise GraphError("Seed must be an integer from 0 to 2³¹ − 1.")
     if kind == "auto":
-        kind = "affine" if contract["affine"] else "nonlinear"
-    if kind not in {"affine", "nonlinear"}:
-        raise GraphError("Choose an affine or nonlinear synthetic target.")
+        from .tensor_data import spatial_eligible
+        has_conv = any(layer['type'] == 'Conv2d' for layer in layer_descriptions(models, mid))
+        kind = "spatial" if has_conv and spatial_eligible(contract) else "affine" if contract["affine"] else "nonlinear"
+    if kind not in {"affine", "nonlinear", "spatial"}:
+        raise GraphError("Choose an affine, nonlinear or spatial synthetic target.")
+    preflight(models, mid, constrained, samples=samples, memory_limit_percent=memory_limit_percent, kind=kind)
     rng = random.Random(seed)
     ni, no = contract["inputs"], contract["outputs"]
-    if kind == "affine":
+    if kind == 'spatial':
+        from .tensor_data import spatial_teacher
+        truth, target = spatial_teacher(contract, rng)
+    elif kind == "affine":
         a = [[round(rng.uniform(-2, 2), 2) for _ in range(ni)] for _ in range(no)]
         b = [round(rng.uniform(-1, 1), 2) for _ in range(no)]
         truth = {"kind": kind, "A": a, "b": b}
@@ -723,7 +774,11 @@ def generate_dataset(models, mid, samples=256, noise=0., seed=7, kind="auto", *,
             return [sum(v * x for v, x in zip(weights, h)) + bias for weights, bias in zip(w2, b2)]
     x = [[rng.uniform(-1, 1) for _ in range(ni)] for _ in range(samples)]
     y = [[value + noise * rng.gauss(0, 1) for value in target(row)] for row in x]
-    return {"x": x, "y": y, "truth": truth, "source": "synthetic", "seed": seed, "noise": noise}
+    data = {"x": x, "y": y, "truth": truth, "source": "synthetic", "seed": seed, "noise": noise}
+    if len(contract['input_groups']) == 1 and len(contract['input_shape']) > 1:
+        from .tensor_data import adapter_for
+        data['adapter'] = adapter_for(contract)
+    return data
 
 
 def validate_dataset(data, n_in, n_out):
@@ -786,7 +841,7 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
     models=normalize_models(models,mid)
     contract = validate_model(models, mid)
     if not contract["parameters"]:
-        raise GraphError("Add a Linear layer with trainable parameters before training.")
+        raise GraphError("Add a layer with trainable parameters, such as Linear or Conv2d, before training.")
     doc = models[mid]
     data = doc.get("dataset")
     check_binding(doc,contract)
@@ -798,6 +853,8 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
               samples=len(data["x"]) if isinstance(data, dict) and isinstance(data.get("x"), list) else None,
               epochs=epochs, memory_limit_percent=memory_limit_percent)
     validate_dataset(data, contract["inputs"], contract["outputs"])
+    from .tensor_data import check_adapter
+    check_adapter(data, contract)
     if isinstance(lr, bool) or not isinstance(lr, (float, int)) or not math.isfinite(lr) or not 0 < lr <= 1:
         raise GraphError("Learning rate must be greater than 0 and at most 1.")
     if not isinstance(seed, int) or isinstance(seed, bool) or not 0 <= seed <= 2**31 - 1:

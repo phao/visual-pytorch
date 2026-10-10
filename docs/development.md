@@ -46,14 +46,23 @@ keep the run in history without presenting it as current.
 
 The bounded A exit gates and their evidence are mapped in
 [Stage A verification](stage-a-verification.md). Full platform correctness,
-training-resume checkpoints and the B–E features below are not claimed. The next
-implementation milestone is the complete CNN slice, not additional cosmetic work.
+training-resume checkpoints and the C–E features below are not claimed. The
+subsequent bounded CNN slice is described below; dataset/experiment contracts
+are the next implementation milestone, not additional cosmetic work.
 
-## B — Coherent tensor/operator composition
+## B — Coherent tensor/operator composition (first CNN slice verified)
 
-Define and implement a bounded CNN workflow with explicit shape/layout, ports,
-padding and reference semantics. Check computation and gradients independently.
-Do not build a palette of operators without a usable end-to-end model.
+Version-4 workspaces add version-1 Conv2d, spatial pooling, Flatten and Permute,
+explicit CHW/axis semantics, recorded structured data adapters and convolution
+workspace estimates. The same UI/CLI/worker can construct, validate, train,
+save/reload and export a small CNN. Native and exported constructors share pure
+normalized specs; independent scalar values/gradients prevent shared mistakes.
+The old v3 checkpoint meaning survives opening and explicit-save migration.
+
+The bounded first slice is mapped in [CNN verification](cnn-workflow.md).
+195 Python/57 JS tests, the real sandboxed editor-built CNN fit and the inherited
+WebEngine/UI contracts passed during development. This is not completion of the
+rich dataset/task, symbolic/recurrent or detached-execution work below.
 
 ## C — Datasets and experiments
 
@@ -85,8 +94,8 @@ native menu checks and real sandboxed WebEngine gestures. A real trained
 checkpoint retains bitwise-identical inference and identical trained export
 across presentation-only bulk folding/position edits. The new layered layout
 tests include 100 uneven 64-node DAG configurations, cyclic/disconnected drafts,
-ports, geometry bounds and deterministic repeat layout. This does not complete
-the outstanding Stage A backend gates listed above.
+ports, geometry bounds and deterministic repeat layout. Those UI checks remain
+independent of the subsequently verified Stage A backend gates.
 
 Keep icon folding visual-only. A compact icon is a drag surface, not solely an
 expansion button; single click selects, double-click restores, and Enter/Space

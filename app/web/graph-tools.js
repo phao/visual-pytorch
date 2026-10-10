@@ -36,7 +36,7 @@
     const m=metrics();return {width:m.width,height:Math.max(m.baseHeight,m.socketTop+10+count*m.rowGap)};
   }
   const width = n => n.collapsed ? 72 : Math.max(minimumSize(n).width,n.width || 0);
-  const height = n => n.collapsed ? Math.max(n.type==='Linear'?54:44,16*Math.max(slots(n,true).length,slots(n,false).length)+10) : Math.max(minimumSize(n).height,n.height || 0);
+  const height = n => n.collapsed ? Math.max(['Linear','Conv2d'].includes(n.type)?54:44,16*Math.max(slots(n,true).length,slots(n,false).length)+10) : Math.max(minimumSize(n).height,n.height || 0);
   function resizeBlock(n,w,h,snap=false){
     if(!Number.isFinite(w) || !Number.isFinite(h))throw new Error('Use finite block dimensions.');
     const min=minimumSize(n),corner=snapPosition(n.x+Math.max(min.width,w),n.y+Math.max(min.height,h),snap);

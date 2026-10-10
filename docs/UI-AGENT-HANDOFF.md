@@ -237,7 +237,9 @@ Renderer, sockets, wire endpoints and Fit must share these metrics, not duplicat
 fixed widths. Long titles/shapes/details truncate with full title hover text.
 Reserve 14 units at the footer's right for the resize grip. For pertinent learned
 operations, display bias state before truncatable statistics: Linear starts
-Bias on/off. Its parameter count is d_in×d_out+(bias ? d_out : 0), using last-axis
+Bias on/off; Conv2d does too. Its parameter count is
+C_out×(C_in/groups)×kH×kW+(bias ? C_out : 0). Linear's parameter count is
+d_in×d_out+(bias ? d_out : 0), using last-axis
 widths, not flattened sample counts. Earlier axes reuse the same weights. Inspector
 shows A [d_out,d_in], and either b [d_out] or Bias off · no b. Do not imply that
 non-bias operations contain bias or collapse a module's heterogeneous internals
@@ -249,10 +251,10 @@ without expanding. Dragging that compact icon moves the block with the same
 world-coordinate and Ctrl-snap behavior as an expanded block. Double-click
 restores its details; Enter/Space toggles folding on a focused icon. Dragging
 must not expand or collapse it, and sockets remain separately clickable.
-Compact width is 72 world units; height is at least 54 for Linear or 44 otherwise,
+Compact width is 72 world units; height is at least 54 for Linear/Conv2d or 44 otherwise,
 increasing to keep multiple ports distinct. Small 9-unit monospace text shows
 input/output shape, Linear last-axis in→out widths, activation name or type-specific
-summary. Linear also has an 8-unit Bias on/off line. Summaries truncate after
+summary. Linear/Conv2d also have an 8-unit Bias on/off line. Summaries truncate after
 13 characters with full hover text; missing inferred dimensions show ?. The type
 icon sits at the compact body's top-center and remains directly draggable.
 Folding preserves preferred expanded sizes, tensor

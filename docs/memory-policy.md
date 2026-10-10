@@ -1,4 +1,4 @@
-# Constrained execution: RAM admission policy, estimator version 1
+# Constrained execution: RAM admission policy, estimator version 2
 
 This specification matches app/memory.py and app/core.py. It governs admission
 to the current float32 CPU prototype, not graph validity or file format grammar.
@@ -41,6 +41,9 @@ including expanded referenced internals once per occurrence and their outer
 boundary outputs. Router aliases/views and boundary identities are counted too;
 this deliberately overcounts storage rather than assuming safe buffer reuse.
 N: dataset rows; training batch B = max(1, floor(0.8 N)) in the implementation.
+K: sum over expanded Conv2d occurrences of C_in × kH × kW × H_out × W_out.
+This counts a full-channel unfolding workspace per sample, not a dense global
+convolution matrix. Grouped kernels still reserve full-channel scratch.
 
 These symbolic statistics are computed without constructing tensors. Input
 width alone is not the criterion: a tiny input with huge hidden layers may be
@@ -55,18 +58,21 @@ One MiB is 1048576 bytes. Sum all applicable components:
 | Model construction | Runtime headroom | 64 MiB |
 | Model construction | Parameter construction | 8 P |
 | Model construction | Forward activations | 8 S |
+| Model construction | Convolution workspace | 8 K |
 | Synthetic data | Runtime headroom | 8 MiB |
 | Synthetic data | Dataset and copies | 128 N (I + O) |
 | Synthetic data | Affine teacher | 128 (I O + O) |
-| Synthetic data | Nonlinear four-hidden-unit teacher, instead of affine teacher | 128 (4 I + 5 O + 4) |
+| Synthetic data | Nonlinear or spatial teacher allowance, instead of affine teacher | 128 (4 I + 5 O + 4) |
 | Training | Runtime headroom | 256 MiB |
 | Training | Parameters, optimizer and result evidence | 128 P |
 | Training | Activations and backward | 16 B S |
+| Training | Convolution workspace | 32 B K |
 | Training | Dataset and copies | 128 N (I + O) |
 | Training | Compact affine report, only matrix_affine graphs | 128 (I O + O) |
 
-Auto teacher chooses affine iff contract.affine. Explicit teacher kind overrides
-that choice. Data admission estimates data/teacher allocations, not a concurrent
+Auto generation selects the spatial teacher for eligible CNNs, otherwise affine
+iff contract.affine. The generator passes its resolved kind to preflight.
+Explicit teacher kind overrides that choice. Data admission estimates data/teacher allocations, not a concurrent
 training job. Model admission estimates construction and one sample. Training
 admission includes the whole network, batch, data, optimizer and result copies.
 
@@ -78,7 +84,7 @@ Coefficients are engineering allowances, not measurements promised by PyTorch.
 Loss samples are decimated by the training loop (roughly 80 points), not stored
 for every epoch; epochs therefore are not a separate fixed memory cap.
 
-Report fields: version=1, operation=model/data/training, batch, parameter_bytes=4P,
+Report fields: version=2, operation=model/data/training, batch, parameter_bytes=4P,
 components, estimated_bytes, available_bytes, budget_bytes and limit_percent.
 Safety report also supplies constrained, allowed and violations with rule
 memory or memory_unavailable. The UI shows the total estimate, observed RAM and
@@ -96,5 +102,8 @@ allocator quota or defense against hostile workspace input. Runtime libraries,
 allocator fragmentation, archived workspace evidence, concurrent processes and
 RAM changes can exceed allowances. Imported data/JSON and the in-memory SQLite
 workspace already occupy memory when available RAM is observed. Exported Python
-executed elsewhere does not enforce this admission policy. Revisit and measure
-the estimator before adding new operator families, GPUs or another optimizer.
+executed elsewhere does not enforce this admission policy. Conv scratch
+coefficients reserve space for a conventional unfolded implementation and
+backward scratch; actual Torch backend algorithms can allocate differently.
+Revisit and measure the estimator before adding new operator families, GPUs or
+another optimizer.

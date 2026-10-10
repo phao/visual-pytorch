@@ -29,8 +29,9 @@ def pin_input_order(graph, previous=None):
 
 
 def graph_signature(graph):
+    from .operators import normalized
     return {'input_order':graph.get('input_order',legacy_input_order(graph)),
-            'nodes':sorted(({k:v for k,v in n.items() if k not in PRESENTATION | {'label'}}
+            'nodes':sorted(({k:v for k,v in normalized(n).items() if k not in PRESENTATION | {'label'}}
                             for n in graph['nodes']),key=lambda n:n['id']),
             # Preserve declared computational ordering, including Concat/router ports.
             'edges':graph['edges']}
@@ -38,7 +39,7 @@ def graph_signature(graph):
 
 def binding_for(contract):
     def groups(key):
-        return [{k:g[k] for k in ('id','shape','start','stop')} for g in contract[key]]
+        return [{k:g[k] for k in ('id','shape','start','stop','axes') if k in g} for g in contract[key]]
     return {'version':1,'inputs':groups('input_groups'),'outputs':groups('output_groups'),
             'output_mode':contract['output_mode']}
 
@@ -76,7 +77,10 @@ def normalize_models(models, mid):
     """Private snapshot for direct Python callers; original dictionaries stay intact."""
     result=copy.deepcopy(models)
     from .core import validate_model
-    for doc in result.values():pin_input_order(doc['graph'])
+    from .operators import normalized
+    for doc in result.values():
+        pin_input_order(doc['graph'])
+        doc['graph']['nodes'] = [normalized(n) for n in doc['graph']['nodes']]
     root=result[mid]
     if root.get('dataset') is not None and root.get('dataset_binding') is None:
         root['dataset_binding']=binding_for(validate_model(result,mid))
@@ -94,11 +98,13 @@ def parameter_schema(models, mid, prefix='', stable_prefix=None):
         stable=stable_prefix+'/'+node['id']
         if node['type']=='Module':
             schema.update(parameter_schema(models,node['ref'],path+'.',stable))
-        elif node['type']=='Linear':
+        elif node['type'] in {'Linear', 'Conv2d'}:
             shape=contract['shapes'][node['id']]
-            schema[path+'.weight']={'shape':[shape['output'],shape['input']], 'id':stable+'/weight'}
+            weight_shape = shape['operator']['weight_shape'] if node['type'] == 'Conv2d' else [shape['output'],shape['input']]
+            width = weight_shape[0]
+            schema[path+'.weight']={'shape':weight_shape, 'id':stable+'/weight'}
             if node.get('bias',True):
-                schema[path+'.bias']={'shape':[shape['output']], 'id':stable+'/bias'}
+                schema[path+'.bias']={'shape':[width], 'id':stable+'/bias'}
     return schema
 
 
@@ -120,6 +126,9 @@ def check_checkpoint(models, mid, result):
         raise GraphError('Checkpoint version must be integer 1.')
     contract=validate_model(models,mid)
     check_binding(models[mid],contract)
+    if isinstance(models[mid].get('dataset'), dict):
+        from .tensor_data import check_adapter
+        check_adapter(models[mid]['dataset'], contract)
     preprocessing={'kind':'identity','input_adapter':'declared-row-major',
                    'binding':models[mid].get('dataset_binding')}
     try:
@@ -157,6 +166,8 @@ def dataset_report(doc, contract):
         return {**report,'status':'none','reason':'Generate synthetic data or import x/y data first.'}
     try:
         validate_dataset(doc['dataset'],contract['inputs'],contract['outputs'])
+        from .tensor_data import check_adapter
+        check_adapter(doc['dataset'], contract)
     except GraphError as error:
         return {**report,'status':'invalid','reason':str(error)}
     if doc.get('dataset_binding') is None:
