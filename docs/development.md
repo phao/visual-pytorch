@@ -123,7 +123,7 @@ CLI writes participate in the existing ordered atomic revision-checked save.
 model/dataset/task ID+revision pairs and explicit split/manifest. Changing a
 browsing head cannot substitute a different dataset into that preparation.
 Fresh CLI executions import no Torch/Qt/NumPy and preserve read-only file bytes.
-Specs: [revision storage](revision-store.md), [v5 format](vtw-format.md),
+Specs: [revision storage](revision-store.md), [current format](vtw-format.md),
 [CLI](vpw-cli.md). The exact SQL code blocks are executed in a regression test.
 
 Verification: 255 Python/57 JS tests, compile/diff checks, native Qt history and
@@ -175,12 +175,66 @@ drag, undo/rewire/delete/typing/binding/theme checks with no console errors;
 compile/diff checks. User workspaces/config/live app remain untouched; no push.
 These are bounded fixture checks, not generalization or full platform guarantees.
 
-Next: independent experiment/run/report validators and persistence, durable
+At that checkpoint, next work was independent experiment/run/report persistence, durable
 admission/initialization/process-failure attempts, reproducible model × dataset
 selection expansion with invalid combinations visible, GUI/run history, and
 result-report versus explicit-rerun notebooks with real kernel/portable-bundle
 gates. A task-training-result artifact is NOT a stored RunRecord. Full C gates
 and D/E remain open; this partial branch must not be merged as completed Stage C.
+
+### Concrete experiment/run/report checkpoint — branch-only
+
+Container v6 adds closed ExperimentSpec/RunRecord/ReportRecipe version-1
+semantics to the immutable registry without changing SQL tables. Exact
+dependencies are checked on admission/load/save, even after archival/undo.
+Selections cross explicit model/data-task/split/initialization/configuration
+axes or declare pairings/exclusions. Bounded mixed-radix preview keeps invalid
+and excluded combinations visible without fitting/training or global RNG use.
+
+Explicit candidate execution captures actual split IDs and resolved protocol
+before RAM admission/worker launch. Stored attempts include compatibility,
+admission, missing executable/transport and execution failures without invented
+metrics. Completed evidence is admitted against its frozen closure: counters,
+budget boundaries, fitted checkpoint, population IDs, weighted metric arithmetic,
+curve timing/retention, final-only test, environment/sampler/RAM components.
+This is internal validation, not authenticated proof of execution or independent
+recomputation of neural predictions. No queued/running/detached receipt is claimed.
+
+Run revisions preserve all earlier attempts and frozen resolution. Explicit retry
+uses the longest retained history, not an older head, and performs fresh training,
+not optimizer resume. Historical reads/retries do not regenerate the captured
+manifest. Report recipes select exact run revisions or explicitly request rerun;
+read-only materialization never launches and keeps unsuccessful attempts visible.
+Two revisions/retries of the same logical run cannot be counted as distinct
+descriptive run-level units. Notebook generation is still absent.
+
+CLI preview-experiment/run-candidate/report-data remains Torch/Qt-free in the
+host. Save conflicts return recoverable evidence with persisted:false while
+preserving concurrent user bytes; explicit put-spec recovery does not retrain.
+The executable [example](../examples/experiment_workspace.py) saves two models ×
+two datasets × two initializations by default, only previews, refuses overwrites,
+and optionally runs one bounded candidate with a saved result recipe.
+
+Verification: 322 Python/57 JS tests, including 33 new experiment/run/report/example
+tests. All eight combinations of a separate 2×2×2 fixture execute and explicitly
+retry with identical checkpoints/metrics in the same local environment.
+Tests cover immutable dependency/history corruption, captured-manifest reads
+with split generation disabled, fractional masked weights and classification,
+real RAM/missing-executable failures, concurrent Save evidence recovery, report
+read isolation and fresh stdlib-only readers. Native Qt task classification still
+completes 240 updates with accuracy 1.0 and CE 0.02411829524; native binding/history/
+disk-sync and the real sandboxed WebEngine gesture/layout/bias suite pass with
+no console errors. Compile/diff checks pass. Exact format/revision/data/task/CLI
+contracts are synchronized; [experiment contract](experiment-objects.md) defines
+every new field and evidence limitation. No user state, private source snapshots
+or remote publication changed.
+
+Next: integrate selection and independent run history into the accepted floating
+Experiment UI, generate both result-report and explicit-rerun notebooks, execute
+them through an actual Jupyter kernel and verify portable artifact closure.
+Retain failed-cell evidence and distinguish requested from executed notebooks.
+These are required C exit gates, not optional polish. Then D/E remain required.
+This unfinished branch stays unmerged into main.
 
 ## D — Symbolic families and mixed CNN/RNN composition
 

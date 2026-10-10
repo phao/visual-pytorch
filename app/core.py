@@ -20,7 +20,7 @@ from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_mem
 from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 5
+VERSION = 6
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 ACTIVATIONS = {
     "ReLU": "nn.ReLU(inplace=False)",
@@ -294,7 +294,7 @@ class Workspace:
         self.db = sqlite3.connect(":memory:")
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.executescript("""
-            PRAGMA user_version=5;
+            PRAGMA user_version=6;
             CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE architectures(
                 id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -529,7 +529,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, 3, 4, VERSION} or magic != (FORMAT,):
+            if version not in {1, 2, 3, 4, 5, VERSION} or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -553,6 +553,8 @@ class Workspace:
             from .revisions import migrate_schema, validate_all
             if version < 5:
                 migrate_schema(w.db)
+            if version < 6 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('experiment','run','report') LIMIT 1").fetchone():
+                raise GraphError('Experiment/run/report revisions require a version-6 container.')
             validate_all(w.db)
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)

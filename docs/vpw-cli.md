@@ -20,11 +20,14 @@ python vpw_cli.py lab.vtw spec-show dataset DATASET_ID --revision DATASET_SHA256
 python vpw_cli.py lab.vtw prepare-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --split split.json
 python vpw_cli.py lab.vtw train-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --manifest manifest.json --protocol protocol.json --torch-python /path/to/numerical/python
 python vpw_cli.py lab.vtw export-task-trained task-result-value.json
+python vpw_cli.py lab.vtw preview-experiment EXPERIMENT_ID EXPERIMENT_SHA256 --offset 0 --limit 100
+python vpw_cli.py lab.vtw run-candidate --experiment EXPERIMENT_ID EXPERIMENT_SHA256 --coordinates coordinates.json --run-id RUN_ID --name "Trial" --torch-python /path/to/numerical/python --timeout 60
+python vpw_cli.py lab.vtw report-data REPORT_ID REPORT_SHA256
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
 
-init creates an empty version-5 collection, never overwriting a file. inspect
+init creates an empty version-6 collection, never overwriting a file. inspect
 returns working format version, exact SQLite DDL, architecture IDs/names/counts,
 policy, independent specification browsing selections and on-disk SHA-256 revision. Architecture summaries are alphabetical by
 case-folded name, with ID as tie-breaker. show returns a materialized document with
@@ -42,8 +45,8 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 [dataset-task-contract.md](dataset-task-contract.md). `prepare-task` takes exactly
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
-Independent dataset/task/model persistence is implemented in `.vtw` v5;
-experiment/run/report kinds, selection GUI and notebooks remain pending.
+Independent dataset/experiment/model/report/run/task persistence is implemented
+in `.vtw` v6; the experiment selection/history GUI and notebooks remain pending.
 [revision-store.md](revision-store.md) specifies validators/migration.
 `prepare-stored` requires exact model/dataset/task ID+revision pairs and the same
 explicit split/manifest/RAM settings; it never reads mutable heads as execution
@@ -58,7 +61,8 @@ an explicit override. It returns a self-contained task-training-result in `value
 without modifying the workspace. The command envelope `ok:true` means a valid
 artifact was returned: inspect `value.status`/`failure`, not `ok`, to distinguish
 completed, failed, cancelled or unavailable training. Admission/process/protocol
-errors use the usual `ok:false` envelope; they cannot yet be stored as RunRecords.
+errors use the usual `ok:false` envelope for this read-only direct command.
+The separate run-candidate wrapper below stores terminal attempts.
 No background/detached execution or independent run-store UI is claimed.
 
 `export-task-trained` reads the saved **value object**, validates its frozen bundle
@@ -71,6 +75,47 @@ metadata is exported alongside preprocessing and strict weights. See
 [task-training-contract.md](task-training-contract.md) for the exact artifact
 protocol, terminal behavior, RAM and verification limits. Export uses the same
 read-only user RAM preference/override as preparation/training.
+
+`preview-experiment ID REVISION` reads an exact ExperimentSpec, never its mutable
+head. `--offset` defaults to 0; `--limit` defaults to 100 and is in 1..1000.
+The bounded page lists crossed/paired combinations, including excluded/invalid
+ones with reasons. It neither fits nor trains nor writes. The exact coordinate
+object from a candidate row is the entire contents of coordinates.json.
+
+`run-candidate` requires `--experiment ID REVISION`, `--coordinates FILE`,
+`--run-id ID`, `--name DISPLAY_NAME`. Optional `--retry` explicitly appends a
+fresh attempt to that same selection; without it an existing run ID is refused.
+`--torch-python` defaults to the CLI interpreter. `--memory-limit-percent`
+defaults to the read-only user setting; `--timeout` is an optional transport
+deadline in seconds. Actual split IDs and resolved protocol are frozen before
+admission. Retries use the captured manifest and longest retained attempt history,
+not a regenerated split or older browsing head.
+
+This command runs synchronously and saves a terminal RunRecord in one atomic
+revision-checked Save. It returns `value.reference` and the complete
+`value.record`. A successful Save adds `persisted:true,workspace_revision`.
+If concurrent edits or another Save error prevent persistence, it instead returns
+`persisted:false,save_error`, retaining the complete recoverable evidence in
+the response and leaving external file bytes untouched. The `ok:true` envelope
+means a valid record was produced, NOT a completed fit or successful Save.
+Check `record.attempts[-1].status` and `persisted` separately. Compatibility
+exclusion, admission, missing executable and worker failure can be persisted
+without inventing metrics/checkpoints. Invalid command/selection grammar remains
+an `ok:false` error. No automatic retry or optimizer continuation occurs.
+
+On Save conflict, keep the returned record, inspect the current file/dependencies,
+and recover it with an explicit `put-spec` run operation plus `--expect-revision`.
+Do not repeat the numerical fit just to recover its already produced evidence.
+If its logical run ID now has conflicting history, resolve the identity conflict
+explicitly; never rewrite earlier attempts.
+
+`report-data ID REVISION` reads an exact ReportRecipe and saved run evidence.
+It is read-only and never starts a worker, including for a rerun recipe. Failed
+attempts remain visible; recipe references do not follow newer run heads.
+Result-report and rerun modes are deliberately separate. This is JSON
+materialization, not notebook generation/execution (`notebook_status:not-generated`).
+See [experiment-objects.md](experiment-objects.md) for exact closed schemas,
+dependency validation, descriptive analysis and remaining capabilities.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
@@ -92,7 +137,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
-| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/task/model revision, optionally select for browsing |
+| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/model/report/run/task revision and exact dependencies, optionally select for browsing |
 | select-spec | reference={kind,id,revision} | Select a retained exact revision, never edit its bytes |
 | archive-spec | kind, id | Hide browsing head; revision bytes are retained and recoverable |
 | freeze-model | id | Capture current valid architecture's complete reachable closure as an independent model revision |
@@ -137,8 +182,9 @@ not a persistent undo log. User-level theme/spacing/RAM percentage settings are
 not part of a .vtw edit batch; workspace mode is. Editing values or validating a
 graph does not promise that the local execution memory policy will admit it.
 
-The CLI does not control an unsaved GUI buffer/modal dialogs/active jobs, train,
-execute arbitrary Python or generate notebooks. Notebook/prompt generation is
+The CLI does not control an unsaved GUI buffer/modal dialogs/active jobs or
+execute arbitrary Python or generate notebooks. Training is only through the
+explicit isolated-worker commands above. Notebook/prompt generation is
 future design work, not a hidden feature of this interface.
 
 ## Destination rewiring and GUI alignment

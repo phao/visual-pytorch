@@ -126,10 +126,11 @@ def main(argv=None):
         p = sub.add_parser(command)
         p.add_argument('id')
     specs = sub.add_parser('spec-list', help='Independent object browsing heads or all retained revisions')
-    specs.add_argument('--kind', choices=('dataset', 'model', 'task'))
+    from app.revisions import KINDS
+    specs.add_argument('--kind', choices=KINDS)
     specs.add_argument('--all-revisions', action='store_true')
     show_spec = sub.add_parser('spec-show', help='Read an exact independent revision or the current browsing head')
-    show_spec.add_argument('kind', choices=('dataset', 'model', 'task'))
+    show_spec.add_argument('kind', choices=KINDS)
     show_spec.add_argument('id')
     show_spec.add_argument('--revision')
     preview = sub.add_parser('preview-dataset', help='Bounded typed dataset diagnostics; does not change the workspace')
@@ -157,6 +158,17 @@ def main(argv=None):
     trained_task = sub.add_parser('export-task-trained', help='Validate saved task result and emit standalone fitted predictor source; no training')
     trained_task.add_argument('result', help='Task-training-result JSON file (the value object from train-stored)')
     trained_task.add_argument('--memory-limit-percent', type=float)
+    selections = sub.add_parser('preview-experiment', help='Read-only bounded exact-revision selection preview; no fitting/training')
+    selections.add_argument('id'); selections.add_argument('revision')
+    selections.add_argument('--offset', type=int, default=0); selections.add_argument('--limit', type=int, default=100)
+    reporting = sub.add_parser('report-data', help='Read exact saved report recipe/evidence; does not train or execute notebooks')
+    reporting.add_argument('id'); reporting.add_argument('revision')
+    run = sub.add_parser('run-candidate', help='Explicit frozen selection execution and terminal RunRecord save; never silently retry')
+    run.add_argument('--experiment', nargs=2, metavar=('ID', 'REVISION'), required=True)
+    run.add_argument('--coordinates', required=True, help='Coordinates JSON from selection preview')
+    run.add_argument('--run-id', required=True); run.add_argument('--name', required=True)
+    run.add_argument('--retry', action='store_true'); run.add_argument('--torch-python', default=sys.executable)
+    run.add_argument('--memory-limit-percent', type=float); run.add_argument('--timeout', type=float)
     apply = sub.add_parser('apply', help='Atomic ordered JSON edit batch')
     apply.add_argument('edits', help='JSON file or - for stdin')
     apply.add_argument('--allow-invalid', action='store_true', help='Save semantically invalid drafts, still structurally checked')
@@ -190,6 +202,25 @@ def main(argv=None):
                 value = workspace.list_specs(args.kind, args.all_revisions)
             elif args.command == 'spec-show':
                 value = workspace.get_spec(args.kind, args.id, args.revision)
+            elif args.command == 'preview-experiment':
+                from app.experiment_objects import preview_experiment
+                value = preview_experiment(workspace.get_spec('experiment', args.id, args.revision), workspace.get_spec,
+                                           offset=args.offset, limit=args.limit)
+            elif args.command == 'report-data':
+                from app.experiment_objects import report_data
+                value = report_data(workspace.get_spec('report', args.id, args.revision), workspace.get_spec)
+            elif args.command == 'run-candidate':
+                from app.experiment_objects import execute_candidate
+                value = execute_candidate(workspace, {'kind': 'experiment', 'id': args.experiment[0], 'revision': args.experiment[1]},
+                    read_json(args.coordinates), args.run_id, args.name, python=args.torch_python, retry=args.retry,
+                    memory_limit_percent=ram_percentage(args.memory_limit_percent), timeout=args.timeout)
+                try:
+                    workspace.save(path)
+                    value.update(persisted=True, workspace_revision=workspace.disk_revision)
+                except Exception as error:
+                    # Do not lose actual training evidence or overwrite concurrent
+                    # user edits. The JSON artifact is recoverable for a later put.
+                    value.update(persisted=False, save_error=str(error))
             elif args.command == 'validate':
                 value = validate_model(workspace.models(), args.id)
             elif args.command == 'export':

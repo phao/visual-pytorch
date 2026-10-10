@@ -1,6 +1,6 @@
 """Immutable scientific objects and mutable browsing selections, without Torch/Qt.
 
-Version-1 dataset/task/model validators are closed, not arbitrary JSON records.
+Version-1 scientific object validators are closed, not arbitrary JSON records.
 Unknown future kinds fail explicitly until their own contract is implemented.
 """
 import copy
@@ -13,7 +13,7 @@ from .datasets import _identifier, _keys, _require, _version, validate_dataset, 
 from .evidence import PRESENTATION, digest, identity, pin_input_order
 from .operators import normalized
 
-KINDS = ('dataset', 'model', 'task')
+KINDS = ('dataset', 'experiment', 'model', 'report', 'run', 'task')
 SCHEMA = {
     'spec_revisions': """CREATE TABLE spec_revisions(
         kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
@@ -149,7 +149,11 @@ def validate_model_document(doc):
 def frozen_document(kind, doc):
     """Closed validation plus private immutable JSON revision; no hidden repair."""
     _kind(kind)
-    validator = {'dataset': validate_dataset, 'task': validate_task_spec, 'model': validate_model_document}[kind]
+    if kind in ('experiment', 'run', 'report'):
+        from .experiment_objects import validate_experiment, validate_run, validate_report
+        validator = {'experiment': validate_experiment, 'run': validate_run, 'report': validate_report}[kind]
+    else:
+        validator = {'dataset': validate_dataset, 'task': validate_task_spec, 'model': validate_model_document}[kind]
     validator(doc)
     try:
         value = digest({k: v for k, v in doc.items() if k != 'revision'})
@@ -167,6 +171,7 @@ def frozen_document(kind, doc):
 def validate_all(db):
     """Verify relation, grammar and content meaning without tensor allocation."""
     check_schema(db)
+    documents = {}
     for kind, sid, revision, name, text, created_at in db.execute('SELECT * FROM spec_revisions'):
         doc = frozen_document(kind, _parse(text))
         _require((doc['id'], doc['revision'], doc['name']) == (sid, revision, name), 'Revision row identity/name/hash mismatch.')
@@ -176,6 +181,20 @@ def validate_all(db):
         except (TypeError, ValueError, OverflowError):
             valid_time = False
         _require(valid_time, 'Revision creation time must be an explicit UTC timestamp.')
+        documents[kind, sid, revision] = doc
+    from .experiment_objects import validate_dependencies
+    def resolve(kind, sid, revision):
+        _require((kind, sid, revision) in documents, 'Scientific object refers to a missing immutable revision.')
+        return documents[kind, sid, revision]
+    for (kind, _, _), doc in documents.items():
+        validate_dependencies(kind, doc, resolve)
+    # Retained run revisions form an append-only attempt history independent of
+    # mutable browsing heads, including after undo/reselection of an older head.
+    for doc in (d for (k, _, _), d in documents.items() if k == 'run'):
+        for other in (d for (k, sid, _), d in documents.items() if k == 'run' and sid == doc['id']):
+            length = min(len(doc['attempts']), len(other['attempts']))
+            _require(digest(doc['selection']) == digest(other['selection']) and digest(doc['resolved']) == digest(other['resolved']) and
+                     digest(doc['attempts'][:length]) == digest(other['attempts'][:length]), 'Retained run attempts diverge or rewrite prior evidence.')
     for kind, sid, revision in db.execute('SELECT * FROM spec_heads'):
         _kind(kind)
         _require(db.execute('SELECT 1 FROM spec_revisions WHERE kind=? AND id=? AND revision=?', (kind, sid, revision)).fetchone(), 'Browsing head refers to a missing revision.')
@@ -190,6 +209,16 @@ class RevisionStore:
     def put(self, kind, document, select=True):
         _require(type(select) is bool, 'Revision select must be boolean.')
         doc = frozen_document(kind, document)
+        from .experiment_objects import validate_dependencies
+        validate_dependencies(kind, doc, self.get)
+        if kind == 'run':
+            already_retained = self.db.execute("SELECT 1 FROM spec_revisions WHERE kind='run' AND id=? AND revision=?", (doc['id'], doc['revision'])).fetchone()
+            for row in self.db.execute("SELECT document FROM spec_revisions WHERE kind='run' AND id=?", (doc['id'],)):
+                previous = _parse(row[0]); length = min(len(previous['attempts']), len(doc['attempts']))
+                _require(digest(previous['selection']) == digest(doc['selection']) and digest(previous['resolved']) == digest(doc['resolved']) and
+                         digest(previous['attempts'][:length]) == digest(doc['attempts'][:length]),
+                         'Run revisions may append attempts, not rewrite their identity/evidence.')
+                _require(already_retained or len(doc['attempts']) >= len(previous['attempts']), 'New run revisions cannot truncate retained attempt history.')
         reference = {'kind': kind, 'id': doc['id'], 'revision': doc['revision']}
         text = json.dumps(doc, allow_nan=False, sort_keys=True, separators=(',', ':'))
         with self.db:
@@ -216,6 +245,9 @@ class RevisionStore:
         _require(row is not None, 'Requested immutable revision does not exist.')
         doc = frozen_document(kind, _parse(row[0]))
         _require(doc['id'] == sid and doc['revision'] == revision, 'Retained revision identity mismatch.')
+        if kind in ('experiment', 'run', 'report'):
+            from .experiment_objects import validate_dependencies
+            validate_dependencies(kind, doc, self.get)
         return doc
 
     def select(self, kind, sid, revision):

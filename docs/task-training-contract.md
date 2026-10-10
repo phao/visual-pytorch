@@ -1,8 +1,9 @@
 # Frozen task training and fitted inference — Stage C component
 
 This task-branch component is executable through Python, CLI and a native Qt
-worker adapter. It is **not** the final experiment selection GUI, independent
-RunRecord persistence, notebook reporting, symbolic families or detached jobs.
+worker adapter. Independent terminal RunRecord storage now wraps this component;
+see [experiment-objects.md](experiment-objects.md). It is **not** the final
+experiment selection GUI, notebook reporting, symbolic families or detached jobs.
 Legacy regression workers and identity-preprocessing checkpoints are unchanged.
 
 ## Frozen execution input
@@ -106,9 +107,13 @@ the final artifact does not falsely claim to retain discarded curve points.
 failed or unavailable. Stops name epoch/update/example/time budgets, cancellation,
 missing supervision, execution or evaluation error. Environment records Python,
 Torch, platform, device, dtype, thread count and no optimizer-resume capability.
-This is a self-contained JSON artifact, **not a registered RunRecord**. Admission,
-initialization/import/process failures still use worker/CLI errors rather than a
-durable attempt entry; closing that gap is part of remaining Stage C work.
+This is a self-contained JSON artifact, **not itself a registered RunRecord**.
+Direct `train-stored` admission/initialization/import/process failures still use
+worker/CLI errors. Explicit `run-candidate` captures these as terminal attempts,
+and successful worker artifacts are validated and stored without their duplicate
+bundle. Exact references plus a captured actual manifest/protocol reconstruct the
+bundle from retained immutable revisions. No queued/running/detached receipt is
+persisted by this synchronous wrapper.
 
 ## RAM and fitted checkpoint
 
@@ -171,7 +176,6 @@ checks this implementation, not just agreement between two uses of the same API.
 motivates separate captured streams/environment and scoped replay claims. No
 cross-version/platform determinism promise is made from these bounded local tests.
 
-Next: independent ExperimentSpec/RunRecord/ReportRecipe and closed validators,
-durable failed attempts, reproducible selection expansion with invalid-combination
-preview, GUI history, and result/rerun notebooks with real-kernel portable closure.
+Next: GUI selection/history and result/rerun notebooks with real-kernel portable
+closure, using the implemented independent objects and bounded selection preview.
 Then proceed to D/E; this component does not satisfy those full exit gates.

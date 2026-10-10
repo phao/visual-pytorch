@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 5
+# Visual Torch Workspace (.vtw): format specification, version 6
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -9,9 +9,9 @@ app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separa
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 5. The current reader accepts versions 1–5; opening
-an older file copies it into memory and upgrades the working version to 5.
-Opening alone never rewrites the source; explicit Save writes version 5.
+PRAGMA user_version = 6. The current reader accepts versions 1–6; opening
+an older file copies it into memory and upgrades the working version to 6.
+Opening alone never rewrites the source; explicit Save writes version 6.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -19,7 +19,11 @@ without changing SQL tables. Version 4 adds versioned structured operators,
 optional named sample axes and a checked recorded structured dataset adapter,
 without changing SQL tables. Version 5 adds independent immutable dataset/task/
 model revisions and mutable browsing heads, with guarded SQL and exact content
-validation. Older binaries are not expected to open version 5;
+validation. Version 6 adds closed experiment/run/report semantics to those same
+revision tables, checks exact dependencies and append-only terminal attempts,
+and captures actual split manifests. These are application semantics, not new
+SQL tables. A version-1–5 header containing experiment/run/report rows is rejected.
+Older binaries are not expected to open version 6;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -33,7 +37,7 @@ training. These checks are not a hostile-file sandbox or memory guarantee.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -71,14 +75,17 @@ WHEN EXISTS(SELECT 1 FROM spec_revisions
 BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 ```
 
-Independent revision kinds are currently dataset/task/model (integer document
-version 1); other kinds/versions are rejected until their validators exist.
+Independent revision kinds are dataset, experiment, model, report, run and task
+(integer document version 1); other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
 retained revisions. Exact schemas, frozen reference closures, hash/guard checks,
 working-copy-only migration, archive/reselection and undo retention are specified
-in [revision-store.md](revision-store.md). This is Stage C foundation work, not a
-completed experiment/run/report implementation. Legacy datasets/runs keep their
+in [revision-store.md](revision-store.md). Exact experiment, terminal run and report
+recipe schemas are in [experiment-objects.md](experiment-objects.md).
+Their JSON references are checked by the application on admission/load/save;
+only head→revision references are SQL foreign keys. This is a Stage C component,
+not the completed experiment GUI or notebook system. Legacy datasets/runs keep their
 original meaning and existing APIs; no automatic typed-data interpretation occurs.
 
 ### Metadata
@@ -272,12 +279,14 @@ reordering; restore weights against their graph snapshot, not another architectu
 ## 6. Data, training and evidence
 
 This section describes the unchanged architecture-owned legacy adapter. Independent
-v5 dataset/task/model revisions use the earlier revision-store schema. Their new
+dataset/task/model revisions use the revision-store schema introduced in v5. Their
 task-aware worker returns a separate frozen JSON training artifact and fitted
 predictor, specified in [task-training-contract.md](task-training-contract.md).
-It does not silently write that artifact into legacy `runs` or `result`; independent
-RunRecord persistence remains a subsequent Stage C gate. No new SQL/container
-version is needed for an execution artifact that is not yet stored in `.vtw`.
+It does not silently write that artifact into legacy `runs` or `result`.
+The v6 `run-candidate` wrapper explicitly stores its validated terminal evidence
+as an independent RunRecord, with exact dependencies and captured actual manifest.
+See [experiment-objects.md](experiment-objects.md). GUI/history/notebook
+integration remains a subsequent Stage C gate.
 
 datasets.payload contains matching x/y arrays with at least two flat rows.
 x has inputs values; y has outputs canonical values. Values are finite numbers,
