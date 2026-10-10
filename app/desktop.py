@@ -69,6 +69,39 @@ class TrainingJob(QThread):
             self.failed.emit(str(exc))
 
 
+class TaskTrainingJob(QThread):
+    """Frozen task worker adapter; draft selection UI is a later Stage C gate."""
+    point = Signal(str)
+    completed = Signal(str)
+    failed = Signal(str)
+
+    def __init__(self, bundle, parent, python, constrained=True,
+                 memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
+        super().__init__(parent)
+        self.bundle = copy.deepcopy(bundle)
+        self.python = python
+        self.constrained = constrained
+        self.memory_limit_percent = memory_limit_percent
+        self.cancel = threading.Event()
+        self.process = None
+
+    def stop(self):
+        self.cancel.set()
+
+    def run(self):
+        try:
+            from .transport import run_json_worker
+            result = run_json_worker([self.python, '-u', '-m', 'app.worker'],
+                {'kind': 'task-v1', 'bundle': self.bundle, 'constrained': self.constrained,
+                 'memory_limit_percent': self.memory_limit_percent},
+                on_progress=lambda point: self.point.emit(json.dumps(point, allow_nan=False)),
+                cancel=self.cancel, cwd=str(Path(__file__).resolve().parent.parent),
+                on_process=lambda process: setattr(self, 'process', process))
+            self.completed.emit(json.dumps(result, allow_nan=False))
+        except Exception as error:
+            self.failed.emit(str(error))
+
+
 class Bridge(QObject):
     event = Signal(str)
 

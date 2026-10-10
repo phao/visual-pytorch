@@ -1,9 +1,10 @@
 # Typed datasets and tasks — Stage C work in progress
 
 This is the executable first inline adapter, not completion of Stage C. It is
-currently a Python/CLI API on the task branch, not a new GUI menu or trained export.
-Architecture-owned legacy `dataset.x/y` continues unchanged. The schema below
-must not be advertised as a persisted `.vtw` schema until migration is implemented.
+currently a Python/CLI API on the task branch, not a new GUI menu. Independent
+dataset/task/model revisions persist in `.vtw` v5; fitted task training/export is
+now executable. Architecture-owned legacy `dataset.x/y` continues unchanged.
+Experiment/run/report persistence and the full Stage C exit gates remain pending.
 
 ## Independent objects and identities
 
@@ -78,12 +79,13 @@ Each named head declares stable output `port`, target `field`, positive objectiv
 `weight`, `loss` and target `transforms`. Every output has one head. MSE/MAE
 targets match output sample shape; cross-entropy uses categorical target indices
 and logits with sample shape `[vocabulary_size, *target_shape]`. Category targets
-have no transforms. This is target preparation, not yet a classification trainer.
+have no transforms. The task worker supports these classification/regression heads.
 Optional masks/weights refer to nonmissing numeric scalar or target-shaped fields.
 Masks are bool/exact 0 or 1; sample weights are finite and nonnegative. Missing
 categorical targets currently report unsupported masked-target adaptation rather
-than fabricating a label. Empty denominators need explicit unavailable/skipped
-behavior in the forthcoming trainer; preparation does not invent metrics.
+than fabricating a label. The trainer reports empty weighted populations as
+unavailable and skips minibatches with no supervised head; preparation itself
+does not invent metrics.
 
 `prepare` returns populations keyed by split role, each with observation IDs,
 inputs keyed by stable port IDs, targets/masks/sample_weights keyed by head IDs,
@@ -95,8 +97,9 @@ to the existing model's named forward, not the identity of a binding.
 arrays, tensorizes with explicit CPU float32 inputs/regression targets or int64
 class indices, and preserves actual IDs (including duplicate sampler entries).
 `forward_ports` maps stable IDs through captured names to the native graph's
-valid forward interface. The task-aware trainer is pending; these adapters are
-already exercised by a bounded real 160-update minibatch optimizer test.
+valid forward interface. These adapters feed the task-aware CPU trainer;
+[task-training-contract.md](task-training-contract.md) specifies budgets, terminal
+evidence, masks/multi-head objectives, fitted checkpoints and standalone inference.
 
 `head_terms` implements MSE, MAE and indexed cross-entropy with strict shapes and
 no regression broadcasting. A per-record scalar mask/weight is broadcast only
@@ -150,11 +153,11 @@ save, preserving v1–4 legacy meanings. Hashes, relational identity, schema and
 immutability guards are checked on load/save. CLI writes use the existing atomic
 revision-checked ordered edit workflow. Undo restores browsing heads but retains
 immutable revision bytes. Exact semantics are in [revision-store.md](revision-store.md).
-ExperimentSpec/RunRecord/ReportRecipe persistence and task-aware trainer evidence
-remain pending; unknown placeholder kinds are not silently accepted.
+ExperimentSpec/RunRecord/ReportRecipe persistence remains pending; task training
+currently returns a self-contained result artifact, not a stored RunRecord.
+Unknown placeholder kinds are not silently accepted.
 
-Next steps: implement experiment/run/report revisions, task-aware minibatch
-losses/metrics and preprocessing checkpoint/export, experiment expansion and GUI,
+Next steps: implement experiment/run/report revisions, experiment expansion and GUI,
 then result-report and explicit-rerun notebooks with real-kernel/portable-bundle
 tests. Stage C exits only after the complete end-to-end gates in the roadmap.
 

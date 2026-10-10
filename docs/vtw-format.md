@@ -271,6 +271,14 @@ reordering; restore weights against their graph snapshot, not another architectu
 
 ## 6. Data, training and evidence
 
+This section describes the unchanged architecture-owned legacy adapter. Independent
+v5 dataset/task/model revisions use the earlier revision-store schema. Their new
+task-aware worker returns a separate frozen JSON training artifact and fitted
+predictor, specified in [task-training-contract.md](task-training-contract.md).
+It does not silently write that artifact into legacy `runs` or `result`; independent
+RunRecord persistence remains a subsequent Stage C gate. No new SQL/container
+version is needed for an execution artifact that is not yet stored in `.vtw`.
+
 datasets.payload contains matching x/y arrays with at least two flat rows.
 x has inputs values; y has outputs canonical values. Values are finite numbers,
 not booleans, with magnitude at most 1e6. Optional truth/source/seed/noise fields

@@ -1,6 +1,7 @@
 # Local worker transport contract
 
-This specifies `app.transport.run_json_worker`, used by the Qt `TrainingJob`.
+This specifies `app.transport.run_json_worker`, used by the Qt `TrainingJob` and
+`TaskTrainingJob`, and task-training CLI commands.
 It is a local, single-direct-child process transport, not a detached job service
 or a sandbox against malicious code. It does not implement roadmap Stage E.
 
@@ -36,6 +37,16 @@ child exits with status zero. Trailing events, missing results, nonzero exit and
 failed request delivery cannot be masked by an earlier valid-looking result.
 Numerical training-result semantics are validated separately, not by this generic
 transport envelope.
+
+The numerical worker retains the legacy `{models,id,...}` regression request and
+adds the closed `{kind:"task-v1",bundle,...}` request. Unknown dispatch kinds fail
+explicitly. Task validation/combined RAM admission precedes Torch import. See
+[task-training-contract.md](task-training-contract.md) for frozen bundle, terminal
+result, named heads, budgets, fitted predictor and metric semantics. A task worker
+can return a structurally valid result with status failed/cancelled/unavailable
+and exit zero: process/transport success is not a claim that training completed.
+Admission/import/process failures still use transport errors; durable attempt
+records remain pending. The real Qt task smoke verifies no Torch in the GUI host.
 
 Three threads service stdout, stderr and stdin concurrently from launch. This
 avoids the pipe dependency cycle when a child fills output before consuming a

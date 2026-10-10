@@ -11,6 +11,17 @@ def read_json(path):
     return json.load(sys.stdin) if path == '-' else json.loads(Path(path).read_text())
 
 
+def ram_percentage(override):
+    """Read the user preference without saving it; malformed config fails closed."""
+    if override is not None:
+        return override
+    from app.config import Config
+    config = Config()
+    if config.error:
+        raise ValueError('Invalid user configuration; repair it or explicitly provide --memory-limit-percent.')
+    return config.values['memory_limit_percent']
+
+
 def apply_edits(workspace, edits):
     """One atomic file replacement for the entire ordered edit batch."""
     if not isinstance(edits, list):
@@ -132,13 +143,20 @@ def main(argv=None):
     splits.add_argument('--split', help='Explicit Split protocol JSON file')
     splits.add_argument('--manifest', help='Saved SplitManifest JSON file for replay')
     prepare.add_argument('--memory-limit-percent', type=float, help='Override the user-level constrained RAM percentage for preparation')
-    stored = sub.add_parser('prepare-stored', help='Read-only preparation of EXACT stored model/dataset/task revisions, never implicit heads')
-    for kind in ('model', 'dataset', 'task'):
-        stored.add_argument('--' + kind, nargs=2, metavar=('ID', 'REVISION'), required=True)
-    splits = stored.add_mutually_exclusive_group(required=True)
-    splits.add_argument('--split', help='Split protocol JSON file')
-    splits.add_argument('--manifest', help='Saved SplitManifest JSON file')
-    stored.add_argument('--memory-limit-percent', type=float)
+    for command in ('prepare-stored', 'train-stored'):
+        stored = sub.add_parser(command, help='Use EXACT stored model/dataset/task revisions, never implicit heads; no workspace edits')
+        for kind in ('model', 'dataset', 'task'):
+            stored.add_argument('--' + kind, nargs=2, metavar=('ID', 'REVISION'), required=True)
+        splits = stored.add_mutually_exclusive_group(required=True)
+        splits.add_argument('--split', help='Split protocol JSON file')
+        splits.add_argument('--manifest', help='Saved SplitManifest JSON file')
+        stored.add_argument('--memory-limit-percent', type=float)
+        if command == 'train-stored':
+            stored.add_argument('--protocol', required=True, help='Explicit TrainingProtocol v1 JSON file')
+            stored.add_argument('--torch-python', default=sys.executable, help='Python for isolated numerical worker')
+    trained_task = sub.add_parser('export-task-trained', help='Validate saved task result and emit standalone fitted predictor source; no training')
+    trained_task.add_argument('result', help='Task-training-result JSON file (the value object from train-stored)')
+    trained_task.add_argument('--memory-limit-percent', type=float)
     apply = sub.add_parser('apply', help='Atomic ordered JSON edit batch')
     apply.add_argument('edits', help='JSON file or - for stdin')
     apply.add_argument('--allow-invalid', action='store_true', help='Save semantically invalid drafts, still structurally checked')
@@ -178,19 +196,18 @@ def main(argv=None):
                 value = {'code': generate_code(workspace.models(), args.id)}
             elif args.command == 'export-trained':
                 value={'code':generate_predictor(workspace.models(),args.id,workspace.models()[args.id].get('result'))}
+            elif args.command == 'export-task-trained':
+                from app.task_execution import generate_task_predictor
+                result = read_json(args.result)
+                value = {'code': generate_task_predictor(result['bundle'], result['checkpoint'],
+                         constrained=workspace.constrained_mode, memory_limit_percent=ram_percentage(args.memory_limit_percent))}
             elif args.command == 'preview-dataset':
                 from app.datasets import preview
                 value = preview(read_json(args.dataset), args.limit)
-            elif args.command in ('prepare-task', 'prepare-stored'):
+            elif args.command in ('prepare-task', 'prepare-stored', 'train-stored'):
                 from app.datasets import make_split, prepare
-                from app.config import Config
-                percentage = args.memory_limit_percent
-                if percentage is None:
-                    config = Config()
-                    if config.error:
-                        raise ValueError('Invalid user configuration; repair it or explicitly provide --memory-limit-percent.')
-                    percentage = config.values['memory_limit_percent']
-                if args.command == 'prepare-stored':
+                percentage = ram_percentage(args.memory_limit_percent)
+                if args.command in ('prepare-stored', 'train-stored'):
                     model = workspace.get_spec('model', *args.model)
                     dataset = workspace.get_spec('dataset', *args.dataset)
                     task = workspace.get_spec('task', *args.task)
@@ -200,8 +217,17 @@ def main(argv=None):
                     task = read_json(args.task)
                     contract = validate_model(workspace.models(), args.id)
                 manifest = read_json(args.manifest) if args.manifest else make_split(dataset, read_json(args.split))
-                value = prepare(dataset, task, contract, manifest,
-                                constrained=workspace.constrained_mode, memory_limit_percent=percentage)
+                if args.command == 'train-stored':
+                    from app.task_execution import task_bundle, resolve_run
+                    from app.transport import run_json_worker
+                    bundle = task_bundle(model, dataset, task, manifest, read_json(args.protocol))
+                    resolve_run(bundle, constrained=workspace.constrained_mode, memory_limit_percent=percentage)
+                    value = run_json_worker([args.torch_python, '-u', '-m', 'app.worker'],
+                        {'kind': 'task-v1', 'bundle': bundle, 'constrained': workspace.constrained_mode,
+                         'memory_limit_percent': percentage}, cwd=str(Path(__file__).resolve().parent))
+                else:
+                    value = prepare(dataset, task, contract, manifest,
+                                    constrained=workspace.constrained_mode, memory_limit_percent=percentage)
                 if args.command == 'prepare-stored':
                     value['references'] = {kind: {'kind': kind, 'id': values[0], 'revision': values[1]}
                                            for kind, values in (('model', args.model), ('dataset', args.dataset), ('task', args.task))}

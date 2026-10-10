@@ -18,6 +18,8 @@ python vpw_cli.py lab.vtw prepare-task ARCHITECTURE_ID --dataset observations.js
 python vpw_cli.py lab.vtw spec-list --kind dataset --all-revisions
 python vpw_cli.py lab.vtw spec-show dataset DATASET_ID --revision DATASET_SHA256
 python vpw_cli.py lab.vtw prepare-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --split split.json
+python vpw_cli.py lab.vtw train-stored --model MODEL_ID MODEL_SHA256 --dataset DATASET_ID DATASET_SHA256 --task TASK_ID TASK_SHA256 --manifest manifest.json --protocol protocol.json --torch-python /path/to/numerical/python
+python vpw_cli.py lab.vtw export-task-trained task-result-value.json
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
@@ -41,12 +43,34 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
 Independent dataset/task/model persistence is implemented in `.vtw` v5;
-experiment/run/report kinds, task trainer/GUI integration and notebooks remain
-pending. [revision-store.md](revision-store.md) specifies validators/migration.
+experiment/run/report kinds, selection GUI and notebooks remain pending.
+[revision-store.md](revision-store.md) specifies validators/migration.
 `prepare-stored` requires exact model/dataset/task ID+revision pairs and the same
 explicit split/manifest/RAM settings; it never reads mutable heads as execution
 references. `spec-show` may read a browsing head when --revision is omitted;
 `spec-list --all-revisions` includes archived/unselected immutable documents.
+
+`train-stored` executes the same exact-reference selection in an isolated worker,
+requiring explicit TrainingProtocol JSON and one split protocol or saved manifest.
+The CLI/GUI host still imports no Torch; `--torch-python` selects the numerical
+interpreter. RAM percentage defaults to the read-only user preference and supports
+an explicit override. It returns a self-contained task-training-result in `value`
+without modifying the workspace. The command envelope `ok:true` means a valid
+artifact was returned: inspect `value.status`/`failure`, not `ok`, to distinguish
+completed, failed, cancelled or unavailable training. Admission/process/protocol
+errors use the usual `ok:false` envelope; they cannot yet be stored as RunRecords.
+No background/detached execution or independent run-store UI is claimed.
+
+`export-task-trained` reads the saved **value object**, validates its frozen bundle
+and fitted inference checkpoint, and emits standalone Python in `value.code`.
+It never trains or writes `.vtw`. The source requires only Torch and Python stdlib,
+does not contain raw observations, and exposes `predict_records(list_of_field_maps)`
+returning tensors keyed by stable Output IDs. Classification outputs remain logits;
+regression stays in declared transformed target space. Task/target/vocabulary
+metadata is exported alongside preprocessing and strict weights. See
+[task-training-contract.md](task-training-contract.md) for the exact artifact
+protocol, terminal behavior, RAM and verification limits. Export uses the same
+read-only user RAM preference/override as preparation/training.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every

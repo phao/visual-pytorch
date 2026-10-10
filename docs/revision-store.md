@@ -1,7 +1,8 @@
 # Independent revisions in `.vtw` v5
 
 This contract is implemented on the unfinished Stage C task branch. It does not
-mean that experiments, notebooks or the new task trainer are complete. The legacy
+mean that experiments, notebooks or the full task GUI are complete. The task
+trainer/export component is specified separately in task-training-contract.md. The legacy
 architecture-owned dataset/checkpoint path stays supported unchanged.
 
 ## Documents versus browsing heads
@@ -96,7 +97,8 @@ while unioning all retained immutable revisions from the current working copy.
 Matching keys must have equal documents; conflicts fail instead of choosing a
 winner. This preserves future run evidence roots and their dependencies. Legacy
 `runs` keeps its prior architecture-dependent history semantics for compatibility.
-Independent terminal RunRecord persistence is still pending with the task trainer.
+Independent terminal RunRecord persistence is still pending; the task trainer
+currently returns a self-contained artifact without writing an independent run.
 Archive is recoverable by selecting a retained revision; no GC is implemented.
 
 ## CLI and Python API

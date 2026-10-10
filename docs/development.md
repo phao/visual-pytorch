@@ -136,11 +136,51 @@ checkpoint identity, malicious/missing guards and JSON/row/hash mismatches,
 frozen closure retention, undo/redo and fresh exact-revision CLI replay. User
 workspaces/configuration/live app were not changed; no new GUI menus claimed.
 
-Next: task-aware minibatch trainer/worker and preprocessing checkpoint/export;
-independent experiment/run/report validators and frozen execution protocol;
-model × dataset selections with invalid combinations visible; GUI/run history;
+### Task-aware training checkpoint — branch-only, not Stage C completion
+
+The actual worker now dispatches frozen task bundles with exact model/data/task
+revisions and split IDs. Closed CPU/Adam protocols declare independent init/shuffle
+seeds, minibatches, budgets, evaluation schedule and bounded curve retention.
+Named MSE/MAE/classification heads use actual masks/weights with additive population
+denominators; wholly unsupervised batches skip updates, and entirely unsupervised
+epochs terminate explicitly. Test is evaluated only after completed execution,
+not exposed in intermediate train/validation curves. Counter/timing semantics,
+last-finite failure/cancel checkpoints and combined RAM admission are explicit.
+
+Nonidentity fitted preprocessing now belongs to the separate task-predictor
+checkpoint. Pure admission checks frozen identities, expected train-only state,
+stable parameter IDs, exact tensor shapes/keys and finite weights. New field-valued
+records use captured imputation/standardization, units, one-hot, ragged padding and
+derived masks without refitting. Standalone generated inference requires Torch
+and stdlib only, carries task/target/vocabulary metadata, excludes raw observations,
+and returns logits or declared target-space tensors keyed by stable Output IDs.
+
+CLI `train-stored` runs the real worker without Torch/Qt in the host and leaves
+workspace bytes unchanged. `export-task-trained` emits validated fitted source
+without training. A native `TaskTrainingJob` adapter has passed real Qt
+thread/signal tests; no selection menus or run-history GUI are claimed yet.
+See [task training contract](task-training-contract.md) for exact versions/fields,
+budgets, metrics, artifacts, export semantics, limits and primary design sources.
+
+Verification includes an independent scalar two-head gradient/Adam oracle, actual
+classification and spatial CNN classification, finite/error/cancel recovery,
+observed RAM guards, RNG isolation, exact budgets, bounded curves, and real worker
+and CLI transport. Standalone source ran from an unrelated directory with no app
+imports and bitwise native/export predictions. Branching two-input Tanh/ReLU/Concat,
+ragged masks and one-hot meanings are covered. Final checks: 289 Python/57 JS tests;
+real Qt task worker classification (240 updates, held-out accuracy 1.0 and CE
+0.02411829524); old native linear/MLP workers (~1.19e-12/~7.74e-5 held-out MSE);
+native Qt history/binding/disk sync; sandboxed real WebEngine layout, compact icon
+drag, undo/rewire/delete/typing/binding/theme checks with no console errors;
+compile/diff checks. User workspaces/config/live app remain untouched; no push.
+These are bounded fixture checks, not generalization or full platform guarantees.
+
+Next: independent experiment/run/report validators and persistence, durable
+admission/initialization/process-failure attempts, reproducible model × dataset
+selection expansion with invalid combinations visible, GUI/run history, and
 result-report versus explicit-rerun notebooks with real kernel/portable-bundle
-gates. Persisting three object types does NOT satisfy those remaining gates.
+gates. A task-training-result artifact is NOT a stored RunRecord. Full C gates
+and D/E remain open; this partial branch must not be merged as completed Stage C.
 
 ## D — Symbolic families and mixed CNN/RNN composition
 
