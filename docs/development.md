@@ -315,6 +315,11 @@ metrics. Missing/delayed/duplicate/superseded terminal and replacement/close
 guards have explicit tests. Metadata/raw presentation bounds, richer authoring,
 report views and all remaining C gates stay open before integration/publication.
 
+After merging the reviewed Inspector/palette followups, 353 Python/62 JS pass
+again. The current sandboxed WebEngine editor and experiment/recovery checks,
+all 11 native lifecycle tests, and native history/disk-sync checks also pass.
+The shared C task branch is intentionally not integrated as a completed stage.
+
 ## D — Symbolic families and mixed CNN/RNN composition
 
 Develop concrete-first architecture families with optional scoped symbols and
