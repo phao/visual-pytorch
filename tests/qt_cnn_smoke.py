@@ -11,6 +11,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QObject, QEvent, QEventLoop, QTimer, QUrl, QCoreApplication
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtTest import QTest
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -121,6 +122,9 @@ with tempfile.TemporaryDirectory() as folder:
         js('document.getElementById("train").click()')
         until('Boolean(window.loom.document.result?.checkpoint_version)', timeout=30)
         until('!window.loom.state.training_id', timeout=10)
+        until('document.getElementById("training-state").textContent.includes("current checkpoint")')
+        assert js('document.querySelectorAll("#loss-plot polyline").length') == 2
+        assert js('document.getElementById("loss-value").textContent') != '—'
         result = h.workspace.models()[mid]['result']
         check_checkpoint(normalize_models(h.workspace.models(), mid), mid, result)
         data = h.workspace.models()[mid]['dataset']; train = result['split_indices']['train']; held = result['split_indices']['held_out']
@@ -129,6 +133,7 @@ with tempfile.TemporaryDirectory() as folder:
         assert result['mse'] < baseline * .1, (result['mse'], baseline)
         js('document.querySelector("[data-panel=results]").click()')
         until('document.getElementById("results").textContent.includes("Conv2d")')
+        assert js('!document.getElementById("results-panel").hidden && document.getElementById("experiment-panel").hidden')
         assert 'trainingError' not in h.events
         assert h.workspace.db.execute('SELECT count(*) FROM runs').fetchone()[0] == 1
         path = Path(folder) / 'editor-cnn.vtw'; h.workspace.save(path); loaded = Workspace.load(path)
@@ -138,7 +143,21 @@ with tempfile.TemporaryDirectory() as folder:
         finally: loaded.db.close()
         assert not errors, errors
         if os.environ.get('VTW_SMOKE_SCREENSHOT'):
-            assert view.grab().save(os.environ['VTW_SMOKE_SCREENSHOT'])
+            screenshot = Path(os.environ['VTW_SMOKE_SCREENSHOT'])
+            view.resize(1440, 960)
+            js('window.loom.perform("reset-panels");document.getElementById("expand-all").click();document.querySelector("[data-panel=experiment]").click();window.loom.fit();document.getElementById("toast-close").click();')
+            until('!document.getElementById("experiment-panel").hidden')
+            QTest.qWait(400)  # Wait for Chromium's painted frame, not just DOM mutation.
+            assert view.grab().save(str(screenshot))
+            js('document.querySelector("[data-panel=results]").click();document.querySelector("#results details").open=true;document.getElementById("experiment-dock").style.height="520px";')
+            until('!document.getElementById("results-panel").hidden')
+            QTest.qWait(150)
+            assert view.grab().save(str(screenshot.with_name(screenshot.stem + '-weights.png')))
+            js('document.querySelector("[data-panel=code]").click();')
+            until('!document.getElementById("code-panel").hidden')
+            assert js('document.getElementById("code").textContent.includes("nn.Conv2d")')
+            QTest.qWait(150)
+            assert view.grab().save(str(screenshot.with_name(screenshot.stem + '-code.png')))
         print(json.dumps({'real_webengine_cnn': 'PASS', 'palette_construct_edit_undo_redo': 'PASS',
                           'compact_bias': 'PASS', 'spatial_adapter': 'PASS', 'actual_worker_training': 'PASS',
                           'held_out_mse': result['mse'], 'train_mean_baseline': baseline,

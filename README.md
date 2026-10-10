@@ -7,12 +7,22 @@ with an offline WebEngine diagram editor. Try it, tell us what is confusing,
 report defects and suggest improvements. It is not a finished experiment platform
 or a certified tool for safety-critical work.
 
+**Initial public preview · v0.1.0-alpha.1 · under active construction.**
+Source installation is available now; packaged installers are not provided yet.
+The current numerical workflow is CPU regression, including small CNNs—not a
+complete catalogue of trainable architectures. Feedback and independent review
+are very welcome. This project is independent of the PyTorch project.
+
 This is openly an **AI-coded, human-and-AI-directed project**. A human defines
 goals and evaluates the experience; coding agents contribute implementation,
 research and tests. AI assistance is not a guarantee of correctness. We welcome
 independent human review and contributions.
 
-![Real application: tensor shapes, resizable blocks and floating tools](assets/screenshots/interface-resized.png)
+![Real application: a CNN drawn as connected tensor operations, with completed training and loss curves](assets/screenshots/cnn-training.png)
+
+This is a real app capture from a small synthetic spatial-regression test:
+128 observations, 17 trainable parameters and 450 Adam updates. It demonstrates
+the drawing-to-training workflow; it is not a real-world benchmark.
 
 ## What works now
 
@@ -32,6 +42,7 @@ independent human review and contributions.
 - Layout tools with separate collapsible "All Blocks Collapsed" and "All Blocks
   Expanded" profiles. Minimize/expand all and rearrange automatically, with
   independent direction, layer/block gaps and automatic fitting preferences.
+  Layout profiles belong to the `.vtw` workspace and participate in undo/redo.
 - `.vtw` SQLite workspaces and an agent-friendly CLI for atomic, revision-checked
   edits. The desktop notices external changes without silently replacing dirty work.
 
@@ -45,8 +56,11 @@ Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 ## Run
 
 Use Python 3.10 or newer in an environment with Qt WebEngine system dependencies.
+Linux is the currently exercised desktop platform; Windows/macOS are unverified.
 
 ```sh
+git clone https://github.com/phao/visual-pytorch.git
+cd visual-pytorch
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
@@ -55,6 +69,7 @@ python run.py
 
 Open an existing workspace with `python run.py example.vtw`. This is a desktop
 app, not a hosted service or a supported standalone browser application.
+If Qt fails to start, see [installation and troubleshooting](docs/install.md).
 The launcher can use separate Qt and PyTorch interpreters; if necessary, select
 the worker with `python -m app.desktop --torch-python /path/to/python`.
 
@@ -90,6 +105,14 @@ Drag an arrow's destination handle to reconnect it without changing its source.
 
 ## CLI and specifications
 
+![Real learned weights and held-out predictions from the same CNN run](assets/screenshots/cnn-training-weights.png)
+
+Inspect learned tensors and predictions, or export a standalone PyTorch model.
+The **PyTorch forward** view is a fresh-weight architecture template; trained
+export is a separate, identity-checked operation.
+
+![Generated PyTorch forward code in the real application](assets/screenshots/cnn-training-code.png)
+
 ```sh
 python vpw_cli.py example.vtw init
 python vpw_cli.py example.vtw inspect
@@ -117,6 +140,8 @@ node --test tests/*.test.js
 Native Qt tests exercise real WebEngine input, not just diagram helpers. See
 [contributing](CONTRIBUTING.md) for bounded test commands and privacy rules.
 Please use GitHub issues for feedback and pull requests for proposed changes.
+Read the [initial release notes](docs/releases/v0.1.0-alpha.1.md) for supported
+workflows, verification boundaries and known limitations.
 
 ## License
 
