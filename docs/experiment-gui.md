@@ -17,8 +17,58 @@ revision. Changing workspace clears stale selections and candidate cards.
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.
-Use the existing CLI to author/edit/select/archive scientific objects. Full
-schema-specific visual dataset/task/experiment authoring forms are not provided.
+The dataset authoring form below creates and edits typed observations. Task and
+experiment authoring forms remain unfinished; use the CLI or specification import
+for those objects. Do not treat an imported experiment as completed GUI authoring.
+
+### Typed dataset authoring
+
+New dataset opens an incomplete private draft; it does not add fake observations
+or write SQLite. Edit dataset revision starts from the selected exact revision,
+including a historical one. The immutable base and current browsing head are
+displayed/recorded separately. Field and observation IDs are stable and not
+renumbered. Adding a field adds explicit null cells to existing records, requiring
+either nullable semantics or actual user-entered values before valid admission.
+Removing fields/observations affects only the private draft; Cancel discards it.
+
+Field controls specify name, dtype, sample shape, optional ordered axis names,
+nullable flag and category vocabulary. Blank shape means scalar; only the first
+ragged axis may be -1. Vocabularies are ordered, type-sensitive fixed labels, not
+inferred from observations. Modality, unit, coordinates, provenance and usage are
+optional finite JSON metadata; their text parser rejects duplicate keys, including
+escaped aliases. These are metadata editors, not an arbitrary DatasetSpec textarea.
+Cells accept JSON scalars, nested tensor arrays and null. Values are never silently
+reshaped/coerced when the schema changes. Integer/category numerals must remain
+JavaScript-safe exact integers; float32 magnitude and shape/type compatibility are
+checked by the existing server validator. Invalid local text remains visible and
+blocks paging/save rather than being discarded on a rerender.
+
+Field definitions/columns page by six; observations page by twenty. Hidden values
+remain in the draft, not truncated. This bounds rendered cell count, NOT transport
+or draft size: scienceShow still loads the complete inline document. External/lazy
+storage, bounded metadata transport and richer diagnostics are still open work.
+Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
+revision invokes normal strict registry admission and selects the exact result;
+explicit Save workspace is still required to persist the working copy to disk.
+An unchanged selected revision produces no SQL/dirty/history change.
+
+Draft version 1 has exactly version, kind, id, workspace_id, base, expected_head
+and document. The document has no revision hash: one is computed on admission.
+Begin verifies any exact base before removing its hash for editing. Check/Save
+require unchanged stable identity, the same workspace UUID and the captured head
+(which can be null for an archived object). New drafts cannot shadow ANY retained
+ID, even one with no head. Historical editing is explicit, never substituted with
+current bytes. A changed head fails before insertion, preserving draft text.
+Changing workspace disables the retained form; Cancel/reopen is explicit. These
+are optimistic content/head checks, not a complete event/ABA or file-save conflict
+detector. Existing external file Save conflict checks remain independent.
+
+Drafts are transient UI state, not additional .vtw tables. Undo restores heads and
+retains immutable evidence through the normal history wrapper. Pending terminal
+delivery blocks draft admission. In-flight commands disable duplicate submission;
+the existing keyboard typing safeguards apply to all inputs/textarea/selects.
+The pure backend supports dataset/task/experiment drafts under their existing
+closed grammars, but only the dataset form is currently connected to the UI.
 
 Experiment browsing displays its question and pages of 25 coordinates. All
 compatible, excluded and incompatible rows remain visible with reasons. Only
@@ -53,6 +103,9 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceShow | reference | Exact stored document, no execution |
 | sciencePreview | experiment reference, offset/limit | Existing bounded compatibility preview |
 | scienceReport | report reference | Read saved evidence or labelled rerun recipe |
+| scienceAuthorBegin | kind, optional exact reference or new id | Read-only draft with base/head/workspace capture |
+| scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
+| scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
 | scienceFreeze | drawing id | Freeze complete normalized model closure |
 | sciencePut | kind, document | Strict registry admission |
 | scienceSelect | reference | Explicit browsing-head change |

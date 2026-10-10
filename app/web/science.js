@@ -25,7 +25,7 @@
     current=null;page=null;
     for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;
     $('science-candidates').replaceChildren();$('science-document').textContent='';
-    if(!value){$('science-status').textContent='No '+$('science-kind').selectedOptions[0].textContent.toLowerCase()+' stored yet. Import a specification or create it using the CLI.';return;}
+    if(!value){$('science-status').textContent='No '+$('science-kind').selectedOptions[0].textContent.toLowerCase()+' stored yet. Use New dataset, import a specification, or create it using the CLI.';window.LoomScienceAuthor?.selectionChanged();return;}
     const reference=JSON.parse(value),document=await request('scienceShow',{reference});
     if(ticket!==generation || identity!==api.workspace())return;
     current={reference,document};$('science-document').textContent=JSON.stringify(document,null,2);
@@ -45,6 +45,7 @@
       $('science-document').textContent=JSON.stringify(evidence,null,2);$('science-details').open=true;
     }
     controls();
+    window.LoomScienceAuthor?.selectionChanged();
   }
   async function preview(){
     const selected=current,ticket=++generation,identity=api.workspace();
@@ -81,6 +82,7 @@
   function act(fn){Promise.resolve().then(fn).catch(error=>{if(!error.vpwNotified)api.toast(error.message,true);});}
   window.LoomScience={
     mount(document,services){root=document;api=services;
+      window.LoomScienceAuthor.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(refresh));
       $('science-refresh').onclick=()=>act(refresh);
       $('science-kind').onchange=()=>{offset=0;act(refresh);};
@@ -97,7 +99,7 @@
       $('science-recovery-export').onclick=()=>act(async()=>{const result=await request('scienceExportRecovery',{id:$('science-recovery-object').value});if(result)api.toast('Recovery evidence exported: '+result.path);await recoveries();});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(recoveries));
     },
-    stateChanged(){if(!api)return;if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;offset=0;generation++;$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();},
+    stateChanged(){if(!api)return;if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;offset=0;generation++;$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();},
     event(event){if(!api)return;
       if(event.kind==='scienceChanged' && !$('science-panel').hidden)act(refresh);
       if(event.kind==='scienceProgress')$('science-status').textContent='Active run '+event.payload.run_id+' · '+JSON.stringify(event.payload.point);

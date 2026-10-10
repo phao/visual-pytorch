@@ -95,6 +95,42 @@ training-only fitted transforms, minibatching and an experiment/history interfac
 Notebook reports must distinguish reading existing results from explicit
 retraining. Avoid silent changes to column meaning when ports change.
 
+### Typed dataset GUI checkpoint — local task branch only
+
+The existing floating Experiment/history tab now creates and edits typed inline
+datasets without importing hand-written DatasetSpec JSON. All five dtypes,
+scalar/tensor/first-axis ragged shapes, nullable cells, fixed ordered vocabularies,
+axis names and provenance/usage/unit/modality/coordinate metadata remain explicit.
+Stable field/observation IDs and unconverted values prevent silent rebinding.
+The six-field/twenty-observation grid bounds rendered controls, not full transport.
+
+The common dataset/task/experiment draft API records workspace UUID, exact base
+and expected browsing head, validates through the existing grammar/dependencies
+without fitting, and rejects stale/invalid admission before writes. Historical
+editing is explicit; unchanged head admission is a no-op. Undo retains evidence.
+Only the dataset form is wired; task/experiment forms, richer metric/predictor/
+multi-run reporting, GUI notebook execution, bounded transport and full C gates
+are unfinished. D/E remain pending. This checkpoint is not merged/published.
+
+Fourteen new pure Python tests and eight JS tests cover types/identities, nullable
+ragged/category data, prospective hashes, exact historical/archived bases,
+collisions, malformed/stale/foreign-workspace drafts, no-op, immutable history,
+Save/reload, finite/duplicate-key parsing, prototype-like field IDs and two-axis
+paging. The real sandboxed WebEngine harness starts with an empty scientific
+registry, authors rich data, checks stored bytes, invalid text retention, atomic
+shape failures, undo/redo/no-op, stale heads/workspace switches and pending-job
+guards. Dark/GitHub/Math at fonts 14/18/28 and spacings 1/4/10 preserve readable
+themed form controls and bounded grid width; host Torch remains absent. The form
+capture was inspected. Whole-window header overflow at larger fonts still needs
+a separate convergence audit; these checks do not prove all application layout.
+
+Current checkpoint validation: all 367 Python tests pass (130.105 s), all 70 JS
+tests pass, and the new actual WebEngine form test passes with no console errors
+or host Torch. The existing actual fit/retry/history/report/notebook-generation/
+forced-admission-recovery flow and inherited editor smoke also pass. Eleven
+native Qt terminal/cancel/recovery tests pass. No new remote publication or user
+app/workspace/configuration change was performed.
+
 ### First executable checkpoint — not Stage C completion
 
 On `task/stage-c-experiments` (base main

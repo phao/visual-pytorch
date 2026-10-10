@@ -100,8 +100,8 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
-         'scienceRecoveries', 'scienceRecoveryShow'}
-EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport'}
+         'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck'}
+EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
 ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery'}
 
 
@@ -128,6 +128,14 @@ def dispatch(window, req):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action in {'scienceAuthorBegin', 'scienceAuthorCheck', 'scienceAuthorSave'}:
+        from . import authoring
+        if action == 'scienceAuthorBegin':
+            return authoring.begin(workspace, req['kind'], base=req.get('reference'), sid=req.get('id'))
+        if action == 'scienceAuthorCheck': return authoring.check(workspace, req['draft'])
+        result = authoring.save(workspace, req['draft'])
+        window.broadcast(); window.broadcast('scienceChanged')
+        return result
     if action == 'scienceShow':
         from .experiment_objects import reference
         ref = reference(req['reference'], req['reference']['kind'])

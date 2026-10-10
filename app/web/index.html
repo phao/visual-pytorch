@@ -16,6 +16,8 @@
   <script src="building-block-help.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
+  <script src="dataset-authoring.js" defer></script>
+  <script src="science-author.js" defer></script>
   <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
@@ -110,6 +112,21 @@
         <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
         <div id="science-panel" class="panel-content" hidden>
+          <div class="inline-actions"><button id="science-author-new">New dataset</button><button id="science-author-edit">Edit dataset revision</button></div>
+          <section id="science-author" hidden aria-label="Typed dataset authoring">
+            <h3>Dataset draft</h3><p id="science-author-id" class="tiny"></p>
+            <label>Dataset name<input id="science-author-name" data-author-control maxlength="200"></label>
+            <p class="tiny">Fields and observations keep stable IDs. Shape excludes the batch axis. Cells use JSON scalars or tensor arrays; null means missing. Edits never convert values or reorder labels automatically.</p>
+            <div class="inline-actions"><input id="science-author-field-id" data-author-control placeholder="New stable field ID" aria-label="New stable field ID"><button id="science-author-add-field">Add field</button></div>
+            <div class="inline-actions"><button id="science-author-fields-prev">‹ Fields</button><span id="science-author-field-page" class="tiny"></span><button id="science-author-fields-next">Fields ›</button></div>
+            <div id="science-author-fields"></div>
+            <div class="inline-actions"><input id="science-author-record-id" data-author-control placeholder="Observation ID (blank = new UUID)" aria-label="New observation ID"><button id="science-author-add-record">Add observation</button></div>
+            <div class="inline-actions"><button id="science-author-rows-prev">‹ Observations</button><span id="science-author-row-page" class="tiny"></span><button id="science-author-rows-next">Observations ›</button></div>
+            <div id="science-author-records" class="science-author-records"></div>
+            <details><summary>Dataset metadata</summary><div id="science-author-metadata"></div></details>
+            <p id="science-author-status" role="status" class="tiny"></p>
+            <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-cancel">Cancel draft</button></div>
+          </section>
           <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
           <div class="inline-actions"><p id="science-status" role="status" class="tiny">Browsing never trains. Exact revisions retain historical meaning.</p><button id="science-stop" hidden>Stop run</button></div>
           <div id="science-recovery" hidden><p class="tiny">Unadmitted evidence is kept for this session. Export before closing; contains captured data and results, not a running-job receipt.</p><label>Recovery evidence<select id="science-recovery-object"></select></label><button id="science-recovery-show">Show recovery</button><button id="science-recovery-export">Export recovery JSON…</button></div>
