@@ -83,6 +83,7 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .model-list{max-height:none;overflow:visible;margin-right:0;flex:0 0 auto}
 .node.Reshape rect{fill:#24312b;stroke:#82a878}.node.Reshape .node-header{fill:#b1d39e}
 dialog{max-width:min(560px,calc(100vw - 40px));max-height:calc(100vh - 40px);overflow:auto}
+#block-about-dialog{min-width:min(360px,calc(100vw - 40px))}#block-about-title{font-size:1.25em}.block-about-content p{font-size:inherit;line-height:1.5}.block-about-content .contract-card{white-space:normal;font-size:1em}
 .safety-toggle.unconstrained{color:var(--amber)}
 
 /* Readable defaults; Options changes the base size independently of canvas zoom. */

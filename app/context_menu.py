@@ -21,6 +21,12 @@ def build_context_menu(view, window, block=None):
                          '#c8eee0':'ink','#627887':'muted','#304451':'line'}.items():sheet=sheet.replace(original,tokens[key])
     menu.setStyleSheet(sheet)
     has_model=bool(window.workspace and view.mid in window.workspace.models())
+    palette=block.get('palette') if isinstance(block,dict) else None
+    if isinstance(palette,dict) and isinstance(palette.get('id'),str) and isinstance(palette.get('name'),str):
+        about=menu.addAction('About '+palette['name'])
+        about.triggered.connect(lambda checked=False, bid=palette['id']:
+            view.page().runJavaScript('window.loom && window.loom.perform("about-building-block",'+json.dumps(bid)+');'))
+        menu.addSeparator()
     # Only the block under this click is targeted; empty space never deletes a
     # previously selected block. The editor rechecks existence and busy state.
     if isinstance(block, dict) and isinstance(block.get('id'), str) and isinstance(block.get('modelId'), str):
@@ -32,6 +38,10 @@ def build_context_menu(view, window, block=None):
         delete.setEnabled(has_model and view.mid==block['modelId'] and block.get('canDelete') is True)
         delete.triggered.connect(lambda checked=False, nid=block['id'], mid=block['modelId']:
             view.page().runJavaScript('window.loom && window.loom.perform("delete-block",'+json.dumps(nid)+','+json.dumps(mid)+');'))
+        automatic=menu.addAction("Automatic size")
+        automatic.setEnabled(has_model and view.mid==block['modelId'] and block.get('canResize') is True)
+        automatic.triggered.connect(lambda checked=False, nid=block['id'], mid=block['modelId']:
+            view.page().runJavaScript('window.loom && window.loom.perform("automatic-block-size",'+json.dumps(nid)+','+json.dumps(mid)+');'))
         menu.addSeparator()
     for label,command in sorted([
         ("Fit graph","fit"),("Validate architecture","validate"),

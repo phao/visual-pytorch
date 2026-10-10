@@ -271,8 +271,12 @@ nwse-resize cursor, accessible label/disabled state and keyboard focus. Drag in
 inverse canvas/world coordinates; do not change top-left. Ctrl snaps bottom-right
 to the 24-unit world grid, raising a snapped corner as necessary to satisfy the
 minimum. Arrow keys change a focused grip by 8 units; Shift or Ctrl uses 24, and
-Ctrl also snaps. Inspector Width/Height is an alternate input; Automatic size
-deletes both preferences. Do not start inspection on grip double-click.
+Ctrl also snaps. The Inspector has no removal or diagram width/height controls.
+The block context menu's Automatic size deletes both size preferences, preserving
+position, folding and computation. It is undoable and disabled during training;
+the dispatcher rechecks the captured model/block IDs and busy state. Repeating
+it on an automatically sized block makes no edit. Do not start inspection on
+grip double-click.
 Capture the persistent canvas, not the re-created SVG node, during drag. Redraw
 nodes and wire endpoints together. Release/cancel/lost-capture/blur ends the
 gesture, clears resize CSS state and persists one edit if moved. Training disables
@@ -280,6 +284,28 @@ resizing. Saved sizes participate in workspace undo/redo, but preserve code,
 contracts, datasets and learned results because they are presentation-only.
 
 Single click selects but need not open a hidden Inspector; double-click opens it.
+
+### Building-block palette help
+
+Right-click a Building blocks palette button, including its nested icon or label,
+to get About <button name> as the first native context-menu action, followed by
+a separator and the general actions. This is not a diagram-block context menu;
+it neither selects nor deletes a diagram block. `contextAt` returns
+`{palette:{id,name}}` instead of a block descriptor for this target. Tensor
+buttons have stable DOM IDs `add-tensor-<type>`.
+
+About dispatches `about-building-block` with the palette button ID. Recheck that
+the target still exists in the library. Show a themed, scrollable HTML dialog
+with a focusable Close button and native Escape cancellation. App shortcuts do
+not intercept an open dialog. Help remains available during training.
+`building-block-help.js` supplies all 15 descriptions, using the same concrete
+tensor-operator explanations/defaults as the Inspector. Activation and reference
+help reflect the currently selected palette options. Explain shape/axes, learned
+parameters, insertion behavior and important differences or restrictions. Define B
+as batch size. Linear's equation uses the existing local MathJax renderer with a
+plain-text fallback. Help paragraphs inherit the user base font and theme;
+render names/text through textContent, never raw external HTML. Reading or closing
+help must leave graph, dataset, results, SQLite bytes and undo history unchanged.
 
 ### Bulk block layout tools
 
@@ -356,12 +382,13 @@ drag/wiring; cancel any armed wire. The native WebEngine menu callback first
 calls loom.contextAt(localX/pageZoom,localY/pageZoom), then opens QMenu only after
 the JavaScript callback. Discard stale callback request IDs. This compensates
 for native context events whose preceding page pointer event may not arrive.
-contextAt returns null outside a box, otherwise {id,modelId,canDelete} after
+contextAt returns null outside a box, otherwise {id,modelId,canDelete,canResize} after
 selecting it. On a box the native menu begins Inspect block, then Delete block,
+then Automatic size,
 then a one-pixel horizontal separator. General graph/panel actions follow;
 a second separator precedes workspace actions. General groups remain alphabetical;
 the block section is intentionally ordered by inspection before destruction.
-Both block actions capture the exact IDs. Inspect dispatches inspect-block,
+All block actions capture the exact IDs. Inspect dispatches inspect-block,
 rechecks current model/block existence, clears port/wire selection, refreshes
 selection classes and Inspector, and opens inspector-panel without persistence
 or history. Inspection is available during training; stale targets are ignored.

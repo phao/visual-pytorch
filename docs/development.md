@@ -9,6 +9,29 @@ integration as described in AGENTS.md; campaign locks alone are insufficient.
 
 ## Initial source import
 
+### UI refinements after the initial prerelease (local implementation)
+
+The Inspector no longer exposes removal, diagram dimensions or Automatic size.
+The diagram-block context menu has Inspect block, Delete block and Automatic size
+before the general separator. Automatic sizing captures model/block IDs, rechecks
+training and removes only width/height preferences. It is undoable, preserves
+scientific identity and produces no history entry when already automatic.
+
+Building-block palette buttons now have a distinct About <button> native menu
+entry. The themed, readable dialog covers all 15 buttons, selected activation
+and reference behavior, concrete shapes, learned parameters and supported limits.
+It uses safe text and local MathJax, not execution or graph insertion. The portable
+[UI handoff](UI-AGENT-HANDOFF.md) specifies both context descriptors and actions.
+
+199 Python/62 JavaScript tests pass. The real sandboxed WebEngine harness checks
+all 15 palette targets, unchanged SQLite/graph, selected Sigmoid, modal Escape,
+training-time help, removed Inspector controls, automatic-size identity/no-op/
+undo/redo/stale-target guards and nine theme/font/spacing configurations. Native
+Qt menus confirm sections, targeted actions and disabled resize during training.
+No user workspace/config/app restart and no new GitHub publication were performed.
+
+These are UI refinements, not completion of Stage C or new model-family support.
+
 The first curated import preserves the GitHub starter commit
 `4c249d9387173938cf1fec95ba41dfe345e5affd`. Application, assets, tests, licenses and
 portable specifications came from the local reviewed development checkpoint

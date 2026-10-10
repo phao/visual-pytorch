@@ -456,9 +456,6 @@
     if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
     if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
-    if (T.types.includes(n.type) || ["Linear", "Module", "Activation", "Reshape", "Concat", "Splitter", "Replicator"].includes(n.type) ||
-        (["Input", "Output"].includes(n.type) && doc.graph.nodes.filter(v => v.type === n.type).length > 1)) html += '<div class="inspect-actions"><button id="remove-node"' + (busy() ? ' disabled' : '') + '>Remove block</button></div>';
-    html += '<label class="inspect-label">Diagram size (world units)</label><div class="inline-fields"><label>Width<input id="block-width" type="number" step="any" min="'+G.minimumSize(n).width+'" max="100000" value="'+G.width(n)+'"'+(busy()?' disabled':'')+'></label><label>Height<input id="block-height" type="number" step="any" min="'+G.minimumSize(n).height+'" max="100000" value="'+G.height(n)+'"'+(busy()?' disabled':'')+'></label></div><button id="auto-block-size"'+(busy()?' disabled':'')+'>Automatic size</button>';
     content.innerHTML = html;
     content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
       if(busy())return;
@@ -472,9 +469,6 @@
       if(text)n.axes=axes;else delete n.axes;
       invalidateRun();persist();
     };
-    const resize=()=>{if(busy())return;try{G.resizeBlock(n,Number($("block-width").value),Number($("block-height").value));persist();}catch(error){toast(error.message,true);renderInspector();}};
-    $("block-width").onchange=$("block-height").onchange=resize;
-    $("auto-block-size").onclick=()=>{if(busy())return;delete n.width;delete n.height;persist();};
     if($("sample-shape"))$("sample-shape").onchange=()=>{
       const text=$("sample-shape").value.trim(), dims=text.split(/[,x\s]+/).map(Number);
       if(!text && n.type==="Output")delete n.shape;
@@ -516,7 +510,6 @@
     if ($("add-output-port")) $("add-output-port").onclick = () => editBoundary(() => G.addRouterPort(doc, n));
     if ($("open-reference")) $("open-reference").onclick = () => safe("openModel", {id: n.ref});
     if ($("tab-reference")) $("tab-reference").onclick = () => safe("openModel", {id: n.ref, newTab: true});
-    if ($("remove-node")) $("remove-node").onclick = () => removeNode(n.id);
     $("equation").textContent = n.type === "Activation" ? activationInfo[n.activation][0] : n.type === "Reshape" ? "y = x.reshape(B, …shape)" : n.type === "Concat" ? "x = cat(parts, dim="+(n.flatten===false?"−1":"1")+")" : n.type === "Splitter" ? "parts = split(x, sizes, dim=−1)" : n.type === "Replicator" ? "outᵢ = x" : n.type === "Module" ? "y = module(x)" : n.type === "Linear" ? (n.bias ? "y = x Aᵀ + b" : "y = x Aᵀ") : "ŷ = fθ(x)";
     const activationTex={ReLU:'h=\\max(0,z)',Tanh:'h=\\tanh(z)',Sigmoid:'h=\\frac{1}{1+e^{-z}}',GELU:'h=z\\,\\Phi(z)'};
     const tex=n.type==='Activation'?activationTex[n.activation]:n.type==='Linear'?'y=xA^{\\mathsf T}'+(n.bias?'+b':''):n.type==='Replicator'?'y_i=x':n.type==='Module'?'y=\\operatorname{module}(x)':n.type==='Reshape'?'y=\\operatorname{reshape}(x,B,\\ldots)':n.type==='Concat'?'y=\\operatorname{cat}(x_1,\\ldots)':n.type==='Splitter'?'(y_1,\\ldots)=\\operatorname{split}(x)':'\\hat y=f_\\theta(x)';
@@ -751,6 +744,20 @@
     selected=group.dataset.id;selectedPort=target.classList.contains('port-out') ? target.dataset.peer || null : null;
     selectedWire=null;updateSelection();
     renderInspector();return true;
+  }
+  function aboutPalette(id){
+    const button=document.getElementById(id);
+    if(!button?.matches('#library-panel .palette'))return;
+    const help=window.LoomBlockHelp.describe(id,{tensorType:button.dataset.tensorType,
+      activation:$('activation-select').value,referenceName:state.models[$('reference-select').value]?.name});
+    if(!help)return;
+    const dialog=$('block-about-dialog');if(dialog.open)return;
+    $('block-about-title').textContent='About '+help.name;
+    const content=$('block-about-content');content.replaceChildren();
+    help.paragraphs.forEach(value=>{const p=document.createElement('p');p.textContent=value;content.append(p);});
+    if(help.equation){const formula=document.createElement('div');formula.className='contract-card';formula.textContent=help.equation;content.append(formula);if(help.tex)window.LoomMath.set(formula,help.tex).catch(()=>{});}
+    const note=document.createElement('p');note.textContent='B means batch size. Reading this explanation does not add a block or start training.';content.append(note);
+    dialog.showModal();dialog.querySelector('button').focus();
   }
   function foldBlock(nid,collapsed){
     if(!doc || busy() || !node(nid))return;
@@ -1058,12 +1065,15 @@
       window.loom = {call, get document() { return clone(doc); }, get state() { return clone(state); }, fit,
         selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));},
         contextAt(x,y){
-          const target=document.elementFromPoint(x,y),wire=target?.closest('.wire[data-from],.wire-end');
+          const target=document.elementFromPoint(x,y),palette=target?.closest('#library-panel .palette');
+          if(palette){const name=palette.querySelector('b')?.textContent.trim();return {palette:{id:palette.id,name}};}
+          const wire=target?.closest('.wire[data-from],.wire-end');
           if(doc && wire){selectWire(wireFromElement(wire));return null;}
           if(!selectContextBox(target))return null;
-          return {id:selected,modelId:doc.id,canDelete:!busy() && !!node(selected) && doc.graph.nodes.length>2};
+          return {id:selected,modelId:doc.id,canDelete:!busy() && !!node(selected) && doc.graph.nodes.length>2,canResize:!busy()};
         },
         perform(command, blockId=null, modelId=null) {
+          if(command==='about-building-block'){aboutPalette(blockId);return;}
           if(command==='undo' || command==='redo'){editHistory(command==='redo');return;}
           if(command==="reset-panels"){floating.reset();return;}
           if(!doc)return;
@@ -1073,6 +1083,12 @@
             updateSelection();renderInspector();floating.open("inspector-panel");
           }
           else if(command==="delete-block"){if(doc.id===modelId && node(blockId))removeNode(blockId);}
+          else if(command==="automatic-block-size"){
+            if(busy() || doc.id!==modelId)return;
+            const target=node(blockId);if(!target)return;
+            if(!('width' in target) && !('height' in target))return;
+            delete target.width;delete target.height;persist();
+          }
           else if(command==="fit")fit();
           else if(command==="validate")$("validate").click();
           else if(command==="library")floating.open("library-panel");
@@ -1096,7 +1112,7 @@
   }
   $("dots").querySelector("circle").setAttribute("cx", 0);
   T.types.forEach(type=>{
-    const button=document.createElement('button');button.className='palette';button.dataset.tensorType=type;
+    const button=document.createElement('button');button.className='palette';button.id='add-tensor-'+type;button.dataset.tensorType=type;
     button.innerHTML='<svg class="type-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">'+window.LoomTypeIcons.svg(type)+'</svg><span><b>'+type+'</b><small>'+T.definitions[type].explanation+'</small></span><span>+</span>';
     button.onclick=()=>insertBlock(type);$('tensor-palette').append(button);
   });

@@ -13,6 +13,7 @@
   <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
   <script src="tensor-operators.js" defer></script>
+  <script src="building-block-help.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
   <script src="science.js" defer></script>
@@ -127,6 +128,7 @@
   <footer><div><span class="status-dot"></span><span id="status">Connecting to desktop…</span></div><span id="runtime">Visual Torch Workspace</span></footer>
   <div id="toast" role="status" hidden><span id="toast-message"></span><button id="toast-close" type="button" aria-label="Dismiss notification" title="Dismiss notification">×</button></div>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message"><form method="dialog"><h2 id="confirm-title">Confirm workspace action</h2><p id="confirm-message"></p><div class="dialog-actions"><button value="cancel" autofocus>Cancel</button><button id="confirm-ok" value="ok" class="primary">Confirm</button></div></form></dialog>
+  <dialog id="block-about-dialog" aria-labelledby="block-about-title"><form method="dialog"><h2 id="block-about-title">About building block</h2><div id="block-about-content" class="block-about-content"></div><div class="dialog-actions"><button value="close" autofocus>Close</button></div></form></dialog>
   <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">New architecture</h2><p>Keep the name short and descriptive.</p><input id="name-input" maxlength="100" required autofocus><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Create</button></div></form></dialog>
 </body>
 </html>
