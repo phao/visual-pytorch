@@ -550,6 +550,10 @@ class Window(QMainWindow):
         if action == "find":
             self.find()
             return True
+        if action == 'setLayoutPreferences':
+            self.config.save(layout=req['layout'])
+            self.broadcast('layoutPreferences',self.config.values['layout'])
+            return self.config.values['layout']
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
         models = self.workspace.models()

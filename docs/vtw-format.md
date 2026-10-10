@@ -99,7 +99,9 @@ maximum of the stored value and the readable typography/port minimum; small
 stored values remain valid, and extra ports can grow a box without rewriting it.
 These are presentation fields, not tensor dimensions. Changes preserve dataset,
 run evidence and forward semantics. Optional collapsed must be a boolean;
-true renders an icon-only box with usable ports. Folding is presentation-only,
+true renders a compact icon-and-summary box with usable ports. Small labels show
+input/output dimensions, Linear last-axis widths and bias state, or activation
+name; long summaries truncate with full tooltip text. Folding is presentation-only,
 retains expanded width/height preferences and participates in undo/redo.
 Optional Input/Output label contains 1–60
 nonblank characters; absent label means node ID. Names are unique separately

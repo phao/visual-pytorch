@@ -49,6 +49,8 @@ assert not next(a for a in other.actions() if a.text()=='Delete block').isEnable
 assert not next(a for a in other.actions() if a.text()=='Inspect block').isEnabled()
 actions["Building blocks panel"].trigger()
 assert called[-1]=='window.loom && window.loom.perform("library");'
+actions["Layout panel"].trigger()
+assert called[-1]=='window.loom && window.loom.perform("layout");'
 actions["Save workspace"].trigger();assert called[-1]=="save-workspace"
 actions["Open architecture in new tab"].trigger();assert called[-1]=="tab:model"
 actions["Find…"].trigger();assert called[-1]=="find"
