@@ -45,6 +45,8 @@ def capture(workspace, experiment_ref, coordinates, run_id, name, *, retry=False
         'run_id': run_id, 'name': name, 'retry': retry, 'documents': documents,
         'manifest': selected['manifest'] if selected['status'] == 'compatible' else None,
         'status': selected['status'], 'reason': selected['reason'],
+        'origin': {'workspace_id': workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0],
+                   'path': workspace.path, 'disk_revision': workspace.disk_revision},
         'constrained': workspace.constrained_mode})
 
 

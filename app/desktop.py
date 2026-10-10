@@ -23,6 +23,7 @@ from .context_menu import configure_context_menu
 from .config import Config
 from .identity import APP_NAME, DESKTOP_ID, ICON_FILE
 from .file_sync import revision, stamp
+from .job_state import job_busy
 
 from PyQt6.QtCore import QObject, QSettings, QThread, QTimer, QUrl, Qt, pyqtSignal as Signal, pyqtSlot as Slot
 from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont
@@ -310,7 +311,7 @@ class Window(QMainWindow):
             self.set_display(persist=False,**original)
 
     def safety_options(self):
-        if self.job and self.job.isRunning():
+        if job_busy(self.job):
             QMessageBox.warning(self, 'Stop training first', 'Stop the active run before changing run safety.')
             return
         dialog = QDialog(self)
@@ -330,7 +331,7 @@ class Window(QMainWindow):
 
     def poll_workspace(self):
         workspace = self.workspace
-        if not workspace or not workspace.path or (self.job and self.job.isRunning()):
+        if not workspace or not workspace.path or job_busy(self.job):
             return
         try:
             current_stamp = stamp(workspace.path)
@@ -369,7 +370,7 @@ class Window(QMainWindow):
 
     def reload_workspace(self):
         if self.workspace and self.workspace.path:
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 QMessageBox.warning(self, 'Stop training first', 'Stop the active run before reloading the workspace.')
                 return False
             return self.load_workspace(self.workspace.path)
@@ -416,6 +417,7 @@ class Window(QMainWindow):
         self.settings_store.setValue("recentFiles", json.dumps(recent[:12]))
 
     def state(self):
+        from .desktop_experiments import recovery_rows
         models = self.workspace.models() if self.workspace else {}
         app=QApplication.instance()
         system='light' if isinstance(app,QApplication) and app.styleHints().colorScheme()==Qt.ColorScheme.Light else 'dark'
@@ -429,8 +431,9 @@ class Window(QMainWindow):
             "workspace_id": self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0] if self.workspace else None,
             "dirty": bool(self.workspace and self.workspace.dirty),
             "models": models, "recent": self.recent_files(),
-            "training_id": self.job.mid if self.job and self.job.isRunning() else None,
-            "experiment_job": self.job.snapshot['run_id'] if self.job and self.job.isRunning() and hasattr(self.job, 'snapshot') else None,
+            "training_id": self.job.mid if job_busy(self.job) else None,
+            "experiment_job": self.job.snapshot['run_id'] if job_busy(self.job) and hasattr(self.job, 'snapshot') else None,
+            "experiment_recoveries": recovery_rows(self),
             "torch_python": self.torch_python,
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,
@@ -458,7 +461,7 @@ class Window(QMainWindow):
         self.setWindowTitle(f"{name}{dirty} — {APP_NAME}")
 
     def can_replace(self):
-        if self.job and self.job.isRunning():
+        if job_busy(self.job):
             QMessageBox.information(self, "Training in progress", "Stop training before changing workspaces.")
             return False
         if self.workspace and self.workspace.dirty:
@@ -537,7 +540,7 @@ class Window(QMainWindow):
     def update_history_actions(self):
         if not hasattr(self,'undo_action'):return
         history=self.workspace.history.summary() if self.workspace else {'undo':False,'redo':False}
-        active=bool(self.job and self.job.isRunning())
+        active=job_busy(self.job)
         self.undo_action.setEnabled(history['undo'] and not active)
         self.redo_action.setEnabled(history['redo'] and not active)
 
@@ -545,7 +548,7 @@ class Window(QMainWindow):
         action=req.get('action')
         if action in {'undo','redo'}:
             if not self.workspace:return False
-            if self.job and self.job.isRunning():raise ValueError('Stop training before undo/redo.')
+            if job_busy(self.job):raise ValueError('Stop training before undo/redo.')
             changed=self.workspace.history.restore(self.workspace,redo=action=='redo')
             if changed:
                 self.broadcast()
@@ -557,6 +560,8 @@ class Window(QMainWindow):
             return changed
         from .desktop_experiments import EDITS
         edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
+            raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
@@ -590,7 +595,7 @@ class Window(QMainWindow):
         if action == 'setLayoutPreferences':
             if not self.workspace:
                 raise ValueError('Open a workspace before saving its layout preferences.')
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError('Stop training before changing workspace layout preferences.')
             self.workspace.set_layout_preferences(req['layout'])
             self.broadcast()
@@ -601,7 +606,7 @@ class Window(QMainWindow):
         if action in ACTIONS: return science_dispatch(self, req)
         models = self.workspace.models()
         if action == "setConstrainedMode":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop the current run before changing its safety mode.")
             self.workspace.set_constrained_mode(req["enabled"])
             self.broadcast()
@@ -616,7 +621,7 @@ class Window(QMainWindow):
                 bridge.send("navigate", mid)
             return True
         if action == "newModel":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before creating an architecture.")
             kind = req.get("kind", "linear")
             if kind == "mlp":
@@ -632,7 +637,7 @@ class Window(QMainWindow):
             bridge.send("navigate", doc["id"])
             return doc["id"]
         if action == "deleteModel":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before deleting an architecture.")
             self.workspace.delete(req["id"])
             self.broadcast()
@@ -642,7 +647,7 @@ class Window(QMainWindow):
             doc = req["document"]
             if doc["id"] not in models:
                 raise ValueError("That architecture no longer exists.")
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before editing an architecture.")
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
@@ -650,7 +655,7 @@ class Window(QMainWindow):
         if action == "describe":
             return self.describe(req["id"])
         if action == "generateData":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before changing the dataset.")
             doc = models[req["id"]]
             data = generate_dataset(models, doc["id"], req.get("samples", 256),
@@ -665,7 +670,7 @@ class Window(QMainWindow):
         if action == "compile":
             return generate_code(models, req["id"])
         if action == 'rebindDataset':
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError('Stop training before rebinding dataset columns.')
             from .evidence import binding_for, dataset_report
             doc=models[req['id']]
@@ -694,7 +699,7 @@ class Window(QMainWindow):
                 Path(path).write_text(code, encoding="utf-8")
             return bool(path)
         if action == "train":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("A training run is already active.")
             doc = models[req["id"]]
             data = doc.get("dataset")
@@ -763,6 +768,21 @@ class Window(QMainWindow):
         self.broadcast()
 
     def closeEvent(self, event):
+        if getattr(self.job, 'awaiting_terminal', False):
+            # Do not block the GUI event loop that must admit queued evidence.
+            self.job.stop()
+            self.broadcast('externalConflict', 'Stopping experiment; close again after its terminal evidence has been retained.')
+            event.ignore()
+            return
+        from .desktop_experiments import recovery_rows
+        if any(not row['exported_to'] for row in recovery_rows(self)):
+            answer=QMessageBox.warning(self, 'Unexported experiment recovery evidence',
+                'Some terminal evidence could not be admitted. It is only retained in this session. '
+                'Export it from Experiment → Experiments & history before closing, or explicitly discard it.',
+                QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer != QMessageBox.StandardButton.Discard:
+                event.ignore(); return
         if self.job and self.job.isRunning():
             self.job.stop()
             self.job.wait()

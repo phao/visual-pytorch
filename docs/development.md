@@ -272,9 +272,25 @@ action. See [experiment GUI](experiment-gui.md) for bridge/thread/dependency con
 save/reload test passed in a private Qt+nbformat environment, with no host Torch.
 Inherited WebEngine gestures/themes and native layout checks pass. Seven pure
 boundary tests cover exact closure/head/retry/manifest and failed/excluded data.
-Richer authoring/metric/multi-run report controls, GUI notebook execution, late
-admission/cancel/recovery stress, rendered report figures and full C convergence
+Richer authoring/metric/multi-run report controls, GUI notebook execution,
+rendered report figures and full C convergence
 remain open; this is not C completion/publication. D/E remain required.
+
+The subsequent lifecycle checkpoint keeps the shell busy through queued terminal
+admission, not only QThread execution. Explicit GUI receivers discard stale
+progress and deliver a terminal once. Hash/reference mismatches cannot insert a
+record. Recovery belongs to the window and can be explicitly exported with its
+exact closure; closing cannot silently discard unexported evidence. It is not an
+automatic durable job receipt. Qt’s queued-connection docs motivated this split;
+see [experiment GUI](experiment-gui.md) for exact actions and privacy/exit limits.
+
+353 Python/57 JS plus 11 native Qt lifecycle tests pass at this checkpoint.
+Actual WebEngine worker fit/retry/report/notebook generation/save/reload and
+forced-admission failure/recovery export pass without host Torch or console
+errors. Cancellation preserves partial counters/checkpoint and excludes test
+metrics. Missing/delayed/duplicate/superseded terminal and replacement/close
+guards have explicit tests. Metadata/raw presentation bounds, richer authoring,
+report views and all remaining C gates stay open before integration/publication.
 
 ## D — Symbolic families and mixed CNN/RNN composition
 

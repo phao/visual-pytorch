@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import time
+from unittest.mock import patch
 from pathlib import Path
 from PyQt6.QtCore import QObject,QEvent,QEventLoop,QTimer,QUrl,QCoreApplication
 from PyQt6.QtWidgets import QApplication
@@ -78,6 +79,7 @@ with tempfile.TemporaryDirectory() as directory:
         assert js('document.getElementById("science-status").textContent.includes("completed")')
         js('document.getElementById("science-retry").click()')
         until('Boolean(window.loom.state.experiment_job)')
+        assert js('document.getElementById("science-stop").getClientRects().length>0'), 'Stop must remain visible in run history'
         until('!window.loom.state.experiment_job && document.getElementById("toast-message").textContent.includes("attempt 2")')
         run=h.workspace.get_spec('run',runs[0]['id']);assert len(run['attempts'])==2
         until('document.getElementById("science-object").options.length===2')
@@ -94,12 +96,39 @@ with tempfile.TemporaryDirectory() as directory:
         assert (path/'notebook/requested.ipynb').is_file()
         h.workspace.save(path/'science.vtw');loaded=Workspace.load(path/'science.vtw')
         assert len(loaded.get_spec('run',runs[0]['id'])['attempts'])==2;loaded.db.close()
+        # Force terminal SQL admission failure through the actual worker/bridge.
+        # UI recovery remains inspectable after replacing the QThread object.
+        js('document.getElementById("science-kind").value="experiment";document.getElementById("science-kind").dispatchEvent(new Event("change"));')
+        until('document.querySelectorAll(".science-candidate").length===8')
+        put=h.workspace.put_spec
+        def reject_run(kind, document, **kw):
+            if kind=='run':raise ValueError('Forced GUI admission failure')
+            return put(kind,document,**kw)
+        with patch.object(h.workspace,'put_spec',side_effect=reject_run):
+            js('document.querySelector("[data-science-run]").click()')
+            until('Boolean(window.loom.state.experiment_job)')
+            until('!window.loom.state.experiment_job && !document.getElementById("science-recovery").hidden')
+        assert len(h.workspace.list_specs('run',True))==before
+        assert len(h.experiment_recoveries)==1
+        job=h.job;assert job.wait(15000);h.job=None;job.deleteLater();h.broadcast()
+        js('document.getElementById("science-recovery-show").click()')
+        until('document.getElementById("science-document").textContent.includes("visual-pytorch-experiment-recovery")')
+        evidence=json.loads(js('document.getElementById("science-document").textContent'))
+        assert evidence['snapshot']['origin']['workspace_id']==h.state()['workspace_id']
+        assert evidence['result']['record']['attempts'][-1]['status']=='completed'
+        assert evidence['snapshot']['documents']
+        destination=path/'recovery.json'
+        with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=(str(destination),'')):
+            js('document.getElementById("science-recovery-export").click()')
+            until('document.getElementById("toast-message").textContent.includes("Recovery evidence exported")')
+        assert json.loads(destination.read_text())['result']==evidence['result']
+        assert len(h.workspace.list_specs('run',True))==before
         assert not errors,errors;assert 'torch' not in sys.modules
         if os.environ.get('VTW_SMOKE_SCREENSHOT'):
             js('document.getElementById("science-kind").value="run";document.getElementById("science-kind").dispatchEvent(new Event("change"));')
             until('!document.getElementById("science-run").hidden')
             loop=QEventLoop();QTimer.singleShot(300,loop.quit);loop.exec();assert view.grab().save(os.environ['VTW_SMOKE_SCREENSHOT'])
-        print(json.dumps({'experiment_browser':'PASS','exact_revisions':'PASS','actual_worker_fit_retry':'PASS','independent_run_history':'PASS','saved_report_no_training':'PASS','notebook_generation':'PASS','save_reload':'PASS','host_torch':False,'console_errors':errors}))
+        print(json.dumps({'experiment_browser':'PASS','exact_revisions':'PASS','actual_worker_fit_retry':'PASS','independent_run_history':'PASS','saved_report_no_training':'PASS','notebook_generation':'PASS','save_reload':'PASS','failed_admission_recovery_export':'PASS','host_torch':False,'console_errors':errors}))
     finally:
         if h.job and h.job.isRunning():h.job.stop();h.job.wait(15000)
         if h.job:h.job.wait(15000)

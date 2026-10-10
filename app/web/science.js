@@ -68,6 +68,15 @@
     $('science-freeze').disabled=active||!api.model();$('science-stop').hidden=!active;
     $('science-previous').disabled=offset===0;$('science-next').disabled=!page||page.next_offset===null;
     $('science-candidates').querySelectorAll('[data-science-run]').forEach((button,i)=>button.disabled=active||page.candidates[i].status!=='compatible');
+    $('science-recovery-export').disabled=active;
+  }
+  async function recoveries(){
+    const result=await request('scienceRecoveries'),select=$('science-recovery-object'),previous=select.value;
+    select.replaceChildren();
+    result.forEach(row=>{const option=text('option',row.run_id+' · '+row.error+(row.exported_to?' · exported':''));option.value=row.id;select.append(option);});
+    if([...select.options].some(option=>option.value===previous))select.value=previous;
+    $('science-recovery').hidden=result.length===0;
+    controls();
   }
   function act(fn){Promise.resolve().then(fn).catch(error=>{if(!error.vpwNotified)api.toast(error.message,true);});}
   window.LoomScience={
@@ -84,13 +93,16 @@
       $('science-retry').onclick=()=>act(async()=>{const run=current.document;await request('scienceTrain',{reference:run.selection.experiment,coordinates:run.selection.coordinates,run_id:run.id,name:run.name,retry:true});controls();});
       $('science-make-report').onclick=()=>act(async()=>{const result=await request('scienceResultReport',{runs:[current.reference],question:$('science-report-question').value});$('science-kind').value='report';await refresh(result);});
       $('science-generate').onclick=()=>act(async()=>{const result=await request('scienceGenerateNotebook',{reference:current.reference});if(result)api.toast('Notebook generated, not executed: '+result.path);});
+      $('science-recovery-show').onclick=()=>act(async()=>{const result=await request('scienceRecoveryShow',{id:$('science-recovery-object').value});$('science-document').textContent=JSON.stringify(result,null,2);$('science-details').open=true;});
+      $('science-recovery-export').onclick=()=>act(async()=>{const result=await request('scienceExportRecovery',{id:$('science-recovery-object').value});if(result)api.toast('Recovery evidence exported: '+result.path);await recoveries();});
+      root.querySelector('[data-panel=science]').addEventListener('click',()=>act(recoveries));
     },
     stateChanged(){if(!api)return;if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;offset=0;generation++;$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();},
     event(event){if(!api)return;
       if(event.kind==='scienceChanged' && !$('science-panel').hidden)act(refresh);
       if(event.kind==='scienceProgress')$('science-status').textContent='Active run '+event.payload.run_id+' · '+JSON.stringify(event.payload.point);
       if(event.kind==='scienceComplete'){const attempt=event.payload.record.attempts.at(-1);api.toast('Experiment attempt '+attempt.number+': '+attempt.status+'. Save workspace to retain it on disk.');}
-      if(event.kind==='scienceRecovery'){$('science-document').textContent=JSON.stringify(event.payload,null,2);$('science-details').open=true;api.toast('Result admission failed. Recovery evidence is shown; do not discard it.',true);}
+      if(event.kind==='scienceRecovery'){$('science-document').textContent=JSON.stringify(event.payload,null,2);$('science-details').open=true;act(recoveries);api.toast('Result admission failed. Export recovery evidence before closing the app.',true);}
     }
   };
 })();

@@ -2,11 +2,14 @@
 import json
 import threading
 import uuid
+import copy
+import os
 from pathlib import Path
-from PyQt6.QtCore import QThread, pyqtSignal as Signal
+from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal as Signal, pyqtSlot as Slot
 from PyQt6.QtWidgets import QFileDialog
 from .core import Workspace
 from . import experiment_ui
+from .job_state import job_busy
 
 
 class ExperimentJob(QThread):
@@ -20,6 +23,8 @@ class ExperimentJob(QThread):
         self.memory_limit_percent = memory_limit_percent
         self.cancel = threading.Event(); self.mid = None
         self.recoverable_result = None
+        self.awaiting_terminal = True
+        self.terminal_delivered = False
 
     def stop(self): self.cancel.set()
 
@@ -43,15 +48,85 @@ class ExperimentJob(QThread):
             if workspace: workspace.db.close()
 
 
-READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport'}
+class Delivery(QObject):
+    """Explicit GUI-thread receiver; QThread completion is not SQL admission."""
+    def __init__(self, window, workspace, job):
+        super().__init__(window)
+        self.window, self.workspace, self.job = window, workspace, job
+
+    @Slot(str)
+    def point(self, payload):
+        if (self.window.job is self.job and self.window.workspace is self.workspace
+                and not self.job.terminal_delivered):
+            self.window.broadcast('scienceProgress', json.loads(payload))
+
+    @Slot(str)
+    def completed(self, payload):
+        complete(self.window, self.workspace, self.job, payload)
+
+    @Slot(str)
+    def failed(self, error):
+        if self.job.terminal_delivered: return
+        try:
+            retain_recovery(self.window, self.job, None, 'Experiment execution: ' + error)
+        finally:
+            self.job.terminal_delivered = True; self.job.awaiting_terminal = False
+            self.window.broadcast()
+
+    @Slot()
+    def finished(self):
+        if not self.job.terminal_delivered:
+            self.failed('Thread finished without a terminal record.')
+        self.window.broadcast()
+        self.deleteLater()
+
+
+def recovery_rows(window):
+    return [{'id': sid, 'run_id': value['snapshot']['run_id'], 'error': value['error'],
+             'exported_to': value.get('exported_to')}
+            for sid, value in getattr(window, 'experiment_recoveries', {}).items()]
+
+
+def retain_recovery(window, job, result, error):
+    """Owned by the window, not a QThread that the next run deletes."""
+    if not hasattr(window, 'experiment_recoveries'): window.experiment_recoveries = {}
+    sid = uuid.uuid4().hex
+    value = {'version': 1, 'format': 'visual-pytorch-experiment-recovery',
+             'id': sid, 'snapshot': copy.deepcopy(job.snapshot),
+             'result': copy.deepcopy(result), 'error': str(error), 'exported_to': None}
+    window.experiment_recoveries[sid] = value
+    window.broadcast('scienceRecovery', value)
+    return value
+
+
+READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceRecoveries', 'scienceRecoveryShow'}
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport'}
-ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook'}
+ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery'}
 
 
 def dispatch(window, req):
     action = req['action']; workspace = window.workspace
-    if action not in READS and window.job and window.job.isRunning():
+    if action not in READS and job_busy(window.job):
         raise ValueError('Stop the current run before changing scientific objects or starting another action.')
+    if action == 'scienceRecoveries': return recovery_rows(window)
+    if action in {'scienceRecoveryShow', 'scienceExportRecovery'}:
+        value = getattr(window, 'experiment_recoveries', {}).get(req.get('id'))
+        if value is None: raise ValueError('Unknown recovery evidence ID.')
+        if action == 'scienceRecoveryShow': return copy.deepcopy(value)
+        path = req.get('output')
+        if not path:
+            path, _ = QFileDialog.getSaveFileName(window, 'Export experiment recovery evidence',
+                'experiment-recovery.json', 'JSON evidence (*.json)')
+        if not path: return None
+        if job_busy(window.job): raise ValueError('Stop the current run before exporting recovery evidence.')
+        # Explicit local export, no overwrite; never a completed/running receipt.
+        payload = json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
+        with Path(path).open('x', encoding='utf-8') as stream:
+            stream.write(payload); stream.flush(); os.fsync(stream.fileno())
+        value['exported_to'] = str(Path(path).resolve())
+        window.broadcast()
+        return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
     if action == 'scienceShow':
         from .experiment_objects import reference
@@ -75,7 +150,7 @@ def dispatch(window, req):
     elif action == 'scienceImport':
         path, _ = QFileDialog.getOpenFileName(window, 'Import scientific specification', '', 'JSON specification (*.json)')
         if not path: return None
-        if window.workspace is not workspace or (window.job and window.job.isRunning()):
+        if window.workspace is not workspace or job_busy(window.job):
             raise ValueError('Workspace changed while selecting a file. Try again.')
         from .revisions import _parse
         result = workspace.put_spec(req['kind'], _parse(Path(path).read_text(encoding='utf-8')))
@@ -84,7 +159,7 @@ def dispatch(window, req):
         if not folder:
             folder, _ = QFileDialog.getSaveFileName(window, 'New notebook bundle directory', 'report-bundle')
         if not folder: return None
-        if window.workspace is not workspace or (window.job and window.job.isRunning()):
+        if window.workspace is not workspace or job_busy(window.job):
             raise ValueError('Workspace changed while selecting a destination. Try again.')
         from .notebooks import create_bundle
         return create_bundle(workspace, req['reference'], folder,
@@ -96,10 +171,11 @@ def dispatch(window, req):
         if window.job: window.job.deleteLater()
         job = ExperimentJob(snapshot, window, window.torch_python or '', window.state()['memory_limit_percent'])
         window.job = job
-        job.point.connect(lambda text:window.broadcast('scienceProgress', json.loads(text)))
-        job.completed.connect(lambda text: complete(window, workspace, job, text))
-        job.failed.connect(lambda error:window.broadcast('trainingError', 'Experiment execution: ' + error))
-        job.finished.connect(lambda:window.broadcast())
+        job.delivery = Delivery(window, workspace, job)
+        job.point.connect(job.delivery.point, Qt.ConnectionType.QueuedConnection)
+        job.completed.connect(job.delivery.completed, Qt.ConnectionType.QueuedConnection)
+        job.failed.connect(job.delivery.failed, Qt.ConnectionType.QueuedConnection)
+        job.finished.connect(job.delivery.finished, Qt.ConnectionType.QueuedConnection)
         job.start(); window.broadcast()
         return {'run_id': snapshot['run_id'], 'experiment': snapshot['experiment']}
     else: raise ValueError('Unknown scientific command.')
@@ -108,13 +184,25 @@ def dispatch(window, req):
 
 
 def complete(window, captured_workspace, job, payload):
-    result = json.loads(payload)
+    if job.terminal_delivered: return
+    result = None
     try:
+        result = json.loads(payload)
         if window.workspace is not captured_workspace:
             raise ValueError('Workspace changed; result remains recoverable on the execution job.')
+        if window.job is not job:
+            raise ValueError('Execution job changed; late result requires explicit recovery.')
+        from .revisions import frozen_document
+        doc = frozen_document('run', result['record'])
+        if result['reference'] != {k: v for k, v in
+                (('kind', 'run'), ('id', doc['id']), ('revision', doc['revision']))}:
+            raise ValueError('Run evidence identity changed before admission.')
         ref = captured_workspace.put_spec('run', result['record'])
         if ref != result['reference']: raise ValueError('Run evidence identity changed on admission.')
         window.broadcast('scienceComplete', result)
         window.broadcast(); window.broadcast('scienceChanged')
     except Exception as error:
-        window.broadcast('scienceRecovery', {'error': str(error), 'result': result})
+        retain_recovery(window, job, result, error)
+    finally:
+        job.terminal_delivered = True; job.awaiting_terminal = False
+        window.broadcast()

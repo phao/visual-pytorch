@@ -73,8 +73,47 @@ ExperimentJob builds its own Workspace on the Qt thread and runs the existing
 validated numerical executor; it never mutates the GUI SQLite connection there.
 Terminal records are admitted on the GUI thread. Progress is run_id/point;
 scienceComplete is exact reference/record; scienceChanged refreshes browsing.
-scienceRecovery exposes the full result plus admission error; the job also retains
-it in memory. This is not durable crash recovery or a detached job receipt.
+scienceRecovery exposes the full result plus admission error. Window-owned
+recovery retains it even after deleting a completed job. This is not durable
+crash recovery or a detached job receipt.
+
+### Terminal delivery and recovery
+
+Execution stays busy until both the thread and queued terminal admission finish.
+An explicit GUI-thread QObject receiver handles progress, terminal and finish
+slots; `isRunning() == false` alone does not allow replacement, edits or another
+fit. Superseded progress is ignored. A terminal is delivered at most once and
+its reference/hash is checked before SQL insertion. Changed workspace/job or
+failed admission retains the complete captured closure and result in a
+window-owned recovery collection, never in the new drawing.
+
+Read `scienceRecoveries` for summaries and `scienceRecoveryShow {id}` for a copied
+envelope. Export explicitly using `scienceExportRecovery {id}` (optional `output`
+for agents/tests). The GUI has Show recovery and Export controls. Export refuses
+existing paths and never trains, admits a run or saves a workspace. Version-1 JSON
+has format `visual-pytorch-experiment-recovery`, ID, snapshot, result, error and
+exported_to. Snapshot includes origin workspace ID/path/disk revision, exact
+dependency documents, selection, run ID/name, prior history and split manifest.
+Result is the existing record/reference, or null on pre-terminal failure. Origin
+is provenance, not permission to overwrite a file. The exported file records its
+pre-export state; the session marks exported_to only after a successful flushed
+export. A failed write may leave a partial new file; the evidence remains in the
+session and can be exported to a different new path. No execution receipt or
+numerical result is fabricated from a thread error.
+
+Captured observations/parameters may be sensitive. To recover, re-inspect the
+intended workspace and explicitly admit dependency-first documents followed by
+the retained record through validated CLI edits, without repeating the fit. Do
+not pass the outer envelope directly to put-spec. No automatic cross-workspace
+recovery import occurs. Memory survives workspace changes, not process death.
+Close during pending delivery requests stop and leaves the event loop alive;
+close again after evidence arrives. Unexported recovery requires explicit discard
+confirmation before exit. Stop stays accessible when browsing run history.
+
+Qt states that queued slots run when the receiver event loop resumes, not when
+the worker merely stops. This motivates the separate admission busy condition:
+[Threads and QObjects](https://doc.qt.io/qt-6/threads-qobject.html),
+[QThread](https://doc.qt.io/qt-6/qthread.html).
 
 ## Verification and remaining work
 
@@ -87,9 +126,19 @@ creates a saved-result recipe, generates without training and saves/reloads v6.
 It checks zero console errors and no GUI-host Torch import. Notebook generation
 uses a private Qt+nbformat environment; user environments/config/files are untouched.
 
-349 Python/57 JS tests passed, plus inherited WebEngine gestures/themes and native
+353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
 layout checks. New rendered CSS regression checks 240 block/palette pairs.
 This is not full C completion. Rich authoring/metric/predictor views, multi-run
-report selection, GUI notebook execution, cancellation/late-admission/workspace
-recovery stress tests, bounded metadata/raw-data presentation, rendered report
+report selection, GUI notebook execution, bounded metadata/raw-data presentation, rendered report
 figure review and requirement-by-requirement C convergence remain. D/E stay open.
+
+Eleven native Qt lifecycle tests include an actual thread finished while GUI
+delivery is deliberately withheld, central edit/run/replace/close guards, exact
+head identity, duplicate terminal, superseded progress, invalid-reference
+atomicity, failed admission, independent recovery/export/refusal to overwrite,
+missing terminal, exit warning and cooperative real-worker cancellation. The
+cancelled checkpoint has actual partial counters and no test-population metrics;
+the host imports no Torch. WebEngine also forces admission failure after a real
+fit, destroys the completed QThread, reads/exports retained evidence and verifies
+no new run was admitted. These are local lifecycle gates, not crash recovery,
+detached execution, or exhaustive reentrancy/model checking.
