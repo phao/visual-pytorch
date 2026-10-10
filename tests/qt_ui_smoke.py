@@ -521,7 +521,7 @@ with tempfile.TemporaryDirectory() as td:
     import subprocess,sys
     trained=h.workspace.models()[admitted['id']]
     request=json.dumps({'models':h.workspace.models(),'id':admitted['id']})
-    source=('import json,sys;from app.core import train_model;'
+    source=('import json,sys,torch;torch.set_num_threads(1);from app.core import train_model;'
             'r=json.load(sys.stdin);print(json.dumps(train_model(r["models"],r["id"])))')
     torch_python=find_torch_python()
     assert torch_python,'The trained UI fixture needs a PyTorch interpreter.'
