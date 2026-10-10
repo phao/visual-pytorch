@@ -253,7 +253,14 @@ Dataset or training changes clear that graph's latest result. Layout, resizing,
 folding and boundary display-label edits preserve computational identity.
 Results with identity record version-1 SHA-256 digests of the reachable graph
 closure, dataset, binding and training configuration. Checkpoint restore/export
-requires matching identity and strict state-dict loading. Historical runs are
+requires matching identity, checkpoint_version integer 1, the supported identity
+preprocessing adapter/binding, exact stable parameter IDs and state-dict keys,
+exact tensor shapes and finite float32-representable numeric weights (booleans
+and string coercion are rejected). Validation does not allocate a Torch model.
+Native and exported parameter constructors explicitly select CPU float32 instead
+of inheriting a process-wide default dtype. Strict state-dict loading follows
+admission. This is an inference checkpoint, not an optimizer/resume checkpoint
+or authenticated proof of how a manually supplied result was obtained. Historical runs are
 not rewritten. Regular source exports instantiate fresh weights; export-trained
 embeds the matched trained state for evaluation-mode inference. A history browser
 and notebook generation are not implemented.
@@ -264,6 +271,19 @@ new ports. Replacing data creates a binding to the current valid contract;
 CLI rebind-dataset explicitly declares that existing columns now mean the current
 port layout. This does not reorder or transform those columns. Old datasets
 without bindings are bound once to their migrated legacy contract when valid.
+Rebinding requires valid current x/y widths/values; it clears the current result
+but does not alter historical run evidence. The Qt Experiment panel shows both
+recorded and current bindings, blocks incompatible/unbound data before launching,
+and offers a confirmed, undoable Use current port order action. Cancel or a draft
+change during the modal confirmation does not rebind.
+
+Checkpoint display status is current, unverified (legacy without identity), stale,
+invalid or none. Current means snapshot-compatible, not an independently
+authenticated scientific claim. Legacy metrics are labelled unverified. Stale or
+invalid results do not supply current displayed metrics/loss plots. Source export
+is explicitly labelled a fresh-weight template; trained inference uses the
+validated trained export API/CLI. Worker completions are checked against their
+captured snapshot before entering current/history storage.
 
 Future notebook generation may create .ipynb directly or via an agent prompt.
 No notebook schema/command/protocol is claimed or reserved in this version.

@@ -173,7 +173,7 @@
     renderExperiment();
     renderResults();
     const running = busy();
-    $("train").disabled = running || !description?.valid || !description?.contract?.parameters || !doc.dataset || description?.run_safety?.allowed === false;
+    $("train").disabled = running || !description?.valid || !description?.contract?.parameters || !doc.dataset || description?.run_safety?.allowed === false || description?.dataset_admission?.allowed === false;
     $("stop").hidden = !running;
     $("add-linear").disabled = running;
     $("add-model").disabled = running;
@@ -588,11 +588,22 @@
     $("epochs").value = doc.training?.epochs ?? 400;
     $("learning-rate").value = doc.training?.lr ?? .03;
     $("seed").value = doc.training?.seed ?? 7;
-    $("data-status").textContent = doc.dataset ? doc.dataset.x.length + " rows" : "No dataset yet";
+    $("data-status").textContent = Array.isArray(doc.dataset?.x) ? doc.dataset.x.length + " rows" : "No dataset yet";
     const contract = description?.contract;
-    if (contract) $("data-help").textContent = "CSV inputs: " + contract.input_groups.map(g => g.name + " [" + g.features + "]").join(" + ") + ". Targets: " + contract.outputs + " packed features. " + (doc.dataset?.truth?.equation || (contract.affine ? "Auto data uses a known affine map." : "Auto data uses a known nonlinear Tanh teacher."));
-    $("training-state").textContent = state.training_id === doc.id ? "Training…" : busy() ? "Training another model" : doc.result ? (doc.result.stopped ? "Stopped" : "Complete") : "Ready when data is loaded";
-    $("loss-value").textContent = doc.result ? doc.result.mse.toExponential(2) : "—";
+    if (contract) $("data-help").textContent = "CSV inputs: " + contract.input_groups.map(g => g.name + " [" + g.features + "]").join(" + ") + ". Targets: " + contract.outputs + " packed features. " + (doc.dataset?.truth?.equation || (contract.affine ? "Auto data uses a known affine map." : "Auto data uses a known nonlinear Tanh teacher."))+" Target family does not guarantee this architecture can represent the teacher.";
+    const admission=description?.dataset_admission, evidence=description?.checkpoint_status;
+    const verified=evidence?.status==="current", legacy=evidence?.status==="unverified";
+    $("binding-status").textContent = ({compatible:"Bound",incompatible:"Needs rebind",unbound:"Unbound",invalid:"Invalid data",none:"No dataset"})[admission?.status] || "Checking…";
+    $("binding-notice").textContent = admission?.reason || "Checking declared columns…";
+    const groupList=value=>Array.isArray(value)?value.filter(g=>g && typeof g==="object"):[];
+    const columns=(binding)=>[...groupList(binding?.inputs).map(g=>"x["+g.start+":"+g.stop+"] → "+g.id+" "+shapeText(Array.isArray(g.shape)?g.shape:[])),
+      ...groupList(binding?.outputs).map(g=>"y["+g.start+":"+g.stop+"] → "+g.id+" "+shapeText(Array.isArray(g.shape)?g.shape:[]))].join("\n");
+    $("binding-columns").textContent = admission ? "Recorded columns\n"+(columns(admission.binding)||"Not recorded")+"\n\nCurrent declared columns\n"+columns(admission.declared_binding) : "";
+    $("rebind-data").hidden = !admission?.can_rebind;
+    $("rebind-data").disabled = busy();
+    if(doc.dataset && admission?.allowed===false)$("dataset-bindings").open=true;
+    $("training-state").textContent = state.training_id === doc.id ? "Training…" : busy() ? "Training another model" : verified ? (doc.result.stopped ? "Stopped · current checkpoint" : "Complete · current checkpoint") : legacy ? "Unverified legacy result" : doc.result ? "Checkpoint not current" : admission?.allowed===false && doc.dataset ? "Dataset blocked" : "Ready when data is loaded";
+    $("loss-value").textContent = (verified || legacy) && Number.isFinite(doc.result?.mse) ? (legacy?"Unverified · ":"")+doc.result.mse.toExponential(2) : "—";
     for (const id of ["epochs", "learning-rate", "seed", "sample-count", "noise"]) $(id).disabled = busy();
     const safety = description?.run_safety;
     const blocked = safety?.allowed === false;
@@ -604,7 +615,7 @@
       (state.constrained_mode === false ? "RAM admission checks are disabled. Stop a run before changing this mode." : "Large specifications remain editable and exportable. Only runs are restricted.");
     const memory=safety?.memory, bytes=n=>n==null ? "unknown" : (n/1024**2).toLocaleString(undefined,{maximumFractionDigits:1})+" MiB";
     $("safety-rules").textContent = memory ? "Estimated run: " + bytes(memory.estimated_bytes) + "; budget: " + bytes(memory.budget_bytes) + " (" + memory.limit_percent + "% of " + bytes(memory.available_bytes) + " available RAM). Whole network, references, activations, optimizer, data and result copies count. Options → Run safety changes the percentage for all workspaces. Revalidate to refresh. Checked again before allocation; this estimate is not a hard memory limit." : "";
-    plot(state.training_id === doc.id ? liveHistories[doc.id] : doc.result?.history);
+    plot(state.training_id === doc.id ? liveHistories[doc.id] : verified || legacy ? doc.result?.history : null);
   }
   function showPanel(name) {
     floating.open("experiment-dock");
@@ -615,28 +626,35 @@
   function renderResults() {
     const r = doc?.result;
     if (!r) { $("results").textContent = "Train a model to inspect its learned layer weights and predictions."; return; }
-    const vector = values => "[ " + values.slice(0,8).map(v=>v.toFixed(5)).join(", ") + (values.length>8 ? ", … ("+values.length+" values)" : "") + " ]";
-    const format = values => Array.isArray(values[0]) ?
+    const evidence=description?.checkpoint_status;
+    if(evidence && !["current","unverified"].includes(evidence.status)){
+      $("results").textContent="Checkpoint not current. "+evidence.reason;return;
+    }
+    const vector = values => "[ " + values.slice(0,8).map(v=>Number.isFinite(v)?v.toFixed(5):String(v)).join(", ") + (values.length>8 ? ", … ("+values.length+" values)" : "") + " ]";
+    const format = values => !Array.isArray(values) ? "Not recorded" : Array.isArray(values[0]) ?
       values.slice(0,6).map(vector).join("\n") + (values.length>6 ? "\n… ("+values.length+" rows; full weights retained in workspace)" : "") : vector(values);
     const truth = doc.dataset?.truth;
-    let html = '<div class="results-summary"><b>Held-out MSE ' + r.mse.toExponential(5) + '</b><span>' + r.train_rows + ' train / ' + r.test_rows + ' held-out · ' + esc(r.engine) + '</span></div>';
+    let html = '<p class="tiny">'+esc(evidence?.reason || "Checkpoint status is being checked.")+'</p>';
+    html += '<div class="results-summary"><b>'+(evidence?.status==="unverified"?'Unverified legacy · ':'')+'Held-out MSE ' + (Number.isFinite(r.mse)?r.mse.toExponential(5):"not recorded") + '</b><span>' + (r.train_rows ?? '?') + ' train / ' + (r.test_rows ?? '?') + ' held-out · ' + esc(r.engine || 'unknown engine') + '</span></div>';
+    if(r.completed_updates!==undefined)html+='<p class="tiny">'+esc(r.completed_updates)+' / '+esc(r.requested_epochs)+' updates · '+esc(r.stop_reason)+' · '+esc(r.metric_protocol?.timing || 'unknown timing')+' / '+esc(r.metric_protocol?.mode || 'unknown mode')+'</p>';
+    if(r.affine_analysis?.status && r.affine_analysis.status!=="available")html+='<p class="tiny">Optional affine analysis: '+esc(r.affine_analysis.status)+' · '+esc(r.affine_analysis.reason || '')+'</p>';
     if (r.A && r.b) {
       html += '<div class="results-grid"><section><h3>Effective A · whole affine model</h3><pre>' + esc(format(r.A)) + '</pre>';
-      if (r.A_error !== undefined) html += '<p>Max A error: ' + r.A_error.toExponential(3) + '</p>';
+      if (Number.isFinite(r.A_error)) html += '<p>Max A error: ' + r.A_error.toExponential(3) + '</p>';
       html += '</section><section><h3>Effective b</h3><pre>' + esc(format(r.b)) + '</pre>';
-      if (r.b_error !== undefined) html += '<p>Max b error: ' + r.b_error.toExponential(3) + '</p>';
+      if (Number.isFinite(r.b_error)) html += '<p>Max b error: ' + r.b_error.toExponential(3) + '</p>';
       html += '</section></div>';
-    } else html += '<p>'+ (r.kind==="affine"?'This is affine, but its branching or tensor geometry is not represented by the serial-vector A,b report.':'This model is nonlinear: no single matrix A,b describes the full forward map.') +' Inspect the learned layers below.</p>';
+    } else html += '<p>'+ (r.kind==="affine"?'This is affine, but its branching or tensor geometry is not represented by the serial-vector A,b report.':r.kind==="nonlinear"?'This model is nonlinear: no single matrix A,b describes the full forward map.':'Optional model analysis was not recorded.') +' Inspect the learned layers below.</p>';
     if (truth?.kind === "nonlinear") html += '<p>Known target: ' + esc(truth.equation) + '. Layer weights need not match the teacher; compare predictions and held-out error.</p>';
     html += '<div class="learned-layers">';
-    for (const layer of r.layers || []) {
-      const weight = r.weights[layer.path + ".weight"], bias = r.weights[layer.path + ".bias"];
+    for (const layer of Array.isArray(r.layers)?r.layers:[]) {
+      const weight = r.weights?.[layer.path + ".weight"], bias = r.weights?.[layer.path + ".bias"];
       if (!weight) { html += '<div class="learned-activation">' + esc(layer.path) + ' · ' + esc(layer.type) + ' · shape preserved · 0 parameters</div>'; continue; }
       html += '<details><summary>' + esc(layer.architecture) + ' / ' + esc(layer.node_id) + ' · Linear ' + layer.input + ' → ' + layer.output + '</summary><p>' + esc(layer.path) + '.weight · [' + layer.output + ', ' + layer.input + ']</p><pre>' + esc(format(weight)) + '</pre><p>Bias</p><pre>' + (bias ? esc(format(bias)) : 'Disabled') + '</pre></details>';
     }
     html += '</div><h3>Held-out predictions by named output</h3><table class="result-table"><tr><th>Port</th><th>Target</th><th>Prediction</th></tr>';
-    const groups = r.output_groups || [{name: "output", start: 0, stop: r.preview[0]?.target.length || 1}];
-    for (const row of r.preview) for (const g of groups) html += '<tr><td>' + esc(g.name) + '</td><td>' + esc(format(G.outputValues(row.target,g,r.output_shape,r.output_mode))) + '</td><td>' + esc(format(G.outputValues(row.prediction,g,r.output_shape,r.output_mode))) + '</td></tr>';
+    const groups = r.output_groups || [{name: "output", start: 0, stop: r.preview?.[0]?.target.length || 1}];
+    for (const row of r.preview || []) for (const g of groups) html += '<tr><td>' + esc(g.name) + '</td><td>' + esc(format(G.outputValues(row.target,g,r.output_shape,r.output_mode))) + '</td><td>' + esc(format(G.outputValues(row.prediction,g,r.output_shape,r.output_mode))) + '</td></tr>';
     html += '</table>';
     $("results").innerHTML = html;
   }
@@ -967,6 +985,7 @@
     };
   }
   $("export-code").onclick = async () => { await syncQueue; if (await safe("exportCode", {id: doc.id})) toast("PyTorch module exported."); };
+  $("rebind-data").onclick = async () => { await syncQueue; if (busy()) return; if(await safe("rebindDataset",{id:doc.id}))toast("Dataset columns rebound to the reviewed port order."); };
   document.querySelectorAll("[data-panel]").forEach(button => button.onclick = () => showPanel(button.dataset.panel));
   window.addEventListener("hashchange", route);
 

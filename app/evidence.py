@@ -46,7 +46,11 @@ def binding_for(contract):
 def check_binding(doc, contract):
     from .core import GraphError
     binding=doc.get('dataset_binding')
-    if binding is not None and binding!=binding_for(contract):
+    try:
+        matches=binding is None or digest(binding)==digest(binding_for(contract))
+    except (TypeError,ValueError,RecursionError):
+        matches=False
+    if not matches:
         raise GraphError('Dataset binding is incompatible with the declared input/output port IDs or shapes. '
                          'Keep the original ports, replace the dataset, or explicitly rebind its columns.')
 
@@ -77,3 +81,106 @@ def normalize_models(models, mid):
     if root.get('dataset') is not None and root.get('dataset_binding') is None:
         root['dataset_binding']=binding_for(validate_model(result,mid))
     return result
+
+
+def parameter_schema(models, mid, prefix='', stable_prefix=None):
+    """Pure expected state-dict shapes/IDs, without allocating a Torch model."""
+    from .core import operation_nodes, validate_model
+    contract=validate_model(models,mid)
+    stable_prefix=mid if stable_prefix is None else stable_prefix
+    schema={}
+    for i,node in enumerate(operation_nodes(models[mid])):
+        path=prefix+f'layer_{i}'
+        stable=stable_prefix+'/'+node['id']
+        if node['type']=='Module':
+            schema.update(parameter_schema(models,node['ref'],path+'.',stable))
+        elif node['type']=='Linear':
+            shape=contract['shapes'][node['id']]
+            schema[path+'.weight']={'shape':[shape['output'],shape['input']], 'id':stable+'/weight'}
+            if node.get('bias',True):
+                schema[path+'.bias']={'shape':[shape['output']], 'id':stable+'/bias'}
+    return schema
+
+
+def check_checkpoint(models, mid, result):
+    """Validate a v1 float32 inference checkpoint against a normalized snapshot.
+
+    This proves compatibility/representation, not that a caller's manually
+    constructed checkpoint originated in a trusted training process.
+    """
+    import math
+    from .core import GraphError, validate_model
+    try:
+        matches=isinstance(result,dict) and digest(result.get('identity'))==digest(identity(models,mid))
+    except (TypeError,ValueError,RecursionError):
+        matches=False
+    if not matches:
+        raise GraphError('Checkpoint identity does not match this architecture, data, binding and training snapshot.')
+    if type(result.get('checkpoint_version')) is not int or result['checkpoint_version']!=1:
+        raise GraphError('Checkpoint version must be integer 1.')
+    contract=validate_model(models,mid)
+    check_binding(models[mid],contract)
+    preprocessing={'kind':'identity','input_adapter':'declared-row-major',
+                   'binding':models[mid].get('dataset_binding')}
+    try:
+        correct_preprocessing=digest(result.get('preprocessing'))==digest(preprocessing)
+    except (TypeError,ValueError,RecursionError):
+        correct_preprocessing=False
+    if not correct_preprocessing:
+        raise GraphError('Checkpoint preprocessing does not match the supported identity adapter and dataset binding.')
+    schema=parameter_schema(models,mid)
+    if result.get('parameter_ids')!={key:spec['id'] for key,spec in schema.items()}:
+        raise GraphError('Checkpoint stable parameter IDs do not match this architecture.')
+    weights=result.get('weights')
+    if not isinstance(weights,dict) or set(weights)!=set(schema):
+        raise GraphError('Checkpoint weights must contain exactly the declared parameter keys.')
+
+    def tensor(value, shape, path):
+        if shape:
+            if not isinstance(value,list) or len(value)!=shape[0]:
+                raise GraphError('Checkpoint tensor shape is incorrect: '+path)
+            for item in value:tensor(item,shape[1:],path)
+        elif (type(value) not in (int,float) or abs(value)>3.4028234663852886e38
+              or not math.isfinite(value)):
+            raise GraphError('Checkpoint weights must be finite float32-representable numbers: '+path)
+    for path,spec in schema.items():tensor(weights[path],spec['shape'],path)
+    return schema
+
+
+def dataset_report(doc, contract):
+    """Read-only admission status; no guessing/repacking of existing columns."""
+    from .core import GraphError, validate_dataset
+    expected=binding_for(contract)
+    report={'allowed':False,'binding':doc.get('dataset_binding'),
+            'declared_binding':expected,'can_rebind':False}
+    if doc.get('dataset') is None:
+        return {**report,'status':'none','reason':'Generate synthetic data or import x/y data first.'}
+    try:
+        validate_dataset(doc['dataset'],contract['inputs'],contract['outputs'])
+    except GraphError as error:
+        return {**report,'status':'invalid','reason':str(error)}
+    if doc.get('dataset_binding') is None:
+        return {**report,'status':'unbound','can_rebind':True,
+                'reason':'Dataset column meaning is not recorded. Explicitly bind columns before training.'}
+    try:
+        check_binding(doc,contract)
+    except GraphError as error:
+        return {**report,'status':'incompatible','can_rebind':True,'reason':str(error)}
+    return {**report,'allowed':True,'status':'compatible',
+            'reason':'Dataset columns match the declared stable port IDs, shapes and packing order.'}
+
+
+def checkpoint_report(models, mid):
+    """Distinguish compatible current evidence from legacy/stale/invalid results."""
+    from .core import GraphError
+    result=models[mid].get('result')
+    if result is None:return {'status':'none','reason':'No current trained checkpoint.'}
+    if not isinstance(result,dict):return {'status':'invalid','reason':'Result must be an object.'}
+    if not result.get('identity'):
+        return {'status':'unverified','reason':'Legacy result has no snapshot identity; retrain to obtain a verified current checkpoint.'}
+    try:
+        normalized=normalize_models(models,mid)
+        check_checkpoint(normalized,mid,result)
+    except GraphError as error:
+        return {'status':'stale' if str(error).startswith('Checkpoint identity does not match') else 'invalid','reason':str(error)}
+    return {'status':'current','reason':'Checkpoint matches this architecture, dataset, binding and training snapshot.'}

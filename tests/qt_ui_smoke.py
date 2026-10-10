@@ -20,7 +20,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from app.config import Config
 from app.core import Workspace, default_model
-from app.desktop import Bridge, Window
+from app.desktop import Bridge, Window, find_torch_python
 
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
@@ -490,6 +490,48 @@ with tempfile.TemporaryDirectory() as td:
     until('!window.loom.document.graph.nodes.some(n=>n.id==="reroute")')
     js('window.loom.perform("undo");');until('JSON.stringify(window.loom.document.graph)==='+json.dumps(original))
     js('window.loom.perform("redo");');until('!window.loom.document.graph.nodes.some(n=>n.id==="reroute")')
+    # Real DOM + bridge checks: graph validity is not dataset admission, and
+    # legacy metrics cannot claim a verified current checkpoint.
+    admitted=default_model()
+    admitted['id']=h.model['id'];admitted['training']['epochs']=2
+    admitted['dataset']={'x':[[i/10.,i/8.] for i in range(10)],'y':[[i/7.] for i in range(10)]}
+    h.workspace.put(admitted);h.broadcast()
+    until('window.loom.document.graph.nodes.length===3 && !document.getElementById("train").disabled')
+    assert js('document.getElementById("binding-status").textContent==="Bound"')
+    bad=h.workspace.models()[admitted['id']]
+    bad['dataset_binding']['inputs'][0]['id']='previous-port';h.workspace.put(bad);h.broadcast()
+    until('document.getElementById("binding-status").textContent==="Needs rebind"')
+    assert js('document.getElementById("train").disabled && !document.getElementById("rebind-data").hidden && document.getElementById("dataset-bindings").open')
+    assert js('document.getElementById("binding-columns").textContent.includes("previous-port") && document.getElementById("binding-columns").textContent.includes("input")')
+    from unittest.mock import patch
+    from PyQt6.QtWidgets import QMessageBox
+    with patch('app.desktop.QMessageBox.question',return_value=QMessageBox.StandardButton.Yes):
+        js('document.getElementById("rebind-data").click();')
+        until('document.getElementById("binding-status").textContent==="Bound" && !document.getElementById("train").disabled')
+    js('window.loom.perform("undo");')
+    until('document.getElementById("binding-status").textContent==="Needs rebind"')
+    js('window.loom.perform("redo");')
+    until('document.getElementById("binding-status").textContent==="Bound"')
+    legacy=h.workspace.models()[admitted['id']];legacy['result']={'mse':.25};h.workspace.put(legacy);h.broadcast()
+    until('document.getElementById("training-state").textContent==="Unverified legacy result"')
+    assert js('document.getElementById("loss-value").textContent.includes("Unverified") && document.getElementById("results").textContent.includes("Unverified legacy")')
+    assert js('document.getElementById("code-panel").textContent.includes("fresh weights, not the trained checkpoint")')
+    # Produce the trained fixture in the separate interpreter; the Qt host must
+    # still import no Torch and uses only pure checkpoint compatibility checks.
+    import subprocess,sys
+    trained=h.workspace.models()[admitted['id']]
+    request=json.dumps({'models':h.workspace.models(),'id':admitted['id']})
+    source=('import json,sys;from app.core import train_model;'
+            'r=json.load(sys.stdin);print(json.dumps(train_model(r["models"],r["id"])))')
+    torch_python=find_torch_python()
+    assert torch_python,'The trained UI fixture needs a PyTorch interpreter.'
+    proc=subprocess.run([torch_python,'-c',source],
+                        input=request,text=True,capture_output=True,timeout=15)
+    assert proc.returncode==0,proc.stderr
+    trained['result']=json.loads(proc.stdout);h.workspace.put(trained);h.broadcast()
+    until('document.getElementById("training-state").textContent==="Complete · current checkpoint"')
+    assert js('document.getElementById("results").textContent.includes("post-update / eval")')
+    assert 'torch' not in sys.modules
     assert not errors, errors
     screenshot = os.environ.get('VTW_SMOKE_SCREENSHOT')
     if screenshot:
@@ -504,4 +546,4 @@ with tempfile.TemporaryDirectory() as td:
     profile.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 print(json.dumps({'real_webengine':'PASS','layouts':samples,'reset_origin':'PASS','mouse_resize_undo_redo':'PASS','mouse_compact_icon_drag_snap_restore':'PASS','bulk_layout_single_undo':'PASS','layout_preferences_persistence':'PASS','compact_dimensions_bias':'PASS','mouse_destination_rewire_undo_redo':'PASS','rewire_cancel':'PASS','D_box_and_wire_deletion':'PASS','D_typing_training_guards':'PASS','bias_state':'PASS','alphabetical_lists':'PASS',
-    'clicked_block_delete_undo_redo':'PASS','training_guard':'PASS','console_errors':errors}))
+    'clicked_block_delete_undo_redo':'PASS','training_guard':'PASS','binding_admission_rebind_undo_redo':'PASS','current_legacy_status':'PASS','console_errors':errors}))

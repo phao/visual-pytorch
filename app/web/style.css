@@ -21,6 +21,7 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .port-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:10px}.port-row span{flex:1;overflow-wrap:anywhere}.port-row input{width:60px;padding:5px}.port-row button{font-size:12px;padding:2px 7px}.port-row small{color:var(--muted)}
 .equation{font-size:16px;overflow-wrap:anywhere;line-height:1.5}#target-kind{font-size:10px;margin-top:10px}.data-section .inline-fields{margin:8px 0}
 .results-summary{display:flex;justify-content:space-between;gap:20px;margin-bottom:10px;color:var(--mint)}.results-summary span{color:var(--muted);font-size:10px}
+.dataset-details{margin-top:var(--menu-unit);color:var(--muted)}.dataset-details pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:var(--menu-unit) 0;color:var(--ink)}
 .learned-layers{margin:12px 0}.learned-layers details{border:1px solid var(--line);border-radius:5px;margin:6px 0;padding:7px 10px}.learned-layers summary{cursor:pointer;color:#bdd1e4}.learned-layers pre{padding:6px 0;max-height:220px}.learned-layers p,.learned-activation{font-size:10px;color:var(--muted)}.learned-activation{padding:6px 10px}
 
 /* One compact header; the canvas owns the entire stage beneath it. */

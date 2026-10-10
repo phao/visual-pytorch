@@ -20,7 +20,7 @@ The imported checkpoint passed 116 Python tests, 46 JavaScript tests, syntax/dif
 checks, real sandboxed WebEngine interaction tests and a native Qt/PyTorch worker
 fit. These are specific checks, not proof of full platform correctness.
 
-## A — Trustworthy computation and evidence (in progress)
+## A — Trustworthy computation and evidence (bounded exit gates verified)
 
 Implemented repairs include optional affine-summary isolation, post-update
 evaluation metrics, actual cancellation counts, stable input column identities,
@@ -34,10 +34,20 @@ backpressure, protocol corruption, bounded diagnostics, callback/startup failure
 deadline cleanup and cooperative/forced cancellation. These reproduced gaps in
 the inherited transport and pass after the repairs. See [worker contract](worker-protocol.md).
 
-Remaining gates include broader checkpoint roundtrips and independent predictions,
-binding/migration/CLI coverage, GUI
-binding admission and honest evidence-status presentation. Do not mark A complete
-merely because its five initial regression counterexamples pass.
+Checkpoint admission now validates version, preprocessing, stable parameter IDs,
+exact weight keys/shapes and finite float32 values without importing Torch.
+Independent predictions cover bias on/off, MLP, tensor inputs, tanh/ReLU branches
+joined into sigmoid, fresh references, Splitter/Replicator outputs and SQLite/CLI
+roundtrips. Native and exported Linear constructors explicitly use CPU float32.
+The GUI checks dataset column bindings before launching, shows recorded/current
+columns, offers confirmed undoable rebind and labels legacy/stale/invalid results.
+Late completions are validated against the worker snapshot; incompatible drafts
+keep the run in history without presenting it as current.
+
+The bounded A exit gates and their evidence are mapped in
+[Stage A verification](stage-a-verification.md). Full platform correctness,
+training-resume checkpoints and the B–E features below are not claimed. The next
+implementation milestone is the complete CNN slice, not additional cosmetic work.
 
 ## B — Coherent tensor/operator composition
 
