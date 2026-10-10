@@ -7,8 +7,8 @@ explicit; its current browsing head is captured separately, never substituted.
 import copy
 import uuid
 
-from .core import GraphError
-from .datasets import _identifier, _keys, _require
+from .core import GraphError, validate_model
+from .datasets import _identifier, _keys, _require, validate_task
 from .experiment_objects import reference, validate_dependencies
 from .revisions import frozen_document
 
@@ -88,3 +88,32 @@ def save(workspace, draft):
     if actual != result:
         raise GraphError('Authoring content identity changed during admission.')
     return actual
+
+
+def task_context(workspace, model, dataset):
+    """Exact interface/field suggestions, never records, tensors or learned state."""
+    reference(model, 'model'); reference(dataset, 'dataset')
+    architecture = workspace.get_spec('model', model['id'], model['revision'])
+    observations = workspace.get_spec('dataset', dataset['id'], dataset['revision'])
+    contract = validate_model(architecture['models'], architecture['root'])
+    return copy.deepcopy({'version': 1, 'model': model, 'dataset': dataset,
+        'input_ports': contract['input_groups'], 'output_ports': contract['output_groups'],
+        'fields': observations['fields'], 'record_count': len(observations['records'])})
+
+
+def task_compatibility(workspace, draft, model, dataset):
+    """Intrinsic + exact interface checks only, not a numerical/data/RAM audit."""
+    prospective = check(workspace, draft)
+    _require(draft['kind'] == 'task', 'Task compatibility requires a task draft.')
+    reference(model, 'model'); reference(dataset, 'dataset')
+    architecture = workspace.get_spec('model', model['id'], model['revision'])
+    observations = workspace.get_spec('dataset', dataset['id'], dataset['revision'])
+    contract = validate_model(architecture['models'], architecture['root'])
+    try:
+        validate_task(draft['document'], observations, contract)
+        status, reason = 'compatible', None
+    except GraphError as error:
+        status, reason = 'incompatible', str(error)
+    return copy.deepcopy({'version': 1, 'task': prospective, 'model': model, 'dataset': dataset,
+                          'status': status, 'reason': reason,
+                          'scope': 'interface-only-no-fitting-or-execution'})

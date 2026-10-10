@@ -17,9 +17,9 @@ revision. Changing workspace clears stale selections and candidate cards.
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.
-The dataset authoring form below creates and edits typed observations. Task and
-experiment authoring forms remain unfinished; use the CLI or specification import
-for those objects. Do not treat an imported experiment as completed GUI authoring.
+The dataset and task authoring forms below create typed observations and reusable
+bindings. Experiment authoring remains unfinished; use the CLI or specification
+import for that object. Do not treat an imported experiment as GUI authoring.
 
 ### Typed dataset authoring
 
@@ -68,7 +68,73 @@ retains immutable evidence through the normal history wrapper. Pending terminal
 delivery blocks draft admission. In-flight commands disable duplicate submission;
 the existing keyboard typing safeguards apply to all inputs/textarea/selects.
 The pure backend supports dataset/task/experiment drafts under their existing
-closed grammars, but only the dataset form is currently connected to the UI.
+closed grammars. Dataset and task forms are connected to the UI; the experiment
+form remains open work.
+
+### Typed task authoring
+
+New task opens an incomplete private TaskSpec draft with empty input/head lists.
+It does not guess bindings, targets, losses or observations from list position.
+Edit selected revision works for datasets and tasks, including exact historical
+revisions. Names are editable labels, not port/field identities. Task ID remains
+fixed throughout editing. The task is reusable: the optional model/dataset chosen
+for suggestions and compatibility are **not stored dependencies in TaskSpec**.
+Creating a task does not require a model/dataset context; executing it does.
+
+Input cards explicitly specify stable input port ID, source field ID and an
+ordered transform chain. Head cards specify stable head/output-port/target-field
+IDs, loss, positive objective multiplier and optional mask/sample-weight field
+IDs. Add/remove and up/down controls change only the draft. Boundary arrows stay
+disabled. Reordering preserves identities; transform execution is never sorted.
+The add-transform list is alphabetical: affine, impute-mean, onehot, pad,
+standardize. Numeric controls accept finite explicit values; padded lengths must
+be positive JavaScript-safe integers. Backend validation also rejects zero affine
+scale and all unsupported transform combinations. There is no arbitrary code box.
+
+Input-derived mode is None, Sequence length or Padding mask. Each derived binding
+has explicit padded length and must match a pad binding for the same source field
+and length. Its transforms must be empty. Changing derived mode does not silently
+delete an existing chain: validation explains the conflict until the user removes
+it. Likewise cross-entropy requires categorical index targets, a fixed vocabulary,
+raw logits with the class dimension first, and no target transforms. Selecting CE
+does not remove incompatible target transforms. MSE/MAE target transformations
+remain explicit. Objective multipliers and observation/element sample weights are
+different controls; a mask controls participation. Every output needs one head.
+These are concrete tensor bindings, not recurrent-state or symbolic-family support.
+
+The context dropdowns show exact frozen model/dataset hashes, current-head versus
+historical status, input/output sample shapes and source field schema. Datalists
+suggest IDs but never select a binding automatically. Ports and fields retain
+contract order. Refresh preserves an existing exact selection even if new heads
+exist. If refreshed metadata omits it, an unavailable-exact option retains its
+identity instead of silently substituting another head. Missing exact bytes fail
+visibly. Context refresh changes suggestions only; unsaved/invalid form text is
+not rerendered away. Responses from a different workspace UUID/draft are ignored;
+these checks do not distinguish replacing a database with the same UUID.
+Draft Check/Save replies have the same UUID fence. If native admission completed
+in the originating working copy before the workspace changed, its reply must not
+select that origin's reference in the replacement workspace or clear its retained
+draft. This is not detached persistence or recovery of a discarded working copy.
+
+Validate draft checks reusable intrinsic TaskSpec grammar and prospective content
+hash. Check exact interface compatibility also checks the selected graph ports,
+field dtypes/shapes/axes, fixed class ontology, masks/weights and derived relations.
+It returns compatible/incompatible with the reason and exact context hashes; this
+is explicitly **interface-only**. It does not fit preprocessing, allocate tensors,
+check RAM admission, audit mask/weight values or guarantee training success.
+An intrinsically valid reusable task may be retained even if one example context
+is incompatible. Preparation/execution retains its independent stronger checks.
+Typing, changing bindings or changing context clears an older compatibility
+result and old prospective-validation text immediately. A different workspace
+UUID clears suggestions and disables the
+retained draft, including compatibility actions, until explicit Cancel/reopen.
+
+All bindings/transforms are currently rendered; their size is not bounded or
+virtualized. Context returns field/interface metadata, not observation values,
+but its backend still validates/loads the full inline dataset. Full data transport
+and metadata/rendering bounds remain unfinished, not proven by the dataset grid's
+paging. Task revisions use the existing v6 registry, history and explicit file
+Save, without new tables or an alternative task store.
 
 Experiment browsing displays its question and pages of 25 coordinates. All
 compatible, excluded and incompatible rows remain visible with reasons. Only
@@ -106,6 +172,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceAuthorBegin | kind, optional exact reference or new id | Read-only draft with base/head/workspace capture |
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
+| scienceTaskContext | exact model, dataset references | Read-only ordered port/field suggestions; no records or fitted state in response |
+| scienceTaskCompatibility | task draft, exact model/dataset references | Intrinsic draft check plus interface-only compatible/incompatible result |
 | scienceFreeze | drawing id | Freeze complete normalized model closure |
 | sciencePut | kind, document | Strict registry admission |
 | scienceSelect | reference | Explicit browsing-head change |
@@ -119,6 +187,16 @@ undo. Modal choosers recheck workspace identity and active work after returning.
 Reads do not change workspace bytes. Save workspace explicitly to persist edits
 and terminal evidence. State has a separate experiment_job ID: it does not imply
 that the legacy drawing/latest-result is the executing scientific revision.
+
+`scienceTaskContext` returns version 1, model/dataset references, input_ports,
+output_ports, fields and record_count. `scienceTaskCompatibility` returns version
+1, prospective task reference, model/dataset references, status, reason (string
+or null), and scope `interface-only-no-fitting-or-execution`. Invalid intrinsic
+drafts, stale heads/workspaces and invalid/missing exact references raise errors;
+valid intrinsic drafts with incompatible interfaces return a labelled result.
+Both actions are reads, including while a numerical job is active. GUI authoring
+controls are disabled while busy; native draft admission still uses the central
+pending-terminal guard before attempting to parse an edit.
 
 `experiment_ui.capture` copies the exact experiment dependency closure, candidate
 manifest and longest prior history for retry, not unrelated registry datasets.
@@ -181,7 +259,7 @@ uses a private Qt+nbformat environment; user environments/config/files are untou
 
 353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
 layout checks. New rendered CSS regression checks 240 block/palette pairs.
-This is not full C completion. Rich authoring/metric/predictor views, multi-run
+This is not full C completion. Experiment authoring/metric/predictor views, multi-run
 report selection, GUI notebook execution, bounded metadata/raw-data presentation, rendered report
 figure review and requirement-by-requirement C convergence remain. D/E stay open.
 
@@ -195,3 +273,19 @@ the host imports no Torch. WebEngine also forces admission failure after a real
 fit, destroys the completed QThread, reads/exports retained evidence and verifies
 no new run was admitted. These are local lifecycle gates, not crash recovery,
 detached execution, or exhaustive reentrancy/model checking.
+
+Task authoring has fourteen pure tests and seven helper tests for closed grammar,
+exact context/history, explicit port-order changes without rebinding, independent
+drafts, field/axis/ontology and mask/weight compatibility, derived conflicts,
+finite number parsing and ordered moves. The real `qt_task_authoring_smoke.py`
+starts without any stored tasks, creates weighted classification/regression and
+ragged pad/length/mask tasks through typed controls, checks stored bindings/chains,
+then runs both exact saved revisions for three actual worker updates each. It
+checks intrinsic conflict retention, invalid local text/context refresh, immediate
+compatibility invalidation, missing choice/no head fallback, workspace replacement
+during a context response, undo/redo/no-op/stale/busy guards and v6 Save/reload.
+It also switches workspace during real Check/Save callback delivery, preserving
+the draft and preventing origin references from leaking into replacement state.
+Dark/GitHub/Math forms pass at fonts 14/18/28 and spacings 1/4/10; sandbox remains
+enabled and GUI-host Torch absent. These are bounded real examples, not proof of
+all task/operator combinations or complete Stage C.

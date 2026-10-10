@@ -45,6 +45,12 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .science-author-records td{min-width:120px}.science-author-records textarea{min-width:100px}
 #science-author-id,#science-author-status{overflow-wrap:anywhere}
 #science-author .inline-actions{margin:calc(2 * var(--menu-unit,4px)) 0}
+#science-task-bindings .science-author-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+#science-task-bindings .science-task-transform{display:flex;flex-wrap:wrap;align-items:end;margin:var(--menu-unit,4px) 0}
+.science-task-transform>span{flex:1 1 130px;overflow-wrap:anywhere}
+.science-task-transform>label{flex:1 1 140px}
+.science-task-transform>button{flex:0 0 auto}
+#science-task-context-status,#science-task-compatibility-status{overflow-wrap:anywhere}
 .validation-chip{left:calc(var(--library-width) + 30px);top:12px;max-width:calc(100% - var(--library-width) - var(--inspector-width) - 60px)}
 .floating-panel{position:absolute;z-index:2;border:1px solid #33495a;border-radius:11px;background:#0e1b27f5;box-shadow:0 8px 28px #0006;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0}
 .library{left:12px;top:12px;bottom:12px;width:var(--library-width);overflow:hidden}

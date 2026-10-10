@@ -638,3 +638,26 @@ Design reference: [Qt tool-palette controls](https://doc.qt.io/qt-6/qdockwidget.
 informed movable/closable/expandable affordances. The implemented menus are HTML,
 not QDockWidget instances. The pack, independent layer gestures and snapping
 anchors are the owner's requested interaction design, not borrowed native behavior.
+
+## Typed scientific drafts (branch-only Visual PyTorch extension)
+
+The floating Experiment/history tab hosts typed dataset and task drafts. Reuse
+their interaction pattern, not the domain grammar by accident: stable identities,
+exact historical base distinct from expected current head, private unsaved text,
+read-only validation, explicit immutable admission and separate file Save. Context
+suggestions must never replace exact selections or infer bindings by list order.
+Reordering a semantic chain is an explicit up/down operation, not alphabetical
+presentation sorting. Numeric parse errors stay visible and block destructive
+rerender/admission; refreshing suggestions must retain that text. Typing clears
+old compatibility results before blur. Checks are visibly scoped: intrinsic object
+validity is not interface compatibility, and neither proves execution/resource
+admission. Asynchronous replies from another workspace/draft are ignored.
+
+The accepted panel layer/keyboard/typing and history behavior remain unchanged.
+Task/dataset forms use theme colors, base-font controls and responsive grids inside
+the same scroll container. Task transform action buttons use intrinsic compact
+width, not equal-width expansion. All task bindings are currently rendered, while
+dataset cells page six fields/twenty records: neither is a full transport bound.
+Experiment visual authoring and richer report presentation remain unfinished.
+See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
+precise scoped compatibility, failure behavior and actual Qt test evidence.

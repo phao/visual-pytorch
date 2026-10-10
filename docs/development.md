@@ -108,7 +108,7 @@ The common dataset/task/experiment draft API records workspace UUID, exact base
 and expected browsing head, validates through the existing grammar/dependencies
 without fitting, and rejects stale/invalid admission before writes. Historical
 editing is explicit; unchanged head admission is a no-op. Undo retains evidence.
-Only the dataset form is wired; task/experiment forms, richer metric/predictor/
+Dataset and task forms are wired; the experiment form, richer metric/predictor/
 multi-run reporting, GUI notebook execution, bounded transport and full C gates
 are unfinished. D/E remain pending. This checkpoint is not merged/published.
 
@@ -130,6 +130,38 @@ or host Torch. The existing actual fit/retry/history/report/notebook-generation/
 forced-admission-recovery flow and inherited editor smoke also pass. Eleven
 native Qt terminal/cancel/recovery tests pass. No new remote publication or user
 app/workspace/configuration change was performed.
+
+### Typed task GUI checkpoint — local task branch only
+
+The same floating scientific tab now creates/edits reusable named task bindings
+and objectives through actual controls, not raw TaskSpec JSON. All five supported
+ordered transforms, derived padded sequence lengths/masks, three losses, multiple
+heads, objective weights and mask/sample-weight fields preserve existing v1
+semantics. Conflicting derived/CE transforms stay visible until explicitly removed.
+Exact model/dataset context is not a task dependency. Read-only suggestions and
+interface compatibility preserve historical refs, invalidate on edits, never fit
+or admit RAM, and ignore replaced-workspace replies. Missing refreshed metadata
+cannot silently advance a selected revision. Intrinsic admission/history stays on
+the existing v6 store, CLI-compatible with no new tables.
+
+Fourteen new pure Python tests and seven JS helper tests pass. The actual sandboxed
+Qt form test creates two tasks from an empty task registry, checks retained bytes,
+and completes three-update fits using the authored classification/regression and
+ragged pad/length/mask revisions. It verifies text/conflict retention, transform
+and binding order, context refresh/new heads/missing choice/late workspace response,
+late Check/Save origin fencing,
+undo/redo/no-op/stale/busy checks and Save/reload; host Torch remains absent. Form
+fonts/themes/spacing use the same three combinations as dataset tests. Transform
+buttons are compact rather than evenly stretching to fill the entire card.
+
+All 381 Python tests pass (144.929 s) and 77 JS tests pass. Dataset forms and 11
+native lifecycle checks pass after the controller changes. The inherited actual
+experiment fit/retry/report/notebook-generation/recovery and sandboxed editor
+checks pass; the latest task form capture was inspected. C still needs experiment
+authoring, richer metrics/predictor/report
+views, GUI notebook execution, transport/presentation bounds, rendered report
+figure review and a full gate audit. D/E remain pending; partial C is not merged
+or published. User app, workspaces and configuration remain untouched.
 
 ### First executable checkpoint — not Stage C completion
 

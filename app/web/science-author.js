@@ -1,6 +1,6 @@
 "use strict";
 (() => {
-  let root, api, saved, draft=null, rowOffset=0, fieldOffset=0, generation=0, pending=false;
+  let root, api, saved, draft=null, rowOffset=0, fieldOffset=0, generation=0, pending=false, contextGeneration=0, editGeneration=0;
   const $=id=>root.getElementById(id), helpers=()=>window.LoomDatasetAuthoring;
   const el=(tag,value)=>{const result=root.createElement(tag);if(value!==undefined)result.textContent=value;return result;};
   const uid=()=>crypto.randomUUID();
@@ -11,7 +11,9 @@
     const wrapper=el('label',label),control=el(options.area?'textarea':'input');
     control.value=value;control.dataset.authorControl='';if(options.readOnly)control.readOnly=true;
     if(options.title)control.title=options.title;
-    control.addEventListener('change',()=>{try{onchange(control.value);control.removeAttribute('aria-invalid');delete control.dataset.invalid;status();}catch(error){control.setAttribute('aria-invalid','true');control.dataset.invalid='';issue(error);}});
+    if(options.list)control.setAttribute('list',options.list);
+    control.addEventListener('input',changed);
+    control.addEventListener('change',()=>{changed();try{onchange(control.value);control.removeAttribute('aria-invalid');delete control.dataset.invalid;status();}catch(error){control.setAttribute('aria-invalid','true');control.dataset.invalid='';issue(error);}});
     wrapper.append(control);return wrapper;
   }
   function optional(container,object,key,label){
@@ -22,18 +24,25 @@
   function status(){
     if(!draft)return;
     const stale=draft.workspace_id!==api.workspace();
+    if(stale&&draft.kind==='task'){contextGeneration++;changed();window.LoomTaskForm.context(root,null);}
     $('science-author-status').textContent=stale?'Workspace changed. This unsaved draft is retained for inspection; cancel and reopen it in the intended workspace.':
-      'Unsaved dataset draft · '+draft.document.fields.length+' fields · '+draft.document.records.length+' observations · validation never trains';
+      'Unsaved '+draft.kind+' draft · '+(draft.kind==='dataset'?draft.document.fields.length+' fields · '+draft.document.records.length+' observations':draft.document.inputs.length+' input bindings · '+draft.document.heads.length+' objectives')+' · validation never trains';
     controls();
+  }
+  function changed(){
+    editGeneration++;
+    $('science-task-compatibility-status').textContent='';
+    if(draft&&draft.workspace_id===api.workspace())status();
   }
   function controls(){
     if(!api)return;
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
     for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
     $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||!api.workspace();
-    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||!api.workspace()||$('science-kind').value!=='dataset'||!$('science-object').value;
+    $('science-author-new-task').disabled=$('science-author-new').disabled;
+    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||!api.workspace()||!['dataset','task'].includes($('science-kind').value)||!$('science-object').value;
     $('science-author-cancel').disabled=pending;
-    if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked);
+    if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
   }
   function fields(){
     const container=$('science-author-fields');container.replaceChildren();
@@ -82,38 +91,80 @@
     $('science-author-rows-prev').disabled=rowOffset===0;$('science-author-rows-next').disabled=rowOffset+20>=data.rowTotal;
   }
   function flush(){
-    const active=root.activeElement;if(active&&$('science-author').contains(active))active.dispatchEvent(new Event('change'));
+    // Select handlers themselves call flush. Re-dispatching their change would
+    // recurse; only text/checkbox controls have an uncommitted value to flush.
+    const active=root.activeElement;if(active?.matches('input,textarea')&&$('science-author').contains(active))active.dispatchEvent(new Event('change'));
     if($('science-author').querySelector('[data-invalid]')){issue(Error('Correct invalid draft fields before continuing. Your text has not been discarded.'));return false;}return true;
   }
   function render(){
     $('science-author').hidden=!draft;if(!draft){controls();return;}
-    $('science-author-id').textContent='Stable dataset ID: '+draft.id+' · '+(draft.base?'editing exact '+draft.base.revision.slice(0,12):'new object')+(draft.base&&draft.base.revision!==draft.expected_head?' · historical base, not current head':'');
-    const name=$('science-author-name');name.value=draft.document.name;name.onchange=()=>{draft.document.name=name.value;status();};
-    fields();records();const metadata=$('science-author-metadata');metadata.replaceChildren();
-    for(const key of ['provenance','usage'])optional(metadata,draft.document,key,key);
+    $('science-author-title').textContent=(draft.kind==='dataset'?'Dataset':'Task')+' draft';
+    $('science-author-id').textContent='Stable '+draft.kind+' ID: '+draft.id+' · '+(draft.base?'editing exact '+draft.base.revision.slice(0,12):'new object')+(draft.base&&draft.base.revision!==draft.expected_head?' · historical base, not current head':'');
+    const name=$('science-author-name');name.value=draft.document.name;name.oninput=changed;name.onchange=()=>{changed();draft.document.name=name.value;status();};
+    $('science-author-dataset').hidden=draft.kind!=='dataset';$('science-author-task').hidden=draft.kind!=='task';
+    if(draft.kind==='dataset'){
+      fields();records();const metadata=$('science-author-metadata');metadata.replaceChildren();
+      for(const key of ['provenance','usage'])optional(metadata,draft.document,key,key);
+    }else window.LoomTaskForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
     status();
   }
-  async function begin(reference=null){
+  async function context(){
+    const selected=draft,ticket=++contextGeneration,identity=api.workspace();
+    const m=$('science-task-model').value,d=$('science-task-dataset').value;
+    $('science-task-compatibility-status').textContent='';
+    window.LoomTaskForm.context(root,null);
+    if(!m||!d)return;
+    $('science-task-context-status').textContent='Reading exact interfaces; no fitting or execution…';
+    const value=await api.call('scienceTaskContext',{model:JSON.parse(m),dataset:JSON.parse(d)});
+    if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
+    window.LoomTaskForm.context(root,value);
+  }
+  async function choices(){
+    const selected=draft,ticket=++contextGeneration,identity=api.workspace();
+    if(!selected||selected.kind!=='task')return;
+    const rows=await api.call('scienceIndex');
+    if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
+    for(const [id,kind] of [['science-task-model','model'],['science-task-dataset','dataset']]){
+      const select=$(id),old=select.value;select.replaceChildren();
+      rows.filter(row=>row.kind===kind).forEach(row=>{const option=el('option',row.name+' · '+row.revision.slice(0,12)+(row.selected?' · current head':' · historical'));option.value=JSON.stringify({kind:row.kind,id:row.id,revision:row.revision});select.append(option);});
+      if([...select.options].some(option=>option.value===old))select.value=old;
+      else if(old){const missing=el('option','Unavailable exact '+kind+' revision · choose another explicitly');missing.value=old;select.append(missing);select.value=old;}
+      else{const head=rows.find(row=>row.kind===kind&&row.selected);if(head)select.value=JSON.stringify({kind:head.kind,id:head.id,revision:head.revision});}
+    }
+    await context();
+  }
+  async function begin(kind='dataset',reference=null){
     const ticket=++generation,identity=api.workspace();
-    const result=await api.call('scienceAuthorBegin',{kind:'dataset',...(reference?{reference}:{})});
+    const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
     draft=result;rowOffset=0;fieldOffset=0;render();
+    if(kind==='task'){window.LoomTaskForm.context(root,null);await choices();}
   }
   window.LoomScienceAuthor={
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
-      $('science-author-edit').onclick=()=>act(()=>command(()=>begin(JSON.parse($('science-object').value))));
-      $('science-author-cancel').onclick=()=>{draft=null;generation++;render();};
+      $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));
+      $('science-author-edit').onclick=()=>act(()=>command(()=>{const reference=JSON.parse($('science-object').value);return begin(reference.kind,reference);}));
+      $('science-author-cancel').onclick=()=>{draft=null;generation++;contextGeneration++;render();};
+      $('science-task-context-refresh').onclick=()=>act(()=>command(choices));
+      for(const id of ['science-task-model','science-task-dataset'])$(id).onchange=()=>act(()=>command(context));
+      $('science-task-compatibility').onclick=()=>act(()=>command(async()=>{
+        if(!flush())return;const selected=draft,ticket=generation,edit=editGeneration,identity=api.workspace(),model=$('science-task-model').value,dataset=$('science-task-dataset').value;
+        if(!model||!dataset)throw Error('Choose exact architecture and dataset revisions first.');
+        const result=await api.call('scienceTaskCompatibility',{draft,model:JSON.parse(model),dataset:JSON.parse(dataset)});
+        if(ticket!==generation||edit!==editGeneration||draft!==selected||identity!==api.workspace()||model!==$('science-task-model').value||dataset!==$('science-task-dataset').value)return;
+        $('science-task-compatibility-status').textContent=result.status+(result.reason?' · '+result.reason:' · interface only; no fitting, execution or RAM admission')+' · model '+result.model.revision.slice(0,12)+' · dataset '+result.dataset.revision.slice(0,12);
+      }));
       $('science-author-add-field').onclick=()=>{try{if(!flush())return;const fid=$('science-author-field-id').value;
         draft.document=helpers().addField(draft.document,{id:fid,dtype:'float32',shape:[]});$('science-author-field-id').value='';fieldOffset=Math.floor((draft.document.fields.length-1)/6)*6;render();}catch(error){issue(error);}};
       $('science-author-add-record').onclick=()=>{try{if(!flush())return;const control=$('science-author-record-id');draft.document=helpers().addRecord(draft.document,control.value||uid());control.value='';rowOffset=Math.floor((draft.document.records.length-1)/20)*20;render();}catch(error){issue(error);}};
       for(const [id,axis,delta] of [['science-author-fields-prev','field',-6],['science-author-fields-next','field',6],['science-author-rows-prev','row',-20],['science-author-rows-next','row',20]])$(id).onclick=()=>{if(!flush())return;if(axis==='field')fieldOffset=Math.max(0,fieldOffset+delta);else rowOffset=Math.max(0,rowOffset+delta);render();};
-      $('science-author-check').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation;
-        const result=await api.call('scienceAuthorCheck',{draft});if(ticket!==generation||draft!==selected)return;
-        $('science-author-status').textContent='Valid DatasetSpec · prospective revision '+result.revision+' · not saved, no training';}));
-      $('science-author-save').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation;
-        const result=await api.call('scienceAuthorSave',{draft});if(ticket!==generation||draft!==selected)return;
-        draft=null;render();await saved(result);api.toast('Dataset revision retained. Save workspace to persist it on disk.');}));
+      $('science-author-check').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,edit=editGeneration,identity=api.workspace();
+        const result=await api.call('scienceAuthorCheck',{draft});if(ticket!==generation||edit!==editGeneration||draft!==selected||identity!==api.workspace())return;
+        $('science-author-status').textContent='Valid '+(draft.kind==='dataset'?'DatasetSpec':'TaskSpec')+' · prospective revision '+result.revision+' · not saved, no training';}));
+      $('science-author-save').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,identity=api.workspace();
+        const result=await api.call('scienceAuthorSave',{draft});if(ticket!==generation||draft!==selected||identity!==api.workspace())return;
+        draft=null;contextGeneration++;render();await saved(result);api.toast((result.kind==='dataset'?'Dataset':'Task')+' revision retained. Save workspace to persist it on disk.');}));
       controls();
     },
     stateChanged(){if(!api)return;if(draft)status();else controls();},
