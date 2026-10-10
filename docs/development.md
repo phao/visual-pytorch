@@ -322,6 +322,15 @@ including typing/dialog safeguards. Group selection gestures remain deferred.
 
 ## Initial public preview — 0.1.0-alpha.1
 
+### Theme correction after the preview
+
+Concat had a higher-specificity hard-coded dark fill than the generic token rule.
+It now explicitly uses `node-input`/`blue` tokens, preserving the selected border.
+The real WebEngine cascade test checks all 15 block types across 16 concrete
+palettes (240 pairs), title/detail colors and selected Concat fill/border. System
+resolves through the existing light/dark palettes. This is rendered CSS evidence,
+not a claim of complete accessibility certification. No numerical graph changes.
+
 The public preview includes the verified A/B slices above and workspace-owned
 layout profiles. It does not include the incomplete Stage C development branch.
 Six focused workspace-layout tests cover independent files, validation, defaults,
