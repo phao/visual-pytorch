@@ -1,0 +1,101 @@
+# Agent and user CLI contract
+
+vpw_cli.py follows the requested filename; workspaces remain .vtw. It needs Python
+standard libraries, not Qt/PyTorch. Each command returns one JSON object:
+`{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
+Argument usage errors use argparse exit 2. Architecture names never substitute
+for explicit IDs.
+
+```sh
+python vpw_cli.py lab.vtw init
+python vpw_cli.py lab.vtw inspect
+python vpw_cli.py lab.vtw show ARCHITECTURE_ID
+python vpw_cli.py lab.vtw validate ARCHITECTURE_ID
+python vpw_cli.py lab.vtw export ARCHITECTURE_ID
+python vpw_cli.py lab.vtw export-trained ARCHITECTURE_ID
+python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
+python vpw_cli.py lab.vtw apply -
+```
+
+init creates an empty version-3 collection, never overwriting a file. inspect
+returns working format version, exact SQLite DDL, architecture IDs/names/counts,
+policy and on-disk SHA-256 revision. Architecture summaries are alphabetical by
+case-folded name, with ID as tie-breaker. show returns a materialized document with
+dataset. validate derives the graph contract without allocation; export returns
+generated Python in the value.code field, with fresh parameter initialization.
+export-trained requires a matching current checkpoint identity and embeds learned
+weights, strict state loading and evaluation mode for standalone inference.
+
+apply reads an ordered JSON array from a file or stdin. It edits an in-memory
+copy and persists only if the whole batch succeeds. Normal apply validates every
+graph, including affected references. --allow-invalid explicitly permits semantic
+drafts, never structural/reference/lock violations. A failed batch leaves file
+bytes unchanged; successful edits are not automatically archived as undo history.
+
+| op | Fields besides op | Effect |
+| --- | --- | --- |
+| create | document, or optional name/inputs/outputs | New architecture; existing ID refused; defaults are a Linear graph, not a preset MLP. |
+| replace | id, document | Full replacement preserving ID |
+| rename | id, name | Display name |
+| move | id, node ID, x, y | Layout only; latest learned result retained |
+| resize | id, node ID, width, height | Preferred world-unit diagram size; finite positive numbers ≤100000; data/results/forward unchanged |
+| set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
+| add-node | id, node object | Explicit new block |
+| remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
+| connect | id, edge object | Append explicit wire; update ordered Concat sources separately |
+| disconnect | id, exact edge object | Remove exactly that wire or fail |
+| delete | id | Delete unreferenced graph; last architecture protected |
+| mode | enabled boolean | Persist workspace safety policy only |
+| rebind-dataset | id | Explicitly bind existing dataset columns to the current valid input/output port contract; no numerical reordering/transformation |
+
+Create referenced targets before their owners. Custom documents follow
+[vtw-format.md](vtw-format.md). Computational edits invalidate current results in
+the graph and its users. When changing input/CSV packing, explicitly clear or
+replace the dataset rather than assuming old columns retain their meaning.
+For batch-local references, assign unique IDs in create documents: automatically
+generated UUIDs are reported only after the complete batch commits.
+
+Example layout repair (substitute actual IDs):
+
+```json
+[
+  {"op":"move","id":"MODEL_ID","node":"linear1","x":384,"y":192},
+  {"op":"resize","id":"MODEL_ID","node":"linear1","width":240,"height":96},
+  {"op":"rename","id":"MODEL_ID","name":"Reviewed model"}
+]
+```
+
+Restore automatic sizing with set-node, values={} and
+remove_fields=["width","height"]. Rendered dimensions respect typography and port
+minimums even if an agent stores smaller preferences. This is not a network shape
+edit or memory-policy limit. Batches and graph/port arrays retain explicit order.
+
+The response includes affected/created IDs and the new revision. Recommended
+collaboration: user saves; agent inspects and captures revision; agent explains
+authorized edits in chat and applies them with --expect-revision. A clean idle GUI
+reloads in about one polling interval. If it became dirty, it warns and retains
+user work. Re-inspect conflicts; do not blindly repeat stale edit batches.
+External reload starts fresh GUI undo history. CLI batches have atomic failure,
+not a persistent undo log. User-level theme/spacing/RAM percentage settings are
+not part of a .vtw edit batch; workspace mode is. Editing values or validating a
+graph does not promise that the local execution memory policy will admit it.
+
+The CLI does not control an unsaved GUI buffer/modal dialogs/active jobs, train,
+execute arbitrary Python or generate notebooks. Notebook/prompt generation is
+future design work, not a hidden feature of this interface.
+
+## Destination rewiring and GUI alignment
+
+The successor's destination-drag gesture changes existing edge records; it does
+not introduce a new workspace format or UI-private connection state. Agents can
+perform the equivalent in one atomic apply batch: disconnect the exact old
+edge, connect a new edge with the same from/from_port and a new to. For Concat,
+also set-node its sources explicitly: remove the old source/port key from the
+old destination and append it at the new destination without reordering peers.
+The GUI prunes these keys automatically; CLI connect/disconnect deliberately
+keep the explicit edit contract above. Deletion's GUI unary-bypass behavior also
+differs from remove-node's explicit removal; agents must supply any desired
+replacement edges. Graph/type validation and .vtw persistence are shared.
+Default batches reject invalid final graphs; --allow-invalid is needed for an
+intentional unfinished draft. Inspect/revision-check, save/reload, validate and
+export remain the collaboration workflow, covered by CLI regression tests.

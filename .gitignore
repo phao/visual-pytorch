@@ -1,0 +1,11 @@
+/.venv/
+__pycache__/
+*.py[cod]
+*.vtw
+*.vtw-*
+*.tloom
+*.tloom-*
+/test-artifacts/
+/scratch/
+.coverage
+.pytest_cache/

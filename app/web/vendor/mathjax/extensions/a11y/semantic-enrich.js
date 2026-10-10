@@ -1,0 +1,19 @@
+/*
+ *  /MathJax/extensions/a11y/semantic-enrich.js
+ *
+ *  Copyright (c) 2009-2018 The MathJax Consortium
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+MathJax.Extension["semantic-enrich"]={version:"1.6.0",config:MathJax.Hub.CombineConfig("semantic-enrich",{disabled:!1}),dependents:[],running:!1,mstyleLookup:{mi:["mathvariant"],mo:["mathvariant","accent","largeop","form","fence","separator","movablelimits"],mn:["mathvariant"],mtext:["mathvariant"],ms:["mathvariant"],mfrac:["linethickness"],mfenced:["open","close","separators"],menclose:["notation"],munder:["accentunder"],mover:["accent"],munderover:["accent","accentunder"]},Filter:function(c,b,d){if(delete c.enriched,!this.config.disabled){try{this.running=!0;var f=sre.Enrich.semanticMathmlSync(c.root.toMathML());c.root=MathJax.InputJax.MathML.Parse.prototype.MakeMML(f),c.root.inputID=d.id,c.enriched=!0,this.running=!1}catch(c){throw this.running=!1,c}}},Enable:function(c,b){this.config.disabled=!1,c&&MathJax.Hub.Queue(["Reprocess",MathJax.Hub])},Disable:function(c,b){this.config.disabled=!0;for(var d=this.dependents.length-1;0<=d;d--){var f=this.dependents[d];f.Disable&&f.Disable(!1,b)}c&&MathJax.Hub.Queue(["Reprocess",MathJax.Hub])},Dependent:function(a){this.dependents.push(a)}},function(){var a=MathJax.Ajax.config.path;a.a11y||(a.a11y=HUB.config.root+"/extensions/a11y"),a.SRE||(a.SRE=MathJax.Ajax.fileURL(a.a11y)),MathJax.Ajax.Load("[SRE]/mathjax-sre.js"),MathJax.Hub.Register.StartupHook("Sre Ready",["loadComplete",MathJax.Ajax,"[SRE]/mathjax-sre.js"])}(),MathJax.Callback.Queue(["Require",MathJax.Ajax,"[MathJax]/jax/element/mml/jax.js"],["Require",MathJax.Ajax,"[MathJax]/jax/input/MathML/config.js"],["Require",MathJax.Ajax,"[MathJax]/jax/input/MathML/jax.js"],["Require",MathJax.Ajax,"[MathJax]/extensions/toMathML.js"],MathJax.Hub.Register.StartupHook("Sre Ready",function(){var d=MathJax.ElementJax.mml,e=MathJax.Extension["semantic-enrich"];d.mbase.Augment({toMathMLattributes:function(){var q="mstyle"===this.type?d.math.prototype.defaults:this.defaults,m=this.attrNames||d.copyAttributeNames,l=d.skipAttributes,g=d.copyAttributes,v=e.running&&e.mstyleLookup[this.type]||[],j=[],k=this.attr||{};if("math"!==this.type||this.attr&&"xmlns" in this.attr||j.push('xmlns="http://www.w3.org/1998/Math/MathML"'),!this.attrNames){for(var c in q){l[c]||g[c]||!q.hasOwnProperty(c)||null!=this[c]&&this[c]!==q[c]&&this.Get(c,null,1)!==this[c]&&this.toMathMLaddAttr(j,c,this[c])}}for(var f=0,p=m.length;f<p;f++){1===g[m[f]]&&!q.hasOwnProperty(m[f])||(value=k[m[f]],null==value&&(value=this[m[f]]),null!=value&&this.toMathMLaddAttr(j,m[f],value))}for(f=0,p=v.length;f<p;f++){c=v[f],q.hasOwnProperty(c)&&!j["_"+c]&&(value=this.Get(c,1),null!=value&&this.toMathMLaddAttr(j,c,value))}return this.toMathMLclass(j),j.length?" "+j.join(" "):""},toMathMLaddAttr:function(f,c,g){f.push(c+'="'+this.toMathMLquote(g)+'"'),f["_"+c]=1}});var b=d.mo.prototype.setTeXclass;d.mo.Augment({setTeXclass:function(a){this.getValues("form","lspace","rspace");return this.useMMLspacing?(this.texClass=d.TEXCLASS.NONE,this):this.attr&&this.attr["data-semantic-added"]?(this.texClass=this.prevClass=d.TEXCLASS.NONE,a):b.apply(this,arguments)}})}),function(){MathJax.Hub.postInputHooks.Add(["Filter",MathJax.Extension["semantic-enrich"]],50),MathJax.Hub.Startup.signal.Post("Semantic Enrich Ready"),MathJax.Ajax.loadComplete("[a11y]/semantic-enrich.js")});

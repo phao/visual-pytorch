@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Visual PyTorch · Visual Torch Workspace</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="themes.css">
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <script src="math.js" defer></script>
+  <script src="vendor/mathjax/MathJax.js?config=TeX-AMS_SVG-full" defer onerror="window.LoomMath.failed()"></script>
+  <script src="graph-tools.js" defer></script>
+  <script src="type-icons.js" defer></script>
+  <script src="notifications.js" defer></script>
+  <script src="panels.js" defer></script>
+  <script src="editor.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <button id="home" class="brand" title="Workspace home"><img class="brandmark" src="../../assets/tensor-loom.svg" alt=""><span>Visual PyTorch<small>VISUAL TORCH WORKSPACE</small></span></button>
+    <div class="navigation"><button id="back" class="icon" title="Back · Alt+Left">‹</button><button id="forward" class="icon" title="Forward · Alt+Right">›</button><button id="new-tab" class="icon" title="Open architecture in a new tab · Ctrl+T">↗</button></div>
+    <div class="workspace-label"><span id="file-name">Welcome</span><span id="save-state" class="muted">No workspace open</span></div>
+    <div class="canvas-toolbar" hidden><div><span class="eyebrow">ARCHITECTURE</span><h2 id="model-title">Linear regression</h2></div><div class="canvas-tools"><button id="rename-model" title="Rename architecture">Rename</button><button id="fit">Fit</button><button id="zoom-out" class="icon">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="icon">+</button><button id="validate" class="validate">Validate</button><button id="reset-panels" title="Restore panel positions and sizes">Panels ↺</button></div></div>
+    <div class="actions"><label class="safety-toggle" title="Limit runs, not architecture specifications"><input id="constrained-mode" type="checkbox" checked disabled>Constrained</label><button id="open-workspace">Open…</button><button id="save-workspace">Save workspace</button><button id="find" class="icon" title="Find · Ctrl+F">⌕</button></div>
+  </header>
+
+  <main id="welcome" class="welcome">
+    <div class="welcome-intro"><div class="eyebrow">YOUR NEXT MODEL STARTS HERE</div><h1>Draw a model.<br>See what it learns.</h1><p>A workspace brings your architectures, their reusable pieces,<br>and your experiments together in one file.</p><div class="welcome-actions"><button id="new-workspace" class="primary">+ New workspace</button><button id="welcome-open">Open .vtw file…</button></div><div class="welcome-tags"><span>SQLite working file</span><span>PyTorch forward models</span><span>Reusable architectures</span></div></div>
+    <div class="welcome-art" aria-label="Example affine model">
+      <div class="art-label">THE FIRST EXPERIMENT</div><div class="mini-flow"><div class="mini-node"><small>INPUT</small><b>x</b><span>[B, 2]</span></div><span class="mini-wire">→</span><div class="mini-node purple"><small>LINEAR</small><b>Ax + b</b><span>2 → 1 · 3 parameters</span></div><span class="mini-wire">→</span><div class="mini-node green"><small>OUTPUT</small><b>ŷ</b><span>[B, 1]</span></div></div><div class="art-note"><span class="status-dot"></span> Every box has an executable meaning.</div>
+    </div>
+    <section class="recent-section"><div class="section-line"><h2>Recently worked files</h2><span class="muted">Visual Torch Workspaces · .vtw</span></div><div id="recent-list"></div></section>
+    <div id="resume-area" hidden><button id="resume-workspace">Return to the open workspace →</button></div>
+  </main>
+
+  <main id="editor" class="editor" hidden>
+    <nav id="menu-pack" class="menu-pack" aria-label="Floating panel menus">
+      <div class="pack-heading"><span class="pack-grip" title="Drag menu pack">PANELS</span><button id="pack-toggle" aria-label="Shrink menu pack" aria-expanded="true" aria-controls="pack-menus" title="Shrink to one icon · double-click icon to restore"><svg class="panel-pack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5V3h13v13h-2"/><rect x="3" y="8" width="13" height="13" rx="2"/><path d="M3 12h13"/><path d="M6 10h1"/></svg></button></div>
+      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button></div>
+    </nav>
+    <aside id="library-panel" class="library floating-panel" hidden>
+      <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
+      <div id="library-scroll" class="scrollport">
+      <div class="sidebar-section"><div class="eyebrow">BUILDING BLOCKS</div><button id="add-linear" class="palette"><span class="type-symbol purple-text">ƒ</span><span><b>Linear</b><small>Learn a matrix and a bias</small></span><span>+</span></button>
+      <label for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Tanh</option></select>
+      <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button>
+      <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
+      <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
+      <label for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button>
+      <div class="eyebrow">NAMED BOUNDARIES</div>
+      <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
+      <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>
+      <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button>
+      <button id="add-replicator" class="palette compact-palette"><span class="type-symbol amber-text">⇉</span><span><b>Replicator</b><small>Expose the full tensor on two ports without copying it</small></span></button></div>
+      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl-drag snaps blocks to the grid. Named boundaries define a reusable architecture's interface.</p></div>
+      </div>
+    </aside>
+
+    <aside id="architectures-panel" class="architectures floating-panel" hidden>
+      <div class="floating-heading" data-drag-handle><span>ARCHITECTURES</span><div class="panel-controls"><button id="add-model" class="icon" aria-label="New architecture" title="New architecture">+</button><button data-expand-panel aria-label="Expand architectures" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide architectures" aria-controls="architectures-scroll" title="Hide">×</button></div></div>
+      <div id="architectures-scroll" class="scrollport"><section id="architecture-bookkeeping" class="architecture-bookkeeping" aria-label="Currently open architecture"></section><div id="model-list" class="model-list"></div></div>
+    </aside>
+
+    <section class="workarea">
+      <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div class="canvas-note">Drag blocks · drag arrow ends to reconnect · D deletes selection · wheel to zoom · drag empty space to pan</div><div id="validation-message" class="validation-chip">Checking graph…</div></div>
+      <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
+        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
+        <div id="experiment-scroll" class="scrollport">
+        <div id="experiment-panel" class="experiment panel-content">
+          <section class="data-section"><div class="section-line"><h3>1. Prepare x, y data</h3><span id="data-status" class="muted">No dataset yet</span></div>
+          <select id="target-kind" aria-label="Synthetic target"><option value="auto">Auto: match the architecture</option><option value="affine">Known affine map</option><option value="nonlinear">Nonlinear Tanh teacher</option></select>
+          <div class="inline-fields"><label>Samples<input id="sample-count" type="number" min="2" value="256"></label><label>Noise σ<input id="noise" type="number" min="0" max="1" step=".01" value="0"></label><label>Seed<input id="seed" type="number" min="0" max="2147483647" value="7"></label></div><div class="inline-actions"><button id="generate-data">Generate synthetic data</button><button id="import-data">Import CSV…</button></div><p class="tiny" id="data-help">Generate a known target or import numeric CSV.</p><input type="file" id="csv-file" accept=".csv,text/csv" hidden></section>
+          <section class="train-section"><div class="section-line"><h3>2. Learn the model</h3><span id="training-state" class="muted">Ready when data is loaded</span></div><div class="inline-fields"><label>Epochs<input id="epochs" type="number" min="1" value="400"></label><label>Learning rate<input id="learning-rate" type="number" min=".000001" max="1" step=".01" value=".03"></label></div><div class="inline-actions"><button id="train" class="primary">▶ Train model</button><button id="stop" hidden>Stop</button><span id="loss-value" class="metric">—</span></div><p class="tiny">Seeded shuffled 80/20 split · MSE regression · one CPU worker thread. Output copies do not duplicate loss terms.</p><details class="safety-details"><summary id="safety-summary">Workspace run safety</summary><div id="safety-notice" role="status"></div><p id="safety-rules" class="tiny"></p></details></section>
+          <section class="loss-section"><div class="section-line"><h3>Loss</h3><span class="tiny">log scale · train + held-out</span></div><svg id="loss-plot" viewBox="0 0 300 120" aria-label="Training and held-out loss curves"></svg><div class="plot-legend"><span class="mint-text">— training</span><span class="blue-text">— held-out</span></div></section>
+        </div>
+        <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Generated from the graph, including referenced architectures</span><button id="export-code">Export .py…</button></div><pre id="code"></pre></div>
+        <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <aside id="inspector-panel" class="inspector floating-panel" hidden><div class="floating-heading" data-drag-handle><span>INSPECTOR <small id="node-kind" class="muted">Linear</small></span><div class="panel-controls"><button data-expand-panel aria-label="Expand inspector" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold inspector" aria-expanded="true" aria-controls="inspector-scroll" title="Fold / unfold">−</button></div></div><div id="inspector-scroll" class="scrollport"><div id="inspector-content"></div><div class="inspector-bottom"><div class="eyebrow">FORWARD CONTRACT</div><div id="equation" class="equation">y = Ax + b</div><p id="contract-explanation" class="tiny">PyTorch batches are rows. Tensor features use dimension 1.</p><div id="parameter-count" class="parameter-total">— parameters</div></div></div></aside>
+  </main>
+
+  <footer><div><span class="status-dot"></span><span id="status">Connecting to desktop…</span></div><span id="runtime">Visual Torch Workspace</span></footer>
+  <div id="toast" role="status" hidden><span id="toast-message"></span><button id="toast-close" type="button" aria-label="Dismiss notification" title="Dismiss notification">×</button></div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message"><form method="dialog"><h2 id="confirm-title">Confirm workspace action</h2><p id="confirm-message"></p><div class="dialog-actions"><button value="cancel" autofocus>Cancel</button><button id="confirm-ok" value="ok" class="primary">Confirm</button></div></form></dialog>
+  <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">New architecture</h2><p>Keep the name short and descriptive.</p><input id="name-input" maxlength="100" required autofocus><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Create</button></div></form></dialog>
+</body>
+</html>

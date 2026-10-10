@@ -1,0 +1,17 @@
+Copyright (C) 2026 Visual PyTorch contributors.
+
+Original Visual PyTorch application code and documentation are licensed under
+the GNU General Public License, version 3 only (SPDX: GPL-3.0-only).
+See LICENSE for the complete terms.
+
+Visual PyTorch is AI-coded and jointly directed by human and AI contributors.
+That development description does not replace copyright or license notices.
+
+Third-party software retains its own licenses. In particular:
+- PyQt6/PyQt6-WebEngine: GPLv3 or a separately obtained commercial license.
+- Qt/QtWebEngine and its components: their applicable upstream licenses.
+- PyTorch: upstream BSD-style license and bundled third-party notices.
+- Vendored MathJax 2.7.9: Apache-2.0; upstream, font and Debian notices retained
+  under app/web/vendor/mathjax/LICENSE and DEBIAN-COPYRIGHT.
+
+Do not remove upstream attribution or assume every dependency is GPL-licensed.

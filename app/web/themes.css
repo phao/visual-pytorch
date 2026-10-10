@@ -1,0 +1,69 @@
+/* Shared geometry; colours arrive as semantic tokens from app/themes.py. */
+:root{--chrome:#0d1723;--control:#172738;--hover:#22384d;--input:#0b1723;--selected:#18312f;--node-input:#142536;--node-linear:#201f33;--node-module:#2a251e;--node-output:#15302b;--node-reshape:#24312b;--dots:#26384b}
+body,.workarea{background:var(--bg);color:var(--ink)}
+.topbar,footer{background:var(--chrome);border-color:var(--line)}
+.canvas-container,.welcome{background:radial-gradient(ellipse at 50% 40%,var(--panel),var(--bg))}
+.floating-panel,.menu-pack,dialog,.welcome-art,.inspector-bottom{background:var(--panel);color:var(--ink);border-color:var(--line)}
+button{background:var(--control);color:var(--ink);border-color:var(--line)}
+button:hover{background:var(--hover);border-color:var(--blue)}
+button.primary{background:var(--mint);color:var(--bg);border-color:var(--mint)}
+button.primary:hover{background:var(--mint);filter:brightness(1.1)}
+input,select,textarea{background:var(--input);color:var(--ink);border-color:var(--line)}
+.brand,.icon{background:transparent}
+.navigation,.floating-heading,.panel-tabs,.sidebar-section,.sidebar-heading,.sidebar-help,
+.inspector-bottom,.experiment>section+section,.port-row,.recent-row,.result-table :is(td,th){border-color:var(--line)}
+.menu-pack #pack-menus button{background:var(--control);color:var(--ink)}
+.menu-pack #pack-menus button[aria-expanded=true],.pack-heading button,
+.model-row.selected,.canvas-tools .validate,.validation-chip{background:var(--selected);color:var(--mint);border-color:var(--mint)}
+.model-row{background:transparent}.model-row:hover{background:var(--hover)}
+.model-row .tab-hint,.model-row .model-glyph,.panel-controls button{color:var(--blue)}
+.model-row.selected .model-glyph{color:var(--mint)}
+.panel-controls button{background:transparent}.panel-controls button:hover{background:var(--hover)}
+.contract-card{background:var(--control);border-color:var(--line);color:var(--blue)}
+.equation,.results-grid pre,pre{color:var(--ink)}
+.eyebrow,.brand small,.canvas-note,.sidebar-heading,.sidebar-help,.floating-heading,
+.floating-heading small,.field-label,.inspect-label,.inspect-note,.palette small,
+.model-row small,.welcome p,.welcome-tags,.art-label,.mini-node span,.recent-row small,
+.port-row small,.panel-context,.panel-tabs button,.inline-fields label,.code-bar,
+.results-grid p,.result-table th,.learned-layers p,.learned-activation,
+dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
+.pack-grip{color:var(--mint)}
+.panel-tabs button.active,.learned-layers summary,.empty-recent b{color:var(--ink)}
+.panel-tabs button.active{border-bottom-color:var(--mint)}
+.validation-chip.error,.validation-chip.warning,.safety-details.blocked summary,
+#safety-notice,.safety-toggle.unconstrained,.text-danger{color:var(--pink)}
+.validation-chip.error,.validation-chip.warning{background:var(--control);border-color:var(--pink)}
+.text-danger{background:transparent}.text-danger:hover{background:var(--hover);color:var(--pink)}
+.mini-node{background:var(--node-input);border-color:var(--blue)}
+.mini-node.purple{background:var(--node-linear);border-color:var(--purple)}
+.mini-node.mint,.mini-node.green{background:var(--node-output);border-color:var(--mint)}
+.mini-node small,.mini-wire{color:var(--blue)}
+.scroll-thumb,pre::-webkit-scrollbar-thumb{background:var(--muted)}
+.scroll-thumb:hover,.scroll-thumb:focus-visible{background:var(--blue)}
+#toast{background:var(--selected);color:var(--ink);border-color:var(--mint)}
+#toast.error{background:var(--control);color:var(--pink);border-color:var(--pink)}
+#dots circle{fill:var(--dots)}
+.wire{stroke:var(--blue)}.wire:hover{stroke:var(--ink)}
+#wire-arrow path{fill:var(--blue)}#pending-wire{stroke:var(--amber)}
+.node rect{fill:var(--node-input);stroke:var(--blue)}
+.node.Linear rect{fill:var(--node-linear);stroke:var(--purple)}
+.node.Module rect,.node.Splitter rect,.node.Replicator rect{fill:var(--node-module);stroke:var(--amber)}
+.node.Activation rect,.node.Output rect{fill:var(--node-output);stroke:var(--mint)}
+.node.Reshape rect{fill:var(--node-reshape);stroke:var(--mint)}
+.node.selected rect{stroke:var(--ink)}
+.node .node-header{fill:var(--blue)}.node.Linear .node-header{fill:var(--purple)}
+.node.Module .node-header,.node.Splitter .node-header,.node.Replicator .node-header{fill:var(--amber)}
+.node.Activation .node-header,.node.Output .node-header,.node.Reshape .node-header{fill:var(--mint)}
+.node .node-title{fill:var(--ink)}.node .node-shape{fill:var(--blue)}.node .node-params{fill:var(--muted)}
+.node .node-type-icon{stroke:var(--blue)}.node.Linear .node-type-icon{stroke:var(--purple)}
+.node.Module .node-type-icon,.node.Splitter .node-type-icon,.node.Replicator .node-type-icon{stroke:var(--amber)}
+.node.Activation .node-type-icon,.node.Output .node-type-icon,.node.Reshape .node-type-icon{stroke:var(--mint)}
+.port{fill:var(--input);stroke:var(--blue)}.port:hover,.port.armed{fill:var(--amber);stroke:var(--amber)}
+#loss-plot text{fill:var(--muted)}
+/* Math favours book-like typography; explicit code/tensor monospace is retained. */
+:root[data-theme=math] body{font-family:"STIX Two Text","STIX","Noto Serif","DejaVu Serif","Liberation Serif","Georgia",serif}
+/* Brushed steel surfaces stay token-based, with no bitmap or downloaded assets. */
+:root[data-theme=metallic] :is(.topbar,.floating-heading,.pack-heading){background:linear-gradient(115deg,var(--control),var(--chrome) 52%,var(--panel))}
+:root[data-theme=metallic] :is(.floating-panel,.menu-pack){background:linear-gradient(135deg,var(--panel),var(--chrome));box-shadow:inset 0 1px 0 #ffffff24,0 8px 28px #0006}
+:root[data-theme=metallic] #pack-menus button:not([aria-expanded=true]){background:linear-gradient(180deg,var(--control),var(--panel))}
+:root[data-theme=metallic] #pack-menus button:hover{background:var(--hover)}
