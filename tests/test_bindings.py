@@ -29,6 +29,12 @@ def two_inputs():
 
 
 class BindingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Native Qt smoke imports only two_inputs, never this test lifecycle.
+        import torch
+        torch.set_num_threads(1)
+
     def workspace(self):
         w=Workspace();self.addCleanup(w.db.close)
         d=two_inputs();w.put(d);return w,d['id']

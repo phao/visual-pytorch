@@ -90,7 +90,7 @@ try:
     d['dataset_binding']=binding_for(validate_model(h.workspace.models(),mid));h.workspace.put(d)
     snapshot=h.workspace.models();python=find_torch_python();assert python
     import subprocess
-    source=('import json,sys;from app.core import train_model;'
+    source=('import json,sys,torch;torch.set_num_threads(1);from app.core import train_model;'
             'r=json.load(sys.stdin);print(json.dumps(train_model(r["models"],r["id"])))')
     process=subprocess.run([python,'-c',source],input=json.dumps({'models':snapshot,'id':mid}),
                            text=True,capture_output=True,timeout=15)
