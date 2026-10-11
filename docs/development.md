@@ -8,9 +8,10 @@ snapshots. Concurrent product writers use separate worktrees and serialize
 integration as described in AGENTS.md; campaign locks alone are insufficient.
 
 Current development checkpoint: A and the bounded B CNN slice are integrated;
-C remains local on `task/stage-c-experiments`. The latest C checkpoint below adds
-explicit GUI notebook inspection/execution. Earlier checkpoint descriptions and
-test counts are historical, not statements that later capabilities are absent.
+C remains local on `task/stage-c-experiments`. The latest C checkpoints below add
+explicit GUI notebook execution and rendered report-figure acceptance. Earlier
+checkpoint descriptions and test counts are historical, not statements that
+later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
 ## Initial source import
@@ -352,6 +353,54 @@ before D/E. Session history is not reopen/discovery of arbitrary prior execution
 verified hashes are not an atomic filesystem snapshot or authenticity. General
 ABA/crash/detached safety, whole-header large-font convergence and remaining
 workspace-specific floating-panel geometry are still open.
+
+### Rendered notebook figures and exact companions — local task branch only
+
+The scientific-plotting review now uses actual executed saved-result and rerun
+notebooks, optional nbconvert basic HTML and a real sandboxed off-record WebEngine
+reader with network requests rejected. Its original reproduction found 12 clipped
+text rectangles and 20 repeated SVG description IDs. Larger monospaced/wide-aware
+wrapped labels, inward endpoint tick labels and exact run/head/context-scoped IDs
+repair those cases without changing the saved curve values, axes or missing gaps.
+
+Generated training cells now display a semantic HTML figure companion with full
+literal caption and a collapsed native first-100 exact plotted-row table. The
+complete original SVG/CSV artifacts stay retained. Values, checkpoint/population,
+effective denominator and record counts remain separate; unavailable values are
+not zero. Unlike heads/datasets stay on separate plots, with solid/circles versus
+dashed/squares and no invented uncertainty/test curve. Captions retain source-unit
+versus transformed-loss meaning and discarded-history scope. The trusted-generated
+SVG helper is not a sanitizer for arbitrary artifact HTML or a new editor viewer.
+The helper has no numerical/Qt/Jupyter dependency and makes no SQLite/CLI grammar
+change. Existing complete bundles preserve their captured runtime/source.
+
+All 445 Python tests pass (165.772 s), and all 94 JS tests pass. Eight new pure
+tests prove literal/semantic companions, scoped IDs, wide/combining label retention,
+unchanged domains/series/gaps, explicit 100-of-240 preview, empty/bad CSV behavior
+and stdlib-only rendering. A new numerical fixture executes both complete modes:
+one saved successful fit plus a retained missing-worker failure, and eight fresh
+2-model × 2-dataset × 2-initialization fits. All nine sections and actual statuses
+are rendered offline. Eleven SVGs (nine real, two explicitly synthetic stress
+probes) now have no clipped/overlapping text or duplicate IDs in the test host.
+Semantic caption relationships, actual keyboard disclosure expansion and width-520
+local plot/table scrolling pass. Real saved/rerun/long-label captures were inspected.
+Visual review also exposed inherited caption wrapping breaking table headers;
+the companion now keeps words/numbers whole inside a locally scrolling table.
+No Qt-host numerical/Jupyter stack or disabled Chromium sandbox is involved.
+The current actual notebook GUI regression also passes saved/eight-rerun execution,
+failure/timeout/Stop, kernel cleanup, receipt/origin/hash checks and complete SQL/
+file isolation, with no JavaScript console errors. A Chromium graphics teardown
+warning was printed after its successful result; it did not change the verified
+terminal outcome or numerical artifacts.
+
+See [report-figure-presentation.md](report-figure-presentation.md) for exact
+contracts, optional acceptance dependencies, reproduction and primary references.
+This is not certification of every font, Jupyter frontend, print/PDF renderer,
+screen reader or WCAG conformance. The first-100 display bound does not bound
+whole-file CSV reading or full metadata/data/manifest transport. Richer in-app
+figures, remaining authoring/report presentation bounds and the pinned full C
+exit audit remain next, before D/E. Partial C stays unmerged/unpublished; public
+main and user app/workspaces/configuration are unchanged.
 
 ### First executable checkpoint — not Stage C completion
 

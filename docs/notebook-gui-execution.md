@@ -133,6 +133,13 @@ being displayed as verified. Reading/generating/executing does not change workin
 or saved .vtw bytes, domain undo/history, current selections or source run records.
 Numerical runs produced by rerun are external bundle artifacts, never auto-imported.
 
+Newly generated notebook training sections use semantic HTML figure companions
+with the same retained numerical SVG/CSV, full captions and a first-100 exact-row
+disclosure. These remain trusted notebook outputs, not raw HTML admitted into the
+editor receipt viewer. The [report-figure contract](report-figure-presentation.md)
+specifies layout and rendered acceptance limits; receipt artifact hashing and
+no-workspace-import behavior are unchanged.
+
 Receipts/notebooks remain durable on disk; session history is window-owned memory,
 not stored in .vtw. Reopening/discovering arbitrary prior attempt histories,
 detached recovery, full inline validation/transport bounds, richer rendered reports

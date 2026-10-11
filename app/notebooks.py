@@ -120,7 +120,7 @@ runtime = bundle_root / 'runtime'
 if 'app' in sys.modules:
     assert Path(sys.modules['app'].__file__).resolve().is_relative_to(runtime), 'Another app package is already loaded; use a fresh kernel'
 sys.path.insert(0, str(runtime))
-from app.report_runtime import run_report, section_html, curves, resolve_payload, table
+from app.report_runtime import run_report, section_html, curves, curve_figure, resolve_payload, table
 payload = json.loads((bundle_root / 'payload.json').read_text(encoding='utf-8'))
 resolve_payload(payload)
 attempt_id = os.environ.get('VPW_NOTEBOOK_ATTEMPT') or uuid.uuid4().hex
@@ -149,7 +149,7 @@ print('Input closure verified; mode:', payload['documents'][-1]['document']['mod
         add('markdown', section + '-heading', '## ' + section.replace('_', ' ').title())
         source = 'display(HTML(section_html(' + repr(section) + ', payload, report_view)))'
         if section == 'training':
-            source += "\nfor svg in curves(payload, report_view, execution_dir):\n    display(SVG(filename=svg))"
+            source += "\nfor svg in curves(payload, report_view, execution_dir):\n    display(HTML(curve_figure(svg)))"
         add('code', section, source)
     notebook = nbformat.v4.new_notebook(cells=cells, metadata={
         'kernelspec': {'name': 'python3', 'display_name': 'Python 3', 'language': 'python'},

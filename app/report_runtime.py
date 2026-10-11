@@ -12,6 +12,8 @@ import math
 import platform
 import sys
 import textwrap
+import unicodedata
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .core import Workspace, validate_model
@@ -199,7 +201,7 @@ def metric_rows(view, workspace):
 
 def table(headers, rows):
     escape = lambda v: html.escape(str(v), quote=True)
-    return '<table><thead><tr>' + ''.join('<th>' + escape(h) + '</th>' for h in headers) + '</tr></thead><tbody>' + ''.join(
+    return '<table><thead><tr>' + ''.join('<th scope="col">' + escape(h) + '</th>' for h in headers) + '</tr></thead><tbody>' + ''.join(
         '<tr>' + ''.join('<td>' + escape(v) + '</td>' for v in row) + '</tr>' for row in rows) + '</tbody></table>'
 
 
@@ -240,6 +242,23 @@ def section_html(section, payload, view):
         workspace.db.close()
 
 
+def _wrap_lines(value, columns):
+    """Keep text, allowing two cells for wide fallback glyphs in a mono caption."""
+    if type(columns) is not int or columns < 2:
+        raise ValueError('Caption width must be an integer of at least two columns.')
+    lines = []
+    for original in textwrap.wrap(value, width=columns):
+        line = ''; used = 0
+        for character in original:
+            cells = 0 if unicodedata.combining(character) else 2 if unicodedata.east_asian_width(character) in 'WF' else 1
+            if line and used + cells > columns:
+                lines.append(line.rstrip()); line = ''; used = 0
+            line += character; used += cells
+        if line.strip():
+            lines.append(line.strip())
+    return lines
+
+
 def curve_svg(summary, result, hid, context):
     """Numerical SVG with audited coordinates, missing spans and scoped identity."""
     history = result['history']
@@ -260,30 +279,33 @@ def curve_svg(summary, result, hid, context):
         'Source target unit: ' + (context['unit'] or 'unspecified') + '. Target transforms: ' + json.dumps(context['transforms'], sort_keys=True) + '. Loss is in transformed target space.',
         'Retained ' + str(len(history)) + ' / ' + str(retention['observed_points']) + ' observations; discarded ' + str(retention['discarded_points']) + '. Missing values break lines; no smoothing or confidence intervals.',
         'Every point evaluates one checkpoint over its named population. Test metrics are final-only and are not plotted. Exact checkpoints, denominators and counts are in the companion CSV.']
-    caption_lines = [line for caption in captions for line in textwrap.wrap(caption, width=100)]
-    title_lines = textwrap.wrap(title, width=82) or ['Training history']
-    top = 46 + 18 * (len(title_lines) - 1); bottom = top + 224
-    width, height = 760, bottom + 80 + 16 * len(caption_lines)
+    caption_lines = [line for caption in captions for line in _wrap_lines(caption, 84)]
+    title_lines = _wrap_lines(title, 60) or ['Training history']
+    top = 46 + 22 * (len(title_lines) - 1); bottom = top + 224
+    height = bottom + 90 + 20 * len(caption_lines)
+    scope = digest({'run': summary['reference'], 'head': hid, 'context': context})[:32]
+    title_id, desc_id = 'curve-title-' + scope, 'curve-desc-' + scope
     escape = lambda v: html.escape(str(v), quote=True)
     elements = ['<svg xmlns="http://www.w3.org/2000/svg" width="760" height="' + str(height) +
-                '" viewBox="0 0 760 ' + str(height) + '" role="img" aria-labelledby="curve-title curve-desc">',
-                '<title id="curve-title">' + escape(title) + '</title>',
-                '<desc id="curve-desc">' + escape(' '.join(captions)) + '</desc>',
+                '" viewBox="0 0 760 ' + str(height) + '" role="img" aria-labelledby="' + title_id + ' ' + desc_id + '">',
+                '<title id="' + title_id + '">' + escape(title) + '</title>',
+                '<desc id="' + desc_id + '">' + escape(' '.join(captions)) + '</desc>',
                 '<metadata>' + escape(json.dumps({'version': 1, 'run': summary['reference'], 'head': hid,
                     'final_checkpoint': result['checkpoint_id'], 'context': context, 'series': series,
                     'x_range': [0, max_x], 'y_range': [0, max_y], 'scale': 'linear',
                     'retention': retention}, sort_keys=True, allow_nan=False)) + '</metadata>',
                 '<rect width="760" height="' + str(height) + '" fill="#f7fafc"/>',
-                '<g font-family="sans-serif" font-size="12" fill="#203040">']
+                '<g font-family="sans-serif" font-size="14" fill="#203040">']
     for i, line in enumerate(title_lines):
-        elements.append('<text x="72" y="' + str(22 + 18 * i) + '" font-size="14">' + escape(line) + '</text>')
+        elements.append('<text x="72" y="' + str(22 + 22 * i) + '" font-family="monospace" font-size="18">' + escape(line) + '</text>')
     for fraction in (0, .25, .5, .75, 1):
         y = bottom - 224 * fraction
         elements += ['<line x1="72" y1="' + str(y) + '" x2="732" y2="' + str(y) + '" stroke="#d5dee5"/>',
                      '<text x="64" y="' + str(y + 4) + '" text-anchor="end">' + format(max_y * fraction, '.4g') + '</text>']
     for x in sorted(set(round(max_x * fraction) for fraction in (0, .25, .5, .75, 1))):
         px = 72 + 660 * x / max_x
-        elements.append('<text x="' + str(px) + '" y="' + str(bottom + 18) + '" text-anchor="middle">' + str(x) + '</text>')
+        anchor = 'start' if x == 0 else 'end' if x == max_x else 'middle'
+        elements.append('<text x="' + str(px) + '" y="' + str(bottom + 18) + '" text-anchor="' + anchor + '">' + str(x) + '</text>')
     elements += ['<path d="M 72 ' + str(top) + ' V ' + str(bottom) + ' H 732" fill="none" stroke="#657585"/>',
                  '<text x="18" y="' + str((top + bottom) / 2) + '" transform="rotate(-90 18 ' + str((top + bottom) / 2) + ')" text-anchor="middle">Weighted mean ' + escape(kind) + ' (linear)</text>',
                  '<text x="402" y="' + str(bottom + 39) + '" text-anchor="middle">Successful optimizer updates (0 = initial; post-update evaluation)</text>']
@@ -306,8 +328,40 @@ def curve_svg(summary, result, hid, context):
     elements += ['<text x="72" y="' + str(bottom + 61) + '" fill="#087f8c">Train: solid / circles</text>',
                  '<text x="290" y="' + str(bottom + 61) + '" fill="#ad4b16">Validation: dashed / squares</text>']
     for i, line in enumerate(caption_lines):
-        elements.append('<text x="20" y="' + str(bottom + 86 + 16 * i) + '" font-size="11">' + escape(line) + '</text>')
+        elements.append('<text x="20" y="' + str(bottom + 86 + 20 * i) + '" font-family="monospace" font-size="14">' + escape(line) + '</text>')
     return '\n'.join(elements + ['</g>', '</svg>'])
+
+
+def curve_figure(path):
+    """HTML companion for our generated SVG/CSV, not an arbitrary-HTML sanitizer.
+
+    Keeps readable vector text at native size and exposes a bounded exact CSV
+    preview without changing the stored plot or its numerical population.
+    """
+    path = Path(path); svg = path.read_text(encoding='utf-8'); root = ET.fromstring(svg)
+    ns = '{http://www.w3.org/2000/svg}'
+    title, description = root.find(ns + 'title').text, root.find(ns + 'desc').text
+    metadata = json.loads(root.find(ns + 'metadata').text)
+    fields = ('update', 'checkpoint', 'population', 'head', 'kind', 'value', 'denominator', 'records')
+    rows = []; count = 0
+    with path.with_suffix('.csv').open(encoding='utf-8', newline='') as stream:
+        reader = csv.DictReader(stream)
+        if reader.fieldnames != list(fields):
+            raise ValueError('Curve CSV requires the exact plotted-row header.')
+        for row in reader:
+            if set(row) != set(fields) or any(v is None for v in row.values()):
+                raise ValueError('Curve CSV row is incomplete or contains extra fields.')
+            count += 1
+            if len(rows) < 100:
+                rows.append([('unavailable' if row[key] == '' else row[key]) if key == 'value' else row[key] for key in fields])
+    caption_id = 'curve-caption-' + digest(metadata)[:32]
+    escape = lambda value: html.escape(str(value), quote=True)
+    return '<figure class="vpw-curve" role="group" aria-labelledby="' + caption_id + '" style="margin:16px 0;max-width:100%">' + \
+        '<div style="overflow-x:auto;max-width:100%">' + svg + '</div><figcaption id="' + caption_id + \
+        '" style="overflow-wrap:anywhere"><strong>' + escape(title) + '</strong><p>' + escape(description) + '</p>' + \
+        '<details><summary>Exact plotted rows · first ' + str(len(rows)) + ' of ' + str(count) + \
+        '; complete retained CSV: ' + escape(path.with_suffix('.csv').name) + ' (same attempt directory)</summary>' + \
+        '<div style="overflow-x:auto;overflow-wrap:normal;white-space:nowrap">' + table(fields, rows) + '</div></details></figcaption></figure>'
 
 
 def curves(payload, view, directory):

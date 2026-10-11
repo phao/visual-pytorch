@@ -364,11 +364,15 @@ creates a saved-result recipe, generates without training and saves/reloads v6.
 It checks zero console errors and no GUI-host Torch import. Notebook generation
 uses a private Qt+nbformat environment; user environments/config/files are untouched.
 
-353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
+At the initial GUI checkpoint, 353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
 layout checks. New rendered CSS regression checks 240 block/palette pairs.
-This is not full C completion. Richer metric/predictor views, multi-run
-report selection, GUI notebook execution, bounded metadata/raw-data presentation, rendered report
-figure review and requirement-by-requirement C convergence remain. D/E stay open.
+Subsequent checkpoints implement structured metric/predictor views, saved multi-run
+recipes, explicit GUI notebook execution and bounded rendered-notebook/figure
+acceptance. Their contracts are linked above and current checks are recorded in
+[development.md](development.md). This is still not full C completion: full
+metadata/raw-data/manifest transport and authoring/report presentation bounds,
+richer in-app figures and requirement-by-requirement C convergence remain.
+D/E stay open.
 
 Eleven native Qt lifecycle tests include an actual thread finished while GUI
 delivery is deliberately withheld, central edit/run/replace/close guards, exact

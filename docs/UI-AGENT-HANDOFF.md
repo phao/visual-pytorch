@@ -749,3 +749,23 @@ undo or file Save; preserve those distinctions when adapting this pattern.
 Visual PyTorch's exact actions/events and verified scope are specified in
 [notebook-gui-execution.md](notebook-gui-execution.md), not a generic promise of
 detached recovery or safe execution of arbitrary code.
+
+### Scientific figure companions in exported reports
+
+When the product exports numerical reports, make figure meaning recoverable
+without hover or color alone. Preserve unlike quantities in separate plots,
+explicit missing spans, distinct markers/line patterns, exact source identities,
+checkpoint/population scope, source-unit versus transformed-loss meaning and
+retention/discard information. Do not turn descriptive seed variation into
+confidence intervals or hide failed trials to improve appearance.
+
+Associate each figure with a readable caption and a bounded exact data disclosure;
+state its full-data artifact and preview scope. Keep vector labels readable at
+native size, allowing local scrolling in narrow readers. Scope description IDs
+when multiple figures share a document. Measure actual rendered text rectangles
+and inspect captures; character counts alone do not prove label containment.
+Synthetic display stress values must be labelled as such, not passed off as fits.
+These trusted-generated HTML report companions are not a reason to render arbitrary
+artifact HTML in the editor's literal evidence cards. See Visual PyTorch's precise
+[report-figure-presentation.md](report-figure-presentation.md) for the tested pattern
+and font/frontend/accessibility/resource limits.

@@ -132,6 +132,14 @@ invented confidence intervals. Missing points break curves. Companion CSV
 retains each point's update/checkpoint/population/value/denominator/record count;
 captions identify transformed target loss, retained/discarded history and run.
 
+Newly generated training cells display a semantic HTML figure companion with the
+same retained numerical SVG, a readable full caption and a collapsed first-100
+exact CSV-row preview. Full CSVs remain available in the attempt directory;
+unavailable values are labelled, not replaced by zeros. Larger wrapped SVG text,
+inward endpoint labels and scoped title/description IDs prevent reproduced
+clipping/collisions. See [report-figure-presentation.md](report-figure-presentation.md)
+for precise layout, trusted-input, format, resource and rendered-test limits.
+
 ## Verification and limits
 
 The original portable-bundle checkpoint's sixteen notebook tests include actual kernels for both modes, all eight bounded
@@ -149,5 +157,8 @@ sandbox, signatures, remote job receipts or optimizer resume. Source workspaces
 remain read-only and generated runs are bundle artifacts, not automatically
 imported into the lab workspace. Explicit local GUI notebook inspection/execution
 is implemented separately; richer report UI, remote execution and full Stage C
-completion are not claimed. Numerical SVG tests do
-not substitute for a final rendered-figure review before publication.
+completion are not claimed. A real sandboxed browser now renders both complete
+executed notebook modes and their SVGs through the optional nbconvert basic
+acceptance fixture. The report-figure contract records visual/keyboard/narrow-view
+checks and their scope; numerical tests and this bounded rendered review do not
+certify every frontend/viewer or close the full C exit audit.
