@@ -1,5 +1,38 @@
 # Development state and roadmap
 
+## 2026-10-11 09:17 -03:00 — Stage D retained runtime declaration checkpoint
+
+Family v5 stores optional runtime_inputs by stable root Input ID. Specialization
+v4 retains canonical H/W axes and a specification digest rederived from its exact
+family, bindings and scoped contexts on admission/load/save. Container12 gates
+those records, with no new SQL table or runtime sidecar. Family1–4 hashes and
+concrete ModelRevisions remain unchanged; saved unresolved/incompatible family
+drafts remain repairable, but cannot become executable specializations.
+
+Owned Qt JSON editing explicitly upgrades to5, retains invalid text and respects
+owner/sequence/workspace/staging fences. Acknowledged upgrades now update the
+visible version and controller state, so later edits cannot enqueue an accidental
+downgrade. Preview labels conditional runtime safety separately from a verified
+baseline. CLI and checked family export use the exact retained source, never its
+mutable head; omitted constructor runtime_inputs adopts its captured v5 policy.
+The new spatial-adaptive.json example supports constructor C/d/K/g and runtime
+H/W with179 default parameters,375 for C=6,d=12 including biases.
+
+82 pure/native and297 JS tests pass. Seven focused numerical tests include
+independent actual outputs/input/parameter gradients, different-resolution shared
+ports, current-RAM refusal, default/override distinction,3 fresh app-free Adam
+updates and strict semantic weights-only transfer. Actual sandboxed Qt root edit,
+invalid text/explicit upgrade/preview/exact-byte export/retention/reload passes
+without host Torch or console errors; capture inspected. A real fixed-shape task
+worker and Jupyter kernel fit preserve the new exact family provenance. Those
+tasks remain concrete: variable-resolution data, recurrence/state/length/mask/
+reset/mixed composition and E are not completed by this change. Main/public refs,
+installer and actual user app/config/.vtw files are untouched. Failed probes and
+full regression counts are retained in the campaign checkpoint evidence.
+Final full suite:846 invocations in274.799s,843 passed/3 Qt-environment skips
+separately covered in system Python; all297 JS pass in1212.80614ms. No final
+warnings. See product docs/runtime-spatial-contracts.md for exact semantics.
+
 ## 2026-10-11 08:50 -03:00 — Stage D: runtime spatial backend/API
 
 Native compile_model and checked exported ArchitectureFamily now accept explicit

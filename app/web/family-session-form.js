@@ -46,6 +46,13 @@
     if(!live(owner,ticket))return false;
     if(h.version!==1||h.scope!=='owned-authoring-session'||h.kind!=='family'||h.session!==owner.header.session||h.sequence!==sequence+1||h.id!==owner.header.id||h.workspace_id!==owner.header.workspace_id)
       throw Error('Family edit acknowledgement has a different owner or sequence.');
+    for(const op of operations){
+      if(op.op==='property'&&op.target.kind==='document'&&op.key==='version'&&op.text!==null)
+        owner.documentVersion=JSON.parse(op.text);
+    }
+    const versionField=$('science-family-roots').querySelector('[data-key="version"]');
+    if(versionField&&!('dirty' in versionField.dataset)&&!('invalid' in versionField.dataset))
+      versionField.value=String(owner.documentVersion);
     owner.header=h;return true;
   }
   async function flush(){capture();if($('science-family-editor').querySelector('[data-invalid]'))throw Error('Correct invalid family fields; your text is retained.');
@@ -65,7 +72,7 @@
     }});
   }
   function control(d,target,readOnly=false,symbolType='integer'){
-    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph','values','default'].includes(key),
+    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph','values','default','runtime_inputs'].includes(key),
       numeric=['minimum','maximum','version'].includes(key),
       selector=['mode','type'].includes(key),n=el(selector?'select':json&&key!=='default'?'textarea':'input');
     if(selector){
@@ -78,16 +85,21 @@
     }
     n.dataset.familyControl='';n.dataset.key=key;const large=d.present&&d.text===null;
     n.dataset.large=String(large);n.dataset.readOnly=String(readOnly);
+    if(key==='runtime_inputs'){
+      n.placeholder='{"input": [1, 2]} · blank = fixed shapes';
+      n.title='Optional H/W sample axes by stable root Input ID. 1=H, 2=W; B/C stay fixed. Explicit family version 5. Weights must be independent of runtime axes; actual shapes/RAM are checked before each call.';
+    }
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
     else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):'';
     n.oninput=()=>{n.dataset.dirty='';invalidate();};
     n.onchange=()=>{try{
-      let text;if((numeric||['default','values'].includes(key))&&n.value.trim()==='')text=null;
+      let text;if((numeric||['default','values','runtime_inputs'].includes(key))&&n.value.trim()==='')text=null;
       else if(json||numeric){text=n.value;const parsed=JSON.parse(text);
         if((numeric||key==='default'&&typeof parsed==='number')&&!/^-?(0|[1-9][0-9]*)$/.test(text))throw Error('Enter an exact decimal integer, or blank for an absent default/bound.');
       }else text=JSON.stringify(n.value);
       if(key==='mode'&&n.value==='tied')upgrade(2,n);
       if(['type','values'].includes(key))upgrade(3,n);
+      if(key==='runtime_inputs'&&text!==null)upgrade(5,n);
       enqueue(target,key,text,n);
     }catch(e){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(e);}};
     wrapper.append(n);if(!readOnly&&d.path&&(large||json))wrapper.append(button('Edit staged JSON…',()=>raw(d.path,key)));

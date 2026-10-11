@@ -82,10 +82,15 @@ diagnostic conventions, not a separate diagram interpretation.
 
 Optional `runtime_inputs` explicitly enables the checked H/W domain described in
 [runtime spatial contracts](runtime-spatial-contracts.md). It defaults to the
-ordinary fixed-shape path; no input data infers constructor bindings. Runtime
+ordinary fixed-shape path for family v1–4 or v5 without a declaration. For v5
+with runtime_inputs, omitted/None uses that exact captured declaration; an explicit
+map instead supplies a separately checked instance override recorded in provenance.
+To export a fixed v5 domain, retain a version without the optional declaration;
+None does not silently remove a stored policy. No input data infers constructor bindings. Runtime
 specification/shape previews and instance provenance retain the explicit domain.
-Persisted declarations/typed GUI authoring and variable-resolution task datasets
-are not yet implemented. Warm starts transfer compatible weights, not a promised
+Persisted declarations/typed GUI authoring are implemented in `.vtw`12. Task
+datasets and worker/notebook fits remain concrete fixed-shape; merely capturing
+the runtime module does not change their data contract. Warm starts transfer compatible weights, not a promised
 runtime-domain continuation.
 
 ## Captured runnable closure and provenance
@@ -190,8 +195,9 @@ strictly transfers state with equal prediction. The real Qt smoke tests select,
 export and verify exact source bytes without host Torch or SQL writes.
 
 The current finite graph/family/context bounds and CPU RAM heuristic remain.
-Exported classes do not add runtime-variable spatial dimensions, recurrent state/
-sequence masks/reset policies or heavyweight execution. D/E remain incomplete.
+Exported classes support checked runtime H/W, not arbitrary channel/rank changes,
+ragged task datasets, recurrent state/sequence masks/reset policies or heavyweight
+execution. D/E remain incomplete.
 
 Primary reference: [PyTorch Module](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html),
 especially registered submodules, forward calls/hooks and state dictionaries.

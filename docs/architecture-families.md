@@ -172,16 +172,18 @@ records. Typed owned GUI editing and [family sweep axes](family-experiment-axes.
 are now implemented, as are [explicit finite tied uses](shared-parameters.md).
 The [runtime spatial backend/API](runtime-spatial-contracts.md) now accepts an
 explicit H/W declaration in native/checked exported constructors with statically
-fixed parameter shapes and actual-case guards. Retained family/specialization
-records and their typed UI still fix H/W; runtime declarations are not yet stored
-there. Testing two concrete specializations alone does not prove dynamic safety.
-Persisted/typed runtime declarations and recurrent state/length/mask contracts
-remain subsequent Stage D work.
+fixed parameter shapes and actual-case guards. Family v5, specialization v4 and
+the typed editor now retain this declaration/witness in `.vtw`12. Ordinary frozen
+drawings and worker/task datasets still have fixed shapes; retaining provenance
+does not upgrade those paths to variable-resolution execution. Testing two concrete
+specializations alone does not prove dynamic safety. Recurrent state/length/mask
+contracts remain subsequent Stage D work.
 
 ### Retained records and exact stored preview
 
 `family` uses version1, the explicit sharing extension in version2 or typed
-constructor version3 or scoped Module constructor version4, with only the optional verified registry
+constructor version3, scoped Module constructor version4 or retained runtime
+contract version5, with only the optional verified registry
 `revision` added. Its revision is the external definition's original digest.
 Unbound families may be retained as drafts; retaining them does not compile or
 materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
@@ -192,6 +194,9 @@ Specialization v2 retains family v3's exact typed values; v1 retains family v1/v
 Specialization v3 pairs with family v4 and retains canonical available fallbacks
 and all exact resolved local contexts; child-only arguments need not exist as
 global bindings. See [scoped-constructors.md](scoped-constructors.md).
+Specialization v4 pairs with family v5 and adds mandatory `runtime`, either null
+or the closed canonical inputs/specification hash witness reproduced on every
+admission/load/save. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
 
 Admission/load/save re-resolve the exact family with those bindings and compare
 the expected frozen `model_document` identity under the reference JSON hash.

@@ -1,12 +1,63 @@
-# Runtime spatial contracts — Stage D backend/API checkpoint
+# Runtime spatial contracts — Stage D retained family checkpoint
 
 This is the executable contract of `app/runtime_shapes.py`, `app/graph.py` and
-`app/core.py`, not a completed GUI/storage feature. The native compiler and
+`app/core.py`, with retained family declarations and owned Qt/CLI authoring. The native compiler and
 checked standalone family constructor can explicitly accept varying image H/W
-without creating new weights. Ordinary diagrams, frozen revisions, worker tasks
-and dataset bindings remain concrete; no `.vtw` migration or implicit dynamic
-interpretation is introduced. Persisted family declarations and owned typed UI
-authoring are subsequent D work, along with recurrent state/length/mask/reset.
+without creating new weights. Family v5 and specialization v4 require `.vtw`12,
+without new SQL tables. Ordinary diagrams, frozen ModelRevisions, worker tasks
+and dataset bindings remain concrete. Retaining a runtime domain does not make
+those fixed-shape execution paths dynamic. Recurrent state/length/mask/reset and
+mixed composition remain subsequent D work; D/E are not complete.
+
+## Retained declarations and exact provenance
+
+Family v5 extends v4 with optional `runtime_inputs`, for example
+`{"input": [1, 2]}`. Keys are root template Input node IDs, not labels or
+constructor symbol IDs. Axes index sample dimensions, excluding B: 0=C, 1=H,
+2=W. The field must be a nonempty map of valid CHW root inputs to nonempty,
+unique subsets of `[1,2]`; omission means fixed shapes. Declaration order is
+preserved in the family bytes; resolution sorts axes canonically. Earlier family
+versions reject this field. v5 without it is explicitly legal and fixed-shape.
+
+Concrete templates and symbols still define a baseline specialization. H/W
+runtime axes are NOT additional constructor bindings and never inferred from
+tensors. After ordinary scoped specialization, the allocation-free dependency
+pass proves parameter independence. Unresolved or incompatible constructor points
+remain visible, but cannot create a retained specialization. A valid declaration
+with a fixed Flatten→Linear head can therefore be retained as a family draft;
+resolution refuses it with the affected node and a reduction/binding repair.
+
+The resolution receipt has version3 and includes `runtime` and
+`runtime_specification`. The persisted specialization is version4, with exactly
+the ordinary v3 fields plus mandatory `runtime`: null for fixed-shape v5, or
+`{"version":1,"inputs":{...},"specification_sha256":"<64 lowercase hex>"}`.
+The SHA-256 uses the existing canonical finite-JSON digest of the complete pure
+runtime specification for that exact family/bindings/resolved context. The
+specification describes a conditional domain, not a proof that all resolutions
+execute. Admission/load/save reproduce and compare this witness alongside the
+exact frozen model and constructor contexts. Forged axes, missing/null witnesses
+or hashes fail atomically. Older grammar and receipt hashes remain unchanged.
+
+No new table or runtime sidecar is introduced. The existing persistent `.vtw.lock`
+still provides save synchronization. Older files upgrade only in memory until
+explicit Save; an earlier container claiming v5 family/v4 specialization rows
+is rejected. Undo may remove drawings and browsing heads, but exact historical
+runtime provenance remains retrievable by revision.
+
+In the owned family editor, `runtime_inputs` is a bounded JSON textarea with
+an explanatory tooltip. Nonblank JSON explicitly queues version5 before the
+property in the same batch. Blank removes the property, never downgrades the
+grammar. Invalid text remains visible and blocks preview/admission. Acknowledged
+upgrades update the displayed version and the controller's subsequent edits.
+Preview exposes bounded runtime/specification descriptors and
+`runtime_status: conditional-per-call-guards` or `fixed-shape`; `status: verified`
+alone describes the baseline specialization, not every runtime case.
+
+`preview-stored-family ID REVISION` and `export-family ID REVISION` use the same
+exact retained source, never the mutable head. `examples/families/spatial-adaptive.json`
+is a runnable default179-parameter grouped image encoder with adaptive reduction,
+constructor C/d/K/g and explicit runtime H/W. C=6,d=12 gives375 parameters,
+including both learned biases. CLI commands do not run tensors or modify SQL.
 
 ## Explicit construction and identity
 

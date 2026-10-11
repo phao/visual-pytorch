@@ -26,8 +26,9 @@ def validate_family_revision(doc):
 
 def validate_specialization(doc):
     _keys(doc, ('version', 'id', 'name', 'family', 'bindings', 'model') +
-          (('instances',) if doc.get('version') == 3 else ()), ('revision',), 'Specialization')
-    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3), 'Specialization supports integer version 1, 2 or 3.')
+          (('instances',) if type(doc.get('version')) is int and doc['version'] >= 3 else ()) +
+          (('runtime',) if doc.get('version') == 4 else ()), ('revision',), 'Specialization')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4), 'Specialization supports integer version 1, 2, 3 or 4.')
     _require(_identifier(doc['id']) and _identifier(doc['name']), 'Specialization needs a stable ID/name.')
     reference(doc['family'], 'family'); reference(doc['model'], 'model')
     _require(isinstance(doc['bindings'], dict) and len(doc['bindings']) <= 128,
@@ -35,7 +36,7 @@ def validate_specialization(doc):
     for sid, value in doc['bindings'].items():
         _require(_identifier(sid), 'Specialization binding key must be a stable symbol ID.')
         binding_atom(value, 'Specialization binding ' + sid, typed=doc['version'] >= 2)
-    if doc['version'] == 3:
+    if doc['version'] >= 3:
         _require(isinstance(doc['instances'], list) and 1 <= len(doc['instances']) <= 64,
                  'Specialization needs 1..64 concrete constructor contexts.')
         seen = set()
@@ -49,6 +50,17 @@ def validate_specialization(doc):
             for sid, value in row['bindings'].items():
                 _require(_identifier(sid), 'Constructor context key must be a stable symbol ID.')
                 binding_atom(value, 'Constructor context ' + sid, typed=True)
+    if doc['version'] == 4 and doc['runtime'] is not None:
+        value = doc['runtime']
+        _keys(value, ('version','inputs','specification_sha256'), context='Specialization runtime contract')
+        _require(type(value['version']) is int and value['version'] == 1 and isinstance(value['inputs'],dict) and
+                 1 <= len(value['inputs']) <= 64, 'Runtime contract requires version1 and explicit root Input IDs.')
+        for nid, axes in value['inputs'].items():
+            _require(_identifier(nid) and isinstance(axes,list) and 1 <= len(axes) <= 2 and
+                     all(type(v) is int and v in (1,2) for v in axes) and axes == sorted(set(axes)),
+                     'Runtime contract must retain canonical unique H/W sample axes.')
+        _require(isinstance(value['specification_sha256'],str) and len(value['specification_sha256']) == 64 and
+                 all(v in '0123456789abcdef' for v in value['specification_sha256']), 'Runtime specification needs its exact SHA-256.')
 
 
 def validate_specialization_dependencies(doc, resolve):
@@ -57,15 +69,18 @@ def validate_specialization_dependencies(doc, resolve):
     family = resolve(doc['family']['kind'], doc['family']['id'], doc['family']['revision'])
     model = resolve(doc['model']['kind'], doc['model']['id'], doc['model']['revision'])
     source = definition(family)
-    _require(doc['version'] == (3 if source['version'] == 4 else 2 if source['version'] == 3 else 1),
+    _require(doc['version'] == (4 if source['version'] == 5 else 3 if source['version'] == 4 else 2 if source['version'] == 3 else 1),
              'Specialization version must match its exact family scalar grammar.')
     if doc['version'] < 3:
         _require(set(doc['bindings']) == {s['id'] for s in source['symbols']},
                  'Specialization bindings must explicitly include every symbol, including defaults.')
     resolved = specialize(source, doc['bindings'])
-    if doc['version'] == 3:
+    if doc['version'] >= 3:
         _require(doc['bindings'] == resolved['bindings'] and digest(doc['instances']) == digest(resolved['instances']),
                  'Specialization must retain canonical fallback bindings and every exact constructor context.')
+    if doc['version'] == 4:
+        _require(digest(doc['runtime']) == digest(resolved['runtime']),
+                 'Specialization runtime contract differs from its exact family revision and constructor bindings.')
     expected = model_document(resolved['models'], resolved['root'])
     _require(digest(definition(model)) == digest(expected),
              'Specialization frozen model does not match its exact family revision and bindings.')
@@ -117,10 +132,11 @@ def resolution_records(frozen, resolved, *, sid=None, name=None):
     model = frozen_document('model', model_document(resolved['models'], resolved['root']))
     model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
     record = frozen_document('specialization', {
-        'version': 3 if frozen['version'] == 4 else 2 if frozen['version'] == 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
+        'version': 4 if frozen['version'] == 5 else 3 if frozen['version'] == 4 else 2 if frozen['version'] == 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
         'name': name if name is not None else frozen['name'] + ' · resolved',
         'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref,
-        **({'instances': copy.deepcopy(resolved['instances'])} if frozen['version'] == 4 else {})})
+        **({'instances': copy.deepcopy(resolved['instances'])} if frozen['version'] >= 4 else {}),
+        **({'runtime':copy.deepcopy(resolved['runtime'])} if frozen['version'] == 5 else {})})
     return {'family_ref': family_ref, 'model': model, 'model_ref': model_ref,
             'specialization': record, 'specialization_ref': {
                 'kind': 'specialization', 'id': record['id'], 'revision': record['revision']}}

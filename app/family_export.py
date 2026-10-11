@@ -58,6 +58,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'export_format': 1, 'operator_version': 1, 'container_version': VERSION,
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
+                  'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -170,6 +171,7 @@ class ArchitectureFamily(nn.Module):
         policy = _EXPORT['policy']
         constrained = policy['constrained'] if constrained is None else constrained
         percentage = policy['memory_limit_percent'] if memory_limit_percent is None else memory_limit_percent
+        runtime_inputs = source.get('runtime_inputs') if runtime_inputs is None else runtime_inputs
         # compile_model performs the whole-model preflight before any nn layer.
         self.network = runtime.core.compile_model(resolved['models'], resolved['root'], constrained,
                                                    memory_limit_percent=percentage, runtime_inputs=runtime_inputs)
@@ -186,7 +188,8 @@ class ArchitectureFamily(nn.Module):
     def constructor_specification(cls):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
-                'constructors': source.get('constructors', []), 'policy': export_metadata()['policy']}
+                'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
+                'policy': export_metadata()['policy']}
 
     @property
     def contract(self):

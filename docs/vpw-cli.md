@@ -27,6 +27,13 @@ instantiating or training. Captures workspace constrained mode and the read-only
 user RAM percentage unless overridden. It leaves the .vtw unchanged, refuses
 overwrite/final symlinks and returns compact source hash/provenance, not code.
 See [checked-family-export.md](checked-family-export.md).
+Family v5 accepts optional runtime_inputs keyed by stable root Input IDs with
+H/W sample axes1/2. Stored preview and exported constructors retain this policy;
+specialization v4 reproduces its exact canonical witness in `.vtw`12. No new CLI
+command is needed. Preview/export do not train or infer bindings. Existing
+dataset-driven workers and notebook reruns still fit the concrete baseline, not
+variable-resolution data; their exact family/specialization provenance remains
+retained. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
 See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
 

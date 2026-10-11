@@ -4,6 +4,34 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 09:17 -03:00 — Retained runtime H/W family contracts
+
+Added family v5's optional stable-root-Input runtime_inputs declaration and
+specialization v4's canonical inputs/specification digest witness because a saved
+family must preserve its conditional runtime domain, not just example shapes.
+Container12 gates those semantics without SQL changes; exact admission/load/save
+reproduce scoped resolution and dependency proof. Immutable historical records
+survive undo/head changes; late failures remain atomic. Existing family1–4 hashes
+and ordinary fixed-shape ModelRevisions/task datasets are unchanged.
+
+Owned Qt root editing explicitly upgrades to5 in one batch, keeps invalid text,
+supports removal without downgrade and updates both displayed/controller grammar
+after acknowledgement. Fixed a stale-version sequencing defect to prevent a later
+scalar/tied edit trying to downgrade a successfully upgraded draft. CLI preview/
+export and the app-free exported constructor use exact retained policy; omitted
+constructor runtime_inputs now adopts a captured v5 declaration. Added a runnable
+179-parameter grouped/adaptive family and synchronized product specifications.
+
+82 pure/native tests,297 JavaScript tests,7 focused numerical tests and actual
+sandboxed Qt editing/retention/export/reload pass. Independent functional gradients,
+shared different-resolution ports, stable Adam/strict weights-only transfer and
+fresh app-free execution pass. Actual fixed-task worker/Jupyter rerun preserve
+runtime provenance; they do NOT train variable-resolution datasets. Early fixture
+failures and the old unsupported-v5 assertion are retained in private campaign
+evidence. Full regression:846 invocations in274.799s,843 PASS and3 Qt-environment
+skips separately covered in the native run;297 JS in1212.80614ms. D/E remain
+unfinished; no public push, integration or real-user app/workspace/config changes.
+
 ## 2026-10-11 08:50 -03:00 — Explicit eager runtime spatial contracts
 
 Added root Input H/W declarations to native/checked exported constructors because

@@ -122,6 +122,10 @@ Family v4 MUST pair with specialization v3. Family v3 remains specialization v2;
 family v1/v2 remains specialization v1. Experiment/run v3 already carries exact
 typed family coordinates and can select v4; it does not need a new version.
 Concrete ModelRevision versions and portable runtime closure remain unchanged.
+Family v5 inherits these scoped rules and adds optional runtime H/W declarations,
+with specialization v4's checked witness and `.vtw`12. See
+[runtime-spatial-contracts.md](runtime-spatial-contracts.md); retaining it does not
+make fixed-shape worker datasets or frozen drawings dynamic.
 `.vtw` container11 gates family v4/specialization v3 without new tables. Earlier
 headers cannot contain them; opening older valid files upgrades only the private
 working copy until explicit Save. Old document identities are not rewritten.

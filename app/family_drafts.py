@@ -18,7 +18,7 @@ PROPERTIES = {
     'constructors': ('model', 'node', 'symbol', 'value'),
     'templates': ('id', 'name', 'graph'),
 }
-ROOTS = ('name', 'root', 'version')
+ROOTS = ('name', 'root', 'version', 'runtime_inputs')
 MAX_TEXT = 2000
 
 
@@ -101,7 +101,7 @@ def edit(document, operation):
     _, path = _collection(document, operation['collection'])
     if path is None:
         _require(kind == 'insert', 'No constructor card exists yet.')
-        _require(document.get('version') == 4, 'Adding scoped constructor cards requires an explicit family version-4 upgrade.')
+        _require(type(document.get('version')) is int and document['version'] >= 4, 'Adding scoped constructor cards requires an explicit family version-4 upgrade.')
         document = _operation(document, {'op': 'put', 'path': [], 'key': 'constructors', 'value': []})
         _, path = _collection(document, operation['collection'])
     if kind == 'insert':
@@ -137,4 +137,9 @@ def preview(document, header, bindings=None):
         if 'instances' in resolved:
             result.update(constructor_contexts=len(resolved['instances']),
                           resolved_contexts=dataset_drafts._descriptor(resolved['instances'], None, limit=MAX_TEXT))
+        if 'runtime' in resolved:
+            spec = resolved['runtime_specification']
+            result.update(runtime=dataset_drafts._descriptor(resolved['runtime'],None,limit=MAX_TEXT),
+                          runtime_status='conditional-per-call-guards' if spec is not None else 'fixed-shape',
+                          runtime_specification=dataset_drafts._descriptor(spec,None,limit=MAX_TEXT))
     return science_browser._bounded(result)

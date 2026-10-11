@@ -173,8 +173,9 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'),
-         ('constructors',) if doc.get('version') == 4 else ())
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4), 'Family supports integer version 1, 2, 3 or 4.')
+         (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
+         (('runtime_inputs',) if doc.get('version') == 5 else ()))
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5), 'Family supports integer version 1, 2, 3, 4 or 5.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -213,6 +214,9 @@ def validate_family(doc):
                 visit(node['ref'])
     visit(doc['root'])
     require(reached == set(models), 'Family closure contains unrelated models.')
+    if 'runtime_inputs' in doc:
+        from .runtime_shapes import declaration
+        declaration(models, doc['root'], doc['runtime_inputs'])
     require(isinstance(doc['symbols'], list) and len(doc['symbols']) <= 128, 'Family allows at most 128 symbols.')
     symbols, names = {}, set()
     for symbol in doc['symbols']:
@@ -457,7 +461,15 @@ def specialize(doc, supplied=None):
     symbols = validate_family(doc)
     supplied = {} if supplied is None else supplied
     require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to declared scalar values.')
-    if doc['version'] == 4: return _scoped_specialize(doc, symbols, supplied)
+    if doc['version'] >= 4:
+        result = _scoped_specialize(doc, symbols, supplied)
+        if doc['version'] == 5:
+            from .runtime_shapes import specification
+            spec = specification(result['models'], result['root'], doc['runtime_inputs']) if 'runtime_inputs' in doc else None
+            result.update(version=3, runtime=None if spec is None else {
+                'version':1,'inputs':copy.deepcopy(spec['runtime_inputs']),'specification_sha256':digest(spec)},
+                runtime_specification=spec)
+        return result
     bindings = {}
     for sid, symbol in symbols.items():
         require(sid in supplied or 'default' in symbol, 'Unresolved symbol ' + sid + ': bind ' + symbol['scope'] + '/' + symbol['name'] + '.')

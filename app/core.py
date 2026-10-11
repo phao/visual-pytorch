@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 11
+VERSION = 12
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -615,6 +615,11 @@ class Workspace:
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
                     if _parse(text)['version'] >= (3 if kind == 'specialization' else 4):
                         raise GraphError('Scoped constructor bindings require a version-11 container.')
+            if version < 12:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (4 if kind == 'specialization' else 5):
+                        raise GraphError('Runtime family contracts require a version-12 container.')
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:

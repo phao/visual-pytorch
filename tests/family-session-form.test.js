@@ -35,6 +35,42 @@ async function opened(f,changes={}){
 }
 function edit(n,value,type='change'){n.value=value;n.dispatchEvent({type});}
 
+async function runtimeOpened(version=4){
+  const roots=[descriptor('version',version,[0]),{key:'runtime_inputs',present:false,text:null,path:null,summary:null}];
+  return opened(fixture(),{templates:{roots}});
+}
+const runtimeField=f=>f.get('science-family-roots').querySelectorAll('[data-key]').find(n=>n.dataset.key==='runtime_inputs');
+test('runtime declaration queues explicit grammar upgrade before stable Input ID JSON',async()=>{
+  const f=await runtimeOpened(),n=runtimeField(f);assert.equal(n.tagName,'textarea');
+  edit(n,'{"input":[1,2]}','input');f.root.activeElement=n;
+  const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'5'},
+    {op:'property',target:{kind:'document'},key:'runtime_inputs',text:'{"input":[1,2]}'}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+  assert.equal(f.get('science-family-roots').querySelector('[data-key="version"]').value,'5');
+  edit(f.field('repeats','mode'),'tied');const again=f.click('science-family-check');await tick();
+  assert.ok(f.requests[8].args.operations.every(o=>o.key!=='version'));
+  f.requests[8].resolve(h(2));await tick();f.requests[9].resolve(ref);await again;
+});
+test('blank runtime declaration removes optional field without downgrading version five',async()=>{
+  const f=await runtimeOpened(5);edit(runtimeField(f),'');const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'runtime_inputs',text:null}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+});
+test('invalid runtime JSON stays visible and prevents preview or retention',async()=>{
+  const f=await runtimeOpened(),n=runtimeField(f);edit(n,'{wrong');
+  await f.click('science-family-preview');await f.click('science-family-save');
+  assert.equal(f.requests.length,6);assert.equal(n.value,'{wrong');assert.ok('invalid' in n.dataset);
+});
+test('stale runtime edit acknowledgement cannot trigger preview in another workspace',async()=>{
+  const f=await runtimeOpened();edit(runtimeField(f),'{"input":[1]}');
+  const done=f.click('science-family-preview');await tick();f.state.workspace='two';f.form.stateChanged();
+  f.requests[6].resolve(h(1));await done;assert.equal(f.requests.length,7);
+  assert.equal(f.form.active(),true);assert.equal(f.get('science-family-save').disabled,true);
+});
+
 test('new family opens despite its own pending flag and uses a concrete seed',async()=>{
   const f=await opened(fixture());assert.equal(f.requests[0].args.model,'seed');assert.equal(f.form.active(),true);
   assert.equal(f.get('science-family-check').disabled,false);assert.equal(f.requests.length,6);

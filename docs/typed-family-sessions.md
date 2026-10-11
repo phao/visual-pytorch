@@ -75,7 +75,7 @@ the 65536-byte compact-ASCII JSON request boundary:
 | scienceDraftFamilyPreview | session, sequence | bindings |
 
 Collections: templates, symbols, assignments, repeats, constructors. The optional
-constructors array is family-v4-only; absence reads as an empty collection with
+constructors array is available in family v4/v5; absence reads as an empty collection with
 null path and no draft mutation. Add constructor explicitly upgrades to v4 and
 inserts in one owned batch. Each card exposes parent model, Module node, direct
 child symbol and typed JSON value. See [scoped-constructors.md](scoped-constructors.md).
@@ -83,8 +83,13 @@ Pages require nonnegative
 exact offsets, 1..6 cards and explicit totals/next offsets. Responses pin
 workspace/object/session/sequence/collection/cursor with scope owned-family-page.
 Scalar descriptors return complete text or a large summary/path, never clipped
-JSON masquerading as a complete value. Root properties are name/root/version;
-version uses exact numeric text. Template
+JSON masquerading as a complete value. Root properties are name/root/version/runtime_inputs;
+version uses exact numeric text. Optional runtime_inputs uses a JSON textarea:
+nonblank JSON queues explicit version5 first, blank removes the field without
+downgrading, and invalid text stays visible while blocking admission. Its keys
+are stable root Input IDs and values are H/W sample axes1/2, not constructor
+bindings. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
+Template
 graph/name may be edited explicitly; template ID is read-only.
 
 Edits are 1..25 ordered operations, published once after all succeed: property
@@ -98,10 +103,14 @@ Preview scope is owned-family-preview with exact owner/sequence. Verified
 results include family/specialization/architecture identities, root, architecture/
 block/occurrence/parameter counts and input/output shapes. Resolved bindings are
 a complete descriptor or an explicit large summary plus binding_count.
-Family v4 also returns constructor_contexts and a bounded resolved_contexts
+Family v4/v5 also returns constructor_contexts and a bounded resolved_contexts
 descriptor, not an unbounded concrete closure. Add-card page replies are fenced
 by exact owner/sequence/cursor and fresh grammar; workspace switches cannot insert
 late cards into another draft.
+Family v5 additionally returns bounded runtime/runtime_specification descriptors
+and runtime_status (conditional-per-call-guards or fixed-shape). Baseline verified
+status does not mean every runtime resolution will execute. The displayed grammar
+and controller grammar both follow acknowledged explicit upgrades.
 Conditional missing lists show at most25 with missing_total/missing_next_offset;
 use symbol cards for remaining IDs. Projections are not retained objects or full
 receipts. Native validation/copying/expansion costs are NOT bounded by wire size;

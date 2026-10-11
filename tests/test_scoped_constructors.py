@@ -124,7 +124,7 @@ class ScopedConstructorTests(unittest.TestCase):
             with self.subTest(mutation=mutation), self.assertRaises(GraphError): validate_family(source)
 
     def test_old_grammars_cannot_silently_ignore_scoped_calls(self):
-        for version in (1, 2, 3, True, 5, 4.):
+        for version in (1, 2, 3, True, 6, 4.):
             source = scoped(); source['version'] = version
             with self.subTest(version=version), self.assertRaises(GraphError): validate_family(source)
         source = scoped(); source.pop('constructors')
