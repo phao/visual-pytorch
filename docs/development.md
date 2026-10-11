@@ -1,5 +1,16 @@
 # Development state and roadmap
 
+## 2026-10-11 16:28 -03:00 — Unmerged LSTM authoring draft
+
+Interrupted authoring work is preserved on `task/stage-d-lstm-authoring`, based
+on720d7db, not merged into retained D/main. Shared pure builder, desktop bridge,
+CLI preparation/apply and parameter-layout proof are drafts; no JavaScript form
+or dedicated authoring acceptance exists. Focused existing76 tests yield72 PASS
+and four failures because new strict CLI parsing bypasses their `read_json`
+input mocks. Retain those failures, repair the intended seam and prove serialized
+CLI/native/numerical behavior before integration. Full acceptance has not run.
+See [precise continuation handoff](draft-lstm-authoring-handoff.md).
+
 ## 2026-10-11 16:10 -03:00 — Concrete LSTM state gate and Help hub
 
 Local D now implements concrete stacked, bidirectional and projected LSTM with

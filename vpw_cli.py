@@ -61,6 +61,15 @@ def apply_edits(workspace, edits):
         elif kind == 'freeze-model':
             results.append({'op': kind, 'reference': workspace.freeze_model(edit['id'])})
             continue
+        elif kind in {'add-lstm','edit-lstm'}:
+            from app.lstm_authoring import build, build_edit
+            if set(edit) != {'op','token','options'}:
+                raise ValueError('LSTM edit requires an exact token and explicit options.')
+            document,nid = (build_edit if kind=='edit-lstm' else build)(workspace.models(),edit['token'],edit['options'])
+            if document != workspace.models()[document['id']]:
+                workspace.put(document)
+            results.append({'op':kind,'id':document['id'],'node':nid})
+            continue
         elif kind == 'edit-recurrent':
             from app.recurrent_reconfiguration import build_edit
             if set(edit) != {'op', 'token', 'options'}:
@@ -163,6 +172,11 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
+    lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
+    lstm.add_argument('id', help='Parent architecture ID')
+    lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
+    lstm_edit.add_argument('id', help='Parent architecture ID')
+    lstm_edit.add_argument('node', help='Existing LSTM block ID')
     recurrent = sub.add_parser('prepare-recurrent', help='Read a guarded transition interface for adding an explicit recurrent branch; no execution or edits')
     recurrent.add_argument('id', help='Parent architecture ID')
     recurrent.add_argument('ref', help='Transition architecture ID')
@@ -297,7 +311,13 @@ def main(argv=None):
             workspace = Workspace.load(path)
             if args.expect_revision and workspace.disk_revision != args.expect_revision:
                 raise ValueError('Revision conflict. Inspect again before applying edits.')
-            if args.command == 'prepare-recurrent-edit':
+            if args.command == 'prepare-lstm':
+                from app.lstm_authoring import prepare
+                value = prepare(workspace.models(),args.id)
+            elif args.command == 'prepare-lstm-edit':
+                from app.lstm_authoring import prepare_edit
+                value = prepare_edit(workspace.models(),args.id,args.node)
+            elif args.command == 'prepare-recurrent-edit':
                 from app.recurrent_reconfiguration import prepare_edit
                 value = prepare_edit(workspace.models(), args.id, args.node, args.ref)
             elif args.command == 'prepare-recurrent':
@@ -442,7 +462,9 @@ def main(argv=None):
                     value['references'] = {kind: {'kind': kind, 'id': values[0], 'revision': values[1]}
                                            for kind, values in (('model', args.model), ('dataset', args.dataset), ('task', args.task))}
             elif args.command == 'apply':
-                results = apply_edits(workspace, read_json(args.edits))
+                from app.revisions import _parse
+                text = sys.stdin.read() if args.edits == '-' else Path(args.edits).read_text()
+                results = apply_edits(workspace, _parse(text))
                 if not args.allow_invalid:
                     models = workspace.models()
                     for mid in models:

@@ -4,6 +4,16 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 16:28 -03:00 — Incomplete LSTM authoring preserved separately
+
+Checkpointed the interrupted pure LSTM creation/interface builder, desktop/CLI
+routes and layout/proof adaptations on a child branch; not integrated or accepted.
+The user requested a review of two additional feature reports before continuing.
+Existing focused regressions ran76 cases:72 pass/four CLI input-mock failures
+after strict parsing bypassed `read_json`. No new forms or authoring acceptance
+exist. See docs/draft-lstm-authoring-handoff.md for exact limits and next checks.
+Return the active checkout to verified retained D rather than promote the draft.
+
 ## 2026-10-11 16:10 -03:00 — Help hub and selected-block Space folding
 
 Moved bottom-of-canvas shortcut prose into a normal floating Help panel, because

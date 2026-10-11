@@ -118,7 +118,8 @@ class Bridge(QObject):
             if len(payload) > 16_000_000:
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
-            if isinstance(req, dict) and req.get('action', '').startswith(('scienceDraft', 'scienceFamily')):
+            if isinstance(req, dict) and (req.get('action', '').startswith(('scienceDraft', 'scienceFamily')) or
+                                         req.get('action') in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}):
                 from .revisions import _parse
                 req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)
@@ -574,7 +575,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','addRecurrent','editRecurrent','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -715,6 +716,29 @@ class Window(QMainWindow):
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
+        if action in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}:
+            from .lstm_authoring import prepare, prepare_edit, build, build_edit, CREATE_TOKEN, EDIT_TOKEN
+            from .revisions import _parse
+            editing = action in {'lstmEditing','editLSTM'}
+            writing = action in {'addLSTM','editLSTM'}
+            fields = EDIT_TOKEN if editing else CREATE_TOKEN
+            expected = {'action','workspace_id','panel_scope','id'} | ({'node'} if editing else set())
+            if writing:
+                expected |= {'root_graph','root_model','options_json'}
+            if set(req) != expected:
+                raise ValueError('LSTM authoring has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen LSTM authoring.')
+            if not writing:
+                info = prepare_edit(models, req['id'], req['node']) if editing else prepare(models, req['id'])
+                return {**info,'workspace_id':wid,'panel_scope':self.workspace.panel_scope}
+            if not isinstance(req['options_json'],str) or len(req['options_json']) > 65536:
+                raise ValueError('LSTM options must be JSON text of at most 65536 characters.')
+            document,nid = (build_edit if editing else build)(models,{k:req[k] for k in fields},_parse(req['options_json']))
+            if document != models[document['id']]:
+                self.workspace.put(document);self.broadcast()
+            return {'id':document['id'],'node':nid,'workspace_id':wid,'panel_scope':self.workspace.panel_scope}
         if action in {'recurrentEditing', 'editRecurrent'}:
             from .recurrent_reconfiguration import prepare_edit, build_edit, TOKEN
             from .revisions import _parse
