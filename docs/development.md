@@ -1,5 +1,43 @@
 # Development state and roadmap
 
+## 2026-10-11 05:02 -03:00 — Stage D: concrete-first family foundation
+
+Branch `task/stage-d-families` starts from accepted main
+bc85e57254083bf969a189d9685574b4d8598669 in the sole canonical checkout. The
+[external family specification](architecture-families.md) defines stable scoped
+integer symbols, checked expression ASTs, field assignments and independent
+finite chain repetition. Concrete instances retain boundary IDs/input packing,
+resolve Module dependencies, produce deterministic identity receipts and use the
+existing compiler/training/checkpoint/export paths. CLI preview is read-only;
+atomic `specialize-family` edits save ordinary v6 models without replacing IDs.
+The initial imported instance has readable seeded positions and works in the
+unchanged floating Qt editor. No mutable sibling source or hidden source fork.
+
+24 focused tests pass, including independent tensor/input/parameter gradients,
+fresh-process standalone export, multiple batches, grouped CNN179 parameters,
+scope/rename/bounds/AST failure origins, repeat/collision/Concat/router boundaries,
+actual training/checkpoint and atomic .vtw reload/freeze. Actual sandboxed Qt
+opens the ten-block77-parameter model, verifies Inspector/native code/clean
+camera after save/reload, with no host Torch import or console errors. Earlier
+failed fixture assumptions and the repaired native profile teardown are retained
+in the private campaign evidence, not hidden as application successes.
+Final complete637 Python tests pass in187.719s;260 JS regressions pass in
+1145.795423ms. Both numerical full suites were serialized; the first635-test
+pass187.473s predates the final closed-field guards and is retained separately.
+The final24 focused tests pass1.554s, and the Qt check was repeated against the
+final source with clean native teardown. CLI startup and actual stdlib preview
+against a private newly created .vtw also pass. `git diff --check` is clean.
+
+This is a meaningful initial D checkpoint, NOT D acceptance or integration into
+main. Family definitions/receipts are still external: .vtw contains the concrete
+instances only. Typed owned family authoring/persistence and family experiment
+axes, genuine tied parameter identity/counts/checkpoints, runtime shape guards and
+recurrent state/length/mask/reset/mixed composition remain required. Existing
+64-block concrete limits are reported explicitly before repeat materialization,
+not silently clamped or presented as final large-model support. E remains next
+after D acceptance. Main/public refs remain unchanged; no publication, installer,
+user state modification or app restart.
+
 ## 2026-10-11 04:38 -03:00 — Stage C accepted and integrated locally
 
 Stage C is locally integrated in main0a3bc8cd826eb11a18abc08892faad347f8b274b

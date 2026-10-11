@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "width-depth-mlp",
+  "name": "Width and independent depth",
+  "root": "mlp",
+  "models": {
+    "mlp": {
+      "id": "mlp", "name": "Width-depth MLP",
+      "graph": {
+        "nodes": [
+          {"id": "input", "type": "Input", "features": 2},
+          {"id": "stem", "type": "Linear", "features": 3, "bias": true},
+          {"id": "hidden", "type": "Linear", "features": 3, "bias": true},
+          {"id": "activation", "type": "Activation", "activation": "Tanh"},
+          {"id": "head", "type": "Linear", "features": 1, "bias": true},
+          {"id": "output", "type": "Output"}
+        ],
+        "edges": [
+          {"from": "input", "to": "stem"},
+          {"from": "stem", "to": "hidden"},
+          {"from": "hidden", "to": "activation"},
+          {"from": "activation", "to": "head"},
+          {"from": "head", "to": "output"}
+        ]
+      }
+    }
+  },
+  "symbols": [
+    {"id": "hidden-width", "scope": "mlp", "name": "width", "default": 3},
+    {"id": "hidden-depth", "scope": "mlp", "name": "depth", "default": 2}
+  ],
+  "assignments": [
+    {"model": "mlp", "node": "stem", "field": "features", "value": {"symbol": "hidden-width"}},
+    {"model": "mlp", "node": "hidden", "field": "features", "value": {"symbol": "hidden-width"}}
+  ],
+  "repeats": [
+    {"id": "stack", "model": "mlp", "nodes": ["hidden", "activation"], "count": {"symbol": "hidden-depth"}, "mode": "independent"}
+  ]
+}

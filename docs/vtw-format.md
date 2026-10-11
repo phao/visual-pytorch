@@ -5,6 +5,13 @@ and agent tools. The executable reference is app/core.py, app/graph.py,
 app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separate specification:
 [UI-AGENT-HANDOFF.md](UI-AGENT-HANDOFF.md).
 
+The initial Stage D [family specialization checkpoint](architecture-families.md)
+imports resolved families as ordinary concrete architectures through atomic CLI
+edits. It adds no table, metadata family record or independent revision kind;
+version6 remains unchanged. External family definitions and binding receipts are
+not automatically retained in .vtw yet. A concrete imported model can be edited,
+frozen, trained and exported through the existing contracts below.
+
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.

@@ -4,6 +4,27 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 05:02 -03:00 — Initial Stage D family specialization checkpoint
+
+Implemented scoped stable-ID integer bindings, restricted expression evaluation
+and explicit independent finite unary-chain repetition in `app/families.py`.
+Added read-only CLI preview and atomic concrete-instance import, preserving
+ordered ports/Concat packing and inserting reference dependencies before parents.
+This separates architectural parameters from parameter sharing: unsupported tied
+and recurrent requests fail, rather than secretly creating independent copies.
+Closed-field guards also reject ignored Input features/activation axes and unknown
+operator versions. External grammar, identity receipts, examples and remaining
+storage/GUI/sharing/recurrent boundaries are documented precisely.
+
+24 focused tests pass, including independent tensor/gradient oracles, the
+179-parameter grouped CNN, actual bounded fitting/checkpoint admission, export
+in a fresh process and atomic .vtw roundtrips. The real sandboxed Qt editor opens
+the imported ten-block/77-parameter instance after save/reload, with working
+Inspector and no console errors, host Torch import or camera-driven dirty flag.
+The complete regression results are recorded in `docs/development.md` and the
+campaign evidence. This is a branch-only checkpoint, not full Stage D acceptance,
+in-file family storage, a new family UI, a public release or a user-app restart.
+
 ## 2026-10-11 04:38 -03:00 — Local Stage C integration
 
 Integrated accepted C taskbfafccb into main0a3bc8c under the repository integration

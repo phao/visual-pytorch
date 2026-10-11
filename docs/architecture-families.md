@@ -1,0 +1,178 @@
+# Architecture families: initial specialization checkpoint
+
+Implemented locally on `task/stage-d-families`, not a completed Stage D or public
+release. `app/families.py` resolves an external, versioned JSON family into the
+existing ordinary executable architecture closure. Neither specialization nor
+preview imports Torch/Qt, allocates tensors, trains, changes global preferences
+or infers bindings from data. Compilation/training still use ordinary constrained
+run admission. This checkpoint adds no family-authoring UI or SQLite family kind.
+
+## Family document version 1
+
+Required, closed top-level fields:
+
+| Field | Meaning |
+| --- | --- |
+| `version` | Integer 1, not boolean |
+| `id`, `name` | Nonempty trimmed strings, at most 100 characters |
+| `root` | Root template model ID |
+| `models` | Complete reachable closure, keyed by matching model ID; no unrelated models |
+| `symbols` | Ordered symbol definitions |
+| `assignments` | Integer-field replacements on existing template nodes |
+| `repeats` | Explicit independent finite unary-chain expansions |
+
+Each template model has exactly `id`, `name`, `graph`. The graph has `nodes`,
+`edges`, optional `input_order`, and must already be a valid concrete graph.
+Existing concrete values are its checked seed, not implicit defaults for symbols.
+Template nodes use the current closed operator/presentation fields; an unknown
+sharing annotation cannot silently masquerade as independent weights. Wires
+contain only `from`, `to`, optional `from_port`. Ordinary axes, ports, Module
+references and ordered Concat sources keep their existing semantics.
+
+A symbol has required `id`, `scope`, `name` and optional `default`, `minimum`,
+`maximum`. Its stable ID is unique across the family; its human-readable name is
+unique only in its model-ID scope. Two modules can both name a symbol `width`.
+Renaming does not change the ID used in a binding. Defaults for bounds are 1 and
+9007199254740991. Bounds/defaults must be exact integers; lower ≤ upper and any
+default must satisfy the bounds. Every symbol needs an assignment or repeat-count
+dependent. Cross-scope references are rejected in this initial version; explicit
+cross-scope parameter bindings remain future work.
+
+An assignment has exactly `model`, `node`, `field`, `value`. Duplicate targets
+are rejected. The target field must exist in the template, preventing accidental
+addition of an ignored setting. Supported fields:
+
+Input `features` cannot be assigned when explicit `shape` takes precedence;
+assign its shape instead. Activation `dim` is meaningful only for Softmax.
+
+| Node type | Fields |
+| --- | --- |
+| Input | `features`, `shape` |
+| Output, Reshape | `shape` |
+| Linear | `features` |
+| Conv2d | `out_channels`, `kernel_size`, `stride`, `padding`, `dilation`, `groups` |
+| AvgPool2d | `kernel_size`, `stride`, `padding` |
+| MaxPool2d | `kernel_size`, `stride`, `padding`, `dilation` |
+| AdaptiveAvgPool2d | `output_size` |
+| Flatten | `start_dim`, `end_dim` |
+| Permute | `dims` |
+| Activation | `dim` (Softmax sample axis, excluding B) |
+
+Values are exact integer constants, typed expressions, or arrays of expressions
+for array-valued fields. No Python strings, calls, attributes, eval or algebraic
+solver are accepted. Expression forms:
+
+```json
+{"symbol": "hidden-width"}
+{"op": "mul", "args": [2, {"symbol": "hidden-width"}]}
+{"op": "div", "args": [6, {"symbol": "channels"}]}
+```
+
+`add`/`mul` take 2–16 arguments; `sub`, exact `div`, explicit `floordiv` take two.
+Division requires a positive denominator; `div` rejects a remainder. Every
+intermediate, not only the final value, must remain within ±9007199254740991.
+An expression is limited to depth 24 and 256 nodes. Arrays have 1–8 entries;
+operator-owned rules check rank, positivity, axis permutations, channel
+divisibility and reshape element preservation after binding.
+
+## Repetition is not parameter sharing
+
+A repeat has exactly `id`, `model`, `nodes`, `count`, `mode`. `nodes` is an ordered
+nonempty unary-operation chain, with one ingress and one egress and no branch
+crossings. Input, Output, Concat, Splitter and Replicator are not repeat bodies.
+An ingress from a router retains its explicit `from_port`. A downstream Concat
+source is rewritten in place, preserving feature packing. Bodies cannot overlap
+or nest in version 1. Consecutive repeat bodies are supported.
+
+Only `mode: "independent"` is implemented. `tied`, `recurrent`, or any unknown
+mode fails explicitly, never becoming independent copies. `count` is a positive
+integer expression; zero is not silently treated as a valid identity operation.
+Occurrence node IDs are `repeat-id/index/template-node-id`. Prefix collisions
+with any existing node are rejected. Retained indices have stable local paths
+when depth changes; changing the binding still creates a distinct specialization.
+Every Module occurrence constructs a fresh module under the current compiler.
+Copies of equal values or reuse of a template reference do not tie parameters.
+
+Expansion counts are checked before copies are materialized. The current concrete
+prototype's 64 blocks/128 wires per model still apply. Families allow at most
+64 template models, 128 symbols, 512 assignments and 32 repeats. These are explicit
+current implementation bounds, not new hardware-safety rules or final large-model
+limits. New seed positions use simple left-to-right layers for expanded models
+or templates lacking coordinates; existing fully positioned integer-only
+templates preserve geometry. This is not the configurable browser layout engine.
+
+## Results and identities
+
+`specialize(family, bindings)` either returns a verified concrete instance or
+raises GraphError. Bindings map stable symbol IDs to integers, not labels.
+Unspecified symbols use explicit defaults; otherwise execution is refused.
+Templates are never modified. All concrete models are shape-checked before return.
+Errors name the model and assigned fields; arithmetic errors name their exact
+assignment/repeat origin. No incompatible shape is guessed or repaired.
+
+The receipt includes version, family ID/hash, resolved bindings, specialization
+hash, original→resolved model-ID mapping, concrete models/root, repeat occurrence
+paths, root contract and the existing computational architecture hash.
+`family.revision` is the existing canonical `digest(family)` SHA-256 convention.
+`specialization` hashes `{version:1,family:<hash>,bindings:<resolved-bindings>}`.
+Each model ID is `family-` plus the digest of
+`{specialization:<hash>,model:<template-model-id>}`. Module references are remapped;
+boundary block/port IDs and declared input order are preserved. Deterministic
+IDs never authorize checkpoint warm starts or implicit replacement. The family
+hash includes its complete presentation/name bytes; the ordinary architecture
+hash follows existing presentation-independent rules.
+
+`preview` returns `verified` plus the resolved receipt, `conditional` plus required
+symbol IDs/scopes/names, or `incompatible` plus a reason. Bad grammar, unknown IDs
+and noninteger supplied values raise; valid integers outside declared bounds are
+reported incompatible even if other bindings remain unresolved. The current
+preview is allocation-free for tensors, not a universal memory/cost guarantee.
+
+## CLI and .vtw boundary
+
+`preview-family FAMILY_JSON [--bindings BINDINGS_JSON]` reads an existing .vtw
+workspace for the ordinary file/revision checks but does not write it. Omitted
+bindings use defaults. As elsewhere in the CLI, `-` denotes stdin.
+
+An ordinary atomic `apply` batch now accepts:
+
+```json
+[{"op":"specialize-family", "family": {}, "bindings":{"hidden-width":4}}]
+```
+
+Replace `{}` with the full family document. This resolves, checks collisions
+against existing architecture IDs, inserts child architectures before parents,
+then uses the existing final-batch validation and atomic workspace save. There is
+no implicit replacement, no new SQLite table/kind and no schema-version bump.
+Result `edits[].resolved` is the complete receipt. A failing batch or stale
+`--expect-revision` leaves disk unchanged. The imported concrete models are
+ordinary editable architectures, can be frozen with `freeze-model`, selected in
+current experiments, rendered/inspected and exported without family-runtime code.
+
+The external family definition and receipt are NOT yet retained automatically
+inside .vtw; callers must retain their source and CLI receipt. Editing the concrete
+instance does not update the family. Immutable family/specialization storage,
+owned typed GUI editing, family sweep axes, deliberate sharing, runtime-spatial
+guards and recurrent state/length/mask contracts are subsequent Stage D work.
+An H/W family specialization currently fixes H/W; testing two specializations
+does not claim one executable instance accepts arbitrary spatial dimensions.
+
+## Verification and references
+
+`examples/families/width-depth.json` produces 37 parameters at width 3/depth 2,
+77 at width 4/depth 3. `tests/test_families.py` covers independent forward/input/
+parameter gradients, concrete export in a fresh process, multiple batch sizes,
+actual fitting/checkpoint admission, scoped names, exact arithmetic, rejected
+sharing requests, collisions, bounds, branches/router/Concat repeat boundaries,
+derived reshape and atomic save/reload/freeze. The grouped Conv2d/adaptive-head
+fixture has exactly 179 parameters; incompatible group bindings explain why.
+`tests/qt_family_smoke.py` tests the CLI-imported instance after .vtw reload in
+the real sandboxed Qt editor, without importing host Torch or claiming a family UI.
+
+The pinned nepr symbolic specification motivates this construction. PyTorch's
+[Module documentation](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html)
+documents actual module/parameter identity and duplicate removal: independent
+copies and tied modules must not be treated as the same operation. That distinction
+is preserved here by rejecting unsupported sharing rather than implying it from
+equal widths or template reuse. Numerical claims above are tested locally, not
+inferred from documentation.

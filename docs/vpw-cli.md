@@ -6,6 +6,14 @@ standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 Argument usage errors use argparse exit 2. Architecture names never substitute
 for explicit IDs.
 
+The local Stage D family checkpoint adds read-only
+`preview-family FAMILY_JSON [--bindings BINDINGS_JSON]` and atomic
+`apply` edit `specialize-family`, with full family document and optional stable-ID
+bindings. This imports a verified ordinary concrete closure, rejecting ID
+collisions instead of replacing user work. No family SQLite kind or GUI authoring
+is implied. See [architecture-families.md](architecture-families.md) for the
+exact external grammar, statuses, repeat identities and retained-source limits.
+
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic
 `apply` batch accepts `{"op":"panel-layout","value": <preset-or-null>}`.
 The closed CSS-pixel preset, validation ranges, missing/default behavior and
