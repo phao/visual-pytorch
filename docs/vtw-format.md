@@ -32,6 +32,13 @@ row/document ID/name consistency and reference-index correspondence. Semantic
 drafts can open without compiling. Opening never executes model code or launches
 training. These checks are not a hostile-file sandbox or memory guarantee.
 
+Dataset int64 values use exact JSON integer tokens in the full signed 64-bit
+range; see [dataset-task-contract.md](dataset-task-contract.md). Explicit float32
+training preparation does not promise exact arithmetic on large integers.
+The Qt [typed dataset session](typed-dataset-sessions.md) and raw-value buffers
+are transient editor state, not `.vtw` rows, retained revisions or CLI sessions.
+Only successful parent admission followed by workspace Save persists edits.
+
 ## 2. Exact relational schema
 
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:

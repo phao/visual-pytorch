@@ -94,17 +94,20 @@ These concrete gaps are observable in the current code:
   use independent bounded choices without full metadata indexes. Task field/port
   contexts and complete drafts still use complete payloads. Session recovery and terminal-completion transports also
   remain unbounded. Main browsing projection bounds are not those other bounds.
-- `scienceAuthorBegin/Check/Save/Preview` currently transfer complete drafts.
+- Task/experiment `scienceAuthorBegin/Check/Save/Preview` still transfer complete drafts.
   New owned-session backend/Qt commands support projected reads, sequence-fenced
-  patches and Check/Commit without whole draft transport. Forms have not migrated
-  yet; [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
+  patches and Check/Commit without whole draft transport. Dataset has migrated;
+  [typed-dataset-sessions.md](typed-dataset-sessions.md) specifies literal bounded
+  descriptors, stable-target edits, failed-read retry and linked staging in the
+  same session. Task/experiment forms have not migrated;
+  [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
   tested transport scope. The separate actual chunk editor now stages raw large
   values with explicit acceptance and constrained admission estimates; see
-  [chunked-draft-values.md](chunked-draft-values.md). This does not migrate typed
-  forms or bound all host/storage/dependency/history costs.
-  Dataset authoring displays six fields × twenty observations but can stringify
-  a huge tensor cell/metadata/vocabulary. This is a control-count limit, not a
-  byte-size or whole-data-cost bound. Task contexts still transfer every field;
+  [chunked-draft-values.md](chunked-draft-values.md). Dataset now avoids fully
+  encoding a huge tensor/metadata/vocabulary merely to preview it, preserves
+  hidden values and full int64 tokens, and limits actual result bytes/control
+  count. This does not bound all host/storage/dependency/history costs.
+  Task contexts still transfer every field;
   task/experiment forms render all bindings, transforms and selection cards.
 - Saved metric/run pages and notebook figure tables bound returned/rendered
   rows, not arbitrary metadata size, full registry validation/inline costs,
@@ -125,7 +128,7 @@ the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. The next implementation unit is owned
-actual typed-authoring draft/context migration and admission integration, preserving
+task/experiment typed-authoring draft/context migration and admission integration, preserving
 incomplete text and exact identity rather than transferring whole drafts. Hiding
 the full JSON in a collapsed panel is not a fix.
 
@@ -149,6 +152,18 @@ asynchronous browser tests. The actual Qt 1250 × 512 inline-data fixture verifi
 historical selection, page/key/value traversal, same-UUID reload, scoped font/
 theme geometry, no complete-document main-browser reads and unchanged SQL bytes.
 These checks do not certify authoring/resource costs or full C integration.
+
+The subsequent dataset migration passes 490 Python tests (172.052 s) and 148
+JavaScript tests. Eleven new backend tests and fifteen typed-controller/four
+linked-editor cases cover bounded exact DTOs, atomic ordered edits, full int64
+range, focus/invalid text, page retry and parent/child ownership. Actual Qt tests
+200 × 512 tensor observations, hidden historical metadata, same-session staging,
+two injected page failures, font14/18/28, one history entry/undo/redo/save-reload;
+21 successful projections peak 16385 bytes, no host Torch/console errors.
+Rendered ID/header column squeezing is repaired and checked against actual font
+geometry. Native dataset/task/experiment/session/browser/raw-editor regressions
+also pass, including real multihead/ragged/eight-candidate/all-split fits.
+These are dataset/shared-hook evidence, not completed task-form/resource/C acceptance.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

@@ -21,7 +21,7 @@ revision. This content identity is not proof of provenance or independence.
 
 Every field has stable `id`, `dtype`, sample `shape`; optionally `name`, `axes`,
 `nullable`, `vocabulary`, `modality`, `unit`, `coordinates`. Dtypes: float32,
-int64 (exact JSON integers within ±(2⁵³−1)), bool, category, string. Numeric
+int64 (exact JSON integers from −2⁶³ through 2⁶³−1), bool, category, string. Numeric
 float32 values are finite and representable; bool is not silently an integer.
 The first sample dimension may be −1 for a ragged sequence; other dimensions are
 positive. Scalars have `shape: []`. Optional axes match rank and are distinct.

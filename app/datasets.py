@@ -81,7 +81,7 @@ def _value(value, field, shape=None):
         return
     dtype = field['dtype']
     valid = (_number(value) if dtype == 'float32' else
-             _integer(value, -(2**53 - 1)) if dtype == 'int64' else
+             _integer(value, -(2**63), 2**63-1) if dtype == 'int64' else
              type(value) is bool if dtype == 'bool' else
              isinstance(value, str) if dtype == 'string' else
              type(value) in (str, int) and any(type(value) is type(v) and value == v for v in field['vocabulary']['values']))

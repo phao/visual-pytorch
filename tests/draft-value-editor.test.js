@@ -133,3 +133,38 @@ test('actual typed authoring is already active during pending Begin, excluding a
   await f.editor.open(target());assert.equal(f.requests.length,1);assert.match(f.node('status').textContent,/Finish or discard/);
   f.requests[0].reject(Error('missing base'));await tick();assert.equal(f.window.LoomScienceAuthor.active(),false);
 });
+async function linked(f){
+  const returned=[];f.state.author=true;
+  const promise=f.editor.openOwned({header:header({sequence:4}),path:[7,0],label:'cell r0/x',onClosed:async h=>returned.push(h)});await tick();
+  assert.equal(f.requests[0].action,'scienceDraftValueStart');assert.equal(f.requests[0].args.sequence,4);assert.equal(f.requests[0].args.from_base,false);
+  f.requests[0].resolve(buffer({sequence:4,from_base:false,path:[7,0]}));await tick();
+  f.requests[1].resolve(fragment(f.requests[1],{sequence:4,from_base:false,path:[7,0]}));await promise;return {f,returned};
+}
+test('linked value finish returns its advanced header without committing or closing the parent draft',async()=>{
+  const {f,returned}=await linked(fixture());assert.equal(f.node('save').disabled,true);assert.equal(f.node('check').disabled,true);
+  const promise=f.click('finish');await tick();assert.equal(f.requests[2].action,'scienceDraftValueFinish');f.requests[2].resolve(header({sequence:5}));await promise;
+  assert.equal(returned.length,1);assert.equal(returned[0].sequence,5);assert.equal(f.editor.active(),false);assert.equal(f.saved.length,0);
+  assert.equal(f.requests.some(r=>['scienceDraftOpen','scienceDraftClose','scienceDraftCommit'].includes(r.action)),false);
+});
+test('linked discard releases only its buffer and returns unchanged sequence; failed start is recoverably discarded without closing parent',async()=>{
+  const {f,returned}=await linked(fixture());assert.equal(f.node('discard').textContent,'Discard staged value');
+  const promise=f.click('discard');await tick();assert.equal(f.requests[2].action,'scienceDraftValueDiscard');f.requests[2].resolve(header({sequence:4}));await promise;
+  assert.equal(returned.length,1);assert.equal(returned[0].sequence,4);assert.equal(f.requests.some(r=>r.action==='scienceDraftClose'),false);
+  const g=fixture(),callbacks=[],opening=g.editor.openOwned({header:header(),path:[7,0],label:'cell',onClosed:async h=>callbacks.push(h)});await tick();
+  g.requests[0].reject(Error('RAM changed'));await opening;await g.click('discard');assert.equal(g.requests.length,1);assert.equal(callbacks.length,1);assert.equal(g.editor.active(),false);
+});
+test('programmatic linked check/commit cannot retain the parent and wrong finish/discard headers do not close child',async()=>{
+  for(const action of ['save','check']){
+    const {f}=await linked(fixture());await f.click(action);assert.equal(f.requests.length,2);assert.match(f.node('status').textContent,/parent dataset/);
+  }
+  for(const action of ['finish','discard'])for(const changes of [{kind:'task'},{id:'foreign'},{workspace_id:'foreign'},{scope:'foreign'},{version:2}]){
+    const {f,returned}=await linked(fixture()),promise=f.click(action);await tick();
+    f.requests[2].resolve(header({sequence:action==='finish'?5:4,...changes}));await promise;
+    assert.equal(f.editor.active(),true);assert.equal(returned.length,0);assert.match(f.node('status').textContent,/wrong.*identity|wrong.*sequence/);
+  }
+});
+test('reload fences late linked finish and preserves child text without updating parent',async()=>{
+  const {f,returned}=await linked(fixture()),text=f.node('text').value,promise=f.click('finish');await tick();f.editor.event({kind:'externalReload'});
+  const notice=f.node('status').textContent;f.requests[2].resolve(header({sequence:5}));await promise;
+  assert.equal(returned.length,0);assert.equal(f.node('text').value,text);assert.equal(f.node('status').textContent,notice);assert.equal(f.editor.active(),true);
+});

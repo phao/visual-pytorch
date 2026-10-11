@@ -49,8 +49,12 @@ def until(script,timeout=12):
 def click(sid):
     until('!document.getElementById('+json.dumps(sid)+').disabled')
     js('document.getElementById('+json.dumps(sid)+').click()')
+    if sid in ('science-author-add-field','science-author-add-record','science-author-fields-prev','science-author-fields-next','science-author-rows-prev','science-author-rows-next'):
+        until('!document.getElementById("science-author-check").disabled')
 def set_value(sid,value):js('setAuthorValue(document.getElementById('+json.dumps(sid)+'),'+json.dumps(value)+')')
-def set_field(fid,label,value):assert js('setAuthorValue(authorField('+json.dumps(fid)+','+json.dumps(label)+'),'+json.dumps(value)+')'), (fid,label,js('document.getElementById("science-author-status").textContent'),errors)
+def set_field(fid,label,value):
+    assert js('setAuthorValue(authorField('+json.dumps(fid)+','+json.dumps(label)+'),'+json.dumps(value)+')'), (fid,label,js('document.getElementById("science-author-status").textContent'),errors)
+    if label=='Dtype':until('!document.getElementById("science-author-check").disabled')
 def set_cell(rid,fid,value):
     label=rid+' / '+fid
     js('setAuthorValue([...document.querySelectorAll("#science-author-records textarea")].find(el=>el.getAttribute("aria-label")==='+json.dumps(label)+'),'+json.dumps(json.dumps(value))+')')

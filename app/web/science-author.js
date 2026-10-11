@@ -42,13 +42,14 @@
   }
   function controls(){
     if(!api)return;
+    const datasetActive=window.LoomDatasetSessionForm?.active?.();
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
-    for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
-    $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||window.LoomDraftValueEditor?.active?.()||!api.workspace();
+    if(!datasetActive)for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
+    $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace();
     $('science-author-new-task').disabled=$('science-author-new').disabled;
     $('science-author-new-experiment').disabled=$('science-author-new').disabled;
-    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||window.LoomDraftValueEditor?.active?.()||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
-    $('science-author-cancel').disabled=pending;
+    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
+    if(!datasetActive)$('science-author-cancel').disabled=pending;
     window.LoomScienceDocument?.stateChanged?.();
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
     $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
@@ -145,6 +146,7 @@
     await context();
   }
   async function begin(kind='dataset',reference=null){
+    if(window.LoomDatasetSessionForm?.active?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
     const ticket=++generation,identity=api.workspace();
     const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
@@ -169,7 +171,8 @@
     controls();
   }
   window.LoomScienceAuthor={
-    active(){return Boolean(draft)||pending;},
+    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.());},
+    ownActive(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));

@@ -15,6 +15,46 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-10 23:59 -03:00 — Typed dataset session migration and shared value editing
+
+The actual dataset form now opens only an owned header/typed page, queues
+stable-ID edits in bounded ordered atomic batches and Check/Commits without
+complete draft transport. Literal JSON descriptors preserve integer/category
+precision; conservative bounded eligibility avoids encoding hidden large tensor/
+metadata/vocabulary values for previews. Large values open a linked child buffer
+in the same session **after** pending typed edits flush. Finish/Discard return
+advanced/unchanged headers without retaining/closing the parent. No new SQL
+tables or CLI tokens; existing retained-object/history/disk contracts remain.
+Dataset int64 now covers −2⁶³ through 2⁶³−1, removing the inherited JavaScript-safe
+range restriction made unnecessary by literal-token transport. This does not
+change explicit float32 preparation into exact integer training arithmetic.
+Full protocol/limits: [typed-dataset-sessions.md](typed-dataset-sessions.md).
+
+490 Python tests (172.052 s) pass, including eleven new stdlib backend cases;
+148 JS tests pass, including fifteen typed-controller and four linked-child
+cases. Focus capture, ordered 32-cell byte-batched edits, invalid-text repair,
+failed page/backward retry, wrong identities and stale reload/switch replies are
+checked. Actual sandboxed app Qt tests 200 × 512 tensor observations/seven fields,
+large metadata, historical precision, queued edits/shared child finish/discard,
+injected initial/return-page failure, font14/18/28, one undo/redo/save-reload;
+21 successful projections peak16385 bytes, no host Torch/Jupyter/console errors.
+The capture exposed vertically squeezed ID/headings: the new table reserves a
+12ch ID column and local horizontal scrolling, verified against rendered fonts.
+Native existing dataset/raw/session/browser and multihead/ragged task/eight-
+candidate/all-split experiment fits also pass. Prior notebook/predictor evidence
+remains historical; it was not newly rerun for this editor-only change.
+
+The audit repaired absent initial-page recovery/actions, empty dirty-marker focus
+capture, wrong header acceptance, semantic target key-order comparisons and
+hidden unrelated validation markers. Explicit Cancel clears only discarded
+dataset controls. Child retention is guarded beyond merely disabling buttons.
+Native fixtures now wait for asynchronous page/category completion; a raw edit
+fixture uses a same-size first-token replacement within the existing 2000-code-
+point limit. No admission/preservation checks were weakened to hide errors.
+Task/experiment full forms/context, local axes/cards, recovery/completion/inline
+host costs, in-app figures and integrated C acceptance remain open; D/E unchanged.
+No user app/files/config/desktop changes, integration or remote publication.
+
 ### 2026-10-10 23:21 -03:00 — Actual chunked value editor and draft admission
 
 Exact-revision browsing now offers Edit this value… for non-root dataset/task/

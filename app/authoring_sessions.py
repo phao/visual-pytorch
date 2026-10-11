@@ -307,3 +307,29 @@ class Sessions:
         row = self._get(token,owner,sequence,workspace)
         _require(row['buffer'] is None, 'Finish or discard the staged value before retaining the draft.')
         return self._admit(workspace,row['draft']['document'],excluding=token)
+
+    def dataset_page(self, token, owner, sequence, **cursor):
+        from . import dataset_drafts
+        row=self._get(token,owner,sequence)
+        _require(row['draft']['kind']=='dataset','Typed dataset pages require a dataset draft.')
+        return dataset_drafts.page(row['draft']['document'],self._header(token,row),**cursor)
+
+    def dataset_edit(self, workspace, token, owner, sequence, operations):
+        from . import dataset_drafts
+        row=self._get(token,owner,sequence,workspace)
+        _require(row['draft']['kind']=='dataset','Typed dataset edits require a dataset draft.')
+        _require(row['buffer'] is None,'Finish or discard the staged value before typed edits.')
+        operations=_json(operations)
+        _require(isinstance(operations,list) and 1<=len(operations)<=25,'Typed edit needs 1..25 ordered operations.')
+        self._admit(workspace,row['draft']['document'],excluding=token)
+        document=row['draft']['document']
+        for index,operation in enumerate(operations):
+            try:document=dataset_drafts.edit(document,operation)
+            except (GraphError,ValueError) as error:raise GraphError('Dataset edit #'+str(index)+': '+str(error)) from error
+        return self._publish(workspace,token,row,document)
+
+    def dataset_value(self, token, owner, sequence, target):
+        from . import dataset_drafts
+        row=self._get(token,owner,sequence)
+        _require(row['draft']['kind']=='dataset','Typed dataset values require a dataset draft.')
+        return dataset_drafts.locate(row['draft']['document'],self._header(token,row),target)

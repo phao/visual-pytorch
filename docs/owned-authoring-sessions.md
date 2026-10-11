@@ -1,10 +1,11 @@
 # Owned authoring sessions — retained Stage C backend/Qt checkpoint
 
 `app/authoring_sessions.py` and the Qt bridge provide bounded draft transport
-without sending complete drafts for Open/Check/Commit. **The existing typed
-forms have not migrated to these commands.** This is a tested prerequisite,
-not completion of resource convergence or a published feature. A separate actual
-GUI [chunked value editor](chunked-draft-values.md) now uses these sessions.
+without sending complete drafts for Open/Check/Commit. The actual
+[typed dataset form](typed-dataset-sessions.md) and standalone
+[chunked value editor](chunked-draft-values.md) use these sessions.
+Task/experiment typed forms have not migrated. This is not completion of
+resource convergence or a published feature.
 
 ## Ownership and identity
 
@@ -43,6 +44,10 @@ normalized/size-checked. Unknown tokens and stale sequences fail explicitly.
 | `scienceDraftCheck` | `session`, `sequence` | none | Prospective exact reference |
 | `scienceDraftCommit` | `session`, `sequence` | none | Retained reference; session closes |
 | `scienceDraftClose` | `session` | none | `session`, `status: discarded-unsaved-draft` |
+
+Dataset-specific Page/Edit/Value commands and their closed DTO/operation/target
+grammars are in [typed-dataset-sessions.md](typed-dataset-sessions.md). They share
+the same owner and document sequence, not an additional draft store.
 
 Open accepts only dataset/task/experiment. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
@@ -97,10 +102,12 @@ Long values can now be inspected and edited through raw UTF-8 temporary buffers,
 with separate buffer revisions, explicit whole-value acceptance and constrained
 draft admission estimates. See [chunked-draft-values.md](chunked-draft-values.md)
 for all five actions, exact-base path translation and tested GUI behavior. This
-does not bound all host costs or migrate existing typed forms. Do not truncate
-data/keys/ontology/text to meet the patch limit.
+does not bound all host costs. The typed dataset form now reads bounded literal
+descriptors, queues stable-ID edits and opens a child value buffer in its existing
+session. Child Finish/Discard return to the parent, never retain/discard its
+whole draft. Do not truncate data/keys/ontology/text to meet the patch limit.
 
-Next: migration of actual typed forms/context onto
+Next: migration of task/experiment typed forms/context onto
 owner/sequence pages, preserving invalid local text and existing typed helpers;
 paged field/port contexts and local selection cards; then in-app figures,
 integrated C acceptance and unchanged D/E. Stateless CLI specification/import
@@ -127,4 +134,5 @@ workspace/connection replacement. Thirty-five focused authoring/browser tests pa
 rejection, pending-job guard, pure check, undo/redo/no-op/retained old evidence,
 save/reload, same-UUID replacement and direct bridge/view destruction. Channel
 notification name delivery is tested; no host Torch or user state is involved.
-This is transport/lifecycle evidence, not migrated-form or whole-memory acceptance.
+This is transport/lifecycle evidence, not whole-memory acceptance. Dataset-form
+migration has separate native evidence in the linked typed-dataset specification.

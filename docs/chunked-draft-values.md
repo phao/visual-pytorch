@@ -3,7 +3,8 @@
 The actual Qt Experiment/history tab offers **Edit this value…** for a non-root
 value of an exact dataset/task/experiment revision, but not keys, models, run
 evidence or reports. It uses [owned-authoring-sessions.md](owned-authoring-sessions.md),
-not a parallel persistence store. Existing typed forms have not migrated.
+not a parallel persistence store. The [typed dataset form](typed-dataset-sessions.md)
+now shares its owned session with this editor; task/experiment forms have not migrated.
 
 ## Three distinct states
 
@@ -24,6 +25,13 @@ overflow, identity/sequence and memory failures preserve the buffer and original
 document. Pending buffers block Patch/Check/Commit. Value Discard closes only the
 buffer; Close discards the whole draft. Finish/Discard/Close/owner teardown close
 their owned temporary files. Reads/disposal do not parse the complete value.
+
+In linked dataset mode, Use staged value closes the child and returns its advanced
+header to the parent form. Discard staged value releases only the buffer and
+returns the unchanged header. Child Check/Save are disabled and guarded: parent
+validation/retention remain explicit. Failed Start can return without closing
+the parent session. Header identity/sequence and late-reload delivery are tested.
+Standalone mode still offers Validate/Retain and Discard draft as described above.
 
 ## Closed command grammar
 
@@ -105,10 +113,11 @@ after checking. No crash recovery or detached/durable temporary discovery is pro
 
 Eleven new stdlib tests cover large values/int64, UTF-8, source translation,
 malformed/nonfinite/duplicate/identity failures, cleanup, aggregate admission,
-unknown RAM and percentages. Sixteen async JS tests cover dirty text, actual
-cursors, retries, pending commands and stale read/edit/commit deliveries. Current
-full suite: 479 Python and 129 JavaScript tests, including pending typed Begin
-exclusion against the actual typed controller.
+unknown RAM and percentages. Twenty async JS tests cover dirty text, actual
+cursors, retries, pending commands, stale read/edit/commit deliveries and linked
+parent/child boundaries. The prior standalone checkpoint passed 479 Python/129
+JS; the subsequent dataset migration passes 490 Python/148 JS, including pending
+typed Begin exclusion against the actual typed controller.
 
 `tests/qt_draft_values_smoke.py` loads actual app HTML/sandboxed QWebChannel with
 20000 values. Actual controls verify historical editing, malformed-text/SQL
@@ -118,7 +127,7 @@ No full AuthorBegin/Check/Save, scienceShow/scienceIndex, host Torch/Jupyter or
 worker is involved. The private capture was inspected. Existing native dataset
 and owner/session regressions pass.
 
-Next: actual typed-form/context migration onto bounded sessions, local axis/cards,
+Next: task/experiment typed-form/context migration onto bounded sessions, local axis/cards,
 recovery/completion costs and integrated C acceptance. A working standalone value
 editor is not proof that the whole authoring UI is resource-converged. CLI
 import/ordered apply still admit complete validated objects without Qt tokens.

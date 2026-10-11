@@ -712,8 +712,21 @@ revision from document sequence, uses UTF-8 byte cursors and explicit whole-valu
 acceptance, and preserves malformed text/original values. RAM admission estimates
 precede full parsing/undo capture, not universal allocator bounds. Dirty navigation,
 exact identities, pending commands and reload-fenced replies need independent
-tests. Reuse the precise protocol in [chunked-draft-values.md](chunked-draft-values.md);
-existing typed forms are not migrated yet. Keep notification signals from shadowing
+tests. Reuse the precise protocol in [chunked-draft-values.md](chunked-draft-values.md).
+The actual dataset form now uses projected literal descriptors, stable-target
+queued edits and a linked child editor in the same session. Capture focused
+dirty text before disabling controls; reject late identity/sequence/cursor replies.
+Flush queued small edits before resolving a current ordinal by stable IDs; object
+key insertion order is not identity. Child Finish/Discard return a verified
+advanced/unchanged header, never retain/discard the parent. Keep validation scoped
+to the owning form, and clean discarded controls on explicit Cancel. Offer page
+retry without losing text or creating another session; initial read failure must
+not enable actions needing a page. Batched edits are atomic per batch, not an
+entire multi-batch form transaction. Large markers are not truncated values.
+Reserve readable table ID columns and local horizontal scrolling instead of
+squeezing headings letter-by-letter; test rendered geometry across font settings.
+The exact reusable protocol is in [typed-dataset-sessions.md](typed-dataset-sessions.md).
+Task/experiment forms/context remain unmigrated. Keep notification signals from shadowing
 native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.

@@ -73,6 +73,11 @@ session/buffer tokens, not another `.vtw` grammar or persistent CLI session.
 Agents still use complete specification import/ordered apply with normal atomic
 admission and disk conflict checks. Large integer tokens remain literal JSON;
 the raw Qt path does not require rounding them through JavaScript Number.
+The [typed dataset form](typed-dataset-sessions.md) now also preserves literal
+tokens and uses the same owned session for a child value editor. Dataset int64
+storage accepts the full signed 64-bit range through GUI/CLI/backend validation;
+explicit float32 numerical preparation does not promise exact integer arithmetic.
+There are no persistent CLI draft tokens or new SQLite tables.
 
 `spec-page --pin ID REVISION` resolves a selected exact reference independently
 of search/page/head filtering. A nonexistent pin fails by default; adding

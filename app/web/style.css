@@ -43,6 +43,10 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .science-author-records table{border-collapse:collapse;width:100%;font-size:inherit}
 .science-author-records td,.science-author-records th{padding:var(--menu-unit,4px);border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}
 .science-author-records td{min-width:120px}.science-author-records textarea{min-width:100px}
+.science-author-records .science-dataset-table{width:max-content;min-width:100%}
+.science-dataset-table tr>:first-child{min-width:12ch;max-width:24ch}
+.science-dataset-table td{min-width:12ch;max-width:24ch}
+.science-dataset-table button{white-space:nowrap}
 #science-author-id,#science-author-status{overflow-wrap:anywhere}
 #science-author .inline-actions{margin:calc(2 * var(--menu-unit,4px)) 0}
 #science-task-bindings .science-author-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}

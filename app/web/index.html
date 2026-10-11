@@ -27,6 +27,7 @@
   <script src="revision-choice.js" defer></script>
   <script src="science-author.js" defer></script>
   <script src="draft-value-editor.js" defer></script>
+  <script src="dataset-session-form.js" defer></script>
   <script src="notebook-selection.js" defer></script>
   <script src="science-notebooks.js" defer></script>
   <script src="science-document.js" defer></script>
@@ -163,7 +164,7 @@
               <p id="science-experiment-preview-status" role="status" class="tiny"></p><div id="science-experiment-preview-rows"></div>
             </div>
             <p id="science-author-status" role="status" class="tiny"></p>
-            <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-cancel">Cancel draft</button></div>
+            <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-retry-page" hidden>Retry page</button><button id="science-author-cancel">Cancel draft</button></div>
           </section>
           <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
           <div class="science-toolbar"><label>Search names / IDs<input id="science-object-query" maxlength="200" placeholder="Literal text, not a pattern"></label><button id="science-object-search">Search</button><button id="science-object-prev">‹ Revisions</button><span id="science-object-page" role="status" class="tiny"></span><button id="science-object-next">Revisions ›</button></div>

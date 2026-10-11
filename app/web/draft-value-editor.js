@@ -8,12 +8,14 @@
     const blocked=!state||pending||stale||api.busy();
     for(const [id,extra] of [['start',Boolean(state?.value)],['apply',!state?.value||!dirty()],
       ['finish',!state?.value||dirty()],['check',Boolean(state?.value)],['save',Boolean(state?.value)]])
-      $('science-value-'+id).disabled=blocked||extra;
+      $('science-value-'+id).disabled=blocked||extra||Boolean(state?.onClosed&&['check','save'].includes(id));
     $('science-value-prev').disabled=!state?.value||pending||dirty()||!backs.length;
     $('science-value-next').disabled=!state?.value||pending||dirty()||!page||page.next_offset===null;
     $('science-value-text').disabled=!state?.value||pending||stale||api.busy();
     $('science-value-discard').disabled=!state||pending;
+    $('science-value-discard').textContent=state?.onClosed?'Discard staged value':'Discard draft';
     window.LoomScienceAuthor?.stateChanged?.();
+    window.LoomDatasetSessionForm?.stateChanged?.();
     window.LoomScienceDocument?.stateChanged?.();
   }
   const valid=owner=>state===owner;
@@ -26,6 +28,9 @@
   const act=fn=>Promise.resolve().then(()=>command(fn));
   function argumentsFor(owner){return {session:owner.header.session,sequence:owner.header.sequence,
     value:owner.value.value,value_revision:owner.value.value_revision};}
+  function matchesHeader(result,owner,sequence){return result.scope==='owned-authoring-session'&&result.version===1&&
+    result.session===owner.header.session&&result.sequence===sequence&&result.id===owner.header.id&&
+    result.kind===owner.header.kind&&result.workspace_id===owner.header.workspace_id;}
   async function read(offset=0){
     const owner=state,ticket=++generation,args=argumentsFor(owner);
     const result=await api.call('scienceDraftValueRead',{...args,offset});
@@ -66,24 +71,31 @@
         const prior=page.offset;if(await read(page.next_offset))backs.push(prior);});
       $('science-value-finish').onclick=()=>act(async()=>{if(dirty())throw Error('Apply the unfinished fragment first.');
         const owner=state,capturedEpoch=epoch,result=await api.call('scienceDraftValueFinish',argumentsFor(owner));if(!current(owner,capturedEpoch))return;
-        if(result.session!==owner.header.session||result.sequence!==owner.header.sequence+1)throw Error('Accepted value has the wrong draft sequence.');
+        if(!matchesHeader(result,owner,owner.header.sequence+1))throw Error('Accepted value has the wrong draft identity or sequence.');
         owner.header=result;owner.value=null;page=null;backs=[];
+        if(owner.onClosed){state=null;generation++;$('science-value-editor').hidden=true;await owner.onClosed(result);return;}
         $('science-value-status').textContent='Value accepted into the unsaved draft. Validate, then explicitly retain its revision; no training.';
       });
       $('science-value-check').onclick=()=>act(async()=>{const owner=state,workspace=api.workspace();
+        if(owner.onClosed)throw Error('Validate through the parent dataset form, not its child value editor.');
         const result=await api.call('scienceDraftCheck',{session:owner.header.session,sequence:owner.header.sequence});
         if(!valid(owner)||workspace!==api.workspace()||owner.stale)return;
         $('science-value-status').textContent='Valid draft · prospective '+result.revision+' · not retained, no training';
       });
       $('science-value-save').onclick=()=>act(async()=>{const owner=state,workspace=api.workspace();
+        if(owner.onClosed)throw Error('Retain through the parent dataset form, not its child value editor.');
         const result=await api.call('scienceDraftCommit',{session:owner.header.session,sequence:owner.header.sequence});
         if(!valid(owner)||workspace!==api.workspace()||owner.stale)return;
         state=null;generation++;$('science-value-editor').hidden=true;await saved(result);
         api.toast('Revision retained. Save workspace to persist it on disk.');
       });
       $('science-value-discard').onclick=()=>act(async()=>{const owner=state;
-        await api.call('scienceDraftClose',{session:owner.header.session});if(!valid(owner))return;
+        let header=owner.header;
+        if(owner.onClosed){if(owner.value){header=await api.call('scienceDraftValueDiscard',argumentsFor(owner));
+          if(!matchesHeader(header,owner,owner.header.sequence))throw Error('Discarded value has the wrong parent identity or sequence.');}}
+        else await api.call('scienceDraftClose',{session:owner.header.session});if(!valid(owner))return;
         state=null;page=null;generation++;$('science-value-editor').hidden=true;
+        if(owner.onClosed)await owner.onClosed(header);
       });
       $('science-value-text').oninput=controls;controls();
     },
@@ -100,6 +112,13 @@
       $('science-value-identity').textContent='Exact base '+target.reference.kind+' '+target.reference.id+' @ '+target.reference.revision+' · stored path '+JSON.stringify(target.path);
       if(state.stale){$('science-value-status').textContent='Workspace changed. Draft is retained for inspection/discard; do not admit into the replacement.';return;}
       await start(true);
+    });},
+    openOwned(target){return act(async()=>{
+      if(state||api.busy()||target.header.workspace_id!==api.workspace())throw Error('Finish the current value or reopen the intended workspace first.');
+      state={header:{...target.header},path:[...target.path],fromBase:false,value:null,stale:false,onClosed:target.onClosed};
+      $('science-value-editor').hidden=false;
+      $('science-value-identity').textContent='Owned dataset draft '+target.header.id+' · '+target.label+' · sequence '+target.header.sequence;
+      await start(false);
     });},
     active(){return Boolean(state)||pending;},
     stateChanged(){if(!api)return;if(workspaceSeen!==api.workspace()){workspaceSeen=api.workspace();epoch++;generation++;}

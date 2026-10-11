@@ -107,6 +107,7 @@
       window.LoomScienceAuthor.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       window.LoomScienceNotebooks.mount(document,services);
       window.LoomDraftValueEditor?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
+      window.LoomDatasetSessionForm?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       window.LoomScienceDocument.mount(document,{...services,editing:()=>window.LoomDraftValueEditor?.active?.()||window.LoomScienceAuthor?.active?.(),editValue:target=>window.LoomDraftValueEditor?.open(target)});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(refresh));
       $('science-refresh').onclick=()=>act(refresh);
@@ -128,9 +129,10 @@
       $('science-recovery-export').onclick=()=>act(async()=>{const result=await request('scienceExportRecovery',{id:$('science-recovery-object').value});if(result)api.toast('Recovery evidence exported: '+result.path);await recoveries();});
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(recoveries));
     },
-    stateChanged(){if(!api)return;window.LoomScienceResults.stateChanged();window.LoomScienceNotebooks.stateChanged();if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;indexPage=null;indexOffset=0;indexBacks=[];offset=0;generation++;window.LoomScienceDocument.clear();$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();window.LoomDraftValueEditor?.stateChanged?.();window.LoomScienceDocument.stateChanged?.();},
+    stateChanged(){if(!api)return;window.LoomScienceResults.stateChanged();window.LoomScienceNotebooks.stateChanged();if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;indexPage=null;indexOffset=0;indexBacks=[];offset=0;generation++;window.LoomScienceDocument.clear();$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();window.LoomDraftValueEditor?.stateChanged?.();window.LoomDatasetSessionForm?.stateChanged?.();window.LoomScienceDocument.stateChanged?.();},
     event(event){if(!api)return;
       window.LoomDraftValueEditor?.event?.(event);
+      window.LoomDatasetSessionForm?.event?.(event);
       window.LoomScienceAuthor?.event?.(event);
       window.LoomScienceNotebooks.event(event);
       if(event.kind==='externalReload'){

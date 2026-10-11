@@ -10,8 +10,9 @@ architecture-owned dataset/checkpoint path stays supported unchanged.
 Owned authoring sessions on this branch are transient tab/host state, not an
 additional vtw kind/table or a document revision. Their exact sequence/page/patch/
 admission contract is in [owned-authoring-sessions.md](owned-authoring-sessions.md).
-The existing typed forms have not migrated; CLI retained-object grammar and
-content identities remain unchanged. Raw value buffers are owned temporary files,
+The typed dataset form now uses bounded stable-ID pages/edits in those sessions;
+task/experiment forms have not migrated. See [typed-dataset-sessions.md](typed-dataset-sessions.md).
+CLI retained-object grammar and content identities remain unchanged. Raw value buffers are owned temporary files,
 not SQLite rows or retained revisions; explicit Finish publishes only to an
 unsaved draft. [chunked-draft-values.md](chunked-draft-values.md) specifies their
 byte/cursor/admission contract. CLI import/apply still targets complete validated

@@ -28,7 +28,7 @@ preserves unfinished JSON; Use staged value parses/replaces the whole value only
 on success; Validate and Retain remain explicit. UTF-8 byte cursors and literal
 tokens preserve long values and integer precision. Constrained RAM admission
 estimates precede large-value parsing and undo capture. This actual Qt path is
-independent of the typed forms below; its full protocol and cost limits are in
+also used as a linked child by the typed dataset form; its full protocol and cost limits are in
 [chunked-draft-values.md](chunked-draft-values.md).
 
 Task context and experiment stored-revision selectors now use independent search/
@@ -64,27 +64,33 @@ inferred from observations. Modality, unit, coordinates, provenance and usage ar
 optional finite JSON metadata; their text parser rejects duplicate keys, including
 escaped aliases. These are metadata editors, not an arbitrary DatasetSpec textarea.
 Cells accept JSON scalars, nested tensor arrays and null. Values are never silently
-reshaped/coerced when the schema changes. Integer/category numerals must remain
-JavaScript-safe exact integers; float32 magnitude and shape/type compatibility are
+reshaped/coerced when the schema changes. Cells/vocabularies carry literal JSON
+tokens; int64 values cover the full signed 64-bit range without JavaScript Number
+rounding. Category labels retain their type-sensitive vocabulary contract.
+Float32 magnitude and shape/type compatibility are
 checked by the existing server validator. Invalid local text remains visible and
 blocks paging/save rather than being discarded on a rerender.
 
-Field definitions/columns page by six; observations page by twenty. Hidden values
-remain in the draft, not truncated. This bounds rendered cell count, NOT transport
-or draft size: authoring still loads the complete inline document into its draft.
-The bounded read browser above does not bound authoring context/draft transport.
-External/lazy storage and richer diagnostics are still open work.
-New owned-session backend/Qt transport supplies bounded pages and atomic
-owner/sequence-fenced patches, but these typed forms have not migrated to it.
-[owned-authoring-sessions.md](owned-authoring-sessions.md) specifies its tested
-scope; the separate chunk editor has large-value/admission support, but current
-typed form payloads stay unbounded.
+Field definitions/columns page by at most six; observations by at most twenty,
+using actual byte-shortened cursors. The native owned session retains hidden
+data; complete drafts no longer cross the channel for dataset authoring. Small
+descriptors contain bounded literal JSON; large tensors/metadata/vocabularies
+show explicit type/size markers and offer staged editing. Pending typed edits
+flush by stable target before opening a value child in the same session. Child
+Finish/Discard return to the parent without retaining or discarding its draft.
+Retry page recovers failed reads; missing initial pages disable page-dependent
+actions. Failed batches preserve invalid text; atomicity is per accepted batch,
+not a multi-batch form transaction. See [typed-dataset-sessions.md](typed-dataset-sessions.md)
+for closed commands, DTOs, edits, preservation and native evidence. Transport,
+small-preview work and DOM bounds are not lazy storage or universal host RAM/
+validation/history bounds. Task/experiment forms and field/port contexts still
+transfer complete payloads; external/lazy storage remains open.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
 explicit Save workspace is still required to persist the working copy to disk.
 An unchanged selected revision produces no SQL/dirty/history change.
 
-Draft version 1 has exactly version, kind, id, workspace_id, base, expected_head
+The shared host draft version 1 has exactly version, kind, id, workspace_id, base, expected_head
 and document. The document has no revision hash: one is computed on admission.
 Begin verifies any exact base before removing its hash for editing. Check/Save
 require unchanged stable identity, the same workspace UUID and the captured head
@@ -100,7 +106,8 @@ retains immutable evidence through the normal history wrapper. Pending terminal
 delivery blocks draft admission. In-flight commands disable duplicate submission;
 the existing keyboard typing safeguards apply to all inputs/textarea/selects.
 The pure backend supports dataset/task/experiment drafts under their existing
-closed grammars. Dataset, task and experiment forms are connected to the UI.
+closed grammars. Dataset uses owned page/edit commands; task and experiment
+forms remain on the complete-draft AuthorBegin/Check/Save path.
 
 ### Typed task authoring
 

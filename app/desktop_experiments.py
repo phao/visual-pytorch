@@ -101,6 +101,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceDraftDatasetPage','scienceDraftDatasetValue',
          'scienceDraftValueRead', 'scienceDraftValueDiscard',
          'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
@@ -109,6 +110,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
+                 'scienceDraftDatasetPage','scienceDraftDatasetEdit','scienceDraftDatasetValue',
                  'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
                  'scienceDraftValueStart', 'scienceDraftValueRead', 'scienceDraftValueSplice',
                  'scienceDraftValueFinish', 'scienceDraftValueDiscard'}
@@ -136,6 +138,9 @@ def dispatch(window, req, source=None):
             'scienceDraftValueSplice': (('action', 'session', 'sequence', 'value', 'value_revision', 'offset', 'delete_bytes', 'text'), ()),
             'scienceDraftValueFinish': (('action', 'session', 'sequence', 'value', 'value_revision'), ()),
             'scienceDraftValueDiscard': (('action', 'session', 'sequence', 'value', 'value_revision'), ()),
+            'scienceDraftDatasetPage': (('action','session','sequence'),('field_offset','row_offset','field_limit','row_limit')),
+            'scienceDraftDatasetEdit': (('action','session','sequence','operations'),()),
+            'scienceDraftDatasetValue': (('action','session','sequence','target'),()),
         }[action]
         _keys(req, required, optional, context=action+' request (including exact sequence where applicable)')
         owner = source if source is not None else window
@@ -151,6 +156,10 @@ def dispatch(window, req, source=None):
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftDatasetPage':return sessions.dataset_page(token,owner,req['sequence'],
+            **{key:req[key] for key in ('field_offset','row_offset','field_limit','row_limit') if key in req})
+        if action == 'scienceDraftDatasetEdit':return sessions.dataset_edit(workspace,token,owner,req['sequence'],req['operations'])
+        if action == 'scienceDraftDatasetValue':return sessions.dataset_value(token,owner,req['sequence'],req['target'])
         if action == 'scienceDraftValueStart': return sessions.start_value(workspace, token, owner, req['sequence'], req['path'], from_base=req.get('from_base',False))
         if action == 'scienceDraftValueRead': return sessions.read_value(token, owner, req['sequence'], req['value'], req['value_revision'], offset=req.get('offset',0))
         if action == 'scienceDraftValueSplice': return sessions.splice_value(workspace, token, owner, req['sequence'], req['value'], req['value_revision'], offset=req['offset'], delete_bytes=req['delete_bytes'], text=req['text'])
