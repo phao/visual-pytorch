@@ -317,6 +317,12 @@ as an independent RunRecord, with exact dependencies and captured actual manifes
 See [experiment-objects.md](experiment-objects.md). GUI/history
 integration remains a subsequent Stage C gate.
 
+The local Stage C `scienceRunCurve`/CLI `run-curve` interface derives paged head
+curves from these immutable RunRecord attempts. It adds no tables or persisted
+objects, changes no existing evidence and never trains on read. The exact read
+projection, fixed axes and missing-value rules are in
+[saved-run-curves.md](saved-run-curves.md).
+
 datasets.payload contains matching x/y arrays with at least two flat rows.
 x has inputs values; y has outputs canonical values. Values are finite numbers,
 not booleans, with magnitude at most 1e6. Optional truth/source/seed/noise fields

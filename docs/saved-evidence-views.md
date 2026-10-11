@@ -90,6 +90,13 @@ reading remains available.
 
 ## Presentation and boundaries
 
+The run view and each exact report run card also expose an initially collapsed
+saved-attempt curve viewer. It reads only when opened, uses independently paged
+head choices/retained points, preserves missingness and offers an exact plotted
+value table. This is a separate projection from the final metrics above, shared
+with CLI `run-curve`; see [saved-run-curves.md](saved-run-curves.md) for identities,
+axes, navigation failures, native guards and explicit cost boundaries.
+
 Cards inherit themes/fonts/menu spacing. Tables keep numbers/statuses whole and
 scroll horizontally inside the panel. Summary values use six significant digits;
 expandable ledgers expose unrounded saved values. Unavailable differs from zero

@@ -27,6 +27,7 @@ python vpw_cli.py lab.vtw run-candidate --experiment EXPERIMENT_ID EXPERIMENT_SH
 python vpw_cli.py lab.vtw report-data REPORT_ID REPORT_SHA256
 python vpw_cli.py lab.vtw run-evidence RUN_ID RUN_SHA256 --attempt 1 --offset 0 --limit 25
 python vpw_cli.py lab.vtw report-evidence REPORT_ID REPORT_SHA256 --offset 0 --limit 5
+python vpw_cli.py lab.vtw run-curve RUN_ID RUN_SHA256 --attempt 1 --head HEAD_ID --offset 0 --limit 100
 python vpw_cli.py lab.vtw --expect-revision SHA256 apply edits.json
 python vpw_cli.py lab.vtw apply -
 ```
@@ -209,6 +210,16 @@ metrics/denominators/counters retain head/population/checkpoint identity, includ
 cancellation/unavailable cases. Report order follows the recipe; rerun recipes
 return labelled zero saved rows, not retraining. Paging bounds response rows,
 not full validation/inline data costs. See [saved-evidence-views.md](saved-evidence-views.md).
+
+`run-curve ID REVISION [--attempt N --head ID --offset 0 --limit 100
+--head-offset 0 --head-limit 25]` reads the same exact saved-attempt head curve as
+Qt. Attempts default to the latest in that exact revision, heads to the first
+declared head; neither follows a newer browsing head. Point limits are 1..100,
+head-choice limits 1..25, and their cursors are independent. The response preserves
+saved checkpoint metrics/counters and missingness, excludes weights/raw rows/test
+curves, and uses fixed axes across retained pages. Reading never fits, evaluates
+or trains and changes no file bytes. These are row bounds, not complete validation
+or metadata byte bounds. See [saved-run-curves.md](saved-run-curves.md).
 
 `generate-report ID REVISION --output NEW_DIRECTORY` creates a portable notebook
 bundle from an exact ReportRecipe; it never executes cells or trains. Optional

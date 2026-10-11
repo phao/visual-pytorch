@@ -65,11 +65,11 @@
       if(selected.reference.kind==='run'){
         $('science-evidence-attempt').value=result.attempt.number;
         $('science-evidence-attempt').max=result.attempt_count;
-        window.LoomEvidenceView.render(root,$('science-run-evidence'),result);
+        window.LoomEvidenceView.render(root,$('science-run-evidence'),result,null,api);
       }else{
         const list=$('science-report-evidence');list.replaceChildren();
         const description=el('p',result.question+' · '+result.execution_behavior+' · descriptive selected runs, not independent replicates by assertion. No metrics are pooled across runs.');list.append(description);
-        result.runs.rows.forEach(run=>{const card=el('section');card.className='science-evidence';list.append(card);window.LoomEvidenceView.render(root,card,run,ref=>act(()=>selectExact(ref)));});
+        result.runs.rows.forEach(run=>{const card=el('section');card.className='science-evidence';list.append(card);window.LoomEvidenceView.render(root,card,run,ref=>act(()=>selectExact(ref)),api);});
         $('science-report-page').textContent='Exact saved runs '+result.runs.offset+'–'+(result.runs.offset+result.runs.rows.length)+' of '+result.runs.total+
           (result.mode==='rerun'?' · no saved runs: execution requires an explicit notebook action.':' · no training');
       }

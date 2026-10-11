@@ -15,6 +15,39 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 03:03 -03:00 — Saved-attempt curves in the actual editor
+
+`scienceRunCurve` and read-only CLI `run-curve` now share an exact retained-head
+projection. Run views and each saved-report card own an initially collapsed
+SVG/table viewer. Fixed axes cover the selected head's entire retained history;
+only the current page is drawn. Null values break segments, and failed retries
+never borrow earlier results. Independent head/point navigation acknowledges
+only successful reads, with failure recovery and detached-view guards.
+The scientific-plotting guidance informed redundant line/marker encoding,
+unrounded exact tables, explicit transformed-loss/source-unit distinctions and
+absence of unsupported uncertainty. [saved-run-curves.md](saved-run-curves.md)
+specifies numerical meaning, native/CLI arguments and limits; no storage/trainer
+change or universal host/metadata resource bound is claimed.
+
+Full571 Python tests pass181.186s and full243 JavaScript tests pass1142.556ms.
+Twelve new backend and fourteen new browser cases add independent numerical/
+identity/order/failure/readonly coverage. Actual sandboxed Qt verifies a real
+106-update/30-head fit,100+6 point and25+5 head pages, failed Back/Refresh,
+historical attempts, all-masked absence and all seven recipe-ordered report
+cards;18 explicit curve reads, no host Torch or console errors. Fonts14/18/28
+and dark/GitHub/Math geometry pass. The real font18 capture was visually reviewed;
+narrow panels scroll rather than shrink plot text. Existing actual saved metric/
+composition/drilldown/predictor-export/reload guards also pass.
+
+Private logs/capture are in the active campaign's
+`evidence/stage-c-saved-curves-20261011/`, not the public source. Negative desktop
+probes exposed nonexistent test helpers, top-level JavaScript redeclarations and
+an incorrect assumed initial-point count; the harness was repaired without
+changing scientific behavior. New disposable fixtures/profiles use Git-ignored
+`.scratch/`. C whole-window geometry/integration and D/E remain open. The user's
+subsequent explicit Softmax request is a separate implementation, not yet part
+of these validation results.
+
 ### 2026-10-11 02:35 -03:00 — Sole development returned to the canonical checkout
 
 After the user confirmed no other product agent is active and highlighted hidden

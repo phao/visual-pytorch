@@ -203,6 +203,11 @@ def main(argv=None):
                               help='Response row limit in 1..'+str(maximum))
         if command=='run-evidence':
             evidence.add_argument('--attempt', type=int, help='Retained attempt number; default latest of this exact revision')
+    curve = sub.add_parser('run-curve', help='Read exact saved-attempt head curves; no fitting, inference or training')
+    curve.add_argument('id'); curve.add_argument('revision')
+    curve.add_argument('--attempt', type=int); curve.add_argument('--head')
+    curve.add_argument('--offset', type=int, default=0); curve.add_argument('--limit', type=int, default=100)
+    curve.add_argument('--head-offset', type=int, default=0); curve.add_argument('--head-limit', type=int, default=25)
     notebook = sub.add_parser('generate-report', help='Export a NEW portable notebook bundle; does not train or execute cells')
     notebook.add_argument('id'); notebook.add_argument('revision'); notebook.add_argument('--output', required=True)
     notebook.add_argument('--offset', type=int, default=0); notebook.add_argument('--limit', type=int, default=100)
@@ -285,6 +290,11 @@ def main(argv=None):
                 options={'offset':args.offset,'limit':args.limit}
                 if args.command=='run-evidence':options['attempt']=args.attempt
                 value=(run_view if args.command=='run-evidence' else report_view)(workspace,ref,**options)
+            elif args.command == 'run-curve':
+                from app.run_curves import curve_view
+                value = curve_view(workspace, {'kind':'run','id':args.id,'revision':args.revision},
+                    attempt=args.attempt, head=args.head, offset=args.offset, limit=args.limit,
+                    head_offset=args.head_offset, head_limit=args.head_limit)
             elif args.command == 'generate-report':
                 from app.notebooks import create_bundle
                 value = create_bundle(workspace, {'kind': 'report', 'id': args.id, 'revision': args.revision}, args.output,

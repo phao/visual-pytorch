@@ -112,7 +112,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'sciencePreviewPage', 
          'scienceRecoveryPage', 'scienceRecoveryInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskContextPage', 'scienceTaskCompatibility', 'scienceAuthorPreview',
-         'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
+         'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor', 'scienceRunCurve'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftPatch',
                  'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview', 'scienceDraftExperimentEdit',
@@ -286,6 +286,18 @@ def dispatch(window, req, source=None):
         if window.workspace is not workspace or req['workspace_id'] != workspace_id(window.workspace) or job_busy(window.job):
             raise ValueError('Workspace or active work changed while selecting a destination. Nothing exported; try again.')
         return write_new_predictor(source, path)
+    if action == 'scienceRunCurve':
+        from .run_curves import curve_view
+        from .authoring import workspace_id
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        req = _json(req)
+        _keys(req, ('action', 'workspace_id', 'reference'),
+              ('attempt', 'head', 'offset', 'limit', 'head_offset', 'head_limit'), context='Saved curve read')
+        if req['workspace_id'] != workspace_id(workspace):
+            raise ValueError('Saved curve belongs to another workspace. Read its exact attempt again.')
+        return curve_view(workspace, req['reference'],
+                          **{k: req[k] for k in ('attempt', 'head', 'offset', 'limit', 'head_offset', 'head_limit') if k in req})
     if action in {'scienceRunEvidence', 'scienceReportEvidence'}:
         from . import run_views
         if action == 'scienceRunEvidence':

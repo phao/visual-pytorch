@@ -143,14 +143,18 @@ These concrete gaps are observable in the current code:
   cases and a matched identical-wire measurement support this scoped optimization;
   [preview-resolution.md](preview-resolution.md) records limits. Initial complete
   registry/data/manifest/copy costs remain, not a new universal resource gate.
-- In-app training/report figures and the final integrated large-font/window/
-  floating-panel geometry audit remain open. The actual notebook-rendering
+- In-app saved-attempt training curves now read exact retained head metrics in
+  run views and independent report cards, with CLI parity, missing-value gaps,
+  stable page axes and exact tables; [saved-run-curves.md](saved-run-curves.md)
+  specifies the projection and its cost boundaries. The final integrated
+  large-font/window/floating-panel geometry audit remains open. The notebook-rendering
   checkpoint fixes its reproduced clipping/description/table defects; it does
   not certify every editor view, font or assistive technology.
 - The task branch and tests/specs must be reviewed and integrated together.
   Final regression scope includes inherited A/B/editor/history/CLI behavior,
   actual authoring and fit/export/report/kernel UI flows. An unmerged checkpoint
-  is not the version currently launched by the desktop entry.
+  is not an integrated release. The sole development checkout now holds the
+  C branch, so the existing desktop entry launches it on the next normal start.
 
 The bounded **read-only exact-revision scientific browser** is now implemented
 on the retained branch; [scientific-browser.md](scientific-browser.md) specifies
@@ -160,7 +164,7 @@ JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. Actual experiment typed-authoring
 migration is now tested; recovery/completion webview transport now uses small
 notifications and paged inspection. Remaining native inline/retention costs,
-in-app figures/window geometry and integrated acceptance are next. Hiding
+whole-window geometry and integrated acceptance are next. Hiding
 full JSON in a collapsed panel is not a cost bound.
 Native task binding/transform page, literal-edit and owned compatibility primitives
 now exist with actual bridge checks; [typed-task-sessions.md](typed-task-sessions.md)

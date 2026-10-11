@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   const H=()=>window.LoomRunEvidence;
-  function render(root,container,view,open=null){
+  function render(root,container,view,open=null,services=null){
     container.replaceChildren();container.dataset.runEvidence=view.reference.revision;
     const el=(tag,value)=>{const node=root.createElement(tag);if(value!==undefined)node.textContent=value;return node;};
     const para=value=>container.append(el('p',value));
@@ -47,6 +47,7 @@
       fields(box,[['Head definition (objective weight ≠ sample weight)',row.head],...Object.entries(row.metric)]);ledger.append(box);});container.append(ledger);
     para('Metric rows '+view.metrics.offset+'–'+(view.metrics.offset+view.metrics.rows.length)+' of '+view.metrics.total+
       (view.metrics.next_offset!==null?' · additional rows retained; open/page this exact run.':''));
+    if(services)window.LoomEvidenceCurves.attach(root,container,view,services);
   }
   window.LoomEvidenceView=Object.freeze({render});
 })();

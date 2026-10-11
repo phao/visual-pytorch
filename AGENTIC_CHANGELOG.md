@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 03:03 -03:00 — Exact saved-attempt curves and CLI parity
+
+Implemented a read-only head/point projection and actual SVG/table viewers in
+run evidence and saved-report cards, because notebook figures alone did not make
+retained training diagnostics available in the editor. Native/CLI identities,
+failed retries, missing-value gaps, fixed retained-history axes, independently
+acknowledged navigation and large-font scaling remain explicit. Twelve new
+backend cases, fourteen new JavaScript cases, full571-Python/243-JavaScript
+suites and actual Qt curve/report/predictor checks pass. No trainer, storage
+grammar or schema change; complete native validation/metadata costs remain.
+New disposable test state uses `.scratch/`; retained evidence stays in the private
+campaign. C remains local/incomplete, not integrated or published.
+
 ## 2026-10-11 02:34 -03:00 — Implemented and validated request-local preview reuse
 
 Removed redundant successful dependency, model/task and split preparation during

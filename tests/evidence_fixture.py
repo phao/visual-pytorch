@@ -9,7 +9,7 @@ from test_authoring import measurements
 from test_task_authoring import multi_fixture
 
 
-def experiment(workspace, model, dataset, task, sid, *, updates=3):
+def experiment(workspace, model, dataset, task, sid, *, updates=3, history_limit=2):
     model['id']=sid+'-model';dataset['id']=sid+'-data';task['id']=sid+'-task'
     workspace.put(model)
     doc={'version':1,'id':sid,'name':sid,'question':'Inspect exact retained evidence, not fresh execution',
@@ -17,7 +17,7 @@ def experiment(workspace, model, dataset, task, sid, *, updates=3):
          'data_tasks':[{'id':'measured','dataset':workspace.put_spec('dataset',dataset),'task':workspace.put_spec('task',task)}],
          'splits':[{'id':'split','protocol':{'method':'row','seed':3,'fractions':[.5,.25,.25]}}],
          'initialization_seeds':[7,13],
-         'protocols':[{'id':'adam','protocol':training_protocol(epochs=None,updates=updates,batch_size=2,evaluate_every=1,history_limit=2)}],
+         'protocols':[{'id':'adam','protocol':training_protocol(epochs=None,updates=updates,batch_size=2,evaluate_every=1,history_limit=history_limit)}],
          'selection':{'kind':'crossed','pairs':[],'exclusions':[]}}
     return workspace.put_spec('experiment',doc)
 

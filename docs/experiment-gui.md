@@ -66,6 +66,13 @@ strict registry/CLI contracts; no raw whole-specification JSON editor is require
 The scientific tab header says Exact revisions · explicit runs, rather than
 applying the legacy drawing's full-batch MSE contract to every independent task.
 
+Run evidence and saved-report run cards include **Saved training curves**,
+collapsed until explicitly opened. The viewer plots exact retained train/validation
+head metrics, with independent head/point pages, stable axes and an exact value
+table. Failed attempts never inherit another attempt's success; missing metrics
+stay missing. This read-only interface shares native/CLI `run-curve` semantics,
+not another trainer. See [saved-run-curves.md](saved-run-curves.md).
+
 ### Typed dataset authoring
 
 New dataset opens an incomplete private draft; it does not add fake observations
