@@ -134,7 +134,13 @@ class UIContractTests(unittest.TestCase):
     def test_size_fields_do_not_enforce_run_limits_on_editing(self):
         html=(ROOT/"app/web/index.html").read_text()
         js=(ROOT/"app/web/editor.js").read_text()
-        for source in (html,js):
+        # LSTM's stack-depth ceiling is a closed operator grammar, not the
+        # retired constrained-mode feature/sample/epoch cap. Keep this explicit
+        # exception narrow so any newly capped dimension still fails the check.
+        layer_tag=re.search(r'<input\b[^>]*id="lstm-layers"[^>]*>',html)
+        self.assertIsNotNone(layer_tag)
+        self.assertIn('max="64"',layer_tag.group())
+        for source in (html.replace(layer_tag.group(),''),js):
             self.assertNotIn('max="64"',source)
             self.assertNotIn('max="5000"',source)
             self.assertNotIn('max="10000"',source)

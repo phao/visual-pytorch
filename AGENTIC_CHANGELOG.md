@@ -4,6 +4,37 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 17:02 -03:00 — Concrete LSTM authoring accepted locally
+
+Resumed the separately preserved draft with typed creation/Inspector editing,
+shared strict CLI admission and guarded stable source/owner bindings, because
+imported inspection alone was not usable authoring. Dedicated tests exposed and
+fixed implicit-default no-op mutation; stable IDs/wires/packing and one atomic
+history edit are proved. Native captures exposed retained form scroll hiding its
+title; reopening resets it. Post-acknowledgement refresh refusal retains drafts.
+Exact Qt/CLI/file/reusable UI contracts are aligned;17/4 grammar is unchanged.
+
+Full1132 Python428.355s (3 native-covered skips),352 JS1696.590397ms,33 native/UI
+cases,102 pure/CLI and18 numerical regressions pass. Independent authored gate/
+gradient/export checks and35-update fitting complement existing real worker/
+kernel regression. Actual sandboxed Qt creation/editing/cancel/no-op/stale/history/
+reload, imported Help/Space/drag and recurrent MLP/CNN/panel checks pass with
+private fixtures/config only and no host Torch. Initial failures are retained,
+including the obsolete global64-cap test narrowed to its named grammar field.
+CPW/Git history keeps this in retained local D, not public main. Explicit LSTM
+family/runtime-T and remaining D acceptance still precede E. LoRA/MS-VAR report
+requests are assessed/deferred, not implemented; no user state or public change.
+
+## 2026-10-11 16:28 -03:00 — Incomplete LSTM authoring preserved separately
+
+Checkpointed the interrupted pure LSTM creation/interface builder, desktop/CLI
+routes and layout/proof adaptations on a child branch; not integrated or accepted.
+The user requested a review of two additional feature reports before continuing.
+Existing focused regressions ran76 cases:72 pass/four CLI input-mock failures
+after strict parsing bypassed `read_json`. No new forms or authoring acceptance
+exist. See docs/draft-lstm-authoring-handoff.md for exact limits and next checks.
+Return the active checkout to verified retained D rather than promote the draft.
+
 ## 2026-10-11 16:10 -03:00 — Help hub and selected-block Space folding
 
 Moved bottom-of-canvas shortcut prose into a normal floating Help panel, because

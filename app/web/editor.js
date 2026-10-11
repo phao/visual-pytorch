@@ -15,6 +15,7 @@
   let panelWorkspace, panelSavePending=false;
   let parameterSizingPending=false;
   let recurrentAuthoringPending=false;
+  let lstmUI=null;
   let recurrentEditGeneration=0;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
@@ -171,6 +172,7 @@
     if (state.models[current]) $("reference-select").value = current;
     $("add-reference").disabled = !$("reference-select").value || busy();
     $('add-recurrent').disabled = !$('reference-select').value || busy() || recurrentAuthoringPending;
+    $('add-lstm').disabled = !doc || busy() || Boolean(lstmUI?.pending());
   }
 
   function renderBookkeeping() {
@@ -487,6 +489,7 @@
       ids.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + '</span>' + (n.type === "Splitter" ? '<input data-split-size="' + i + '" type="number" min="1" value="' + n.parts[i].features + '"' + (busy() ? ' disabled' : '') + '>' : '<small>full tensor</small>') + '</div>');
       html += '<button id="add-output-port"' + (busy() ? ' disabled' : '') + '>+ Output port</button>';
     } else if(n.type==='LSTM') {
+      html+='<button id="edit-lstm-interface"'+(busy()?' disabled':'')+'>Edit LSTM constructor and bindings…</button>';
       html+='<div class="contract-card">LSTM · '+esc(n.num_layers??1)+' layers · '+(n.bidirectional?'bidirectional':'forward')+'<br>Cell width: '+esc(n.hidden_size)+'<br>Hidden width: '+esc(n.proj_size||n.hidden_size)+'<br>Bias '+(n.bias!==false?'on':'off')+' · '+esc(s?.lstm?.parameters??'?')+' learned parameters</div>';
       for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+'<br>source: '+esc(row.source)+' '+esc(shapeText(sourceShape(row.source)))+(row.adapter?'<br>adapter: '+esc(row.adapter):'')+'</div>';
       for(const port of R.ports(n))html+='<div class="contract-card">'+esc(R.portTitle(n,true,port))+'<br>'+esc(shapeText(s?.ports?.[port]))+'</div>';
@@ -514,6 +517,7 @@
     }
     content.innerHTML = html;
     if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
+    if($('edit-lstm-interface'))$('edit-lstm-interface').onclick=()=>lstmUI.open(n.id);
     if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};
     content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
       if(busy())return;
@@ -1183,6 +1187,20 @@
   $("add-activation").onclick = () => insertBlock("Activation");
   $("add-reference").onclick = () => insertBlock("Module", $("reference-select").value);
   $('add-recurrent').onclick = recurrentDialog;
+  lstmUI=window.LoomLSTM.mount(document,{
+    call,context:()=>({id:doc?.id,workspace_id:state.workspace_id,panel_scope:state.panel_scope}),
+    busy,sync:()=>syncQueue,refresh:renderLibrary,toast,
+    owners:nid=>doc.graph.nodes.filter(n=>n.type==='LSTM'&&n.id!==nid)
+      .map(n=>({key:n.id,name:(n.label||n.id)+' · '+n.id})).sort((a,b)=>a.name.localeCompare(b.name)||a.key.localeCompare(b.key)),
+    accept:async(result,current)=>{const latest=await call('state');
+      if(!current())return;
+      if(latest.workspace_id!==state.workspace_id||latest.panel_scope!==state.panel_scope)
+        throw Error('Workspace changed; reopen LSTM authoring.');
+      hydrate(latest);if(current()&&node(result.node)){selected=result.node;selectedPort=null;selectedWire=null;
+        await describe();if(current()){floating.open('inspector-panel');fit();}}
+    }
+  });
+  $('add-lstm').onclick=()=>lstmUI.open();
   $("add-input").onclick = () => editBoundary(() => G.addInput(doc,true));
   $("add-output").onclick = () => editBoundary(() => G.addOutput(doc,selected,selectedPort));
   function addSelectedRouter(type) {
@@ -1320,7 +1338,7 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));

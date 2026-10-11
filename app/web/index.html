@@ -42,6 +42,7 @@
   <script src="science-candidates.js" defer></script>
   <script src="family-session-form.js" defer></script>
   <script src="science.js" defer></script>
+  <script src="lstm-authoring.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
 <body>
@@ -76,6 +77,7 @@
       <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button></div>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
+      <button id="add-lstm" class="palette"><span class="type-symbol amber-text">↻</span><span><b>LSTM</b><small>Add a concrete stacked/projected/bidirectional LSTM with supplied initial states and three returned ports.</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
       <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
       <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button><button id="add-recurrent" class="palette"><span class="type-symbol amber-text">↻</span><span><b>Recurrent transition</b><small>Repeat this graph across time with explicit sequence inputs and initial/final states.</small></span><span>+</span></button></div>
@@ -272,5 +274,33 @@
   <dialog id="recurrent-dialog" aria-labelledby="recurrent-title"><form id="recurrent-form"><h2 id="recurrent-title">Recurrent transition</h2><p class="tiny">Choose every Input's role and each state's matching next-state Output. A new independent branch is added; existing blocks and wires are kept. Initial states and controls are supplied data, not learned values. Every exposed root Output needs an explicit task head.</p><label class="field-label" for="recurrent-label">Block name</label><input id="recurrent-label" maxlength="60" required><label class="field-label" for="recurrent-steps">Sequence length T (concrete)</label><input id="recurrent-steps" type="number" min="1" max="9007199254740991" step="1" value="4" required><div id="recurrent-inputs"></div><fieldset><legend>Return sequences</legend><div id="recurrent-outputs"></div></fieldset><fieldset><legend>Optional supplied controls</legend><label class="checkbox"><input type="checkbox" data-recurrent-control="lengths">Lengths [B, 1] — exact integers 0…T</label><label class="checkbox"><input type="checkbox" data-recurrent-control="mask">Active mask [B, T] — exact 0/1</label><label class="checkbox"><input type="checkbox" data-recurrent-control="reset">Reset mask [B, T] — exact 0/1</label></fieldset><p class="tiny">One shared transition owns its parameters once. Masked steps hold state and return zeros; reset restores the supplied initial state before an active step. Full backpropagation across T; no hidden carry between calls.</p><p id="recurrent-error" role="alert"></p><div class="dialog-actions"><button id="recurrent-cancel" type="button">Cancel</button><button id="recurrent-create" type="submit" class="primary">Add recurrent branch</button></div></form></dialog>
   <dialog id="recurrent-edit-dialog" aria-labelledby="recurrent-edit-title"><form id="recurrent-edit-form"><h2 id="recurrent-edit-title">Edit recurrent interface</h2><p class="tiny">Advanced explicit bindings. This edits the existing block, not a new branch. Keep stable return port IDs to preserve downstream wires. Removing a connected return port is refused. Affected paths must validate; unrelated drafts are kept. Errors keep your edits here.</p><label for="recurrent-edit-ref" class="field-label">Transition architecture</label><select id="recurrent-edit-ref"></select><pre id="recurrent-edit-signature" class="contract-card"></pre><details><summary>Available source socket IDs</summary><p id="recurrent-edit-sources" class="tiny"></p></details><label for="recurrent-edit-json" class="field-label">Interface JSON · all fields explicit</label><textarea id="recurrent-edit-json" rows="16" maxlength="65536" required spellcheck="false"></textarea><p class="tiny">sequence_inputs: input + source. states: input + output + port + source. sequence_outputs: output + port. controls: lengths / mask / reset with source + exact adapter. share_with: stable block ID, or null for independent parameters. Change tensor dimensions on their Input boxes. Accepted changes clear legacy attached data/results, keep independent scientific revisions, and form one undo step.</p><p id="recurrent-edit-error" role="alert"></p><div class="dialog-actions"><button id="recurrent-edit-cancel" type="button">Cancel</button><button id="recurrent-edit-apply" type="submit" class="primary" disabled>Apply validated interface</button></div></form></dialog>
   <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">New architecture</h2><p>Keep the name short and descriptive.</p><input id="name-input" maxlength="100" required autofocus><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Create</button></div></form></dialog>
+  <dialog id="lstm-dialog" aria-labelledby="lstm-title"><form id="lstm-form">
+    <h2 id="lstm-title">LSTM</h2>
+    <p class="tiny">Concrete sequence [B,T,F]; supplied initial states, no hidden carry between calls. Creation adds an independent branch and keeps existing work. Every exposed Output needs an explicit task head.</p>
+    <label class="field-label" for="lstm-label">Block name</label><input id="lstm-label" maxlength="60" required>
+    <fieldset id="lstm-create-fields"><legend>Supplied sequence</legend>
+      <label for="lstm-steps">Sequence length T</label><input id="lstm-steps" type="number" min="1" step="1">
+      <label for="lstm-input-size">Input features F</label><input id="lstm-input-size" type="number" min="1" step="1">
+      <label class="checkbox"><input id="lstm-lengths" type="checkbox">Supplied lengths [B,1], exact integers 0…T</label>
+    </fieldset>
+    <fieldset><legend>Learned LSTM constructor</legend>
+      <label for="lstm-hidden-size">Cell width H</label><input id="lstm-hidden-size" type="number" min="1" step="1" required>
+      <label for="lstm-layers">Stacked layers</label><input id="lstm-layers" type="number" min="1" max="64" step="1" required>
+      <label for="lstm-projection">Projection width (0 = none; otherwise less than H)</label><input id="lstm-projection" type="number" min="0" step="1" required>
+      <label class="checkbox"><input id="lstm-bidirectional" type="checkbox">Bidirectional</label>
+      <label class="checkbox"><input id="lstm-bias" type="checkbox">Learn biases</label>
+      <pre id="lstm-shapes" class="contract-card"></pre>
+    </fieldset>
+    <fieldset id="lstm-edit-fields" hidden><legend>Existing source sockets and owner</legend>
+      <label for="lstm-source-sequence">Sequence</label><select id="lstm-source-sequence"></select>
+      <label for="lstm-source-hidden">Initial hidden</label><select id="lstm-source-hidden"></select>
+      <label for="lstm-source-cell">Initial cell</label><select id="lstm-source-cell"></select>
+      <label for="lstm-source-lengths">Optional lengths · exact-int64-v1</label><select id="lstm-source-lengths"></select>
+      <label for="lstm-owner">Parameter owner</label><select id="lstm-owner"></select>
+      <p class="tiny">Changing constructor dimensions does not resize existing Inputs. Edit their shapes explicitly or choose compatible sources. Unused former Inputs are kept; remove them explicitly before whole-model execution.</p>
+    </fieldset>
+    <p class="tiny">Projection narrows hidden, not cell. Layers × directions is the state’s first sample axis. Lengths run positive prefixes; zero-length rows keep supplied state and emit zero. Execution lengths are not loss masks. Dropout is zero. Family/runtime-T LSTM is not yet supported.</p>
+    <p id="lstm-error" role="alert"></p><div class="dialog-actions"><button id="lstm-cancel" type="button">Cancel</button><button id="lstm-apply" type="submit" class="primary">Add LSTM branch</button></div>
+  </form></dialog>
 </body>
 </html>

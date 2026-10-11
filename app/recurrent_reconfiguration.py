@@ -60,6 +60,9 @@ def _affected_contract(models, doc, nid):
             continue
         if node['type'] == 'Recurrent':
             ports = [r['port'] for r in node['sequence_outputs'] + node['states']]
+        elif node['type'] == 'LSTM':
+            from .lstm_nodes import PORTS
+            ports = PORTS
         elif node['type'] == 'Splitter':
             ports = [r['output'] for r in node['parts']]
         elif node['type'] == 'Replicator':

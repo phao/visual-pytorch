@@ -1,5 +1,66 @@
 # Development state and roadmap
 
+## 2026-10-11 17:02 -03:00 — Guarded concrete LSTM creation and editing
+
+The resumed child now delivers Building blocks' typed LSTM branch form and
+Inspector's in-place constructor/source/parameter-owner editor. Qt and CLI
+prepare-lstm/prepare-lstm-edit/add-lstm/edit-lstm share the allocation-free builder.
+Explicit state dimensions/three return ports, unique boundaries, old input order,
+stable IDs/outgoing wires and unrelated drafts are preserved. Affected paths,
+sharing peers, raw reachable graph/name/geometry tokens and workspace-instance
+guards refuse incompatible/stale edits instead of silently resizing other work.
+Actual edits are one undo/redo step; proved default-prefill no-ops preserve SQL.
+Legacy attached data/results clear on real edits; immutable revisions remain.
+Parameter-sized layout includes LSTM owners/aliases. No storage/runtime grammar
+change: .vtw17/ModelRevision4; family1–6/runtime-v1 still reject LSTM.
+
+Fixed strict CLI parsing at the common read_json file/stdin seam, including
+duplicate keys, NaN/Infinity and overflow1e309, without bypassing existing tests.
+New tests caught a real implicit-default no-op mutation, now repaired. Initial
+full1132 run failed one obsolete global64-cap UI assertion: only the closed
+LSTM stack-depth field is now exempted, not feature/sample/epoch controls.
+All initial failures are retained in private campaign evidence. Real captures
+also exposed retained modal scroll hiding its title; reopening resets scroll.
+Wrong post-acknowledgement workspace refresh errors retain the draft rather than
+claim success. Cancel fences late view delivery, not an already authorized write.
+
+Final1132 Python428.355s passes (1129 executed/3 Qt-only skips separately covered
+by33 native/UI cases0.136s). Full352 JS1696.590397ms passes. Focused102 pure/CLI
+cases1.406s and18 authored/original numerical cases3.637s pass. Independent gate
+scans check authored/edited native and generated outputs and all gradients;
+35-update fitting checks exact loaded predictions. Existing real task/worker,
+saved/app-free and actual notebook kernels remain in the full regression.
+Numerical/CLI Python runtime stayed fixed throughout that rerun; final UI-only
+scroll/refresh corrections have final full JS and actual native form checks.
+
+Actual sandboxed Qt/std-lib host tests create/edit from real controls, verify
+explicit projected/bidirectional states, cancel/no-op/refusal/stale behavior,
+atomic history/save-reload and no host Torch/config mutation. Imported-LSTM
+compact drag, Space/Help/control guards, generic recurrent creation and MLP/CNN
+interface editing plus panel preset/stacking/snap/large-font regressions pass.
+Durable painted captures were inspected. First incorrect palette-opening fixture,
+missing Xvfb launcher and teardown warning are retained; final offscreen Qt
+checks need no Xvfb and delete pages before their profile without that warning.
+
+Contract: [LSTM authoring](lstm-authoring.md); file/CLI/portable UI specs aligned.
+This is a local D checkpoint, not D/E completion or public publication. Public
+A–C stays d2fcecbb. Next explicit LSTM family/runtime-T grammars and original D
+requirement convergence, then E. Two user feature reports are pinned/assessed in
+the campaign; no whole A–C rebuild or D/E delay is indicated. LoRA policy/init/
+arithmetic, MS-VAR likelihood/representation and broader CLI discovery remain
+future versioned work after E, not implemented metadata.
+
+## 2026-10-11 16:28 -03:00 — Unmerged LSTM authoring draft
+
+Interrupted authoring work is preserved on `task/stage-d-lstm-authoring`, based
+on720d7db, not merged into retained D/main. Shared pure builder, desktop bridge,
+CLI preparation/apply and parameter-layout proof are drafts; no JavaScript form
+or dedicated authoring acceptance exists. Focused existing76 tests yield72 PASS
+and four failures because new strict CLI parsing bypasses their `read_json`
+input mocks. Retain those failures, repair the intended seam and prove serialized
+CLI/native/numerical behavior before integration. Full acceptance has not run.
+See [precise continuation handoff](draft-lstm-authoring-handoff.md).
+
 ## 2026-10-11 16:10 -03:00 — Concrete LSTM state gate and Help hub
 
 Local D now implements concrete stacked, bidirectional and projected LSTM with
