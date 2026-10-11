@@ -304,10 +304,16 @@ without expanding. Dragging that compact icon moves the block with the same
 world-coordinate and Ctrl-snap behavior as an expanded block. Double-click
 restores its details; Enter/Space toggles folding on a focused icon. Dragging
 must not expand or collapse it, and sockets remain separately clickable.
-Compact width is 72 world units; height is at least 54 for Linear/Conv2d or 44 otherwise,
+Plain Space also toggles the selected block while the diagram has focus; focus
+need not be on that block's icon. One initial press gives one history edit;
+autorepeat is consumed without repeated toggles. A wire-only/empty selection,
+running job, active canvas drag/wiring, dialog, editable field or focused control
+does not trigger this global block shortcut. Modified Space is left alone.
+The existing focused-icon Enter/Space behavior is retained.
+Compact width is 72 world units; height is at least 54 for Linear/Conv2d/LSTM or 44 otherwise,
 increasing to keep multiple ports distinct. Small 9-unit monospace text shows
 input/output shape, Linear last-axis in→out widths, activation name or type-specific
-summary. Linear/Conv2d also have an 8-unit Bias on/off line. Summaries truncate after
+summary. Linear/Conv2d/LSTM also have an 8-unit Bias on/off line. Summaries truncate after
 13 characters with full hover text; missing inferred dimensions show ?. The type
 icon sits at the compact body's top-center and remains directly draggable.
 Folding preserves preferred expanded sizes, tensor
@@ -500,6 +506,18 @@ nothing. Preserve unrelated drafts rather than "repairing" them behind the
 user's back. These are reusable interaction principles, not a new panel scheme.
 Domain schema and affected-path proof: [interface editing](recurrent-interface-editing.md).
 
+The concrete LSTM domain adapter reuses this scheme with a distinct cell/gate
+icon and amber semantic token, not hard-coded dark fills. Its input sockets are
+the distinct source keys of sequence/hidden/cell, then optional lengths; its
+three output sockets are sequence/hidden/cell. Inspector must distinguish cell
+and projected hidden widths and show the explicit state batch-axis adapter.
+Both expanded and folded blocks always disclose bias. Compact icons remain
+draggable, all sockets remain distinct, and selected-port insertions use that
+port's shape. This checkpoint's example/CLI can author a drawing; it has no LSTM
+palette creation form yet. Preserve the existing panels/typing/history behavior
+rather than adding a separate recurrence UI. Exact semantics and unsupported
+family/runtime extensions: [LSTM graph contract](lstm-graph-contract.md).
+
 ## 8. Visual system and accessibility
 
 Default palette: dark green/blue-gray stage; mint primary actions/valid state;
@@ -593,8 +611,27 @@ token source for native and web backgrounds, controls, text, accents and node
 fills. Platform title bars/file choosers may retain OS styling. Palette tests
 are not a full contrast/accessibility audit.
 
-I/A/B/E toggle Inspector/Architectures/Building blocks/Experiment, ignoring
-editable fields, modified/repeated keys and modal dialogs. Ctrl+Z undoes workspace
+I/A/B/E/H toggle Inspector/Architectures/Building blocks/Experiment/Help, ignoring
+editable fields, modified/repeated keys and modal dialogs. Panel shortcuts also
+leave focused buttons, links, disclosure controls and ARIA controls alone.
+Help is a regular floating, draggable, resizable panel with a short drawing guide
+and a semantic shortcuts table. It starts closed; the bottom-of-canvas shortcut
+caption is removed (the status footer and validation chip remain). Help content
+scrolls through the same overlay scrollbar as the other panels, uses theme tokens
+and configured typography, and wraps within narrow resized frames. Help geometry
+is tab-local: version-1 workspace panel presets retain their exact five-panel
+grammar; Help is excluded from capture and closes on preset restoration/reset.
+It still participates in menu-layer drag, stacking, Fit occlusion and hide-all.
+Section links scroll inside Help without changing the architecture URL hash.
+Learning-resource links use an explicit desktop allowlist and open in the system
+browser only on user activation; they cannot navigate the trusted editor or
+provide arbitrary URLs. Initially linked resources are official PyTorch
+[Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+and [torch.nn](https://docs.pytorch.org/docs/stable/nn.html), checked 2026-10-11.
+External documentation is not an assertion that every described operator is
+implemented. Local guides/shortcuts work offline; linked guides need internet.
+Keep sections extensible for future app documentation and worked NN guides.
+Ctrl+Z undoes workspace
 edits; Ctrl+Shift+Z/Ctrl+Y redo; text fields retain native text undo. Native Edit
 actions dispatch the same commands without stealing text-field shortcuts.
 Domain history is session-only SQLite snapshots (50 steps/128 MiB combined),

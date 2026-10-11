@@ -65,7 +65,7 @@
   <main id="editor" class="editor" hidden>
     <nav id="menu-pack" class="menu-pack" aria-label="Floating panel menus">
       <div class="pack-heading"><span class="pack-grip" title="Drag menu pack">PANELS</span><button id="pack-toggle" aria-label="Shrink menu pack" aria-expanded="true" aria-controls="pack-menus" title="Shrink to one icon · double-click icon to restore"><svg class="panel-pack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5V3h13v13h-2"/><rect x="3" y="8" width="13" height="13" rx="2"/><path d="M3 12h13"/><path d="M6 10h1"/></svg></button></div>
-      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
+      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="help-panel" aria-controls="help-panel" aria-expanded="false" title="Help · H"><span>?</span>Help</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
     </nav>
     <aside id="library-panel" class="library floating-panel" hidden>
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
@@ -124,8 +124,55 @@
       </div>
     </aside>
 
+    <aside id="help-panel" class="help-panel floating-panel" aria-labelledby="help-title" hidden>
+      <div class="floating-heading" data-drag-handle><span id="help-title">HELP</span><div class="panel-controls"><button data-expand-panel aria-label="Expand help" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide help" aria-controls="help-scroll" title="Hide">×</button></div></div>
+      <div id="help-scroll" class="scrollport">
+        <article class="help-content">
+          <nav class="help-sections" aria-label="Help sections"><a href="#help-drawing">Drawing</a><a href="#help-shortcuts">Shortcuts</a><a href="#help-resources">Learning resources</a></nav>
+          <section id="help-drawing"><h3>From drawing to PyTorch</h3>
+            <p>Use Building blocks to add operations. Inputs describe one sample's dimensions; B is the batch dimension. Connect an output socket to an input socket. Use Concat to join independent paths, or Splitter to create branches.</p>
+            <p>Select a block, then open Inspector to see its settings and tensor contract. Double-clicking a block also opens Inspector. Right-clicking selects it and offers block actions. Its type icon folds details without changing computation.</p>
+            <p>Validate checks the executable graph. Experiment lets you prepare data, train, inspect learned parameters and read the generated PyTorch forward code. Save workspace keeps architectures and their retained evidence in one .vtw file.</p>
+            <p>Panels float independently: drag their headings or empty areas, resize at the bottom-right corner, expand with ⤢ and hide with ×. Layout offers workspace-specific block arrangements. Run safety controls execution, not which diagrams you may draw.</p>
+          </section>
+          <section id="help-shortcuts"><h3>Shortcuts</h3><p>Single-key commands apply outside text fields and dialogs. Focused controls keep their own keys. Selection survives empty-canvas clicks and panning.</p>
+            <table class="help-shortcuts"><caption>Keyboard and pointer shortcuts</caption><thead><tr><th scope="col">Key / gesture</th><th scope="col">Action</th></tr></thead><tbody>
+              <tr><th scope="row">A</th><td>Show / hide Architectures.</td></tr>
+              <tr><th scope="row">B</th><td>Show / hide Building blocks.</td></tr>
+              <tr><th scope="row">E</th><td>Show / hide Experiment.</td></tr>
+              <tr><th scope="row">H</th><td>Show / hide Help.</td></tr>
+              <tr><th scope="row">I</th><td>Show / hide Inspector.</td></tr>
+              <tr><th scope="row">Space</th><td>Expand / compact the selected block; one undoable edit.</td></tr>
+              <tr><th scope="row">D</th><td>Delete the selected block or connection.</td></tr>
+              <tr><th scope="row">Escape</th><td>Cancel an active drag or connection; otherwise clear selection. With nothing selected, hide all panels and shrink the pack. Typing and dialogs retain Escape.</td></tr>
+              <tr><th scope="row">Ctrl+Z</th><td>Undo a workspace edit; text fields keep text undo.</td></tr>
+              <tr><th scope="row">Ctrl+Shift+Z / Ctrl+Y</th><td>Redo a workspace edit.</td></tr>
+              <tr><th scope="row">Drag block</th><td>Move it, including a compact block's icon.</td></tr>
+              <tr><th scope="row">Drag socket</th><td>Connect a source output to a destination input.</td></tr>
+              <tr><th scope="row">Drag arrow end</th><td>Reconnect an existing connection to another input.</td></tr>
+              <tr><th scope="row">Drag empty canvas</th><td>Pan the diagram; the workspace does not become unsaved.</td></tr>
+              <tr><th scope="row">Mouse wheel</th><td>Zoom the diagram around the pointer.</td></tr>
+              <tr><th scope="row">Shift+drag</th><td>Move the floating-menu layer, not the diagram.</td></tr>
+              <tr><th scope="row">Ctrl while dragging / resizing</th><td>Invert the relevant snap-to-grid default. Drag snaps top-left; resize snaps bottom-right. Block and menu defaults are separate.</td></tr>
+              <tr><th scope="row">Click block icon</th><td>Compact its details; double-click a compact icon to expand. Enter / Space toggles a focused icon.</td></tr>
+              <tr><th scope="row">Double-click block</th><td>Open Inspector. Ctrl / Meta with a referenced architecture also opens its details in a new tab.</td></tr>
+              <tr><th scope="row">Ctrl+N / Ctrl+O</th><td>New workspace / open workspace.</td></tr>
+              <tr><th scope="row">Ctrl+S / Ctrl+Shift+S</th><td>Save workspace / Save As.</td></tr>
+              <tr><th scope="row">Ctrl+T</th><td>Open the current architecture in a new tab.</td></tr>
+              <tr><th scope="row">Alt+Left / Alt+Right</th><td>Navigate back / forward.</td></tr>
+              <tr><th scope="row">Ctrl++ / Ctrl+- / Ctrl+0</th><td>Enlarge / shrink / reset interface zoom, independently of diagram zoom.</td></tr>
+            </tbody></table>
+          </section>
+          <section id="help-resources"><h3>Learning resources</h3><p>This Help hub can grow into app documentation, worked network examples and linked guides. External resources open in your browser, leaving the drawing here.</p>
+            <ul><li><a data-help-resource="pytorch-basics" href="https://docs.pytorch.org/tutorials/beginner/basics/intro.html">PyTorch: Learn the Basics</a> — tensors, model building and training.</li><li><a data-help-resource="pytorch-nn" href="https://docs.pytorch.org/docs/stable/nn.html">PyTorch: torch.nn reference</a> — layer and operation documentation.</li></ul>
+            <p class="tiny">External documentation may describe capabilities this prototype does not yet implement. The app's validated graph contract determines what can run here. These resources require internet access; local help and shortcuts do not.</p>
+          </section>
+        </article>
+      </div>
+    </aside>
+
     <section class="workarea">
-      <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div class="canvas-note">Drag blocks · drag arrow ends to reconnect · D deletes selection · wheel to zoom · drag empty space to pan</div><div id="validation-message" class="validation-chip">Checking graph…</div></div>
+      <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div id="validation-message" class="validation-chip">Checking graph…</div></div>
       <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
         <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
         <div id="experiment-scroll" class="scrollport">
