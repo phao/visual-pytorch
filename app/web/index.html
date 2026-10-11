@@ -299,7 +299,7 @@
       <label for="lstm-owner">Parameter owner</label><select id="lstm-owner"></select>
       <p class="tiny">Changing constructor dimensions does not resize existing Inputs. Edit their shapes explicitly or choose compatible sources. Unused former Inputs are kept; remove them explicitly before whole-model execution.</p>
     </fieldset>
-    <p class="tiny">Projection narrows hidden, not cell. Layers × directions is the state’s first sample axis. Lengths run positive prefixes; zero-length rows keep supplied state and emit zero. Execution lengths are not loss masks. Dropout is zero. Family/runtime-T LSTM is not yet supported.</p>
+    <p class="tiny">Projection narrows hidden, not cell. Layers × directions is the state’s first sample axis. Lengths run positive prefixes; zero-length rows keep supplied state and emit zero. Execution lengths are not loss masks. Dropout is zero. Family7 supports explicit fixed-T constructors; runtime-T LSTM is not yet supported.</p>
     <p id="lstm-error" role="alert"></p><div class="dialog-actions"><button id="lstm-cancel" type="button">Cancel</button><button id="lstm-apply" type="submit" class="primary">Add LSTM branch</button></div>
   </form></dialog>
 </body>

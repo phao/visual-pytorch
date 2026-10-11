@@ -59,7 +59,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
                   'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
-                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] == 6 else {}),
+                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7) else {}),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -116,7 +116,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'recurrent', 'recurrent_nodes', 'families', 'runtime_shapes', 'temporal_shapes'):
+            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:
@@ -156,6 +156,11 @@ def _semantic_schema(runtime, resolved, family):
                     if key in schema:
                         schema[key]['id'] = json.dumps(components + ['owner', node['id'], 'parameter', kind],
                                                       separators=(',', ':'), ensure_ascii=True)
+            elif node['type'] == 'LSTM':
+                for key, value in schema.items():
+                    if key.startswith(path + '.'):
+                        value['id'] = json.dumps(components + ['owner', node['id'], 'parameter', key[len(path)+1:]],
+                                                 separators=(',', ':'), ensure_ascii=True)
     visit(resolved['root'], 'network.', ['family', family['id'], 'template', family['root']])
     return schema
 
@@ -175,9 +180,9 @@ class ArchitectureFamily(nn.Module):
         constrained = policy['constrained'] if constrained is None else constrained
         percentage = policy['memory_limit_percent'] if memory_limit_percent is None else memory_limit_percent
         runtime_inputs = source.get('runtime_inputs') if runtime_inputs is None else runtime_inputs
-        if runtime_temporal is not None and source['version'] != 6:
-            raise ValueError('Temporal family construction requires an explicit family6 grammar.')
-        if source['version'] == 6 and runtime_temporal is None and source['runtime_policy'] is not None:
+        if runtime_temporal is not None and source['version'] not in (6,7):
+            raise ValueError('Temporal family construction requires an explicit family6/7 grammar.')
+        if source['version'] in (6,7) and runtime_temporal is None and source['runtime_policy'] is not None:
             runtime_temporal = source['runtime_policy']['inputs']
         # compile_model performs the whole-model preflight before any nn layer.
         self.network = runtime.core.compile_model(resolved['models'], resolved['root'], constrained,
@@ -191,7 +196,7 @@ class ArchitectureFamily(nn.Module):
                                 architecture_hash=resolved['architecture_hash'],
                                 runtime_inputs=copy.deepcopy(runtime_inputs),
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
-        if source['version'] == 6:
+        if source['version'] in (6,7):
             self._provenance['runtime_temporal'] = copy.deepcopy(runtime_temporal)
 
     @classmethod
@@ -199,7 +204,7 @@ class ArchitectureFamily(nn.Module):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
                 'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
-                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] == 6 else {}),
+                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7) else {}),
                 'policy': export_metadata()['policy']}
 
     @property

@@ -8,6 +8,11 @@ at export time or turn a family into a saved inference checkpoint.
 Explicit runtime task predictors now reuse this checked constructor rather than
 a second lowering; their distinct execution policy is specified in
 [runtime-task-execution.md](runtime-task-execution.md).
+[Family7](lstm-families.md) adds fixed-T LSTM constructors with supplied states,
+projection/direction-dependent shape expressions and gate/layer/direction stable
+parameter identities. The captured LSTM helper is initialized before resolution.
+Time-only constructor changes can preserve semantic parameter compatibility;
+runtime-T LSTM is still unsupported and rejects before allocation.
 
 ## Qt and CLI
 

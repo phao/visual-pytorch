@@ -35,6 +35,13 @@ async function opened(f,changes={}){
 }
 function edit(n,value,type='change'){n.value=value;n.dispatchEvent({type});}
 
+test('an omitted scalar type displays integer without silently inserting a draft field',async()=>{
+  const f=await opened(fixture(),{symbols:{rows:[{ordinal:0,path:[3,0],properties:[
+    descriptor('id','width',[3,0,0]),{key:'type',present:false,text:null,path:null,summary:null}]}]}});
+  assert.equal(f.field('symbols','type').value,'integer');
+  assert.equal(f.requests.length,6);
+});
+
 async function runtimeOpened(version=4){
   const roots=[descriptor('version',version,[0]),{key:'runtime_inputs',present:false,text:null,path:null,summary:null}];
   return opened(fixture(),{templates:{roots}});
@@ -60,6 +67,15 @@ test('blank temporal policy retains required explicit null rather than removing 
   assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
     {op:'property',target:{kind:'document'},key:'runtime_policy',text:'null'}]);
   f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+});
+test('fixed LSTM family7 policy edits preserve its newer grammar acknowledgement',async()=>{
+  const f=await temporalOpened(7),n=temporalField(f);
+  assert.ok(n.title.includes('required for LSTM in family7'));
+  edit(n,'');const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'runtime_policy',text:'null'}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+  assert.equal(f.get('science-family-roots').querySelector('[data-key="version"]').value,'7');
 });
 test('invalid temporal text stays editable and blocks preview or retention',async()=>{
   const f=await temporalOpened(6),n=temporalField(f);edit(n,'{not json');

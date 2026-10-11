@@ -4,6 +4,31 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 17:33 -03:00 — Explicit fixed-T LSTM families verified locally
+
+Added Family7/Specialization6/.vtw18 and closed typed integer selections because
+projection/direction constructor choices must derive real supplied-state and
+returned shapes, not only labels. Old family1–6 receipts and retained records
+match26 independent committed-baseline points exactly. Fixed LSTM requires null
+policy; unsupported temporal-v1/spatial execution refuses before allocation.
+Owned drawing seeding/cards, example/CLI, exact retention and format/UI specs
+remain aligned. Shared parameter suffix identities survive time-only changes;
+strict/partial warm starts remain initialization, not optimizer resume/freezing.
+
+New numerical tests exposed an uninitialized captured LSTM helper in checked
+family exports; the initializer now executes it. Actual Qt captures exposed an
+omitted integer-type dropdown rendering blank; it now shows the implicit type
+without editing source. Full1163 Python500.803s (3 separately native-covered
+skips),354 JS2087.581504ms,42 native/pure cases,16 independent constructor/gradient
+combinations,100 pure bounded points,35-update fit, real typed worker, actual Qt
+family cards/export/history/reload and two real retained-experiment notebook
+kernels pass. Saved/rerun metrics and checkpoints are exact. Initial fixture
+mistakes and source failure logs are preserved, not hidden.
+
+This is a bounded local-D checkpoint, not full D/E or a public release. Runtime-T
+LSTM, original nepr/nars convergence and E remain. LoRA/MS-VAR features stay
+deferred. No user file/config/app restart or main/public push.
+
 ## 2026-10-11 17:02 -03:00 — Concrete LSTM authoring accepted locally
 
 Resumed the separately preserved draft with typed creation/Inspector editing,

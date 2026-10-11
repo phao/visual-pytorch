@@ -1,5 +1,51 @@
 # Development state and roadmap
 
+## 2026-10-11 17:33 -03:00 — Fixed-T LSTM architecture families
+
+Family7 admits explicit integer hidden-size/layer/projection and boolean
+bias/direction constructor assignments. Its closed integer selection AST derives
+the different hidden/cell and direction-dependent shapes from the same symbols.
+Specialization6 retains exact contexts/bindings/null runtime; resolved receipt5,
+ModelRevision4 and .vtw18 keep old scientific meanings intact. LSTM requires null
+family policy; runtime-temporal-v1/spatial policies still reject it. No new SQL
+table, task/experiment/protocol grammar or sidecar. Opening old files is read-only.
+Exact grammar, example, CLI and UI/export behavior: [LSTM families](lstm-families.md).
+
+Independent tests cover16 constructor combinations through native/checked family/
+ordinary concrete exports, all input/state/parameter gradients, zero lengths,
+NaN padding, semantic suffix identities, atomic strict/explicit partial warm starts,
+35 updates against an independent gate teacher and a real typed worker.100 pure
+bounded points verify counts/shapes without Torch. Real CLI preview/export/save/
+no-overwrite and .vtw18 fences/rollback pass. Committed pre-Family7 source at
+254e16348c45986ea586070ff60ceb22ac63b34f reproduces26 family1–6 receipts/records
+exactly. Real Qt seeds Family7 from a drawing, edits selection/default cards,
+retains invalid text, previews without SQL mutation, exports exact checked source,
+materializes and preserves historical rows through undo/redo/reload. Native42
+checks cover the3 Qt-only skips. Full1163 Python500.803s and354 JS2087.581504ms
+pass. Python runtime stayed fixed during full numerical/captured closure checks;
+the final omitted-type presentation correction has its own full JS/native checks.
+
+`tests/probe_lstm_family_experiment.py` also executes a genuine ExperimentSpec3
+family choice/typed bias axis, retains Specialization6/ModelRevision4, runs the
+real worker, and executes both result-report and rerun notebook kernels. Their
+checkpoint IDs and metrics match exactly and .vtw18 reload passes. This is a
+concrete specialization, not variable-T fitting. Whole-kernel artifacts remain
+private; no research-performance claims arise from the tiny fit.
+
+Initial failures preserved: incorrect preview-type/unbound-error expectations,
+captured helper never initialized (fixed), wrong task-bundle `split` key in the
+test (`manifest` is the actual contract), and historical undo inspection using
+a removed browsing head instead of its exact retained revision. The visible
+integer-type dropdown had an independent presentation fix. No tests were relaxed
+to accept unsupported runtime, malformed bindings or missing provenance.
+
+Integrate only into retained task/stage-d-families after verified checks/ancestry;
+public A–C main remains d2fcecbb. Next: a separately versioned runtime-T LSTM
+grammar and complete native/family/task/kernel/state/gradient/memory routes, then
+original nepr/nars D acceptance convergence and E. Neither full goal nor campaign
+is complete; new report features are deferred. No user workspace/config/app
+mutation, public push, new campaign or hidden source fork.
+
 ## 2026-10-11 17:02 -03:00 — Guarded concrete LSTM creation and editing
 
 The resumed child now delivers Building blocks' typed LSTM branch form and
