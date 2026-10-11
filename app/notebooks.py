@@ -24,6 +24,7 @@ from .memory import memory_percent
 from .report_runtime import new_file, new_json, resolve_payload
 
 RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.py', 'experiment_objects.py',
+           'families.py', 'family_records.py',
            'file_sync.py', 'graph.py', 'history.py', 'memory.py', 'operators.py', 'presentation.py',
            'report_runtime.py', 'revisions.py', 'task_execution.py', 'task_result.py',
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
@@ -207,8 +208,11 @@ def verify_bundle(root):
     _version(manifest, 'Report manifest'); reference(manifest['recipe'], 'report')
     _require(manifest['format'] == FORMAT and isinstance(manifest['files'], dict), 'Unsupported report bundle.')
     expected = {'payload.json', 'LICENSE', 'README.txt', 'requirements.txt'} | {'runtime/app/' + n for n in RUNTIME}
-    legacy = expected - {'runtime/app/activations.py'}
-    _require(set(manifest['files']) in (expected, legacy),
+    family_paths = {'runtime/app/families.py', 'runtime/app/family_records.py'}
+    pre_family = expected - family_paths
+    legacy = pre_family - {'runtime/app/activations.py'}
+    no_activations = expected - {'runtime/app/activations.py'}
+    _require(set(manifest['files']) in (expected, pre_family, legacy, no_activations),
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
         part = PurePosixPath(relative); path = root / relative
@@ -220,7 +224,14 @@ def verify_bundle(root):
                  'Report input escapes bundle or uses symlinks.')
         raw = path.read_bytes()
         _require(len(raw) == info['bytes'] and hashlib.sha256(raw).hexdigest() == info['sha256'], 'Report input integrity mismatch: ' + relative)
-    if set(manifest['files']) == legacy:
+    if not family_paths <= set(manifest['files']):
+        import ast
+        for name in ('core.py', 'revisions.py', 'experiment_objects.py'):
+            tree = ast.parse((root / 'runtime/app' / name).read_text(encoding='utf-8'))
+            _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
+                             n.module in ('families', 'family_records') for n in ast.walk(tree)),
+                     'This report runtime requires its captured family specialization dependencies.')
+    if 'runtime/app/activations.py' not in manifest['files']:
         # Preserve genuine pre-extraction v1 bundles, not an incomplete new
         # closure. This is a supported-dependency guard, NOT a Python sandbox.
         import ast

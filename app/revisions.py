@@ -13,7 +13,7 @@ from .datasets import _identifier, _keys, _require, _version, validate_dataset, 
 from .evidence import PRESENTATION, digest, identity, pin_input_order
 from .operators import normalized
 
-KINDS = ('dataset', 'experiment', 'model', 'report', 'run', 'task')
+KINDS = ('dataset', 'experiment', 'family', 'model', 'report', 'run', 'specialization', 'task')
 SCHEMA = {
     'spec_revisions': """CREATE TABLE spec_revisions(
         kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
@@ -152,6 +152,9 @@ def frozen_document(kind, doc):
     if kind in ('experiment', 'run', 'report'):
         from .experiment_objects import validate_experiment, validate_run, validate_report
         validator = {'experiment': validate_experiment, 'run': validate_run, 'report': validate_report}[kind]
+    elif kind in ('family', 'specialization'):
+        from .family_records import validate_family_revision, validate_specialization
+        validator = {'family': validate_family_revision, 'specialization': validate_specialization}[kind]
     else:
         validator = {'dataset': validate_dataset, 'task': validate_task_spec, 'model': validate_model_document}[kind]
     validator(doc)
@@ -245,7 +248,7 @@ class RevisionStore:
         _require(row is not None, 'Requested immutable revision does not exist.')
         doc = frozen_document(kind, _parse(row[0]))
         _require(doc['id'] == sid and doc['revision'] == revision, 'Retained revision identity mismatch.')
-        if kind in ('experiment', 'run', 'report'):
+        if kind in ('experiment', 'run', 'report', 'specialization'):
             from .experiment_objects import validate_dependencies
             validate_dependencies(kind, doc, self.get)
         return doc

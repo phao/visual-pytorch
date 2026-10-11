@@ -30,23 +30,13 @@ def apply_edits(workspace, edits):
     for edit in edits:
         kind = edit['op']
         if kind == 'specialize-family':
-            from app.families import specialize
-            resolved = specialize(edit['family'], edit.get('bindings'))
-            models = resolved['models']
-            if set(models) & set(workspace.models()):
-                raise ValueError('A resolved family architecture ID already exists; no implicit replacement.')
-            inserted = set()
-            def insert(mid):
-                if mid in inserted:
-                    return
-                doc = models[mid]
-                for node in doc['graph']['nodes']:
-                    if node['type'] == 'Module':
-                        insert(node['ref'])
-                workspace.put(doc)
-                inserted.add(mid)
-            insert(resolved['root'])
-            results.append({'op': kind, 'resolved': resolved})
+            from app.family_records import retain
+            from app.datasets import _keys
+            _keys(edit, ('op',), ('family', 'family_ref', 'bindings', 'id', 'name', 'materialize'), 'Specialize-family edit')
+            retained = retain(workspace, family=edit.get('family'), family_ref=edit.get('family_ref'),
+                              bindings=edit.get('bindings'), sid=edit.get('id'), name=edit.get('name'),
+                              materialize=edit.get('materialize', True))
+            results.append({'op': kind, **retained})
             continue
         elif kind == 'put-spec':
             ref = workspace.put_spec(edit['kind'], edit['document'], edit.get('select', True))
@@ -152,6 +142,9 @@ def main(argv=None):
     family = sub.add_parser('preview-family', help='Check an external architecture family and resolve bindings; no execution or workspace edits')
     family.add_argument('family', help='Family JSON file (or - for stdin)')
     family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
+    stored_family = sub.add_parser('preview-stored-family', help='Resolve an EXACT stored family revision without execution or edits')
+    stored_family.add_argument('id'); stored_family.add_argument('revision')
+    stored_family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
     for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
@@ -271,6 +264,10 @@ def main(argv=None):
             if args.command == 'preview-family':
                 from app.families import preview
                 value = preview(read_json(args.family), None if args.bindings is None else read_json(args.bindings))
+            elif args.command == 'preview-stored-family':
+                from app.family_records import preview_stored
+                value = preview_stored(workspace, {'kind':'family','id':args.id,'revision':args.revision},
+                                       None if args.bindings is None else read_json(args.bindings))
             elif args.command == 'inspect':
                 value = {'path': str(path), 'revision': workspace.disk_revision,
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],

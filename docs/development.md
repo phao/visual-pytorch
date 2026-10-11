@@ -1,5 +1,50 @@
 # Development state and roadmap
 
+## 2026-10-11 05:24 -03:00 — Stage D: retained family provenance
+
+Continued `task/stage-d-families` from checkpoint91113ac in the sole canonical
+checkout. `.vtw` v7 adds closed immutable family/specialization kinds to the
+existing guarded registry. All resolved bindings (including defaults), the exact
+family revision and its frozen concrete model are pinned. Admission/load/save
+reproduce that relationship; a valid content hash and equal shape/count are not
+enough to substitute another model. One internal savepoint groups all retained
+records and optional dependency-ordered drawings. Failed later writes restore
+rows/dirty state; caller transactions stay open. Undo/archive preserve provenance.
+Older v1–6 files migrate in memory only until explicit Save.
+
+CLI `specialize-family` retains provenance automatically, accepts an exact
+`family_ref` instead of a full definition, and can retain without drawings using
+`materialize:false`. `preview-stored-family` is exact and read-only. The unchanged
+Qt scientific browser now includes alphabetically ordered family/specialization
+reads/imports. Typed GUI family authoring and family experiment axes remain open.
+No new SQL table, global preference, sidecar, live product fork or remote push.
+
+Current report bundles capture the complete23-file runtime. Genuine immutable
+pre-family21-file and pre-activation20-file bundles pass current verification and
+actual fresh-kernel execution without rewriting original inputs. Partial/omitted
+new dependencies fail before a kernel starts; compatibility guards are not a
+hostile-code sandbox. Focused24 storage tests pass without ResourceWarnings;
+the initial warnings were traced to unclosed test-only SQLite connections, then
+repaired with explicit closing, not suppressed. All24 notebook tests pass63.200s,
+including actual modes/training fences/Stop/timeout and the two older closures.
+The sandboxed Qt check verifies saved ten-block77-parameter rendering/Inspector,
+both retained-kind summaries/exact references, default Experiments selection and
+alphabetical labels; no host Torch, console errors or dirty/SQLite mutation.
+The initial Qt probe used a wrong assertion key `tied` instead of `tied_weights`;
+only that fixture assertion was corrected. All260 JS tests pass1087.792817ms.
+The complete664-Python regression passes191.476s, including the original
+independent family tensor/gradient/fit/export tests and actual notebook kernels.
+Numerical batches were serialized and restricted to one Torch/BLAS/OpenMP thread.
+Compilation and `git diff --check` pass. These are local regression checks, not
+cross-platform, hostile-input or dynamic-shape acceptance proofs.
+
+This remains a branch-only D checkpoint, not full D acceptance or integration.
+Continue owned typed family editing/selection and explicit family experiment
+axes, genuine tied-weight identity/count/checkpoint behavior, runtime-shape guards
+and recurrent state/length/mask/reset/mixed composition with independent numerical
+and actual UI tests. E follows actual D acceptance. Main and public refs are
+unchanged; user app/config/workspaces are untouched.
+
 ## 2026-10-11 05:02 -03:00 — Stage D: concrete-first family foundation
 
 Branch `task/stage-d-families` starts from accepted main

@@ -46,7 +46,7 @@ class Harness(QObject):
         family = json.loads((ROOT / 'examples/families/width-depth.json').read_text())
         result = apply_edits(self.workspace, [{'op': 'specialize-family', 'family': family,
                                               'bindings': {'hidden-width': 4, 'hidden-depth': 3}}])[0]
-        self.mid = result['resolved']['root']
+        self.mid = result['resolved']['root']; self.family = result['family']; self.specialization = result['specialization']
         self.workspace.save(folder / 'instance.vtw')
         self.workspace.db.close(); self.workspace = Workspace.load(folder / 'instance.vtw')
         self.job = None; self.torch_python = None; self.rendering = {}; self.bridge = Bridge(self, view)
@@ -91,13 +91,32 @@ with tempfile.TemporaryDirectory() as directory:
         assert h.describe(h.mid)['valid']
         assert 'nn.Linear(4, 4' in h.describe(h.mid)['code']
         assert not h.workspace.dirty, 'View fit/inspect must not dirty saved instance'
+        before = h.workspace.db.serialize()
+        js('document.querySelector("[data-panel=science]").click()')
+        until('!document.getElementById("science-panel").hidden')
+        assert js('document.getElementById("science-kind").value') == 'experiment'
+        labels = js('[...document.getElementById("science-kind").options].map(o=>o.textContent)')
+        assert labels == sorted(labels, key=str.casefold), labels
+        for kind, ref in (('family', h.family), ('specialization', h.specialization)):
+            js('document.getElementById("science-kind").value=' + json.dumps(kind) + ';document.getElementById("science-kind").dispatchEvent(new Event("change"))')
+            until('JSON.parse(document.getElementById("science-document").textContent||"{}").reference?.kind===' + json.dumps(kind))
+            displayed = js('JSON.parse(document.getElementById("science-document").textContent)')
+            assert displayed['reference'] == ref
+            if kind == 'family':
+                assert displayed['counts']['symbols'] == 2
+                assert displayed['capabilities']['tied_weights'] is False
+            else:
+                assert displayed['family'] == h.family
+                assert displayed['counts']['resolved_bindings'] == 2
+        assert h.workspace.db.serialize() == before, 'Exact revision browsing must be read-only'
         assert not errors, errors
         assert 'torch' not in sys.modules
         if os.environ.get('VTW_FAMILY_CAPTURE'):
             assert view.grab().save(os.environ['VTW_FAMILY_CAPTURE'])
         print(json.dumps({'ok': True, 'concrete_family_instance': True, 'blocks': 10,
                           'parameters': 77, 'console_errors': errors, 'host_torch': False,
-                          'workspace_dirty': h.workspace.dirty, 'family_authoring_gui': False}))
+                          'workspace_dirty': h.workspace.dirty, 'retained_family_browser': True,
+                          'retained_specialization_browser': True, 'family_authoring_gui': False}))
     finally:
         view.setPage(QWebEnginePage(view)); page.deleteLater(); channel.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

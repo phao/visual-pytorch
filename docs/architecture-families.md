@@ -5,7 +5,9 @@ release. `app/families.py` resolves an external, versioned JSON family into the
 existing ordinary executable architecture closure. Neither specialization nor
 preview imports Torch/Qt, allocates tensors, trains, changes global preferences
 or infers bindings from data. Compilation/training still use ordinary constrained
-run admission. This checkpoint adds no family-authoring UI or SQLite family kind.
+run admission. Immutable family/specialization records now live in `.vtw` v7;
+the existing Qt scientific browser can inspect/import them. This checkpoint does
+not add a typed family-authoring GUI or an automatic family sweep axis.
 
 ## Family document version 1
 
@@ -143,19 +145,60 @@ An ordinary atomic `apply` batch now accepts:
 Replace `{}` with the full family document. This resolves, checks collisions
 against existing architecture IDs, inserts child architectures before parents,
 then uses the existing final-batch validation and atomic workspace save. There is
-no implicit replacement, no new SQLite table/kind and no schema-version bump.
-Result `edits[].resolved` is the complete receipt. A failing batch or stale
+no implicit replacement or new SQLite table. Family/specialization semantics
+require container version 7. Result `edits[].resolved` is the complete receipt;
+`family`, `model`, `specialization` are exact retained references and
+`materialized` records whether editable drawings were inserted. A failing batch or stale
 `--expect-revision` leaves disk unchanged. The imported concrete models are
 ordinary editable architectures, can be frozen with `freeze-model`, selected in
 current experiments, rendered/inspected and exported without family-runtime code.
 
-The external family definition and receipt are NOT yet retained automatically
-inside .vtw; callers must retain their source and CLI receipt. Editing the concrete
-instance does not update the family. Immutable family/specialization storage,
-owned typed GUI editing, family sweep axes, deliberate sharing, runtime-spatial
+The family, resolved bindings and frozen model are retained automatically inside
+`.vtw`. Editing the concrete instance does not update any of those immutable
+records. Owned typed GUI editing, family sweep axes, deliberate sharing, runtime-spatial
 guards and recurrent state/length/mask contracts are subsequent Stage D work.
 An H/W family specialization currently fixes H/W; testing two specializations
 does not claim one executable instance accepts arbitrary spatial dimensions.
+
+### Retained records and exact stored preview
+
+`family` uses the version-1 grammar above, with only the optional verified registry
+`revision` added. Its revision is the external definition's original digest.
+Unbound families may be retained as drafts; retaining them does not compile or
+materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
+`family`, `bindings`, `model`, plus optional verified `revision`. Both references
+are exact `{kind,id,revision}` objects of their declared kind. Bindings must
+include every stable symbol ID, even defaults; booleans are not integers here.
+
+Admission/load/save re-resolve the exact family with those bindings and compare
+the expected frozen `model_document` identity under the reference JSON hash.
+A forged binding or same-shaped model with another activation is rejected even
+if its own document hash was recomputed correctly. This is integrity, not a
+hostile-file sandbox or proof of experiment validity.
+
+`preview-stored-family ID REVISION [--bindings BINDINGS_JSON]` previews one exact
+retained family read-only. It never substitutes the current browsing head.
+The `specialize-family` edit accepts exactly one of `family` (full definition) or
+`family_ref` (exact retained reference); optional `bindings`, `id`, `name`,
+`materialize` configure the specialization. `materialize` defaults to true;
+false stores provenance/frozen model without adding or replacing drawings.
+Selecting a historical family for resolution does not move its browsing head.
+
+The in-memory admission uses one SQLite savepoint for all revisions and drawings.
+Existing per-operation connection-context commits are suppressed only inside
+this synchronous internal operation, with no event-loop yield. A late failed
+write rolls back all logical rows and restores the prior dirty flag/connection;
+an existing caller transaction remains open. SQLite `total_changes` is diagnostic
+and is not rolled back. The CLI still applies its final disk CAS/atomic save.
+Undo removes the new drawing but retains immutable provenance/dependencies.
+Archive removes a head, not family/model/specialization bytes. Old containers
+migrate only in memory until explicit Save; old reader compatibility is not
+promised for new v7 files.
+
+The Qt **Browse** selector includes alphabetically ordered Architecture families
+and Specializations. Metadata pages and summaries remain bounded; full intrinsic
+validation is still native and may be expensive. Raw import/ordinal inspection
+are supported, not typed family editing or a GUI specialization wizard.
 
 ## Verification and references
 
@@ -168,6 +211,9 @@ derived reshape and atomic save/reload/freeze. The grouped Conv2d/adaptive-head
 fixture has exactly 179 parameters; incompatible group bindings explain why.
 `tests/qt_family_smoke.py` tests the CLI-imported instance after .vtw reload in
 the real sandboxed Qt editor, without importing host Torch or claiming a family UI.
+`tests/test_family_records.py` covers exact dependencies, forged bindings,
+historical revisions, failed-write rollback, undo/archive, v6 migration, v7
+roundtrip, bounded browser reads and CLI CAS/failed-batch preservation.
 
 The pinned nepr symbolic specification motivates this construction. PyTorch's
 [Module documentation](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html)
@@ -176,3 +222,8 @@ copies and tied modules must not be treated as the same operation. That distinct
 is preserved here by rejecting unsupported sharing rather than implying it from
 equal widths or template reuse. Numerical claims above are tested locally, not
 inferred from documentation.
+
+[SQLite savepoints](https://www.sqlite.org/lang_savepoint.html) and
+[Python SQLite connection context managers](https://docs.python.org/3/library/sqlite3.html#how-to-use-the-connection-context-manager)
+informed the atomic admission: a connection-context exit commits a transaction,
+while an inner savepoint release must not commit its outer caller transaction.

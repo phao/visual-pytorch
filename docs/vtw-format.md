@@ -1,24 +1,24 @@
-# Visual Torch Workspace (.vtw): format specification, version 6
+# Visual Torch Workspace (.vtw): format specification, version 7
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
 app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separate specification:
 [UI-AGENT-HANDOFF.md](UI-AGENT-HANDOFF.md).
 
-The initial Stage D [family specialization checkpoint](architecture-families.md)
-imports resolved families as ordinary concrete architectures through atomic CLI
-edits. It adds no table, metadata family record or independent revision kind;
-version6 remains unchanged. External family definitions and binding receipts are
-not automatically retained in .vtw yet. A concrete imported model can be edited,
-frozen, trained and exported through the existing contracts below.
+The local Stage D [family specialization checkpoint](architecture-families.md)
+retains immutable `family` and `specialization` revisions in the existing registry
+tables, alongside the exact frozen concrete model. Atomic CLI admission can also
+create ordinary editable drawings. These new closed document kinds require a
+version-7 container; they add no SQL table or sidecar. Typed family GUI authoring,
+tied weights and recurrent execution are not implied by this checkpoint.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 6. The current reader accepts versions 1–6; opening
-an older file copies it into memory and upgrades the working version to 6.
-Opening alone never rewrites the source; explicit Save writes version 6.
+PRAGMA user_version = 7. The current reader accepts versions 1–7; opening
+an older file copies it into memory and upgrades the working version to 7.
+Opening alone never rewrites the source; explicit Save writes version 7.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -30,7 +30,11 @@ validation. Version 6 adds closed experiment/run/report semantics to those same
 revision tables, checks exact dependencies and append-only terminal attempts,
 and captures actual split manifests. These are application semantics, not new
 SQL tables. A version-1–5 header containing experiment/run/report rows is rejected.
-Older binaries are not expected to open version 6;
+Version 7 adds exact family/specialization provenance to the same immutable
+registry. A version-1–6 header containing either new kind is rejected. Load/save
+re-resolve each specialization from its exact family revision and all explicit
+bindings, then compare its exact frozen model, not merely matching shapes/counts.
+Older binaries are not expected to open version 7;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -109,7 +113,8 @@ WHEN EXISTS(SELECT 1 FROM spec_revisions
 BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 ```
 
-Independent revision kinds are dataset, experiment, model, report, run and task
+Independent revision kinds are dataset, experiment, family, model, report, run,
+specialization and task
 (integer document version 1); other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
@@ -118,8 +123,10 @@ working-copy-only migration, archive/reselection and undo retention are specifie
 in [revision-store.md](revision-store.md). Exact experiment, terminal run and report
 recipe schemas are in [experiment-objects.md](experiment-objects.md).
 Their JSON references are checked by the application on admission/load/save;
-only head→revision references are SQL foreign keys. This is a Stage C component,
-not the completed experiment GUI. Notebook artifacts are separately specified in
+only head→revision references are SQL foreign keys. The locally accepted Stage C
+GUI is specified in [experiment-gui.md](experiment-gui.md); the new D family
+grammar has read/import integration but no typed family editor yet.
+Notebook artifacts are separately specified in
 [notebook-reports.md](notebook-reports.md). Legacy datasets/runs keep their
 original meaning and existing APIs; no automatic typed-data interpretation occurs.
 

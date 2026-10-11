@@ -190,6 +190,8 @@ def _get(resolve, ref):
 
 
 def dependencies(kind, doc):
+    if kind == 'specialization':
+        return [doc['family'], doc['model']]
     if kind == 'experiment':
         return doc['models'] + [ref for p in doc['data_tasks'] for ref in (p['dataset'], p['task'])]
     if kind == 'run':
@@ -334,6 +336,9 @@ def candidate_bundle(experiment, coordinates, resolve, *, saved_manifest=None):
 def validate_dependencies(kind, doc, resolve):
     for ref in dependencies(kind, doc):
         _get(resolve, ref)
+    if kind == 'specialization':
+        from .family_records import validate_specialization_dependencies
+        validate_specialization_dependencies(doc, resolve)
     if kind == 'run':
         experiment = _get(resolve, doc['selection']['experiment'])
         resolved = doc['resolved']

@@ -333,7 +333,7 @@ write_no_training_audit()
             archive.extractall(legacy)
         run=self.trial('legacy-failed',python='/missing/legacy-notebook-python')
         recipe=self.recipe('result-report',[run['reference']]);before=self.w.db.serialize()
-        old_runtime=tuple(n for n in RUNTIME if n!='activations.py')
+        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py'))
         with patch('app.notebooks.RUNTIME',old_runtime),patch('app.notebooks.__file__',str(legacy/'app/notebooks.py')):
             exported=create_bundle(self.w,recipe,self.root/'legacy-bundle')
         root,manifest,notebook=verify_bundle(exported['path'])
@@ -346,6 +346,57 @@ write_no_training_audit()
         view=json.loads((Path(result['path'])/'report-data.json').read_text())
         self.assertFalse(view['notebook_execution']['training_requested'])
         self.assertEqual(self.w.db.serialize(),before)
+
+    def test_actual_pre_family_bundle_keeps_its_original_runtime_and_executes(self):
+        import hashlib
+        import zipfile
+        from app.notebooks import RUNTIME
+        fixture = Path(__file__).parent / 'fixtures/pre-family-report-runtime-v1.zip'
+        self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(),
+                         'd169eccc0681f13750e22479f6e3192d4a9f5f16abdc6344110984e5224764a0')
+        legacy = self.root / 'pre-family'; legacy.mkdir()
+        with zipfile.ZipFile(fixture) as archive:
+            self.assertTrue(all(not Path(n).is_absolute() and '..' not in Path(n).parts for n in archive.namelist()))
+            archive.extractall(legacy)
+        run = self.trial('pre-family-failed', python='/missing/pre-family-python')
+        recipe = self.recipe('result-report', [run['reference']]); before = self.w.db.serialize()
+        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py'))
+        with patch('app.notebooks.RUNTIME', old_runtime), patch('app.notebooks.__file__', str(legacy / 'app/notebooks.py')):
+            exported = create_bundle(self.w, recipe, self.root / 'pre-family-bundle')
+        root, manifest, _ = verify_bundle(exported['path'])
+        self.assertEqual(len([n for n in manifest['files'] if n.startswith('runtime/app/')]), 21)
+        self.assertIn('runtime/app/activations.py', manifest['files'])
+        original = (root / 'requested.ipynb').read_bytes()
+        result = execute_bundle(root, timeout=60)
+        self.assertEqual(result['execution']['status'], 'completed', result['execution']['error'])
+        self.assertEqual((root / 'requested.ipynb').read_bytes(), original)
+        self.assertFalse((root / 'runtime/app/families.py').exists())
+        view = json.loads((Path(result['path']) / 'report-data.json').read_text())
+        self.assertFalse(view['notebook_execution']['training_requested'])
+        self.assertEqual(self.w.db.serialize(), before)
+
+    def test_new_runtime_cannot_omit_both_family_dependencies(self):
+        exported = create_bundle(self.w, self.recipe(), self.root / 'incomplete-family')
+        root = Path(exported['path']); manifest = json.loads((root / 'manifest.json').read_text())
+        for name in ('families.py', 'family_records.py'):
+            relative = 'runtime/app/' + name
+            manifest['files'].pop(relative); (root / relative).unlink()
+        (root / 'manifest.json').write_text(json.dumps(manifest))
+        with patch('app.notebooks._jupyter', side_effect=AssertionError('must reject before kernel')):
+            with self.assertRaisesRegex(GraphError, 'requires its captured family'):
+                execute_bundle(root)
+        self.assertFalse((root / 'executions').exists())
+
+    def test_partial_family_runtime_is_not_a_supported_legacy_closure(self):
+        for name in ('families.py', 'family_records.py'):
+            with self.subTest(name=name):
+                exported = create_bundle(self.w, self.recipe(), self.root / name)
+                root = Path(exported['path']); manifest = json.loads((root / 'manifest.json').read_text())
+                relative = 'runtime/app/' + name
+                manifest['files'].pop(relative); (root / relative).unlink()
+                (root / 'manifest.json').write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(GraphError, 'closure'):
+                    verify_bundle(root)
 
     def test_new_runtime_cannot_masquerade_as_old_bundle_to_omit_activation_dependency(self):
         ref=self.recipe();exported=create_bundle(self.w,ref,self.root/'incomplete-activation')

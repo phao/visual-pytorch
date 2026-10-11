@@ -4,6 +4,21 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 05:24 -03:00 — Stage D immutable family/specialization storage
+
+Added `.vtw` v7 family/specialization kinds and exact family/bindings/frozen-model
+validation because editable instances alone cannot retain their construction
+provenance. Admission is savepoint-atomic, optional drawing materialization is
+explicit, and retained history survives undo/archive. Added exact stored-family
+preview and aligned CLI edits, existing Qt read/import views and file specifications.
+Notebook runtime closure now captures both dependencies while genuine immutable
+20/21-file bundles still execute unchanged in fresh kernels.24 pure storage and
+24 actual-notebook tests pass; the complete664 Python/260 JS suites and sandboxed Qt rendering/
+exact retained browsing. Fixed test-only unclosed SQLite connections and a wrong
+Qt assertion key rather than suppressing failures. D remains branch-only and
+unfinished; typed family GUI, sweep axes, tied/runtime/recurrent contracts and E
+are not claimed. No remote publication or user app/config/workspace changes.
+
 ## 2026-10-11 05:02 -03:00 — Initial Stage D family specialization checkpoint
 
 Implemented scoped stable-ID integer bindings, restricted expression evaluation

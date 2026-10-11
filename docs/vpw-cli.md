@@ -9,10 +9,13 @@ for explicit IDs.
 The local Stage D family checkpoint adds read-only
 `preview-family FAMILY_JSON [--bindings BINDINGS_JSON]` and atomic
 `apply` edit `specialize-family`, with full family document and optional stable-ID
-bindings. This imports a verified ordinary concrete closure, rejecting ID
-collisions instead of replacing user work. No family SQLite kind or GUI authoring
-is implied. See [architecture-families.md](architecture-families.md) for the
-exact external grammar, statuses, repeat identities and retained-source limits.
+bindings. This retains exact family/specialization/frozen-model revisions and
+optionally imports a verified ordinary concrete closure, rejecting ID collisions
+instead of replacing user work. `preview-stored-family ID REVISION` uses an exact
+retained family; the edit accepts `family_ref` instead of a full definition,
+optional `id`/`name`, and boolean `materialize` (default true). Typed GUI family
+authoring is not implied. See [architecture-families.md](architecture-families.md)
+for grammar, defaults, atomicity, statuses and repeat identities.
 
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic
 `apply` batch accepts `{"op":"panel-layout","value": <preset-or-null>}`.
@@ -77,7 +80,7 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 [dataset-task-contract.md](dataset-task-contract.md). `prepare-task` takes exactly
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
-Independent dataset/experiment/model/report/run/task persistence is implemented
+Independent dataset/experiment/family/model/report/run/specialization/task persistence is implemented
 in `.vtw` v6; the Stage C selection/history GUI is described in
 [experiment-gui.md](experiment-gui.md). Portable
 notebook generation/explicit real-kernel execution are described below.
@@ -297,7 +300,8 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
-| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/model/report/run/task revision and exact dependencies, optionally select for browsing |
+| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/family/model/report/run/specialization/task revision and exact dependencies, optionally select for browsing |
+| specialize-family | exactly one of family/family_ref; optional bindings, id, name, materialize | Atomically retain exact family, resolved specialization and frozen model; optionally add new concrete drawings, never implicitly replace |
 | select-spec | reference={kind,id,revision} | Select a retained exact revision, never edit its bytes |
 | archive-spec | kind, id | Hide browsing head; revision bytes are retained and recoverable |
 | freeze-model | id | Capture current valid architecture's complete reachable closure as an independent model revision |

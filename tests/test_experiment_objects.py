@@ -211,13 +211,13 @@ class ExperimentObjectTests(unittest.TestCase):
             path = Path(td) / 'records.vtw'; self.w.save(path); loaded = Workspace.load(path)
             try:
                 self.assertEqual(loaded.get_spec('run', saved['reference']['id'], saved['reference']['revision']), saved['record'])
-                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0], 6)
+                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0], VERSION)
             finally: loaded.db.close()
             legacy = Path(td) / 'v5.vtw'; old = Workspace(); old.put(default_model()); old.save(legacy); old.db.close()
             db = sqlite3.connect(legacy); db.execute('PRAGMA user_version=5'); db.commit(); db.close(); before = legacy.read_bytes()
             migrated = Workspace.load(legacy)
             try:
-                self.assertEqual(migrated.db.execute('PRAGMA user_version').fetchone()[0], 6)
+                self.assertEqual(migrated.db.execute('PRAGMA user_version').fetchone()[0], VERSION)
                 self.assertEqual(legacy.read_bytes(), before)
                 migrated.save(legacy); self.assertNotEqual(legacy.read_bytes(), before)
             finally: migrated.db.close()
