@@ -1,5 +1,39 @@
 # Development state and roadmap
 
+## 2026-10-11 14:35 -03:00 — Existing recurrent interface reconfiguration
+
+Inspector now offers an advanced prefilled JSON interface editor, with exact
+child signatures and available source IDs, explicit replacement references and
+retained error drafts. Qt and CLI prepare-recurrent-edit/edit-recurrent share
+one pure builder. Stable root/block/port IDs, layout, input order, non-target
+nodes and outgoing wires are preserved. Incoming wire changes follow explicit
+bindings; connected return ports cannot be dropped. Affected paths, dependencies,
+owners and sharing peers are checked without silently deleting unrelated drafts.
+Unused former Inputs remain visible and must be explicitly cleaned up before
+whole-drawing compilation. True no-ops preserve SQL/history/dirty state; actual
+edits are one undo/redo step and clear legacy data/results, not independent specs.
+Parent graph plus current/candidate closures and workspace-instance guards refuse
+stale edits/replay/reload. Native JSON rejects duplicate keys; old modal responses
+cannot replace a newer editor. No format or execution grammar changes.
+Exact contract: [recurrent-interface-editing.md](recurrent-interface-editing.md).
+
+Final source stayed fixed during1054 Python362.048s (1051 PASS/3 native-covered
+skips),324 JS1340.753324ms and37 native/pure0.315s. Added20 pure and2 numerical
+unittest cases plus3 JS cases. Native dispatcher and real sandboxed WebEngine
+MLP/CNN editing pass, with actual box/Apply/Cancel clicks, invalid/stale refusal,
+stable sockets, one undo/redo and save/reload; old creation/socket/compact-drag
+workflow also passes. Independent edited-role forward/all gradients,40-update
+fitting and exact app-free loaded-weight predictions pass. Initial unused-branch
+proof errors led to the private affected-path proof; an incorrect native test
+class name and synthetic-pointer capture failures were test-fixture errors,
+corrected without weakening production checks. Private campaign evidence retains
+available raw failures/successes. No main/public integration or user-state writes.
+
+The JSON modal is delivered advanced editing, not a claim that all D authoring
+or acceptance is complete. Next finish remaining D acceptance and then E durable/
+heavyweight execution, preserving accepted bounded A/B/C rather than reopening
+them indefinitely. Full A–E goal remains active.
+
 ## 2026-10-11 14:06 -03:00 — Explicit temporal scientific execution
 
 ExperimentSpec/RunRecord5 in .vtw16 explicitly select runtime-temporal-v1;

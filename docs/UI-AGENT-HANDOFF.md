@@ -490,6 +490,16 @@ in [recurrent-graph-contract.md](recurrent-graph-contract.md#qt-authoring-and-ag
 Keep this pure domain adapter (`recurrent-editing.js`), backend builder and Qt
 bridge separate from reusable floating-panel mechanics.
 
+Inspector also opens an advanced in-place interface modal. It prefills exact
+JSON bindings, shows stable signatures/source IDs and retains rejected drafts.
+Changing a reference never guesses new bindings; connected return ports cannot
+be removed implicitly. Read/write tokens fence both current and candidate
+closures plus the active workspace instance, and obsolete modal responses cannot
+replace newer sessions. One accepted edit is one undo step; exact no-ops change
+nothing. Preserve unrelated drafts rather than "repairing" them behind the
+user's back. These are reusable interaction principles, not a new panel scheme.
+Domain schema and affected-path proof: [interface editing](recurrent-interface-editing.md).
+
 ## 8. Visual system and accessibility
 
 Default palette: dark green/blue-gray stage; mint primary actions/valid state;

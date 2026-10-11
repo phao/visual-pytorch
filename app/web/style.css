@@ -111,6 +111,9 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .experiment{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.experiment>section{padding:12px;overflow-wrap:anywhere}.inline-actions{flex-wrap:wrap}
 .floating-panel.expanded [data-drag-handle]{cursor:default}
 #recurrent-dialog{width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
+#recurrent-edit-dialog{width:min(820px,calc(100vw - 48px));max-width:calc(100vw - 48px);min-width:min(360px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
+#recurrent-edit-dialog textarea{width:100%;font:inherit;font-family:monospace;background:var(--input);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+#recurrent-edit-dialog pre,#recurrent-edit-sources{white-space:pre-wrap;overflow-wrap:anywhere}
 #recurrent-dialog fieldset{border:1px solid var(--line);border-radius:7px;margin:12px 0;padding:10px;min-width:0}
 #recurrent-dialog legend{overflow-wrap:anywhere}
 #recurrent-dialog .recurrent-input-row{display:grid;gap:6px}

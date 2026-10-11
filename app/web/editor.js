@@ -15,6 +15,7 @@
   let panelWorkspace, panelSavePending=false;
   let parameterSizingPending=false;
   let recurrentAuthoringPending=false;
+  let recurrentEditGeneration=0;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
@@ -485,6 +486,7 @@
       ids.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + '</span>' + (n.type === "Splitter" ? '<input data-split-size="' + i + '" type="number" min="1" value="' + n.parts[i].features + '"' + (busy() ? ' disabled' : '') + '>' : '<small>full tensor</small>') + '</div>');
       html += '<button id="add-output-port"' + (busy() ? ' disabled' : '') + '>+ Output port</button>';
     } else if(n.type==='Recurrent') {
+      html+='<button id="edit-recurrent-interface"'+(busy()?' disabled':'')+'>Edit recurrent interface…</button>';
       html+='<div class="contract-card">Transition: '+esc(state.models[n.ref]?.name||n.ref)+'<br>T: '+esc(s?.recurrent?.steps??'unresolved')+' · one parameter owner<br>'+esc(s?.recurrent?.contract?.parameters??'?')+' learned parameters</div><p class="inspect-note">Sequence inputs have a leading T axis. Initial states are supplied data; final states are explicit returned ports. Change T or supplied tensor dimensions by inspecting their Input boxes. Drag a source to a named input socket to replace only that binding.</p>';
       for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+' '+esc(row.input||'')+'<br>source: '+esc(row.source)+' '+esc(shapeText(sourceShape(row.source)))+(row.output?'<br>next state: '+esc(row.output):'')+(row.adapter?'<br>adapter: '+esc(row.adapter):'')+'</div>';
       for(const port of R.ports(n))html+='<div class="contract-card">'+esc(R.portTitle(n,true,port))+'<br>'+esc(shapeText(s?.ports?.[port]))+'</div>';
@@ -505,6 +507,7 @@
       html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
     }
     content.innerHTML = html;
+    if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
     if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};
     content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
       if(busy())return;
@@ -633,6 +636,55 @@
     if (!doc || busy()) return;
     try { selected = edit(); selectedWire=null; doc.dataset = null; invalidateRun(); persist(); }
     catch (error) { toast(error.message, true); }
+  }
+  async function recurrentEditDialog(nid){
+    if(!doc||busy()||$('recurrent-edit-dialog').open)return;
+    const id=doc.id,workspace_id=state.workspace_id,panel_scope=state.panel_scope;
+    const generation=++recurrentEditGeneration;
+    const current=()=>generation===recurrentEditGeneration&&doc?.id===id&&state.workspace_id===workspace_id&&state.panel_scope===panel_scope&&!busy();
+    const dialog=$('recurrent-edit-dialog'),form=$('recurrent-edit-form');
+    let token=null,loading=false;
+    $('recurrent-edit-ref').innerHTML=Object.values(state.models).filter(m=>m.id!==id).sort((a,b)=>a.name.localeCompare(b.name)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+' · '+esc(m.id)+'</option>').join('');
+    $('recurrent-edit-ref').value=node(nid)?.ref||'';
+    $('recurrent-edit-error').textContent='';
+    async function read(first=false){
+      if(loading)return;loading=true;token=null;$('recurrent-edit-apply').disabled=true;
+      $('recurrent-edit-ref').disabled=true;
+      $('recurrent-edit-error').textContent='';
+      try{
+        await syncQueue;if(!current()||!dialog.open)throw Error('Workspace changed; reopen recurrent editing.');
+        const ref=$('recurrent-edit-ref').value;
+        const context={id,ref,node:nid,workspace_id,panel_scope};
+        const info=await call('recurrentEditing',context);
+        if(!current()||!dialog.open)throw Error('Workspace changed; reopen recurrent editing.');
+        token=R.editResponse(info,context);
+        $('recurrent-edit-signature').textContent='Transition inputs: '+info.inputs.map(g=>g.id+' '+shapeText(g.shape)).join('; ')+'\nTransition outputs: '+info.outputs.map(g=>g.id+' '+shapeText(g.shape)).join('; ');
+        $('recurrent-edit-sources').textContent='Existing source sockets: '+doc.graph.nodes.filter(n=>n.id!==nid&&n.type!=='Output').flatMap(n=>G.slots(n,true).map(port=>port?n.id+'@'+port:n.id)).join(', ');
+        if(first)$('recurrent-edit-json').value=JSON.stringify(info.options,null,2);
+        $('recurrent-edit-apply').disabled=false;
+      }catch(error){if(current()&&dialog.open)$('recurrent-edit-error').textContent=error.message;else if(generation===recurrentEditGeneration)dialog.close();}
+      finally{loading=false;if(generation===recurrentEditGeneration)$('recurrent-edit-ref').disabled=false;}
+    }
+    $('recurrent-edit-ref').onchange=()=>read();
+    $('recurrent-edit-cancel').onclick=()=>dialog.close();
+    form.onsubmit=async event=>{
+      event.preventDefault();if(!token||loading||$('recurrent-edit-apply').disabled)return;
+      $('recurrent-edit-apply').disabled=true;$('recurrent-edit-error').textContent='';
+      $('recurrent-edit-ref').disabled=true;
+      try{
+        await syncQueue;if(!current())throw Error('Workspace changed; reopen recurrent editing.');
+        const result=await call('editRecurrent',{...token,workspace_id,panel_scope,options_json:$('recurrent-edit-json').value});
+        if(result.id!==id||result.node!==nid||result.workspace_id!==workspace_id||result.panel_scope!==panel_scope)throw Error('Recurrent acknowledgement belongs to another block or workspace.');
+        if(current()){
+          const latest=await call('state');
+          if(current()&&latest.workspace_id===workspace_id&&latest.panel_scope===panel_scope)hydrate(latest);
+          if(current()&&node(nid)){selected=nid;selectedPort=null;selectedWire=null;await describe();floating.open('inspector-panel');}
+        }
+        if(generation===recurrentEditGeneration){dialog.close();toast('Recurrent interface accepted. Existing block identities and downstream wires were kept.');}
+      }catch(error){if(generation===recurrentEditGeneration){if(dialog.open)$('recurrent-edit-error').textContent=error.message;else toast(error.message,true);}}
+      finally{if(generation===recurrentEditGeneration){$('recurrent-edit-apply').disabled=false;$('recurrent-edit-ref').disabled=false;}}
+    };
+    dialog.showModal();await read(true);
   }
   async function recurrentDialog(){
     if(!doc||busy()||recurrentAuthoringPending)return;

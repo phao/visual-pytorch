@@ -4,6 +4,30 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 14:35 -03:00 — Guarded existing recurrent interface editor
+
+Added Inspector's advanced in-place JSON interface modal and matching CLI
+prepare-recurrent-edit/edit-recurrent commands, because creation alone could not
+reconfigure an existing recurrent block. One pure builder preserves stable IDs,
+geometry, input order, existing outgoing wires and explicit parameter owners.
+Connected return-port removal is refused. Affected paths and sharing peers are
+validated without deleting unrelated draft boxes; removed controls may leave
+unused Inputs that still need explicit cleanup before whole-graph execution.
+Exact parent/current-reference/candidate guards, workspace-instance fences,
+strict duplicate-key JSON, no-op preservation and one atomic undo/redo apply.
+Legacy attached data/results clear on real edits; independent revisions remain.
+No SQLite/container/runtime grammar changed. Qt/CLI/file/UI specs are aligned.
+
+Added22 unittest cases and3 JS cases. Unchanged-source full1054 Python362.048s
+(1051 PASS/3 native-covered skips),324 JS1340.753324ms,37 native/pure0.315s,
+native dispatcher smoke and actual sandboxed Qt MLP/CNN editing and old creation
+pass. Independent changed-role forward/all gradients,40-update fit and exact
+loaded-weight app-free predictions pass. Early tests exposed the unused-branch
+proof problem and drove affected-path validation; synthetic pointer events in
+the first UI fixture were replaced with real native clicks, not suppressed.
+Remaining D acceptance/E are incomplete. This is task-branch work, not main or
+public integration; no live user state/configuration was changed.
+
 ## 2026-10-11 14:06 -03:00 — Explicit temporal experiment execution
 
 Added ExperimentSpec/RunRecord5, TaskBundle3/RunIdentity3 and container16 to select

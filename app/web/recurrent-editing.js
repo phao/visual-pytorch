@@ -26,5 +26,13 @@
     return bindings(n).filter(row=>row.source===key).map(row=>row.role+(row.input?' '+row.input:'')+
       (row.adapter?' · '+row.adapter:'')).join(' / ')+' ← '+key;
   }
-  return {bindings,sources,ports,replaceSource,portTitle};
+  const editToken=info=>Object.fromEntries(['id','ref','node','root_graph','root_model','transition'].map(key=>[key,info[key]]));
+  function editResponse(info,context){
+    for(const key of ['id','ref','node','workspace_id','panel_scope'])
+      if(info?.[key]!==context[key])throw Error('Recurrent editing response belongs to another block or workspace.');
+    for(const key of ['root_graph','root_model','transition'])
+      if(typeof info[key]!=='string'||!/^[0-9a-f]{64}$/.test(info[key]))throw Error('Recurrent editing response lacks an exact closure token.');
+    return editToken(info);
+  }
+  return {bindings,sources,ports,replaceSource,portTitle,editToken,editResponse};
 });

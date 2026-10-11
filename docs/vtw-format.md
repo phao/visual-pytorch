@@ -78,6 +78,8 @@ reachable transition closure. Earlier headers containing either new semantic
 feature fail. No SQL tables, family1–5 grammar, TaskBundle1, experiment/run or
 report recipe grammar changes. Existing concrete task execution can capture the
 new model revision. See [recurrent-graph-contract.md](recurrent-graph-contract.md).
+Guarded Qt/CLI [existing-interface edits](recurrent-interface-editing.md) use
+those same node documents, adding no SQL tables, metadata or format version.
 Version15 adds family v6's required nullable `runtime_policy` and specialization
 v5's required nullable temporal witness. Family6 permits explicit Recurrent
 references and scoped transition constructor bindings; a nonnull policy selects

@@ -11,6 +11,25 @@ function fixture(){return {graph:{nodes:[
     {from:'scan',from_port:'trajectory',to:'out'},{from:'scan',from_port:'final',to:'end'},
     {from:'other',to:'free',annotation:'keep'}]}};}
 const node=(d,id)=>d.graph.nodes.find(n=>n.id===id);
+test('Existing-interface tokens retain the block, candidate and current closure fences',()=>{
+  const context={id:'parent',ref:'step',node:'scan',workspace_id:'workspace',panel_scope:'scope'};
+  const info={...context,root_graph:'a'.repeat(64),root_model:'b'.repeat(64),transition:'c'.repeat(64),options:{}};
+  const before=structuredClone(info),token=R.editResponse(info,context);
+  assert.deepEqual(Object.keys(token),['id','ref','node','root_graph','root_model','transition']);
+  assert.deepEqual(info,before);assert.equal(token.node,'scan');
+});
+test('A response for another node, reference, architecture or workspace is refused',()=>{
+  const context={id:'parent',ref:'step',node:'scan',workspace_id:'workspace',panel_scope:'scope'};
+  const info={...context,root_graph:'a'.repeat(64),root_model:'b'.repeat(64),transition:'c'.repeat(64)};
+  for(const key of Object.keys(context))assert.throws(()=>R.editResponse({...info,[key]:'other'},context),/another block or workspace/);
+  assert.throws(()=>R.editResponse(null,context));
+});
+test('Missing or malformed graph/current/candidate closure tokens cannot be submitted',()=>{
+  const context={id:'parent',ref:'step',node:'scan',workspace_id:'workspace',panel_scope:'scope'};
+  const info={...context,root_graph:'a'.repeat(64),root_model:'b'.repeat(64),transition:'c'.repeat(64)};
+  for(const key of ['root_graph','root_model','transition'])for(const value of [null,undefined,7,'wrong','A'.repeat(64)])
+    assert.throws(()=>R.editResponse({...info,[key]:value},context),/closure token/);
+});
 test('Stable recurrent source and returned-port order matches the declared interface',()=>{
   const d=fixture(),n=node(d,'scan');
   assert.deepEqual(G.slots(n,false),['seq','h','mask']);assert.deepEqual(G.slots(n,true),['trajectory','final']);

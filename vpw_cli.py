@@ -61,6 +61,15 @@ def apply_edits(workspace, edits):
         elif kind == 'freeze-model':
             results.append({'op': kind, 'reference': workspace.freeze_model(edit['id'])})
             continue
+        elif kind == 'edit-recurrent':
+            from app.recurrent_reconfiguration import build_edit
+            if set(edit) != {'op', 'token', 'options'}:
+                raise ValueError('Edit-recurrent requires an exact token and explicit options.')
+            document, nid = build_edit(workspace.models(), edit['token'], edit['options'])
+            if document != workspace.models()[document['id']]:
+                workspace.put(document)
+            results.append({'op': kind, 'id': document['id'], 'node': nid})
+            continue
         elif kind == 'add-recurrent':
             from app.recurrent_authoring import build
             if set(edit) != {'op', 'token', 'options'}:
@@ -157,6 +166,10 @@ def main(argv=None):
     recurrent = sub.add_parser('prepare-recurrent', help='Read a guarded transition interface for adding an explicit recurrent branch; no execution or edits')
     recurrent.add_argument('id', help='Parent architecture ID')
     recurrent.add_argument('ref', help='Transition architecture ID')
+    recurrent_edit = sub.add_parser('prepare-recurrent-edit', help='Read an existing recurrent interface and guarded in-place edit token; no execution or edits')
+    recurrent_edit.add_argument('id', help='Parent architecture ID')
+    recurrent_edit.add_argument('node', help='Existing recurrent block ID')
+    recurrent_edit.add_argument('--ref', help='Explicit replacement transition architecture ID; omitted keeps the current one')
     family = sub.add_parser('preview-family', help='Check an external architecture family and resolve bindings; no execution or workspace edits')
     family.add_argument('family', help='Family JSON file (or - for stdin)')
     family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
@@ -283,7 +296,10 @@ def main(argv=None):
             workspace = Workspace.load(path)
             if args.expect_revision and workspace.disk_revision != args.expect_revision:
                 raise ValueError('Revision conflict. Inspect again before applying edits.')
-            if args.command == 'prepare-recurrent':
+            if args.command == 'prepare-recurrent-edit':
+                from app.recurrent_reconfiguration import prepare_edit
+                value = prepare_edit(workspace.models(), args.id, args.node, args.ref)
+            elif args.command == 'prepare-recurrent':
                 from app.recurrent_authoring import prepare
                 value = prepare(workspace.models(), args.id, args.ref)
             elif args.command == 'preview-family':

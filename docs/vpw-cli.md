@@ -1,5 +1,12 @@
 # Agent and user CLI contract
 
+`prepare-recurrent-edit PARENT_ID BLOCK_ID [--ref TRANSITION_ID]` reads an existing
+recurrent interface and exact graph/current-reference/candidate token without
+execution or file writes. Atomic `apply` operation `edit-recurrent` uses the same
+in-place builder as Qt, preserves stable nodes/ports/wires, and validates affected
+paths without replacing unrelated drafts. Exact transport/options, no-op,
+rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
+
 vpw_cli.py follows the requested filename; workspaces remain .vtw (current container16). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
@@ -337,6 +344,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
 | add-node | id, node object | Explicit new block |
 | add-recurrent | token with id/ref/root_graph/transition; options | Guarded append of an explicit sequence/state/control branch using the same pure builder as Qt; existing work is preserved. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity). |
+| edit-recurrent | token with id/ref/node/root_graph/root_model/transition; options | Guarded in-place interface change; no new boundaries or guessed outgoing rewiring. See [interface editing](recurrent-interface-editing.md). |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
 | connect | id, edge object | Append explicit wire; update ordered Concat sources separately |
 | disconnect | id, exact edge object | Remove exactly that wire or fail |

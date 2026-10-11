@@ -574,7 +574,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','addRecurrent','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','addRecurrent','editRecurrent','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -707,6 +707,27 @@ class Window(QMainWindow):
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
+        if action in {'recurrentEditing', 'editRecurrent'}:
+            from .recurrent_reconfiguration import prepare_edit, build_edit, TOKEN
+            from .revisions import _parse
+            expected = {'action', 'workspace_id', 'panel_scope', 'id', 'ref', 'node'}
+            if action == 'editRecurrent':
+                expected |= {'root_graph', 'root_model', 'transition', 'options_json'}
+            if set(req) != expected:
+                raise ValueError('Recurrent editing has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen recurrent editing.')
+            if action == 'recurrentEditing':
+                return {**prepare_edit(models, req['id'], req['node'], req['ref']),
+                        'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
+            if not isinstance(req['options_json'], str) or len(req['options_json']) > 65536:
+                raise ValueError('Recurrent interface JSON must be text of at most 65536 characters.')
+            document, nid = build_edit(models, {key: req[key] for key in TOKEN}, _parse(req['options_json']))
+            if document != models[document['id']]:
+                self.workspace.put(document)
+                self.broadcast()
+            return {'id': document['id'], 'node': nid, 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
         if action in {'recurrentAuthoring', 'addRecurrent'}:
             from .recurrent_authoring import prepare, build
             expected = {'action', 'workspace_id', 'panel_scope', 'id', 'ref'}

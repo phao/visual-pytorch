@@ -13,10 +13,11 @@ This checkpoint implements concrete graph shapes, SQLite/CLI admission, native
 and app-free forward, exact checkpoints, existing task workers and portable
 notebook execution, plus guarded palette branch creation, a didactic Inspector,
 distinct input/output sockets and selected-port editing in the existing Qt UI.
-It does not implement a retained temporal architecture-family/experiment grammar.
-The separate [runtime-temporal-v1 API](runtime-temporal-contracts.md) now permits
-explicit backend root T declarations without changing this ordinary concrete
-graph interpretation. Existing family versions1–5 and
+The separate [runtime-temporal-v1 API](runtime-temporal-contracts.md),
+[retained family6](temporal-families.md) and
+[explicit temporal experiments](temporal-task-execution.md) permit declared
+runtime root T without changing this ordinary concrete graph interpretation.
+Existing family versions1–5 and
 `runtime-spatial-v1` explicitly reject this new node rather than interpreting
 time as a spatial axis or silently opting in. Direct recurrent execution permits
 variable T; a concrete root graph fixes T in its Input shape, just like any other
@@ -223,9 +224,10 @@ are distinct. Controls are generated in lengths/mask/reset order. Boundary IDs
 are fresh; output ports are `sequence/<child-output-id>` and
 `state/<child-input-id>`. Label length is1–60, T is an exact positive integer;
 lengths controls additionally require T≤2²⁴. Expanded sample products must fit
-the graph's exact integer domain. Reconfigure existing node bindings/output
-declarations through explicit CLI node edits for now; the creation modal is not
-a general existing-node interface editor.
+the graph's exact integer domain. The creation modal is separate from the new
+[existing-interface editor](recurrent-interface-editing.md), available in
+Inspector with guarded in-place JSON bindings and one undoable operation.
+Its CLI counterpart is `prepare-recurrent-edit` / `edit-recurrent`.
 
 CLI `prepare-recurrent PARENT_ID TRANSITION_ID` returns the same read-only
 interface/digests (without ephemeral GUI ownership). Atomic `apply` operation
