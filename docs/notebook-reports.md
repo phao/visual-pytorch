@@ -1,4 +1,4 @@
-# Portable notebook reports — branch-only Stage C checkpoint
+# Portable notebook reports — Stage C
 
 This contract describes executable code on `task/stage-c-experiments`, not the
 initial public release. A bounded [experiment GUI](experiment-gui.md) now browses

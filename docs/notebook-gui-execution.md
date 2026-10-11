@@ -1,4 +1,4 @@
-# Explicit notebook work in the floating GUI — branch-only Stage C
+# Explicit notebook work in the floating GUI — Stage C
 
 This specifies `app/desktop_notebooks.py`, `app/notebook_execution.py`,
 `app/notebook_worker.py` and `app/web/science-notebooks.js`. It extends the

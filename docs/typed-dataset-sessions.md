@@ -3,8 +3,9 @@
 The actual Qt dataset form now uses an [owned authoring session](owned-authoring-sessions.md).
 Opening transfers a header and bounded typed pages, not the complete DatasetSpec.
 The [task form](typed-task-sessions.md) also uses owned sessions;
-experiment authoring has not migrated. This is branch-only work, not
-a new public release, SQLite format or independent persistence store.
+[experiment authoring](typed-experiment-sessions.md) also uses owned sessions.
+These are locally integrated Stage C workflows, not a new public release,
+SQLite format or independent persistence store.
 
 ## Interaction and preservation
 

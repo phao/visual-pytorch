@@ -1,10 +1,10 @@
-# Exact scientific browsing — branch-only Stage C
+# Exact scientific browsing — Stage C
 
 The scientific Experiment/history tab and `vpw_cli.py` share the read projections
 in `app/science_browser.py`. They inspect retained v6 registry objects, not a
 second database. None of these operations fits transforms, allocates a numerical
 model, trains, generates a notebook or changes stored bytes/heads/history. This
-checkpoint is not yet integrated into the public `main` release.
+workflow is locally integrated; it is not in the initial published prerelease.
 
 Its **Edit this value…** control is a separate mutation workflow, not a read
 action: it opens an owned draft for a non-root dataset/task/experiment value.

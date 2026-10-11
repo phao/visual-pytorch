@@ -1,8 +1,8 @@
-# Exact stored candidate browsing — branch-only Stage C
+# Exact stored candidate browsing — Stage C
 
 The actual Qt Experiments & history tab uses `app/candidate_views.py` and
 `app/web/science-candidates.js`, not the complete `sciencePreview` transport.
-This remains on the local C task branch, not the published prerelease.
+This is locally integrated Stage C source, not the initial published prerelease.
 
 ## Native read and agent command
 

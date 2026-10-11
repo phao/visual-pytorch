@@ -70,7 +70,7 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
 Independent dataset/experiment/model/report/run/task persistence is implemented
-in `.vtw` v6; the branch-only selection/history GUI is described in
+in `.vtw` v6; the Stage C selection/history GUI is described in
 [experiment-gui.md](experiment-gui.md). Portable
 notebook generation/explicit real-kernel execution are described below.
 [revision-store.md](revision-store.md) specifies validators/migration.
@@ -143,7 +143,7 @@ completed, failed, cancelled or unavailable training. Admission/process/protocol
 errors use the usual `ok:false` envelope for this read-only direct command.
 The separate run-candidate wrapper below stores terminal attempts.
 No background/detached execution is claimed. Saved runs are browsable in the
-branch-only GUI; this direct command does not store one.
+Stage C GUI; this direct command does not store one.
 
 `export-task-trained` reads the saved **value object**, validates its frozen bundle
 and fitted inference checkpoint, and emits standalone Python in `value.code`.
@@ -157,7 +157,7 @@ protocol, terminal behavior, RAM and verification limits. Export uses the same
 read-only user RAM preference/override as preparation/training.
 
 `export-run-trained RUN_ID RUN_SHA256 [--attempt N] [--memory-limit-percent P]`
-generates the same source artifact as the branch-only Qt checkpoint-predictor
+generates the same source artifact as the Stage C Qt checkpoint-predictor
 preview. It returns code/code_sha256 plus exact attempt/status/checkpoint/update
 provenance, creating no source file and preserving `.vtw` bytes. Omission selects
 the latest retained attempt of that exact revision, NOT a newer head. A failed

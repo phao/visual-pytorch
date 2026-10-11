@@ -1,6 +1,9 @@
 # Stage C acceptance — datasets, experiments and reports
 
-Status: verified and ready for local integration; not a public release. This
+Status: integrated locally in `main` at `0a3bc8cd826eb11a18abc08892faad347f8b274b`,
+after acceptance checkpoint `bfafccb416c71063e89bab0449217e7745ebcf70`;
+not a public release. Merge ancestry and exact source-tree equality were verified.
+This
 implements C of the pinned nepr programme, not completion of the full A–E goal.
 The original requirement and exit-example mapping is in
 [stage-c-verification.md](stage-c-verification.md), based on nepr commit
