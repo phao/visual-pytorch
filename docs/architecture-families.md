@@ -16,7 +16,9 @@ typed retained bindings and experiment axes. Version4 supports per-Module
 without global defaults. Version5 explicitly retains runtime H/W; version6 permits
 Recurrent transitions and explicitly selects a nullable temporal policy. See
 [temporal families](temporal-families.md); earlier grammars do not acquire recurrence.
-All six family grammars support [checked standalone class export](checked-family-export.md),
+Version7 adds [explicit fixed-T LSTM constructors](lstm-families.md), including
+typed integer shape selection for projection/direction-dependent supplied states.
+All seven family grammars support [checked standalone class export](checked-family-export.md),
 with exact constructor guards/provenance and semantic shape-aware warm starts.
 
 ## Family document version 1

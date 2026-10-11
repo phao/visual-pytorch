@@ -19,6 +19,7 @@ FIELDS = {
     'MaxPool2d': {'kernel_size', 'stride', 'padding', 'dilation'},
     'AdaptiveAvgPool2d': {'output_size'}, 'Flatten': {'start_dim', 'end_dim'},
     'Permute': {'dims'}, 'Activation': {'dim'},
+    'LSTM': {'hidden_size', 'num_layers', 'proj_size'},
 }
 ARRAY_FIELDS = {'shape', 'kernel_size', 'stride', 'padding', 'dilation', 'output_size', 'dims'}
 CHOICE_FIELDS = {
@@ -26,12 +27,14 @@ CHOICE_FIELDS = {
     'Activation': {'activation': 'enum'}, 'Concat': {'flatten': 'boolean'},
     'AvgPool2d': {'count_include_pad': 'boolean', 'ceil_mode': 'boolean'},
     'MaxPool2d': {'ceil_mode': 'boolean'},
+    'LSTM': {'bias': 'boolean', 'bidirectional': 'boolean'},
 }
 TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
     Output={'shape'}, Linear={'features', 'bias'}, Reshape={'shape'},
     Activation={'activation', 'dim'}, Module={'ref'}, Concat={'sources', 'flatten'},
     Splitter={'parts'}, Replicator={'outputs'},
-    Recurrent={'ref', 'sequence_inputs', 'states', 'sequence_outputs', 'controls'})
+    Recurrent={'ref', 'sequence_inputs', 'states', 'sequence_outputs', 'controls'},
+    LSTM={'inputs', 'hidden_size', 'num_layers', 'proj_size', 'bias', 'bidirectional', 'lengths'})
 
 
 def require(condition, message):
@@ -93,7 +96,24 @@ def constructor_expression(value, kind, symbols, scope, where):
     return []
 
 
-def expression(value, symbols, scope, where, *, depth=0, budget=None):
+def _condition(value, symbols, scope, where, *, depth, budget):
+    """Family7 closed boolean constructor predicate, never tensor control flow."""
+    budget[0] -= 1
+    require(depth <= 24 and budget[0] >= 0, where + ': expression exceeds depth/node limit.')
+    if type(value) is bool:
+        return []
+    require(isinstance(value, dict), where + ': condition needs a boolean or typed predicate.')
+    if 'symbol' in value:
+        return constructor_expression(value, 'boolean', symbols, scope, where)
+    keys(value, ('cmp', 'args'), where=where)
+    require(isinstance(value['cmp'], str) and value['cmp'] in ('eq', 'ne', 'gt', 'ge', 'lt', 'le') and
+            isinstance(value['args'], list) and len(value['args']) == 2,
+            where + ': condition needs an exact two-integer comparison.')
+    return [sid for part in value['args'] for sid in
+            expression(part, symbols, scope, where, depth=depth+1, budget=budget, choices=True)]
+
+
+def expression(value, symbols, scope, where, *, depth=0, budget=None, choices=False):
     """Check a typed JSON AST and collect stable symbol IDs in first-use order."""
     budget = [256] if budget is None else budget
     budget[0] -= 1
@@ -102,6 +122,12 @@ def expression(value, symbols, scope, where, *, depth=0, budget=None):
         integer(value, where)
         return []
     require(isinstance(value, dict), where + ': use integer or typed expression, not Python text.')
+    if 'select' in value:
+        require(choices, where + ': constructor shape selection requires family version 7.')
+        keys(value, ('select', 'then', 'else'), where=where)
+        return (_condition(value['select'], symbols, scope, where, depth=depth+1, budget=budget) +
+                expression(value['then'], symbols, scope, where, depth=depth+1, budget=budget, choices=True) +
+                expression(value['else'], symbols, scope, where, depth=depth+1, budget=budget, choices=True))
     if 'symbol' in value:
         keys(value, ('symbol',), where=where)
         sid = value['symbol']
@@ -117,7 +143,7 @@ def expression(value, symbols, scope, where, *, depth=0, budget=None):
             where + ': invalid expression arity.')
     result = []
     for arg in args:
-        for sid in expression(arg, symbols, scope, where, depth=depth + 1, budget=budget):
+        for sid in expression(arg, symbols, scope, where, depth=depth + 1, budget=budget, choices=choices):
             if sid not in result:
                 result.append(sid)
     return result
@@ -127,6 +153,18 @@ def evaluate(value, bindings, where):
     """Called only after grammar checks; every intermediate stays exactly bounded."""
     if type(value) is int:
         return value
+    if 'select' in value:
+        test = value['select']
+        if type(test) is bool:
+            selected = test
+        elif 'symbol' in test:
+            selected = bindings[test['symbol']]
+        else:
+            a, b = [evaluate(v, bindings, where) for v in test['args']]
+            selected = {'eq': a == b, 'ne': a != b, 'gt': a > b,
+                        'ge': a >= b, 'lt': a < b, 'le': a <= b}[test['cmp']]
+        # Check both branches' grammar, but evaluate only the chosen branch.
+        return evaluate(value['then'] if selected else value['else'], bindings, where)
     if 'symbol' in value:
         return bindings[value['symbol']]
     args = [evaluate(v, bindings, where) for v in value['args']]
@@ -155,7 +193,7 @@ def _chain(model, repeat):
     require(isinstance(chain, list) and 1 <= len(chain) <= 62 and
             all(isinstance(n, str) for n in chain) and len(set(chain)) == len(chain),
             where + ': nodes must be an ordered nonempty unique chain.')
-    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES - {'Recurrent'} for n in chain),
+    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES - {'Recurrent', 'LSTM'} for n in chain),
             where + ': repeat only unary operation blocks, not graph boundaries/routers.')
     selected = set(chain)
     internal = [e for e in edges if e['from'] in selected and e['to'] in selected]
@@ -174,10 +212,10 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
-         (('runtime_policy',) if doc.get('version') == 6 else ()),
+         (('runtime_policy',) if doc.get('version') in (6, 7) else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6), 'Family supports integer version 1 through 6.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7), 'Family supports integer version 1 through 7.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -190,8 +228,8 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
-                require(node['type'] != 'LSTM', 'Family versions 1–6 do not support LSTM templates; use a concrete graph.')
-                require(node['type'] != 'Recurrent' or doc['version'] == 6,
+                require(node['type'] != 'LSTM' or doc['version'] == 7, 'Family versions 1–6 do not support LSTM templates; use explicit family7.')
+                require(node['type'] != 'Recurrent' or doc['version'] in (6,7),
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
@@ -222,11 +260,13 @@ def validate_family(doc):
     if 'runtime_inputs' in doc:
         from .runtime_shapes import declaration
         declaration(models, doc['root'], doc['runtime_inputs'])
-    if doc['version'] == 6 and doc['runtime_policy'] is not None:
+    if doc['version'] in (6,7) and doc['runtime_policy'] is not None:
+        require(not any(n['type'] == 'LSTM' for m in models.values() for n in m['graph']['nodes']),
+                'LSTM families require a null fixed-T policy; runtime-temporal-v1 does not support LSTM.')
         value = doc['runtime_policy']
         keys(value, ('version', 'kind', 'inputs'), where='Family temporal policy')
         require(type(value['version']) is int and value['version'] == 1 and value['kind'] == 'runtime-temporal-v1',
-                'Family6 temporal policy requires integer version1 and kind runtime-temporal-v1.')
+                'Family temporal policy requires integer version1 and kind runtime-temporal-v1; LSTM needs a later runtime grammar.')
         from .temporal_shapes import declaration
         declaration(models, doc['root'], value['inputs'])
     require(isinstance(doc['symbols'], list) and len(doc['symbols']) <= 128, 'Family allows at most 128 symbols.')
@@ -282,7 +322,7 @@ def validate_family(doc):
         if isinstance(value, list):
             require(field in ARRAY_FIELDS and 1 <= len(value) <= 8, where + ': unsupported field array.')
         for part in values:
-            used.update(expression(part, symbols, mid, where))
+            used.update(expression(part, symbols, mid, where, choices=doc['version'] >= 7))
     require(isinstance(doc['repeats'], list) and len(doc['repeats']) <= 32, 'Family allows at most 32 chain repeats.')
     repeat_ids, repeated = set(), set()
     for repeat in doc['repeats']:
@@ -297,7 +337,7 @@ def validate_family(doc):
         require(not repeated & members, 'Repeat bodies cannot overlap or nest in version 1.')
         repeated.update(members)
         repeat_ids.add(repeat['id'])
-        used.update(expression(repeat['count'], symbols, mid, 'Repeat ' + repeat['id'] + '.count'))
+        used.update(expression(repeat['count'], symbols, mid, 'Repeat ' + repeat['id'] + '.count', choices=doc['version'] >= 7))
     constructors = doc.get('constructors', [])
     require(isinstance(constructors, list) and len(constructors) <= 512,
             'Family allows at most 512 scoped constructor bindings.')
@@ -315,7 +355,7 @@ def validate_family(doc):
         require(target not in constructor_targets, where + ': duplicate constructor target.')
         constructor_targets.add(target)
         kind = symbol_type(symbols[sid])
-        used.update(expression(call['value'], symbols, mid, where) if kind == 'integer' else
+        used.update(expression(call['value'], symbols, mid, where, choices=doc['version'] >= 7) if kind == 'integer' else
                     constructor_expression(call['value'], kind, symbols, mid, where))
     require(used == set(symbols), 'Every family symbol must have an assignment, repeat-count or constructor dependent.')
     return symbols
@@ -364,6 +404,11 @@ def _expanded(models, repeats, bindings):
             rows = dest['sequence_inputs'] + dest['states'] + list(dest.get('controls', {}).values())
             for row in rows:
                 if row['source'] == old_source: row['source'] = new_source
+        elif dest['type'] == 'LSTM':
+            dest['inputs'] = {role: new_source if source == old_source else source
+                              for role, source in dest['inputs'].items()}
+            if dest.get('lengths') and dest['lengths']['source'] == old_source:
+                dest['lengths']['source'] = new_source
         ingress, egress = dict(incoming, to=first), dict(outgoing, **{'from': last})
         model['graph']['edges'] = [e for e in model['graph']['edges'] if e['from'] not in body and e['to'] not in body] + [ingress] + wires + [egress]
         insertion = min(i for i, n in enumerate(model['graph']['nodes']) if n['id'] in body)
@@ -485,11 +530,11 @@ def specialize(doc, supplied=None):
             result.update(version=3, runtime=None if spec is None else {
                 'version':1,'inputs':copy.deepcopy(spec['runtime_inputs']),'specification_sha256':digest(spec)},
                 runtime_specification=spec)
-        elif doc['version'] == 6:
+        elif doc['version'] in (6,7):
             from .temporal_shapes import specification
             policy = doc['runtime_policy']
             spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None
-            result.update(version=4, runtime=None if spec is None else {
+            result.update(version=5 if doc['version']==7 else 4, runtime=None if spec is None else {
                 'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
         return result

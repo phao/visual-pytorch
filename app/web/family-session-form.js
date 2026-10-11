@@ -91,10 +91,10 @@
     }
     if(key==='runtime_policy'){
       n.placeholder='{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0]}} · null = fixed';
-      n.title='Explicit family6 temporal policy. Stable root Input IDs with semantic T sample axis [0]. Frames/states/learned dimensions remain fixed; mask/reset T must be declared separately. Null means concrete shapes. Older spatial runtime_inputs must be removed explicitly, not silently converted.';
+      n.title='Explicit family6/7 policy. Null means fixed concrete shapes and is required for LSTM in family7. Runtime-temporal-v1 supports Recurrent, not LSTM. Stable root Input IDs with semantic T sample axis [0]; frames/states/learned dimensions remain fixed and mask/reset T must be declared separately. Older spatial runtime_inputs must be removed explicitly, not silently converted.';
     }
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
-    else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):'';
+    else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):selector?(key==='mode'?'independent':'integer'):'';
     n.oninput=()=>{n.dataset.dirty='';invalidate();};
     n.onchange=()=>{try{
       let text;if(key==='runtime_policy'&&n.value.trim()==='')text='null';

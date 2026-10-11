@@ -32,6 +32,12 @@ Future menu or box/link ideas should extend this explicit contract rather than
 being treated as already implemented features. This document is a baseline,
 not a prohibition on improving the design.
 
+Domain-specific update: a concrete LSTM drawing seeds Family7 with a null runtime
+policy in the existing owned architecture-family editor. Typed cards/staged JSON
+support checked integer selection expressions; preview/retention/materialization
+remain separate. This does not change general floating-panel mechanics or imply
+runtime-T LSTM support. See [LSTM family contract](lstm-families.md).
+
 ## 2. Coordinate systems and stacking
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |

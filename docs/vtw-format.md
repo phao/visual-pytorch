@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 17
+# Visual Torch Workspace (.vtw): format specification, version 18
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -22,15 +22,16 @@ version-7 container; they add no SQL table or sidecar. The
 [projected/bidirectional LSTM ports](lstm-graph-contract.md) require version17.
 Its [guarded Qt/CLI authoring](lstm-authoring.md) adds no container/revision
 version or SQL table; it writes the same concrete operator and stable sockets.
+[Explicit fixed-T LSTM families](lstm-families.md) require version18.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 17. The current reader accepts versions 1–17; opening
-an older file copies it into memory and upgrades the working version to 17.
-Opening alone never rewrites the source; explicit Save writes version 17.
+PRAGMA user_version = 18. The current reader accepts versions 1–18; opening
+an older file copies it into memory and upgrades the working version to 18.
+Opening alone never rewrites the source; explicit Save writes version 18.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -101,7 +102,13 @@ changes. Older headers containing these drawings/revisions fail closed. Existing
 family1–6 and spatial/temporal runtime policies do not gain LSTM semantics.
 See [LSTM graph contract](lstm-graph-contract.md) for explicit batch-leading
 hidden/cell adapters, projection/direction order, lengths and limits.
-Older binaries are not expected to open version 17;
+Version18 introduces Family7's explicit LSTM constructor grammar and typed integer
+selection expressions, plus Specialization6's exact bindings/contexts/nullable
+runtime witness. Fixed LSTM families require a null policy; temporal-v1/spatial
+policies still reject LSTM. No SQL tables or model/task/experiment/protocol
+versions change. Earlier headers carrying Family7/Specialization6 refuse even
+without concrete materialization. See [LSTM families](lstm-families.md).
+Older binaries are not expected to open version 18;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 

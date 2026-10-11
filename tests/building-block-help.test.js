@@ -33,6 +33,6 @@ test('Architecture help describes independent instance weights and current packe
 });
 test('LSTM help separates supplied state, projection, execution lengths and task heads',()=>{
   const body=H.describe('add-lstm').paragraphs.join(' ');
-  for(const phrase of ['supplied initial','cell width','[B,layers × directions,width]','not loss masks','Family/runtime-T'])
+  for(const phrase of ['supplied initial','cell width','[B,layers × directions,width]','not loss masks','Family7','runtime-T LSTM is not yet supported'])
     assert.ok(body.includes(phrase),phrase);
 });
