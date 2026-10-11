@@ -48,6 +48,9 @@ commands are also transient native transport, specified in
 session tokens; the visible task form now uses that transport, including linked
 child staging. Only explicit parent Commit followed by workspace Save persists
 edits. Native transient origin proofs are not additional file identities.
+Native experiment card/local-choice/value/edit/preview commands likewise add no
+persisted rows or parallel format; [typed-experiment-sessions.md](typed-experiment-sessions.md)
+specifies their transient grammar. Actual experiment-form migration is still open.
 
 ## 2. Exact relational schema
 

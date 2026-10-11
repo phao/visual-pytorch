@@ -22,6 +22,7 @@ from app.desktop import Bridge, Window
 from app.science_browser import encoded
 from test_authoring import measurements
 from test_task_authoring import multi_fixture
+from test_experiment_authoring import fixture as experiment_fixture
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')
@@ -117,8 +118,7 @@ try:
     prior = h.workspace.history.summary(); snapshot = h.workspace.db.serialize()
     request({'action':'scienceDraftCommit','session':noop['session'],'sequence':0})
     assert h.workspace.db.serialize()==snapshot and h.workspace.history.summary()==prior
-    # New task transport is tested through the actual native bridge. The typed
-    # task form has not yet switched to these commands.
+    # Exercise task primitives independently of the separately tested actual form.
     model, observations, task = multi_fixture()
     h.workspace.put(model); model_ref = h.workspace.freeze_model(model['id'])
     data_ref = h.workspace.put_spec('dataset', observations)
@@ -194,6 +194,68 @@ try:
     request({'action':'scienceDraftClose','session':unsaved['session']})
     assert replacement.db.serialize()==before_replacement
     h.workspace = origin
+    # Experiment transport is native infrastructure for the upcoming actual
+    # typed editor migration, not evidence that the legacy visible form changed.
+    experiment = experiment_fixture(h.workspace)
+    experiment['question']='λ'*20000
+    experiment['data_tasks']=[{**copy.deepcopy(experiment['data_tasks'][i%2]),'id':'p'+str(i).zfill(3)} for i in range(80)]
+    experiment['initialization_seeds']=list(range(1000))
+    experiment_ref=h.workspace.put_spec('experiment',experiment)
+    exp=request({'action':'scienceDraftOpen','kind':'experiment','reference':experiment_ref})
+    exp_args={'session':exp['session'],'sequence':0}
+    snapshot=h.workspace.db.serialize();prior=h.workspace.history.summary()
+    cards=request({'action':'scienceDraftExperimentPage',**exp_args,'collection':'data_tasks','offset':70})
+    assert cards['total']==80 and cards['next_offset']==76 and len(cards['rows'])==6
+    assert [r['ordinal'] for r in cards['rows']]==list(range(70,76))
+    assert next(p for p in cards['roots'] if p['key']=='question')['text'] is None
+    seeds=request({'action':'scienceDraftExperimentPage',**exp_args,'collection':'initialization_seeds','offset':700})
+    assert seeds['total']==1000 and seeds['rows'][0]['properties'][0]['text']=='700'
+    choices=request({'action':'scienceDraftExperimentChoices',**exp_args,'collection':'data_tasks','query':'p079','pin':'p001'})
+    assert choices['rows'][0]['value']=='p079' and choices['pinned']['value']=='p001'
+    projected=request({'action':'scienceDraftExperimentPreview',**exp_args,'offset':157000,'limit':25})
+    assert projected['total_combinations_exact']=='160000' and projected['next_offset']==157025
+    assert all('manifest' not in r and 'protocol' not in r and r['counts']['train']>0 for r in projected['candidates'])
+    for command in [
+        {'action':'scienceDraftExperimentPage',**exp_args,'collection':'protocols'},
+        {'action':'scienceDraftExperimentChoices',**exp_args,'collection':'models'},
+        {'action':'scienceDraftExperimentPreview',**exp_args},
+        {'action':'scienceDraftExperimentValue',**exp_args,'target':{'kind':'document'},'key':'question'},
+        {'action':'scienceDraftExperimentEdit',**exp_args,'operations':[{'op':'property','target':{'kind':'document'},'key':'name','text':'"changed"'}]},
+    ]:
+        request({**command,'extra':True},ok=False);request(command,owner='other',ok=False)
+    advanced=request({'action':'scienceDraftExperimentEdit',**exp_args,'operations':[
+        {'op':'property','target':{'kind':'entry','collection':'protocols','ordinal':0},'key':'budget.updates','text':'9007199254740993'},
+        {'op':'property','target':{'kind':'entry','collection':'protocols','ordinal':0},'key':'optimizer.eps','text':'1e-7'}]})
+    assert advanced['sequence']==1
+    exp_args['sequence']=1
+    prop=request({'action':'scienceDraftExperimentValue',**exp_args,
+        'target':{'kind':'entry','collection':'protocols','ordinal':0},'key':'budget.updates'})
+    assert prop['property']['text']=='9007199254740993'
+    request({'action':'scienceDraftExperimentPage',**exp_args,'sequence':0,'collection':'protocols'},ok=False)
+    request({'action':'scienceDraftExperimentEdit',**exp_args,'operations':[
+        {'op':'property','target':{'kind':'document'},'key':'question','text':'"must roll back"'},
+        {'op':'property','target':{'kind':'entry','collection':'protocols','ordinal':0},'key':'optimizer.eps','text':'NaN'}]},ok=False)
+    assert request({'action':'scienceDraftDescribe','session':exp['session']})==advanced
+    advanced=request({'action':'scienceDraftExperimentEdit',**exp_args,'operations':[
+        {'op':'property','target':{'kind':'entry','collection':'protocols','ordinal':0},'key':'budget.updates','text':'3'}]})
+    exp_args['sequence']=2
+    target=request({'action':'scienceDraftExperimentValue',**exp_args,'target':{'kind':'document'},'key':'question'})
+    buffer=request({'action':'scienceDraftValueStart',**exp_args,'path':target['property']['path']})
+    request({'action':'scienceDraftExperimentPreview',**exp_args},ok=False)
+    request({'action':'scienceDraftExperimentEdit',**exp_args,'operations':[
+        {'op':'property','target':{'kind':'document'},'key':'name','text':'"blocked"'}]},ok=False)
+    request({'action':'scienceDraftValueDiscard',**exp_args,'value':buffer['value'],'value_revision':0})
+    h.job=SimpleNamespace(isRunning=lambda:False,awaiting_terminal=True,terminal_delivered=False)
+    request({'action':'scienceDraftExperimentEdit',**exp_args,'operations':[
+        {'op':'property','target':{'kind':'document'},'key':'name','text':'"blocked"'}]},ok=False)
+    request({'action':'scienceDraftExperimentPage',**exp_args,'collection':'protocols'})
+    h.job=None
+    assert h.workspace.db.serialize()==snapshot and h.workspace.history.summary()==prior
+    checked=request({'action':'scienceDraftCheck',**exp_args})
+    retained=request({'action':'scienceDraftCommit',**exp_args});assert retained==checked and retained!=experiment_ref
+    assert h.workspace.get_spec('experiment',retained['id'])['protocols'][0]['protocol']['optimizer']['eps']==1e-7
+    assert h.workspace.get_spec('experiment',retained['id'],experiment_ref['revision'])['question']=='λ'*20000
+    assert not h.authoring_sessions._sessions
     orphan = request({'action':'scienceDraftOpen','kind':'task'},owner='other')
     # Both direct bridge disposal and actual view/tab destruction must release
     # its owned draft. This exercises the repaired event-signal/method collision.
@@ -214,7 +276,8 @@ try:
     print(json.dumps({'qwebchannel_owner_transport':'PASS','large_records':1600,'bounded_pages':'PASS',
         'duplicate_json_atomic':'PASS','exact_sequences':'PASS','same_uuid_origin_fence':'PASS',
         'history_noop_save_reload':'PASS','task_cards_transforms_compatibility':'PASS',
-        'task_closed_requests_owner_sequence_readonly':'PASS','owner_teardown':'PASS','host_torch':False,'console_errors':errors}))
+        'task_closed_requests_owner_sequence_readonly':'PASS','experiment_cards_choices_values_preview':'PASS',
+        'experiment_closed_literal_origin_history':'PASS','owner_teardown':'PASS','host_torch':False,'console_errors':errors}))
 finally:
     # Drop the externally referenced page before its off-record profile owner.
     page.deleteLater(); QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete); app.processEvents()

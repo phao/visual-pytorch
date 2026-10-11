@@ -372,3 +372,45 @@ class Sessions:
             except (GraphError, ValueError) as error:
                 raise GraphError('Task edit #'+str(index)+': '+str(error)) from error
         return self._publish(workspace, token, row, document)
+
+    def experiment_page(self, token, owner, sequence, collection, **cursor):
+        from . import experiment_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'experiment', 'Experiment cards require an experiment draft.')
+        return experiment_drafts.page(row['draft']['document'], self._header(token, row), collection, **cursor)
+
+    def experiment_value(self, token, owner, sequence, target, key):
+        from . import experiment_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'experiment', 'Experiment values require an experiment draft.')
+        return experiment_drafts.locate(row['draft']['document'], self._header(token, row), target, key)
+
+    def experiment_choices(self, token, owner, sequence, collection, **cursor):
+        from . import experiment_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'experiment', 'Local choices require an experiment draft.')
+        return experiment_drafts.choices(row['draft']['document'], self._header(token, row), collection, **cursor)
+
+    def experiment_preview(self, workspace, token, owner, sequence, **cursor):
+        from . import experiment_drafts
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'experiment', 'Preview requires an experiment draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before preview.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        return experiment_drafts.preview(workspace, row['draft'], self._header(token, row), **cursor)
+
+    def experiment_edit(self, workspace, token, owner, sequence, operations):
+        from . import experiment_drafts
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'experiment', 'Experiment edits require an experiment draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before typed edits.')
+        operations = _json(operations)
+        _require(isinstance(operations, list) and 1 <= len(operations) <= 25,
+                 'Experiment edit needs 1..25 ordered operations.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        document = row['draft']['document']
+        for index, operation in enumerate(operations):
+            try: document = experiment_drafts.edit(document, operation)
+            except (GraphError, ValueError) as error:
+                raise GraphError('Experiment edit #'+str(index)+': '+str(error)) from error
+        return self._publish(workspace, token, row, document)

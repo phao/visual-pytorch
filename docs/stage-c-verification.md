@@ -105,6 +105,10 @@ These concrete gaps are observable in the current code:
   linked child staging; [typed-task-sessions.md](typed-task-sessions.md) specifies
   independent bounded binding/pipeline pages, current named-property targets,
   exact acknowledgements and retry/origin fences. Experiment forms have not migrated;
+  [typed-experiment-sessions.md](typed-experiment-sessions.md) specifies newly
+  tested native ordered cards, local pinned choices, named literal edits and
+  manifest-free prospective projections. Backend availability is not visible
+  form adoption; current native full validation/manifest costs also remain.
   [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
   tested transport scope. The separate actual chunk editor now stages raw large
   values with explicit acceptance and constrained admission estimates; see
@@ -210,6 +214,19 @@ remain separately checked; an 80-binding TaskSpec editor is not an 80-port fit.
 Current full-suite and native regression results are in [development.md](development.md).
 This is task-form convergence, not completion of experiment forms, recovery/
 terminal payload costs, universal native memory bounds, C integration or D/E.
+
+The subsequent native experiment transport covers all seven ordered collections,
+closed named nested targets, native literal edits, current value lookup, independent
+selected-model/pairing pages and manifest-free preview projections. Fifteen focused
+stdlib tests include exact legacy candidate/order/count equality, no-fit/SQL/RNG
+purity, byte-shortened card/choice/preview cursor coverage, Unicode maximum-length
+references, hidden large values, historical/missing/duplicate pins, atomic failure
+and current sequence/origin/staging/admission guards. Extended real sandboxed
+QWebChannel checks a 160000-coordinate preview and all five new commands, exact
+literal integers, closed requests, pending-terminal fences, no pre-Commit SQL/
+history change and actual owner cleanup. This is not actual experiment-form
+migration or a 160000-fit claim. The next controller must preserve all supported
+split/protocol/selection controls and the existing native eight-fit gates.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

@@ -101,6 +101,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview',
          'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility',
          'scienceDraftDatasetPage','scienceDraftDatasetValue',
          'scienceDraftValueRead', 'scienceDraftValueDiscard',
@@ -111,6 +112,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftPatch',
+                 'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview', 'scienceDraftExperimentEdit',
                  'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility', 'scienceDraftTaskEdit',
                  'scienceDraftDatasetPage','scienceDraftDatasetEdit','scienceDraftDatasetValue',
                  'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
@@ -148,6 +150,11 @@ def dispatch(window, req, source=None):
             'scienceDraftTaskTransforms': (('action','session','sequence','collection','binding'),('offset','limit')),
             'scienceDraftTaskCompatibility': (('action','session','sequence','model','dataset'),()),
             'scienceDraftTaskEdit': (('action','session','sequence','operations'),()),
+            'scienceDraftExperimentPage': (('action','session','sequence','collection'),('offset','limit')),
+            'scienceDraftExperimentValue': (('action','session','sequence','target','key'),()),
+            'scienceDraftExperimentChoices': (('action','session','sequence','collection'),('offset','limit','query','pin')),
+            'scienceDraftExperimentPreview': (('action','session','sequence'),('offset','limit')),
+            'scienceDraftExperimentEdit': (('action','session','sequence','operations'),()),
         }[action]
         _keys(req, required, optional, context=action+' request (including exact sequence where applicable)')
         owner = source if source is not None else window
@@ -163,6 +170,19 @@ def dispatch(window, req, source=None):
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftExperimentPage':
+            return sessions.experiment_page(token, owner, req['sequence'], req['collection'],
+                                            **{k:req[k] for k in ('offset','limit') if k in req})
+        if action == 'scienceDraftExperimentValue':
+            return sessions.experiment_value(token, owner, req['sequence'], req['target'], req['key'])
+        if action == 'scienceDraftExperimentChoices':
+            return sessions.experiment_choices(token, owner, req['sequence'], req['collection'],
+                                               **{k:req[k] for k in ('offset','limit','query','pin') if k in req})
+        if action == 'scienceDraftExperimentPreview':
+            return sessions.experiment_preview(workspace, token, owner, req['sequence'],
+                                               **{k:req[k] for k in ('offset','limit') if k in req})
+        if action == 'scienceDraftExperimentEdit':
+            return sessions.experiment_edit(workspace, token, owner, req['sequence'], req['operations'])
         if action == 'scienceDraftOrigin': return sessions.origin(workspace, token, owner, req['sequence'])
         if action == 'scienceDraftTaskPage': return sessions.task_page(token, owner, req['sequence'], req['collection'],
             **{key:req[key] for key in ('offset','limit') if key in req})

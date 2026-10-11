@@ -48,6 +48,12 @@ specifies that transport. The actual task form below now uses it, including
 literal queued edits and linked child staging. Experiment authoring remains on
 the complete-draft path; this does not certify all native resource costs.
 
+Native bounded experiment cards, named literal edits, current-value lookup,
+local selection choices and manifest-free previews now exist and are tested
+through the bridge. [typed-experiment-sessions.md](typed-experiment-sessions.md)
+defines their exact grammar and limits. The actual experiment form still uses
+the legacy path; primitive availability is not visible editor acceptance.
+
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.

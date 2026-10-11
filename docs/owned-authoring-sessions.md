@@ -57,6 +57,12 @@ The actual task form now uses these commands. Its named-property edits resolve
 against each current draft rather than stale dictionary ordinals. Origin is a
 read-only current-origin proof, not resumption based only on a returned UUID.
 
+Native experiment card/value/local-choice/literal-edit/projected-preview
+commands are specified in [typed-experiment-sessions.md](typed-experiment-sessions.md).
+These are infrastructure tested through the real bridge; the actual experiment
+form has not migrated yet. Native preview projections omit full split manifests,
+protocols and role-ID arrays, without changing candidate-resolution semantics.
+
 Open accepts only dataset/task/experiment. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
 template/new-ID checks apply. Headers have `version: 1`,

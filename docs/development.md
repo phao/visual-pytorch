@@ -15,6 +15,58 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 01:14 -03:00 — Native bounded experiment authoring primitives
+
+Owned experiment sessions now expose at most six ordered selection cards per
+collection, current named-property descriptors, native-parsed literal edit batches,
+independent selected-model/pairing choice pages and prospective candidate
+projections. **The actual experiment form still uses its legacy complete draft;
+connecting it is next.** Native availability is not visible-form acceptance.
+
+Nested names resolve against each current draft after preceding removals. Edits
+publish one sequence only after the full batch succeeds, preserve exact integer
+tokens and keep workspace/history untouched until explicit Commit. Optional
+missing properties, whole ordered entries and present null values are distinct.
+Large questions, role-ID arrays and arbitrary values use explicit summaries/
+linked staging; they are not fully encoded just to discover preview size.
+Read choices retain exact outside pins, unavailable/incomplete selections and
+duplicate diagnostics, alphabetically sorting metadata only. Scientific axes
+retain their original order. Preview candidates retain exact resolution/status/
+coordinates/counts but omit full split manifests/protocols; long reasons are
+explicit partial projections and Cartesian totals remain decimal strings.
+Full native dependency/manifest/validation/history costs are still separate.
+No SQL schema, persisted scientific grammar, second draft store or CLI token is
+added; file/agent/reusable UI contracts align in
+[typed-experiment-sessions.md](typed-experiment-sessions.md).
+
+Fifteen focused stdlib cases pass (0.338 s), including byte-shortened card/local
+choice/actual candidate cursor coverage, hidden 20000-element values, exact
+maximum-length Unicode refs, shared raw staging, atomic failure, legacy candidate
+equivalence/no-fit/SQL/RNG purity and head/origin/sequence/admission/limit guards.
+Real sandboxed QWebChannel tests all five commands with 80 pairings/1000 seeds
+(160000 coordinates, not fits), owner isolation/closed requests, literal
+9007199254740993, failed batches, staged/pending-terminal guards, unchanged
+pre-admission SQL/history and exact Commit/owner cleanup. No host Torch or console
+errors. The numerical-test Python lacks PyQt; its attempted native fixture launch
+failed on import. The actual installed Qt interpreter subsequently passes.
+
+Current full suites pass 526 Python tests (172.296 s) and 176 JavaScript tests
+(835 ms). These include inherited numerical/notebook tests; a count alone does
+not establish actual experiment-form migration or full A–E acceptance.
+The existing actual experiment GUI regression also passes eight candidate fits,
+all split methods, complete optimizer/seed controls, exact historical choices,
+96-coordinate preview, incompatibilities/exclusions, invalid-text retention,
+no-op/history/head/workspace/pending fences and save/reload; no host Torch or
+console errors. This establishes legacy behavior preservation, not new-form
+migration. Earlier actual task/dataset/context/figure evidence remains historical.
+
+Next: actual experiment controller, bounded independent axes/local choices,
+literal focus/invalid-text queues, flush/current lookup/linked child adoption and
+projected preview consumption, preserving all split/protocol controls and actual
+eight-fit/all-split/history gates. Then recovery/completion/full inline costs,
+figures/window geometry/C integration and unchanged D/E. Main/public and user
+app/workspace/config/desktop state remain unchanged; C stays branch-only.
+
 ### 2026-10-11 00:55 -03:00 — Actual bounded owned task editor
 
 The actual task form now opens owned headers, independently pages input/head

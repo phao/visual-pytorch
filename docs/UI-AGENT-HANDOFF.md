@@ -756,6 +756,18 @@ native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
 
+Bound each mutable local axis independently, not just remote registry choices.
+Retain original ordinals, exact out-of-page pins, incomplete entries and duplicate
+selection diagnostics while sorting browsing metadata. Named nested fields must
+resolve after earlier key removals; array ordering is computation, not decoration.
+Projected prospective candidates should expose identities/status/explicit partial
+diagnostics/counts without repeatedly transferring full split manifests, role IDs
+or training protocols. No-fit preview still has native validation/manifest costs.
+The tested native primitives and closed contracts are in
+[typed-experiment-sessions.md](typed-experiment-sessions.md); actual experiment
+form/controller adoption remains open. Do not infer visible behavior from service
+availability or use a partial projection as a retained scientific specification.
+
 ## Saved evidence and comparison recipes (branch-only domain extension)
 
 Reuse the separation between inspecting immutable facts and explicitly requesting
