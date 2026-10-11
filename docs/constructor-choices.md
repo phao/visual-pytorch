@@ -91,7 +91,7 @@ typed values; names, enum labels and bools are not converted into numeric codes.
 
 `.vtw` version 10 gates family v3, specialization v2 and experiment/run v3. No SQL
 tables, extra sidecar, executable code or pending session are added. Readers accept
-container versions 1–10 and migrate only the working copy. An older header
+container versions 1–11 and migrate only the working copy. An older header
 containing new semantics fails without changing the source file; Save is explicit.
 
 A family v3 instance retains specialization `version:2`; its exact family and
@@ -158,7 +158,8 @@ preview, retention, concrete creation and Save/reload. JavaScript checks exercis
 actual forms and version queues. These are scoped tests, not universal native
 cost, hostile-file, platform, accessibility or screenshot claims.
 
-Cross-scope constructor bindings, nested family instantiation, arbitrary operator
+Scoped nested constructor bindings are now a separate family-v4 extension; see
+[scoped-constructors.md](scoped-constructors.md). Arbitrary operator
 switches, dynamic spatial guards and structured recurrent state/length/mask/reset
 remain separate D work. E durable/heavyweight execution remains later work.
 

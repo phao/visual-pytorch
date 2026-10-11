@@ -15,6 +15,7 @@ PROPERTIES = {
     'symbols': ('id', 'scope', 'name', 'type', 'values', 'default', 'minimum', 'maximum'),
     'assignments': ('model', 'node', 'field', 'value'),
     'repeats': ('id', 'model', 'nodes', 'count', 'mode'),
+    'constructors': ('model', 'node', 'symbol', 'value'),
     'templates': ('id', 'name', 'graph'),
 }
 ROOTS = ('name', 'root', 'version')
@@ -28,7 +29,8 @@ def _header(header, scope, **fields):
 
 
 def _collection(document, collection):
-    _require(isinstance(collection, str) and collection in PROPERTIES, 'Choose symbols, assignments, repeats or templates.')
+    _require(isinstance(collection, str) and collection in PROPERTIES, 'Choose symbols, assignments, repeats, constructors or templates.')
+    if collection == 'constructors' and collection not in document: return [], None
     value, path = _locate(document, ('models' if collection == 'templates' else collection,), [])
     _require(isinstance(value, dict if collection == 'templates' else list), 'Family collection has the wrong container; repair the staged value explicitly.')
     return value, path
@@ -97,6 +99,11 @@ def edit(document, operation):
           context='Family structural edit')
     _require(operation['collection'] != 'templates', 'Seed template identity/closure from a drawing or explicitly stage its models.')
     _, path = _collection(document, operation['collection'])
+    if path is None:
+        _require(kind == 'insert', 'No constructor card exists yet.')
+        _require(document.get('version') == 4, 'Adding scoped constructor cards requires an explicit family version-4 upgrade.')
+        document = _operation(document, {'op': 'put', 'path': [], 'key': 'constructors', 'value': []})
+        _, path = _collection(document, operation['collection'])
     if kind == 'insert':
         return _operation(document, {'op': 'insert', 'path': path, 'index': operation['index'], 'value': operation['value']})
     if kind == 'move':
@@ -127,4 +134,7 @@ def preview(document, header, bindings=None):
                       blocks=sum(len(m['graph']['nodes']) for m in resolved['models'].values()),
                       parameters=contract['parameters'], parameters_exact=str(contract['parameters']), input_shape=contract['input_shape'],
                       output_shape=contract['output_shape'], occurrences=len(resolved['occurrences']))
+        if 'instances' in resolved:
+            result.update(constructor_contexts=len(resolved['instances']),
+                          resolved_contexts=dataset_drafts._descriptor(resolved['instances'], None, limit=MAX_TEXT))
     return science_browser._bounded(result)

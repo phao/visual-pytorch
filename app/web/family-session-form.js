@@ -2,7 +2,7 @@
 (() => {
   let root,api,saved,state=null,pending=false,epoch=0,controlling=false,flushing=false;
   const $=id=>root.getElementById(id),el=(tag,text)=>{const n=root.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  const collections={templates:'Concrete templates',symbols:'Scoped constructor symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied'};
+  const collections={templates:'Concrete templates',symbols:'Scoped constructor symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied',constructors:'Scoped Module constructor bindings'};
   const args=()=>({session:state.header.session,sequence:state.header.sequence});
   const live=(owner,ticket)=>state===owner&&!owner.stale&&ticket===epoch&&owner.header.workspace_id===api.workspace();
   const issue=e=>{$(state?'science-family-status':'science-family-instance-status').textContent=e.message;api.toast(e.message,true);};
@@ -115,7 +115,10 @@
   async function readAll(){const owner=state;owner.failed=true;const results=await Promise.allSettled(Object.keys(collections).map(readGroup));
     const bad=results.find(r=>r.status==='rejected');if(bad)throw bad.reason;if(state===owner&&!owner.stale)owner.failed=false;controls();
   }
-  async function structure(collection,op){if(!await flush())return;if(await mutate([op])){invalidate();await readAll();}}
+  async function structure(collection,op){if(!await flush())return;
+    const operations=collection==='constructors'&&op.op==='insert'&&state.documentVersion<4?
+      [{op:'property',target:{kind:'document'},key:'version',text:'4'},op]:[op];
+    if(await mutate(operations)){invalidate();await readAll();}}
   async function navigate(collection,forward){if(!await flush())return;const g=state.groups[collection],old=g.offset,next=forward?g.page?.next_offset:g.backs.at(-1);
     if(next===null||next===undefined)return;g.offset=next;
     try{await readGroup(collection);if(forward)g.backs.push(old);else g.backs.pop();}catch(e){g.offset=old;throw e;}
@@ -126,10 +129,15 @@
       const g=state.groups[collection]={offset:0,backs:[],page:null,body:el('div'),range:el('span')},nav=el('div');nav.className='inline-actions';
       g.prev=button('‹ Cards',()=>navigate(collection,false));g.next=button('Cards ›',()=>navigate(collection,true));nav.append(g.prev,g.range,g.next);
       if(collection!=='templates')nav.append(button('Add '+collection.slice(0,-1),async()=>{
-        if(!await flush())return;const page=await api.call('scienceDraftFamilyPage',{...args(),collection,offset:0,limit:6});
+        if(!await flush())return;const owner=state,ticket=epoch,request={...args(),collection,offset:0,limit:6};
+        const page=await api.call('scienceDraftFamilyPage',request);if(!live(owner,ticket))return;
+        if(page.version!==1||page.scope!=='owned-family-page'||page.session!==request.session||page.sequence!==request.sequence||page.workspace_id!==owner.header.workspace_id||page.id!==owner.header.id||page.collection!==collection||page.offset!==0||page.limit!==6)
+          throw Error('Family insertion page does not match its owner, sequence and cursor.');
+        const version=page.roots.find(d=>d.key==='version');if(version?.present&&version.text!==null)owner.documentVersion=JSON.parse(version.text);
         const scope=state.groups.templates.page?.rows[0]?.template||'',id=crypto.randomUUID();
         const value=collection==='symbols'?{id,scope,name:'width',default:1,minimum:1}:
           collection==='assignments'?{model:scope,node:'',field:'features',value:1}:
+          collection==='constructors'?{model:scope,node:'',symbol:'',value:1}:
           {id,model:scope,nodes:[],count:1,mode:'independent'};
         await structure(collection,{op:'insert',collection,index:page.total,value});
       }));section.append(nav,g.body);container.append(section);

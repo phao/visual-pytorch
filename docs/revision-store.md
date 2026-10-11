@@ -36,7 +36,9 @@ Storing a TaskSpec is not proof that every combination is compatible.
 Every object has string `id`, `name` and integer `version`. Version1 remains
 supported; experiment/run v2 adds explicit family coordinates (container≥8),
 family/model v2 adds explicit sharing (container≥9), and family/experiment/run v3
-plus specialization v2 add typed constructor choices (container≥10). A document's
+plus specialization v2 add typed constructor choices (container≥10). Family v4
+and specialization v3 add scoped Module constructor contexts (container≥11),
+as specified in [scoped-constructors.md](scoped-constructors.md). A document's
 `revision` is SHA-256 of UTF-8 encoded JSON using Python `json.dumps` with
 `sort_keys=True`, `separators=(',', ':')`, `allow_nan=False`, and default
 `ensure_ascii=True`, excluding its own `revision` field. Ordered arrays remain
@@ -116,10 +118,10 @@ history. Idempotent storage/reselection of a retained old revision remains valid
 
 ## Migration and history
 
-New files/saves use `PRAGMA user_version=10`. Readers accept v1–10. Opening an older
+New files/saves use `PRAGMA user_version=11`. Readers accept v1–11. Opening an older
 file backs it up into memory, preserves the old tables/data/run/checkpoint bytes,
 performs the already-defined v1/2 packing migration when needed, then adds empty
-revision tables/guards when absent and sets the working version to 10. Existing
+revision tables/guards when absent and sets the working version to 11. Existing
 v5 tables are validated, not recreated. The source file stays
 unchanged until explicit Save. Legacy `dataset.x/y` is not guessed into a typed
 ontology or rebound. A header-lowered fixture containing revision objects is
@@ -128,8 +130,9 @@ revision schema and content pass the same checks. New experiment/run/report
 semantics require at least a v6 header; family/specialization semantics require
 v7; experiment/run v2 requires v8, explicit sharing and family/model v2 require
 v9; typed constructor choices in family/experiment/run v3 or specialization v2
-require v10. Content is not silently discarded. Partial schemas fail. Versions
-above10 fail. See [constructor-choices.md](constructor-choices.md) for exact
+require v10; scoped family v4/specialization v3 require v11. Content is not
+silently discarded. Partial schemas fail. Versions above11 fail. See
+[scoped-constructors.md](scoped-constructors.md) and [constructor-choices.md](constructor-choices.md) for exact
 typed provenance/version rules.
 
 Save validates revision integrity before the existing atomic, revision-checked

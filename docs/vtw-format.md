@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 10
+# Visual Torch Workspace (.vtw): format specification, version 11
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -13,15 +13,16 @@ version-7 container; they add no SQL table or sidecar. The
 [typed family editor](typed-family-sessions.md) uses transient owned sessions;
 [explicit shared parameters](shared-parameters.md) now require version9;
 [typed constructor choices](constructor-choices.md) require version10;
+[scoped Module constructors](scoped-constructors.md) require version11;
 runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 10. The current reader accepts versions 1–10; opening
-an older file copies it into memory and upgrades the working version to 10.
-Opening alone never rewrites the source; explicit Save writes version 10.
+PRAGMA user_version = 11. The current reader accepts versions 1–11; opening
+an older file copies it into memory and upgrades the working version to 11.
+Opening alone never rewrites the source; explicit Save writes version 11.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -50,7 +51,12 @@ Version10 adds closed scalar constructor choices: family v3, specialization v2
 and experiment/run v3, without changing tables or ordinary concrete model
 versions. Earlier headers containing these documents fail; older integer-only
 grammars/hashes remain unchanged. See [constructor-choices.md](constructor-choices.md).
-Older binaries are not expected to open version 10;
+Version11 adds family v4 scoped Module constructors and specialization v3's exact
+local context records, without table or concrete ModelRevision changes. Typed
+experiment/run v3 can already select these families. Earlier headers containing
+family v4 or specialization v3 fail; old grammar/hashes stay unchanged. See
+[scoped-constructors.md](scoped-constructors.md).
+Older binaries are not expected to open version 11;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -135,7 +141,8 @@ specialization and task
 2 in a version-8 or newer container; family/model additionally support integer
 2 in a version-9 or newer container; family/experiment/run additionally support
 integer version3 and specialization supports integer version2 in a version-10
-container); other kinds/versions are rejected.
+container; family additionally supports integer version4 and specialization
+integer version3 in a version-11 container); other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
 retained revisions. Exact schemas, frozen reference closures, hash/guard checks,

@@ -172,8 +172,9 @@ def _chain(model, repeat):
 
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
-    keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3), 'Family supports integer version 1, 2 or 3.')
+    keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'),
+         ('constructors',) if doc.get('version') == 4 else ())
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4), 'Family supports integer version 1, 2, 3 or 4.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -281,7 +282,26 @@ def validate_family(doc):
         repeated.update(members)
         repeat_ids.add(repeat['id'])
         used.update(expression(repeat['count'], symbols, mid, 'Repeat ' + repeat['id'] + '.count'))
-    require(used == set(symbols), 'Every family symbol must have an assignment or repeat-count dependent.')
+    constructors = doc.get('constructors', [])
+    require(isinstance(constructors, list) and len(constructors) <= 512,
+            'Family allows at most 512 scoped constructor bindings.')
+    constructor_targets = set()
+    for call in constructors:
+        keys(call, ('model', 'node', 'symbol', 'value'), where='Scoped constructor binding')
+        mid, nid, sid = (call[k] for k in ('model', 'node', 'symbol'))
+        require(isinstance(mid, str) and mid in models and isinstance(nid, str) and
+                isinstance(sid, str) and sid in symbols, 'Constructor needs existing model/node/symbol identities.')
+        node = next((n for n in models[mid]['graph']['nodes'] if n['id'] == nid), None)
+        where = mid + '/' + nid + ' constructor ' + sid
+        require(node is not None and node['type'] == 'Module' and symbols[sid]['scope'] == node['ref'],
+                where + ': target must belong to this Module\u2019s direct child scope.')
+        target = (mid, nid, sid)
+        require(target not in constructor_targets, where + ': duplicate constructor target.')
+        constructor_targets.add(target)
+        kind = symbol_type(symbols[sid])
+        used.update(expression(call['value'], symbols, mid, where) if kind == 'integer' else
+                    constructor_expression(call['value'], kind, symbols, mid, where))
+    require(used == set(symbols), 'Every family symbol must have an assignment, repeat-count or constructor dependent.')
     return symbols
 
 
@@ -352,11 +372,92 @@ not enter computational identity; the existing Layout menu remains available.
         node.update(x=90 + 260 * depth, y=80 + 160 * row)
 
 
+class _UnresolvedConstructor(GraphError):
+    def __init__(self, missing):
+        self.missing = missing
+        super().__init__('Bind required architecture symbols at ' + missing[0]['path'] +
+                         ': ' + ', '.join(m['id'] for m in missing) + '.')
+
+
+def _scoped_specialize(doc, symbols, supplied):
+    """Resolve model specs by local constructor context, NOT parameter instances.
+
+    A memoized child spec may be called by many independent Module objects.
+    Explicit share_with still controls PyTorch parameter ownership. No tensors
+    are allocated; bound the number of distinct contexts before copying graphs.
+    """
+    bindings = {sid: binding_value(s, supplied.get(sid, s.get('default')), 'Binding ' + sid)
+                for sid, s in symbols.items() if sid in supplied or 'default' in s}
+    family_hash = digest(doc)
+    specialization_hash = digest({'version': 2, 'family': family_hash, 'bindings': bindings})
+    scoped = {mid: {sid: s for sid, s in symbols.items() if s['scope'] == mid} for mid in doc['models']}
+    memo, resolved, instances, occurrences = {}, {}, [], []
+    model_ids = {mid: [] for mid in doc['models']}
+
+    def instantiate(mid, overrides, path):
+        local = {sid: overrides[sid] if sid in overrides else bindings[sid]
+                 for sid in scoped[mid] if sid in overrides or sid in bindings}
+        missing = [{'id': sid, 'scope': mid, 'name': s['name'], 'path': path}
+                   for sid, s in scoped[mid].items() if sid not in local]
+        if missing: raise _UnresolvedConstructor(missing)
+        for sid, value in local.items(): binding_value(scoped[mid][sid], value, path + ' constructor ' + sid)
+        key = digest({'model': mid, 'bindings': local})
+        if key in memo: return memo[key]
+        require(len(memo) < 64, path + ': resolved family exceeds 64 distinct constructor contexts; reduce variant fan-out.')
+        rid = 'family-' + digest({'specialization': specialization_hash, 'context': key})
+        memo[key] = rid
+        model = copy.deepcopy(doc['models'][mid])
+        for a in doc['assignments']:
+            if a['model'] != mid: continue
+            node = next(n for n in model['graph']['nodes'] if n['id'] == a['node'])
+            value, where = a['value'], path + '/' + a['node'] + '.' + a['field']
+            if a['field'] in CHOICE_FIELDS.get(node['type'], {}):
+                node[a['field']] = local[value['symbol']] if isinstance(value, dict) else value
+            else:
+                node[a['field']] = ([evaluate(v, local, where) for v in value] if isinstance(value, list)
+                                    else evaluate(value, local, where))
+        repeats = [r for r in doc['repeats'] if r['model'] == mid]
+        expanded = _expanded({mid: model}, repeats, local)
+        origins = {o['node']: o['template_node'] for o in expanded}
+        for node in model['graph']['nodes']:
+            if node['type'] != 'Module': continue
+            origin = origins.get(node['id'], node['id'])
+            child_path = path + '/' + node['id']
+            overrides = {}
+            for call in doc.get('constructors', []):
+                if call['model'] != mid or call['node'] != origin: continue
+                sid, value = call['symbol'], call['value']
+                overrides[sid] = (evaluate(value, local, child_path + ' constructor ' + sid)
+                                  if symbol_type(symbols[sid]) == 'integer' else
+                                  local[value['symbol']] if isinstance(value, dict) else value)
+            node['ref'] = instantiate(node['ref'], overrides, child_path)
+        pin_input_order(model['graph'])
+        if repeats or any('x' not in n or 'y' not in n for n in model['graph']['nodes']): _initial_layout(model)
+        model['id'] = rid
+        resolved[rid] = model
+        try:
+            check_document(model)
+            validate_model(resolved, rid)
+        except GraphError as error:
+            raise GraphError('Resolved constructor ' + path + ': ' + str(error)) from error
+        model_ids[mid].append(rid)
+        instances.append({'model': rid, 'template': mid, 'bindings': local})
+        occurrences.extend(dict(o, model=rid, template=mid) for o in expanded)
+        return rid
+
+    root = instantiate(doc['root'], {}, doc['root'])
+    return {'version': 2, 'family': {'id': doc['id'], 'revision': family_hash},
+            'specialization': specialization_hash, 'bindings': bindings, 'model_ids': model_ids,
+            'instances': instances, 'root': root, 'models': resolved, 'occurrences': occurrences,
+            'contract': validate_model(resolved, root), 'architecture_hash': identity(resolved, root)['architecture']}
+
+
 def specialize(doc, supplied=None):
     """Return a verified concrete closure plus binding/provenance receipt, or raise."""
     symbols = validate_family(doc)
     supplied = {} if supplied is None else supplied
     require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to declared scalar values.')
+    if doc['version'] == 4: return _scoped_specialize(doc, symbols, supplied)
     bindings = {}
     for sid, symbol in symbols.items():
         require(sid in supplied or 'default' in symbol, 'Unresolved symbol ' + sid + ': bind ' + symbol['scope'] + '/' + symbol['name'] + '.')
@@ -416,9 +517,11 @@ def preview(doc, supplied=None):
         except GraphError as error: return {'status': 'incompatible', 'reason': str(error)}
     missing = [{'id': sid, 'scope': s['scope'], 'name': s['name']}
                for sid, s in symbols.items() if sid not in supplied and 'default' not in s]
-    if missing:
+    if missing and doc['version'] < 4:
         return {'status': 'conditional', 'missing': missing, 'reason': 'Bind required architecture symbols before execution.'}
     try:
         return {'status': 'verified', 'resolved': specialize(doc, supplied)}
+    except _UnresolvedConstructor as error:
+        return {'status': 'conditional', 'missing': error.missing, 'reason': str(error)}
     except GraphError as error:
         return {'status': 'incompatible', 'reason': str(error)}

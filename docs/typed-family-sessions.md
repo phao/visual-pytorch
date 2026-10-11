@@ -74,7 +74,12 @@ the 65536-byte compact-ASCII JSON request boundary:
 | scienceDraftFamilyEdit | session, sequence, operations | none |
 | scienceDraftFamilyPreview | session, sequence | bindings |
 
-Collections: templates, symbols, assignments, repeats. Pages require nonnegative
+Collections: templates, symbols, assignments, repeats, constructors. The optional
+constructors array is family-v4-only; absence reads as an empty collection with
+null path and no draft mutation. Add constructor explicitly upgrades to v4 and
+inserts in one owned batch. Each card exposes parent model, Module node, direct
+child symbol and typed JSON value. See [scoped-constructors.md](scoped-constructors.md).
+Pages require nonnegative
 exact offsets, 1..6 cards and explicit totals/next offsets. Responses pin
 workspace/object/session/sequence/collection/cursor with scope owned-family-page.
 Scalar descriptors return complete text or a large summary/path, never clipped
@@ -84,7 +89,7 @@ graph/name may be edited explicitly; template ID is read-only.
 
 Edits are 1..25 ordered operations, published once after all succeed: property
 with target/key/raw JSON text (null removes the property), or insert/remove/move
-on symbols/assignments/repeats. Targets are document or collection+ordinal under
+on symbols/assignments/repeats/constructors. Targets are document or collection+ordinal under
 the exact sequence. Text is at most2000 characters; larger values use staging.
 Each operation has closed fields. Structural template identity/closure changes
 require staged JSON or a drawing seed, never an implicit reference rewrite.
@@ -93,6 +98,10 @@ Preview scope is owned-family-preview with exact owner/sequence. Verified
 results include family/specialization/architecture identities, root, architecture/
 block/occurrence/parameter counts and input/output shapes. Resolved bindings are
 a complete descriptor or an explicit large summary plus binding_count.
+Family v4 also returns constructor_contexts and a bounded resolved_contexts
+descriptor, not an unbounded concrete closure. Add-card page replies are fenced
+by exact owner/sequence/cursor and fresh grammar; workspace switches cannot insert
+late cards into another draft.
 Conditional missing lists show at most25 with missing_total/missing_next_offset;
 use symbol cards for remaining IDs. Projections are not retained objects or full
 receipts. Native validation/copying/expansion costs are NOT bounded by wire size;

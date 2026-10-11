@@ -103,8 +103,8 @@ are published. A failed second operation/oversized header rolls back the entire
 batch. Scientific fields/records/ports/axes/transforms/selections are never sorted.
 
 Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID
-cannot change; family/experiment versions can explicitly advance 1→2→3 or 1→3
-for the declared extensions, never decrease. Other kinds preserve their version.
+cannot change; family versions can explicitly advance through1..4 and experiment
+versions through1..3 for declared extensions, never decrease. Other kinds preserve their version.
 `revision` cannot be injected. See [constructor-choices.md](constructor-choices.md),
 [family-experiment-axes.md](family-experiment-axes.md) and
 [shared-parameters.md](shared-parameters.md).

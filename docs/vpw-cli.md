@@ -16,6 +16,11 @@ retained family; the edit accepts `family_ref` instead of a full definition,
 optional `id`/`name`, and boolean `materialize` (default true). Typed GUI family
 authoring now uses the same persisted grammar; its transient editor transport is
 specified in [typed-family-sessions.md](typed-family-sessions.md).
+Family v4 scoped Module call bindings and specialization v3 local contexts use
+these same CLI operations, with no agent-only schema shortcuts. See
+[scoped-constructors.md](scoped-constructors.md) and
+examples/families/scoped-branches.json. Required child arguments may be supplied
+per call without global defaults; complete canonical context provenance is retained.
 See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
 

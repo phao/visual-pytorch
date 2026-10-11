@@ -25,15 +25,30 @@ def validate_family_revision(doc):
 
 
 def validate_specialization(doc):
-    _keys(doc, ('version', 'id', 'name', 'family', 'bindings', 'model'), ('revision',), 'Specialization')
-    _require(type(doc['version']) is int and doc['version'] in (1, 2), 'Specialization supports integer version 1 or 2.')
+    _keys(doc, ('version', 'id', 'name', 'family', 'bindings', 'model') +
+          (('instances',) if doc.get('version') == 3 else ()), ('revision',), 'Specialization')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3), 'Specialization supports integer version 1, 2 or 3.')
     _require(_identifier(doc['id']) and _identifier(doc['name']), 'Specialization needs a stable ID/name.')
     reference(doc['family'], 'family'); reference(doc['model'], 'model')
     _require(isinstance(doc['bindings'], dict) and len(doc['bindings']) <= 128,
              'Specialization must retain all resolved stable-symbol-ID bindings.')
     for sid, value in doc['bindings'].items():
         _require(_identifier(sid), 'Specialization binding key must be a stable symbol ID.')
-        binding_atom(value, 'Specialization binding ' + sid, typed=doc['version'] == 2)
+        binding_atom(value, 'Specialization binding ' + sid, typed=doc['version'] >= 2)
+    if doc['version'] == 3:
+        _require(isinstance(doc['instances'], list) and 1 <= len(doc['instances']) <= 64,
+                 'Specialization needs 1..64 concrete constructor contexts.')
+        seen = set()
+        for row in doc['instances']:
+            _keys(row, ('model', 'template', 'bindings'), context='Specialization constructor context')
+            _require(_identifier(row['model']) and row['model'] not in seen and _identifier(row['template']),
+                     'Specialization constructor context needs unique model and template identities.')
+            seen.add(row['model'])
+            _require(isinstance(row['bindings'], dict) and len(row['bindings']) <= 128,
+                     'Specialization constructor context needs bounded local bindings.')
+            for sid, value in row['bindings'].items():
+                _require(_identifier(sid), 'Constructor context key must be a stable symbol ID.')
+                binding_atom(value, 'Constructor context ' + sid, typed=True)
 
 
 def validate_specialization_dependencies(doc, resolve):
@@ -42,11 +57,15 @@ def validate_specialization_dependencies(doc, resolve):
     family = resolve(doc['family']['kind'], doc['family']['id'], doc['family']['revision'])
     model = resolve(doc['model']['kind'], doc['model']['id'], doc['model']['revision'])
     source = definition(family)
-    _require(doc['version'] == (2 if source['version'] >= 3 else 1),
+    _require(doc['version'] == (3 if source['version'] == 4 else 2 if source['version'] == 3 else 1),
              'Specialization version must match its exact family scalar grammar.')
-    _require(set(doc['bindings']) == {s['id'] for s in source['symbols']},
-             'Specialization bindings must explicitly include every symbol, including defaults.')
+    if doc['version'] < 3:
+        _require(set(doc['bindings']) == {s['id'] for s in source['symbols']},
+                 'Specialization bindings must explicitly include every symbol, including defaults.')
     resolved = specialize(source, doc['bindings'])
+    if doc['version'] == 3:
+        _require(doc['bindings'] == resolved['bindings'] and digest(doc['instances']) == digest(resolved['instances']),
+                 'Specialization must retain canonical fallback bindings and every exact constructor context.')
     expected = model_document(resolved['models'], resolved['root'])
     _require(digest(definition(model)) == digest(expected),
              'Specialization frozen model does not match its exact family revision and bindings.')
@@ -98,9 +117,10 @@ def resolution_records(frozen, resolved, *, sid=None, name=None):
     model = frozen_document('model', model_document(resolved['models'], resolved['root']))
     model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
     record = frozen_document('specialization', {
-        'version': 2 if frozen['version'] >= 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
+        'version': 3 if frozen['version'] == 4 else 2 if frozen['version'] == 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
         'name': name if name is not None else frozen['name'] + ' · resolved',
-        'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref})
+        'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref,
+        **({'instances': copy.deepcopy(resolved['instances'])} if frozen['version'] == 4 else {})})
     return {'family_ref': family_ref, 'model': model, 'model_ref': model_ref,
             'specialization': record, 'specialization_ref': {
                 'kind': 'specialization', 'id': record['id'], 'revision': record['revision']}}

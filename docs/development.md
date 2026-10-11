@@ -1,5 +1,45 @@
 # Development state and roadmap
 
+## 2026-10-11 08:00 -03:00 — Stage D: scoped Module constructors
+
+Family v4 adds direct-child constructor bindings evaluated in each parent's local
+scope. Required child arguments can be satisfied solely by calls, without global
+defaults. Different widths/activations/biases produce distinct concrete contexts;
+equal contexts reuse a model SPEC, not weights. Explicit share_with/tied mode
+still controls parameter identity and rejects constructor mismatches. Finite
+repeated Modules retain their template arguments. A64-context reservation gate
+stops variant explosion before copying the65th graph, alongside existing limits.
+
+Receipt v2 and specialization v3 retain canonical available fallbacks and every
+resolved local context, reproduced exactly during admission/load/save. .vtw v11
+gates the new grammar without SQL/concrete-model changes; old family1..3 hashes
+and receipt paths remain. Existing experiment/run v3 supports scoped families.
+Owned Qt cards expose calls, bounded preview descriptors and an explicit v4
+upgrade/first insertion in one batch. Fresh insertion pages are owner/sequence/
+cursor fenced. CLI/worker/report/ordinary drawings use the same resolution.
+Runnable scoped-branches.json demonstrates differently configured reusable SLPs,
+ordered Concat and head (30 parameters). Exact spec: docs/scoped-constructors.md.
+
+Verified776 Python262.706s/290 JS1195.912867ms,19 pure0.244s/4 focused
+numerical14.609s. Independent branched outputs/input/parameter gradients, compiled/
+generated parity, independent/tied Adam state,2 actual worker fits+2 deterministic
+retries/fresh app-free predictors and an actual2-point Jupyter rerun pass. Native
+sandboxed Qt scoped edits/explicit upgrade/read-only preview/retention/instance/
+Save-reload pass without host Torch/console errors; earlier independent, shared
+and typed-family native workflows still pass. Real1440×1000 capture reviewed.
+Numerical workloads serialized/one-threaded; full suite has no ResourceWarnings.
+Initial new pure fixtures accidentally left unused parent symbols and used the
+wrong family_page signature; repaired their inputs, not grammar safeguards. First
+JS290 run had one new mock omitting the optional type descriptor; fixed that
+fixture. One patch-context mismatch made no changes. Failed JS log retained.
+
+D remains branch-only/local/incomplete. Runtime-spatial guards, checked family
+class export and structured recurrence/state/length/mask/reset/mixed composition
+remain; E durable/heavyweight execution follows. Current graph/native-cost/
+platform/paired-point bounds remain explicit. No main integration/publication,
+installer change, user app/config/workspace mutation or source fork. Full goal
+active; no roadmap re-audit. Earlier milestone entries remain historical.
+
 ## 2026-10-11 07:35 -03:00 — Stage D: explicit constructor choices
 
 Family v3 supports model-local integer/boolean/finite string symbols and matching

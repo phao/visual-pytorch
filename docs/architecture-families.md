@@ -11,7 +11,9 @@ adds [typed owned family authoring](typed-family-sessions.md),
 [explicit experiment axes](family-experiment-axes.md) and version-2
 [shared finite uses](shared-parameters.md). Version3 additionally supports
 [explicit boolean/enum constructor choices](constructor-choices.md), their
-typed retained bindings and experiment axes. Runtime recurrence remains separate.
+typed retained bindings and experiment axes. Version4 supports per-Module
+[scoped constructor bindings](scoped-constructors.md) and required child arguments
+without global defaults. Runtime recurrence remains separate.
 
 ## Family document version 1
 
@@ -173,7 +175,7 @@ does not claim one executable instance accepts arbitrary spatial dimensions.
 ### Retained records and exact stored preview
 
 `family` uses version1, the explicit sharing extension in version2 or typed
-constructor version3, with only the optional verified registry
+constructor version3 or scoped Module constructor version4, with only the optional verified registry
 `revision` added. Its revision is the external definition's original digest.
 Unbound families may be retained as drafts; retaining them does not compile or
 materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
@@ -181,6 +183,9 @@ materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
 are exact `{kind,id,revision}` objects of their declared kind. Bindings must
 include every stable symbol ID, even defaults; booleans are not integers here.
 Specialization v2 retains family v3's exact typed values; v1 retains family v1/v2.
+Specialization v3 pairs with family v4 and retains canonical available fallbacks
+and all exact resolved local contexts; child-only arguments need not exist as
+global bindings. See [scoped-constructors.md](scoped-constructors.md).
 
 Admission/load/save re-resolve the exact family with those bindings and compare
 the expected frozen `model_document` identity under the reference JSON hash.

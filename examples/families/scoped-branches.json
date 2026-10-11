@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "scoped-branches",
+  "name": "Two scoped reusable branches",
+  "root": "parent",
+  "models": {
+    "parent": {
+      "id": "parent", "name": "Scoped branches",
+      "graph": {
+        "nodes": [
+          {"id": "input", "type": "Input", "features": 2},
+          {"id": "left", "type": "Module", "ref": "child"},
+          {"id": "right", "type": "Module", "ref": "child"},
+          {"id": "join", "type": "Concat", "sources": ["left", "right"], "flatten": false},
+          {"id": "head", "type": "Linear", "features": 1, "bias": true},
+          {"id": "output", "type": "Output"}
+        ],
+        "edges": [
+          {"from": "input", "to": "left"}, {"from": "input", "to": "right"},
+          {"from": "left", "to": "join"}, {"from": "right", "to": "join"},
+          {"from": "join", "to": "head"}, {"from": "head", "to": "output"}
+        ]
+      }
+    },
+    "child": {
+      "id": "child", "name": "Reusable SLP",
+      "graph": {
+        "nodes": [
+          {"id": "input", "type": "Input", "features": 2},
+          {"id": "linear", "type": "Linear", "features": 2, "bias": true},
+          {"id": "activation", "type": "Activation", "activation": "Tanh"},
+          {"id": "output", "type": "Output"}
+        ],
+        "edges": [
+          {"from": "input", "to": "linear"}, {"from": "linear", "to": "activation"},
+          {"from": "activation", "to": "output"}
+        ]
+      }
+    }
+  },
+  "symbols": [
+    {"id": "left-width", "scope": "parent", "name": "width", "default": 3, "minimum": 1, "maximum": 32},
+    {"id": "right-width", "scope": "parent", "name": "other_width", "default": 5, "minimum": 1, "maximum": 32},
+    {"id": "child-width", "scope": "child", "name": "width", "minimum": 1, "maximum": 16},
+    {"id": "child-activation", "scope": "child", "name": "activation", "type": "enum", "values": ["ReLU", "Sigmoid", "Tanh"]},
+    {"id": "child-bias", "scope": "child", "name": "bias", "type": "boolean"}
+  ],
+  "assignments": [
+    {"model": "child", "node": "linear", "field": "features", "value": {"symbol": "child-width"}},
+    {"model": "child", "node": "linear", "field": "bias", "value": {"symbol": "child-bias"}},
+    {"model": "child", "node": "activation", "field": "activation", "value": {"symbol": "child-activation"}}
+  ],
+  "constructors": [
+    {"model": "parent", "node": "left", "symbol": "child-width", "value": {"symbol": "left-width"}},
+    {"model": "parent", "node": "left", "symbol": "child-activation", "value": "Tanh"},
+    {"model": "parent", "node": "left", "symbol": "child-bias", "value": false},
+    {"model": "parent", "node": "right", "symbol": "child-width", "value": {"symbol": "right-width"}},
+    {"model": "parent", "node": "right", "symbol": "child-activation", "value": "ReLU"},
+    {"model": "parent", "node": "right", "symbol": "child-bias", "value": true}
+  ],
+  "repeats": []
+}

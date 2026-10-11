@@ -79,7 +79,7 @@ class ConstructorChoiceTests(unittest.TestCase):
             if mutation == 'type': symbol['type'] = ['enum']
             if mutation == 'unknown-key': symbol['python'] = 'eval'
             with self.subTest(mutation=mutation), self.assertRaises(GraphError): validate_family(source)
-        for version in (1, 2, True, 4, 3.):
+        for version in (1, 2, True, 5, 3.):
             source = choices(); source['version'] = version
             with self.subTest(version=version), self.assertRaises(GraphError): validate_family(source)
 

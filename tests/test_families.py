@@ -323,7 +323,7 @@ class FamilyTests(unittest.TestCase):
         family['models']['unused']['id'] = 'unused'
         with self.assertRaisesRegex(GraphError, 'unrelated'):
             validate_family(family)
-        for version in [True, 4, 1.0]:
+        for version in [True, 5, 1.0]:
             family = mlp(); family['version'] = version
             with self.subTest(version=version), self.assertRaises(GraphError):
                 validate_family(family)

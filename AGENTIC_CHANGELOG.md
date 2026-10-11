@@ -4,6 +4,24 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 08:00 -03:00 — Scoped reusable Module constructors
+
+Added family v4 direct-child bindings because reusable branches must have distinct
+local widths/activations/biases without meaningless global defaults or implicit
+sharing. Resolver memoizes specs by full local context; normal calls own separate
+weights, explicit sharing still requires matching constructors. Finite repeated
+Modules inherit bindings;64-context gate precedes graph copies. Specialization v3
+retains and revalidates canonical fallbacks/local contexts; .vtw v11 gates grammar
+without new tables or altered old family/receipt identities. Owned Qt call cards
+use explicit atomic v4 upgrades, bounded previews and insertion reply fences.
+
+Added runnable branch example, exact aligned specs,19 pure/4 numerical tests,
+5 JS ownership/upgrade/invalid-value regressions and sandboxed Qt edit/upgrade
+paths. Final776 Python262.706s/290 JS1195.912867ms pass, plus functional gradients,
+Adam identity, worker/retry/predictor and actual Jupyter checks. Native old/new
+editor workflows pass; capture reviewed. Fixture failures and limits recorded in
+docs/development.md. D/E remain incomplete; no publication or user-state changes.
+
 ## 2026-10-11 07:35 -03:00 — Explicit scalar constructor choices
 
 Added family v3 boolean/finite enum symbols and constructor assignments, because
