@@ -4,6 +4,18 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 11:47 -03:00 — Shared floating-menu stacking and guidance removal
+
+Removed Building Blocks' “A LITTLE GUIDANCE” at the user's request, without
+removing per-block About/tooltips. PANELS now shares palette click-to-front
+stacking above the graph rather than a permanently privileged z-index. Expanded
+restore keeps current stacking instead of resurrecting an older level; collapse
+and keyboard/double-click restoration raise the launcher without privileging it.
+Four new JS cases, all303 JS tests and actual sandboxed Qt native-mouse overlap/
+expanded-restore checks pass, alongside existing snap/preset/font checks. No
+scientific/schema/history changes, main integration, push or live-user mutation.
+Specs state the unchanged version-1 preset boundary (palette order only).
+
 ## 2026-10-11 11:30 -03:00 — Recurrent graph, storage and execution integration
 
 Added a closed multi-input/multi-output Recurrent graph reference to the verified

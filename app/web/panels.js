@@ -73,6 +73,9 @@
     const packToggle = document.getElementById("pack-toggle");
     const openers = [...pack.querySelectorAll("[data-open-panel]")];
     let z = 3;
+    // The launcher and palettes share one menu layer, above the graph.
+    const raise = panel => {panel.style.zIndex = ++z;};
+    pack.addEventListener("pointerdown", () => raise(pack));
     const cancelGestures=[];
     const bounds = () => editor.getBoundingClientRect();
     const relative = panel => {
@@ -111,7 +114,10 @@
     function restore(panel) {
       panel.classList.remove("expanded");
       if (panel.restoreStyle !== undefined) {
+        const currentZ = panel.style.zIndex;
         panel.style.cssText = panel.restoreStyle;
+        // Restore geometry, not the stale stacking level from before expansion.
+        panel.style.zIndex = currentZ;
         delete panel.restoreStyle;
       }
     }
@@ -124,7 +130,7 @@
       const panel = panels.find(p => p.id === id);
       if (!panel) return;
       panel.hidden = false;
-      panel.style.zIndex = ++z;
+      raise(panel);
       if (panel.style.left) place(panel,relative(panel));
       controls(panel);
     }
@@ -132,7 +138,7 @@
       panel.dataset.label = panel.id === "library-panel" ? "building blocks" : panel.id === "architectures-panel" ? "architectures" : panel.id === "inspector-panel" ? "inspector" : "experiment panel";
       const heading = panel.querySelector("[data-drag-handle]");
       const scroll = panel.querySelector(".scrollport");
-      panel.addEventListener("pointerdown", () => panel.style.zIndex = ++z);
+      panel.addEventListener("pointerdown", () => raise(panel));
       panel.querySelector("[data-fold-panel]").onclick = () => {
         close(panel);
         openers.find(b => b.dataset.openPanel === panel.id).focus();
@@ -143,7 +149,7 @@
           panel.restoreStyle = panel.style.cssText;
           panel.classList.add("expanded");
           place(panel, {x:16,y:16,width:bounds().width-32,height:bounds().height-32});
-          panel.style.zIndex = ++z;
+          raise(panel);
         }
         controls(panel);
       };
@@ -295,10 +301,12 @@
     function shrink() {
       panels.forEach(close);
       pack.classList.add("collapsed");pack.style.width="";pack.style.height="";
+      raise(pack);
       packControls();
     }
     function unshrink() {
       pack.classList.remove("collapsed");pack.style.width="";pack.style.height="";packControls();
+      raise(pack);
       if (pack.style.left) place(pack,relative(pack));
     }
     packToggle.onclick=()=> {if (!pack.classList.contains("collapsed")) shrink();};

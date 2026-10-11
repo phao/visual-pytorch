@@ -15,6 +15,11 @@ it there; it is still draggable. For spacing u, inter-button gap is u, side/bott
 list margins are 2u (both doubled), and top margin is u. Button interiors retain
 0.75u padding; readable fonts do not shrink.
 
+The launcher is not always on top. It and all palettes share the same stacking
+layer above blocks; pointer interaction or opening brings the target to front.
+Expanded palettes participate in the same order, and restoring their geometry
+preserves recent stacking. Reset recovers a completely covered launcher.
+
 × hides; ⤢ expands/restores. Titles, frames and empty content areas drag menus;
 text, form controls, code blocks and scrollbar regions keep normal interactions.
 Menus may leave the stage, retaining a 24-unit visible slice. Reset restores
@@ -40,6 +45,8 @@ hiding all menus after a successful open (same tab, tab hint, Ctrl/Meta or doubl
 click). Saved presets are not rewritten; other navigation keeps its own behavior.
 Building blocks retains the separate reusable-architecture
 selector. No Create MLP button/dialog is present.
+The former “A LITTLE GUIDANCE” section is removed; per-block About and hover
+descriptions remain available.
 Architectures' title owns +; its non-collapsible Currently open card precedes
 the list and shows name/counts/shape/parameter information or draft status.
 Building-block buttons show icons/names only, with descriptive hover tooltips

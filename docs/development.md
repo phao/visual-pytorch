@@ -1,5 +1,24 @@
 # Development state and roadmap
 
+## 2026-10-11 11:47 -03:00 — Shared launcher/palette stacking
+
+Removed Building Blocks' “A LITTLE GUIDANCE” at the user's request; per-block
+About and hover descriptions remain. PANELS and all five palettes now share
+one click-to-front menu layer above blocks, including expanded palettes.
+Restoring an expanded palette retains current stacking instead of restoring its
+old z-index with its geometry. Collapse/restoration raises the launcher without
+making it permanently privileged. Version-1 preset palette order is unchanged;
+the pack's transient place among palettes is not newly persisted.
+
+Four new panel tests, all303 JS tests, nine Python workspace-preset tests,
+native bridge CAS/ownership/presentation checks and actual sandboxed Qt native-
+mouse overlap/expanded-restore/snap/preset/navigation/six-font-viewport checks
+pass. The browser checks leave science/history/config unchanged and import no
+Torch in the host. Offscreen Chromium may emit teardown shared-image warnings;
+the app JavaScript console is clean. No whole numerical-suite rerun is claimed
+for these web-only changes. This bounded checkpoint does not complete recurrent
+GUI authoring or D/E, and is not integrated into main or remotely published.
+
 ## 2026-10-11 10:33 -03:00 — Explicit recurrent transition execution foundation
 
 `app/recurrent.py` compiles one existing transition graph with explicit stable

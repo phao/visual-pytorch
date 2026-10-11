@@ -62,10 +62,15 @@ window chrome or outside the application's actual surface. "Off-window" means
 most of the rectangle can be outside that clipped stage; recovery uses its slice
 that is still visible. Native detached palette windows are NOT implemented.
 
-Normal menus start at z-index 2; interacting/opening raises them through a monotonic
-counter. Expanded menus are above ordinary menus. The pack is assigned a very high
-z-index so it remains accessible. This is a practical prototype stacking scheme,
-not a general compositor. Popups/modal dialogs use their browser/native mechanisms.
+All floating menus, including the PANELS launcher pack, start at z-index 2,
+above the graph. Pointer interaction or opening raises the target through one
+shared monotonic counter. The pack is not always on top: a clicked/opened palette
+can cover it, and clicking the exposed pack brings it back above other palettes.
+Expansion raises a palette but does not reserve a permanently higher tier;
+restoring ordinary geometry preserves its current stacking level. Pack collapse
+and keyboard/double-click restoration raise the pack. Reset floating menus is
+the recovery command when it is completely covered. Popups/modal dialogs use
+their browser/native mechanisms; notifications remain above the menu layer.
 
 ## 3. Launcher pack state machine
 

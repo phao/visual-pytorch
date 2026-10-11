@@ -14,6 +14,16 @@ applies to same-tab and new-tab opens; the latter suppresses restored visibility
 once on initial load. It does not rewrite the saved preset, and other navigation
 does not inherit this menu-specific behavior. Failed opens preserve the menus.
 
+The PANELS launcher and all palettes share click-to-front stacking above the
+network, including expanded palettes. Clicking the exposed launcher can raise
+it above a palette; clicking or opening that palette can raise it above the
+launcher again. Restoring expanded geometry does not undo recent stacking.
+The version-1 preset stores relative palette order only, not the launcher's
+transient position in that order; applying it starts the launcher at the base
+menu level. Reset floating menus recovers a covered launcher. Building Blocks
+no longer contains the former “A LITTLE GUIDANCE” section; per-block About
+information and tooltips are unchanged.
+
 ## SQLite and CLI contract
 
 Optional `metadata` key `panel_layout` contains JSON with this closed version-1
