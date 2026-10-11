@@ -683,6 +683,20 @@ invalidate pending contents. Verify returned revision/path/part/offset before
 display. Scope limits to response/DOM bytes/counts; full registry validation and
 draft transport are separate costs. The Visual PyTorch realization and reusable
 contract are in [scientific-browser.md](scientific-browser.md).
+
+For stored-reference authoring controls, reuse independent bounded revision
+pickers, not one complete metadata index copied into every selector. Preserve
+chosen exact pins across search/page/refresh; represent missing pins separately
+from valid metadata. Explicit experiment selections must not be guessed from
+list position. Search tools are siblings of a single-control select label, with
+their own accessible names, compact grid/range and full exact-ID/hash tooltip.
+Fence pending successes/errors by owner/workspace/generation/disposal, validate
+returned kind/query/cursor/pin, and guard repeated navigation. Suggestion refresh
+must not rebuild/discard incomplete unrelated fields. A notified same-UUID reload
+also invalidates suggestions without replacing draft refs/text. This does not
+page local draft axes or bound whole draft/field/port transport. The executable
+realization and reusable limitations are in
+[authoring-revision-choices.md](authoring-revision-choices.md).
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
 

@@ -15,6 +15,60 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-10 22:49 -03:00 — Bounded exact authoring revision choices
+
+Task and experiment stored-model/dataset/task selectors now use independent
+searchable metadata pages, not repeated complete `scienceIndex` lists. Each has
+at most 25 rows, one exact out-of-page pin and one explicit empty choice. Historical
+or unavailable exact selections never silently advance to a new head. Initial
+task-context suggestions retain their existing first-head default once;
+experiment choices remain deliberately incomplete. Local draft axes/cards and
+field/port contexts are not bounded by this change.
+
+Pending navigation has both disabled controls and same-turn guards. Owner,
+workspace, generation, reply cursor and pin checks fence late success/errors;
+notified same-UUID reload refreshes suggestions and clears compatibility/previews
+without discarding draft text. Task-context errors now honor their existing
+generation/workspace fence as successes do. New CLI `spec-page --pin ID REVISION`
+and explicit `--allow-missing-pin` share the same read-only metadata projection;
+strict missing-pin behavior remains the default. See
+[authoring-revision-choices.md](authoring-revision-choices.md) for exact behavior,
+cost limitations and the primary HTML reference behind sibling search controls.
+
+459 Python tests pass (173.271 s); 113 JavaScript tests pass (720 ms). Two additional
+backend/CLI tests prove explicit unavailable pins, no invented replacements,
+strict default behavior and unchanged file bytes. Ten new asynchronous picker
+tests cover cursors, defaults, pending duplicates, ownership/disposal, stale
+responses/errors, labels and literal metadata. The actual sandboxed Qt fixture
+uses 112 retained revisions per model/dataset/task with search/pages/historical
+pins, unfinished text and same-UUID reload. Its 29 metadata projections peak at
+6121 bytes; SQL is unchanged, no whole metadata-index calls/runs/host Torch or
+console errors. Font 14/18/28, dark/GitHub/Math and spacing 1/4/10 pass; the final
+compact-grid capture was visually reviewed, including three-column pairings.
+
+Current actual Qt task and experiment regressions pass, including multihead/ragged
+fits, eight GUI candidates, split protocols, exact defaults, history/no-op/conflict,
+origin checks and stale compatibility errors after a workspace switch. Negative
+unavailable-choice probes mock the page provider explicitly, not deleted immutable
+bytes. Old full-index test mocks were adapted to the new provider, and the new
+intentional empty option is counted. An initially invalid fixture clone violated
+the existing frozen-model root/ID contract; the fixture was repaired without
+weakening product validation. A first render exposed wrapping paging arrows;
+the scoped grid repair passed the actual font/layout checks above.
+
+The current dataset-editor Qt regression also passes rich shapes/categories/
+missingness, invalid text, validation, history, conflict/pending and save/reload
+checks. The main scientific-browser regression passes again with 1250 × 512
+values, long scalar/key pages, 33 reads (max 24407 bytes), old/head identity,
+same-UUID reload and font-28 checks. Both retain unchanged scientific SQL and
+zero console errors/host Torch.
+
+Complete authoring drafts, long cells, local selection cards and field/port
+contexts still need owned transport/admission work. Recovery/completion and full
+inline/registry costs remain unbounded. No v7 schema, alternate persistence,
+scientific-order/optimizer change, main integration, publication or user-state
+mutation is claimed. Stage C and the full A–E goal remain incomplete.
+
 ### Bounded scientific read browser — retained C branch
 
 GUI and CLI now share searchable metadata pages, typed exact-revision summaries,

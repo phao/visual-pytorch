@@ -143,7 +143,7 @@ def dispatch(window, req):
         if action == 'scienceBrowse':
             return science_browser.index_page(workspace, req['kind'], offset=req.get('offset', 0),
                 limit=req.get('limit', 25), query=req.get('query', ''), preferred=req.get('preferred'),
-                heads_only=req.get('heads_only', False))
+                heads_only=req.get('heads_only', False), allow_missing_pin=req.get('allow_missing_pin', False))
         if action == 'scienceSummary': return science_browser.summary(workspace, req['reference'])
         return science_browser.inspect_page(workspace, req['reference'], path=req.get('path'),
             part=req.get('part', 'value'), offset=req.get('offset', 0), limit=req.get('limit', 25))

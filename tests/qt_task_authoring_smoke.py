@@ -147,14 +147,20 @@ with tempfile.TemporaryDirectory() as directory:
                 h.workspace.put(model);h.workspace.freeze_model(model['id'])
                 data=h.workspace.get_spec('dataset',dref['id']);data.pop('revision');data['name']='Later measured revision'
                 h.workspace.put_spec('dataset',data)
-                click('science-task-context-refresh');until('document.getElementById("science-task-model").options.length===3 && !document.getElementById("science-task-model").disabled')
+                click('science-task-context-refresh');until('document.getElementById("science-task-model").options.length===4 && !document.getElementById("science-task-model").disabled')
                 assert js('document.getElementById("science-task-model").value')==context_model
                 assert js('document.getElementById("science-task-dataset").value')==context_data
-                from app.experiment_ui import index
-                rows=index(h.workspace)
-                # A context ref omitted by refreshed metadata is kept explicitly,
-                # not replaced with a new head. Its retained bytes still exist.
-                with patch('app.experiment_ui.index',return_value=[r for r in rows if not(r['kind']=='model' and r['revision']==mref['revision'])]):
+                from app.science_browser import index_page
+                # An explicitly unavailable pin from the page provider remains
+                # selected, not substituted. This is a scoped metadata-provider
+                # negative control; the retained bytes themselves still exist.
+                def unavailable_pin(workspace,kind,**kwargs):
+                    result=index_page(workspace,kind,**kwargs)
+                    if kind=='model' and kwargs.get('preferred')==mref:
+                        result['rows']=[r for r in result['rows'] if r['revision']!=mref['revision']]
+                        result['pinned']=None;result['missing_pin']=mref
+                    return result
+                with patch('app.science_browser.index_page',side_effect=unavailable_pin):
                     click('science-task-context-refresh')
                     until('document.getElementById("science-task-model").selectedOptions[0].textContent.startsWith("Unavailable") && !document.getElementById("science-task-model").disabled')
                     assert js('document.getElementById("science-task-model").value')==context_model
@@ -232,6 +238,20 @@ with tempfile.TemporaryDirectory() as directory:
         assert js('document.getElementById("science-task-compatibility").disabled')
         until('document.getElementById("science-task-input-ports").children.length===0')
         assert js('document.getElementById("science-task-compatibility-status").textContent')==''
+        assert original.db.serialize()==before
+        # A late error is also stale evidence, not a reason to overwrite the
+        # retained Workspace changed status or display an old-context toast.
+        h.workspace=original;h.broadcast();until('!document.getElementById("science-author-save").disabled')
+        def fail_old_context(request,target):
+            value=dispatch(request,target)
+            if request['action']=='scienceTaskContext':
+                h.workspace=replacement;h.broadcast();raise ValueError('Obsolete original-context failure')
+            return value
+        with patch.object(h,'dispatch',side_effect=fail_old_context):
+            click('science-task-context-refresh')
+            until('document.getElementById("science-author-status").textContent.includes("Workspace changed") && !document.getElementById("science-author-cancel").disabled')
+        assert not js('document.getElementById("toast-message").textContent.includes("Obsolete original-context failure")')
+        assert js('document.getElementById("science-task-input-ports").children.length')==0
         assert original.db.serialize()==before
         click('science-author-cancel')
         # Check/Save callbacks have the same identity fence, including a valid

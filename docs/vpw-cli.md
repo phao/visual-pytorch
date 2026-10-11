@@ -68,6 +68,12 @@ legacy reads remain available, not silently truncated. See
 [scientific-browser.md](scientific-browser.md) for scope/identity/order, byte
 encoding, CLI-envelope and backend-cost limits. All three commands are read-only.
 
+`spec-page --pin ID REVISION` resolves a selected exact reference independently
+of search/page/head filtering. A nonexistent pin fails by default; adding
+`--allow-missing-pin` returns that exact unavailable reference as `missing_pin`
+with `pinned: null`, never a replacement head or invented metadata. The authoring
+GUI uses this explicit variant. Identities/page flags still undergo validation.
+
 `train-stored` executes the same exact-reference selection in an isolated worker,
 requiring explicit TrainingProtocol JSON and one split protocol or saved manifest.
 The CLI/GUI host still imports no Torch; `--torch-python` selects the numerical

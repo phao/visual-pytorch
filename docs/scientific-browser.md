@@ -35,8 +35,8 @@ is implied. Authoring/recovery/completion transports still need separate bounds.
 ## Metadata pages
 
 `index_page(workspace, kind, offset=0, limit=25, query='', preferred=None,
-heads_only=False)` returns `scope: scientific-metadata-page`, `kind`, `query`,
-`heads_only`, `offset`, `limit`, `total`, `rows`, `pinned`, `next_offset` and the
+heads_only=False, allow_missing_pin=False)` returns `scope: scientific-metadata-page`, `kind`, `query`,
+`heads_only`, `offset`, `limit`, `total`, `rows`, `pinned`, `missing_pin`, `next_offset` and the
 version/byte fields. Each row contains `kind`, `id`, `revision`, `name`,
 `created_at`, `selected`. `selected` means this revision is the current browsing
 head; historical/unselected revisions are still retained.
@@ -50,9 +50,16 @@ at most 200 Unicode code points and no NUL, not SQL LIKE/glob/regex syntax.
 The optional `preferred` exact reference is resolved independently of the query,
 page and heads-only filter. It is returned as `pinned`, even if historical or
 outside this page. It does not alter `total`, row offsets or selection in SQLite.
-A nonexistent pin fails explicitly, never silently substituting another object.
-The GUI adds at most this one pinned option to the displayed page. CLI metadata
-paging currently exposes search/head filtering but not an explicit pin flag.
+A nonexistent pin fails explicitly by default, never silently substituting another
+object. With strictly boolean `allow_missing_pin=True`, it instead returns the
+exact absent reference as `missing_pin`, with `pinned: null`. This is an explicit
+unavailable selection, not a fabricated metadata row. The two fields cannot both
+be non-null; both are null without a pin. Identities are still strictly validated.
+The main read browser keeps strict missing-pin behavior. Authoring pickers request
+the unavailable-marker variant to preserve incomplete choices honestly. The GUI
+adds at most one pinned/unavailable option, plus a Choose explicitly option in
+authoring. CLI `spec-page --pin ID REVISION [--allow-missing-pin]` uses the same
+projection, independent of search/page/head filters.
 
 ## Typed summaries
 
@@ -138,6 +145,8 @@ This is not a general ABA, multi-editor transaction or crash-safety guarantee.
 ```sh
 python vpw_cli.py lab.vtw spec-page dataset --query measurements --offset 0 --limit 25
 python vpw_cli.py lab.vtw spec-page run --heads-only
+python vpw_cli.py lab.vtw spec-page dataset --query measurements --pin DATASET_ID DATASET_SHA256
+python vpw_cli.py lab.vtw spec-page dataset --pin MISSING_ID DATASET_SHA256 --allow-missing-pin
 python vpw_cli.py lab.vtw spec-summary dataset DATASET_ID DATASET_SHA256
 python vpw_cli.py lab.vtw spec-inspect dataset DATASET_ID DATASET_SHA256 --path '[]'
 python vpw_cli.py lab.vtw spec-inspect dataset DATASET_ID DATASET_SHA256 --path '[3,0]' --part key --offset 2000

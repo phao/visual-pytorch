@@ -63,6 +63,30 @@ class ScienceBrowserTests(unittest.TestCase):
         missing = dict(ref, revision='0'*64)
         with self.assertRaisesRegex(GraphError, 'Pinned'): index_page(self.w, 'dataset', preferred=missing)
 
+    def test_missing_pin_is_explicit_only_when_requested_and_never_replaced(self):
+        missing={'kind':'dataset','id':'missing','revision':'0'*64};before=self.w.db.serialize()
+        with patch.object(self.w,'get_spec',side_effect=AssertionError('metadata cannot read documents')):
+            value=index_page(self.w,'dataset',preferred=missing,allow_missing_pin=True,limit=1)
+        self.assertEqual(value['missing_pin'],missing);self.assertIsNone(value['pinned']);self.assertEqual(value['total'],2)
+        self.assertEqual(value['rows'][0]['id'],'affine');self.assert_bound(value)
+        value['missing_pin']['id']='changed';self.assertEqual(missing['id'],'missing')
+        with self.assertRaises(GraphError):index_page(self.w,'dataset',preferred=missing)
+        with self.assertRaises(GraphError):index_page(self.w,'dataset',allow_missing_pin=1)
+        self.assertEqual(self.w.db.serialize(),before)
+
+    def test_cli_exact_pin_and_explicit_missing_pin_flags_preserve_disk_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'lab.vtw';self.w.save(path);before=path.read_bytes();d=self.dataset()
+            for sid,rev,allow,code in [('affine',d['revision'],False,0),('missing','0'*64,True,0),('missing','0'*64,False,1)]:
+                stream=io.StringIO();args=[str(path),'spec-page','dataset','--query','not found','--pin',sid,rev]
+                if allow:args.append('--allow-missing-pin')
+                with redirect_stdout(stream):actual=vpw_cli.main(args)
+                self.assertEqual(actual,code);result=json.loads(stream.getvalue())
+                if code==0:
+                    self.assertEqual(result['value']['rows'],[])
+                    self.assertEqual((result['value']['missing_pin'] if allow else result['value']['pinned'])['revision'],rev)
+                self.assertEqual(path.read_bytes(),before)
+
     def test_metadata_byte_limit_reduces_rows_without_truncating_any_identity(self):
         d = self.dataset(); d.pop('revision')
         for i in range(25):

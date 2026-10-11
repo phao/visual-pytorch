@@ -129,6 +129,7 @@
     },
     stateChanged(){if(!api)return;window.LoomScienceResults.stateChanged();window.LoomScienceNotebooks.stateChanged();if(workspace!==api.workspace()){workspace=api.workspace();rows=[];current=null;page=null;indexPage=null;indexOffset=0;indexBacks=[];offset=0;generation++;window.LoomScienceDocument.clear();$('science-object').replaceChildren();$('science-document').textContent='';$('science-candidates').replaceChildren();for(const id of ['science-selection','science-run','science-report'])$(id).hidden=true;if(!$('science-panel').hidden)act(refresh);}controls();window.LoomScienceAuthor?.stateChanged();},
     event(event){if(!api)return;
+      window.LoomScienceAuthor?.event?.(event);
       window.LoomScienceNotebooks.event(event);
       if(event.kind==='externalReload'){
         generation++;indexReading=null;current=null;page=null;indexPage=null;

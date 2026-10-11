@@ -22,6 +22,13 @@ and stale replies are guarded, including a notified disk reload with unchanged
 UUID. These are projection/DOM bounds, not lazy storage or registry-cost bounds.
 See [scientific-browser.md](scientific-browser.md) for exact schemas and CLI parity.
 
+Task context and experiment stored-revision selectors now use independent search/
+page controls instead of complete metadata indexes. They preserve historical and
+explicitly unavailable pins without rebuilding/discarding other text controls.
+Task context defaults once to a returned head; experiment selections remain
+explicit. Local draft axes/pairing choices and full field/port/draft transport
+remain unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md).
+
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.

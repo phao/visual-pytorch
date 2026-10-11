@@ -143,6 +143,8 @@ def main(argv=None):
     browse.add_argument('--offset', type=int, default=0)
     browse.add_argument('--limit', type=int, default=25)
     browse.add_argument('--heads-only', action='store_true')
+    browse.add_argument('--pin', nargs=2, metavar=('ID', 'REVISION'), help='Keep an exact selection independently of this page/search')
+    browse.add_argument('--allow-missing-pin', action='store_true', help='Report a missing exact pin explicitly; never choose a replacement')
     for command in ('spec-summary', 'spec-inspect'):
         p = sub.add_parser(command, help='Bounded read of an exact scientific revision; never an implicit head')
         p.add_argument('kind', choices=KINDS); p.add_argument('id'); p.add_argument('revision')
@@ -244,7 +246,9 @@ def main(argv=None):
                 from app import science_browser
                 if args.command == 'spec-page':
                     value = science_browser.index_page(workspace, args.kind, offset=args.offset,
-                        limit=args.limit, query=args.query, heads_only=args.heads_only)
+                        limit=args.limit, query=args.query, heads_only=args.heads_only,
+                        preferred=None if args.pin is None else {'kind':args.kind,'id':args.pin[0],'revision':args.pin[1]},
+                        allow_missing_pin=args.allow_missing_pin)
                 else:
                     ref = {'kind': args.kind, 'id': args.id, 'revision': args.revision}
                     value = science_browser.summary(workspace, ref) if args.command == 'spec-summary' else \

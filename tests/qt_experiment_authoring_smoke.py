@@ -58,6 +58,7 @@ def set_id(sid,value):
     until('!document.getElementById('+json.dumps(sid)+').disabled')
     assert js('setExperimentValue(document.getElementById('+json.dumps(sid)+'),'+json.dumps(value)+')'),errors
 def control(kind,index,label,value):
+    until('!experimentControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+').disabled')
     assert js('setExperimentValue(experimentControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+'),'+json.dumps(value)+')'),(kind,index,label,errors)
 def top(label,value):assert js('setExperimentValue(experimentTop('+json.dumps(label)+'),'+json.dumps(value)+')'),(label,errors)
 def add(name):assert js('experimentButton(document.getElementById("science-experiment-bindings"),'+json.dumps(name)+')'),(name,errors)
@@ -130,13 +131,19 @@ with tempfile.TemporaryDirectory() as directory:
         assert js('experimentControl("protocol",0,"Maximum updates").value')=='1e400'
         click('science-author-save');assert not js('document.getElementById("science-author").hidden');assert h.workspace.db.serialize()==before
         control('protocol',0,'Maximum updates','3')
-        # Exact selected revisions survive new heads and a metadata omission.
+        # Exact selected revisions survive new heads and a provider-declared
+        # unavailable pin; the negative control does not delete retained bytes.
         old=e['data_tasks'][0]['dataset'];data=h.workspace.get_spec('dataset',old['id']);data.pop('revision');data['name']='Newer dataset head'
         h.workspace.put_spec('dataset',data);click('science-experiment-refresh');until('!document.getElementById("science-experiment-refresh").disabled')
         assert js('experimentControl("data-task",0,"Exact dataset").value')==ref_value(old)
-        from app.experiment_ui import index as metadata
-        rows=metadata(h.workspace)
-        with patch('app.experiment_ui.index',return_value=[r for r in rows if not(r['kind']=='dataset' and r['revision']==old['revision'])]):
+        from app.science_browser import index_page
+        def unavailable_pin(workspace,kind,**kwargs):
+            result=index_page(workspace,kind,**kwargs)
+            if kind=='dataset' and kwargs.get('preferred')==old:
+                result['rows']=[r for r in result['rows'] if r['revision']!=old['revision']]
+                result['pinned']=None;result['missing_pin']=old
+            return result
+        with patch('app.science_browser.index_page',side_effect=unavailable_pin):
             click('science-experiment-refresh');until('experimentControl("data-task",0,"Exact dataset").selectedOptions[0].textContent.startsWith("Unavailable") && !document.getElementById("science-experiment-refresh").disabled')
             assert js('experimentControl("data-task",0,"Exact dataset").value')==ref_value(old)
         click('science-experiment-refresh');until('!experimentControl("data-task",0,"Exact dataset").selectedOptions[0].textContent.startsWith("Unavailable") && !document.getElementById("science-experiment-refresh").disabled')

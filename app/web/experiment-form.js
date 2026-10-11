@@ -1,6 +1,6 @@
 "use strict";
 (() => {
-  let metadata=[];
+  let choices=[],revisionServices=null;
   const H=()=>window.LoomExperimentAuthoring;
   const key=ref=>ref?.id&&ref?.revision?JSON.stringify({kind:ref.kind,id:ref.id,revision:ref.revision}):'';
   function options(root,select,values,chosen){
@@ -9,20 +9,26 @@
     if(chosen&&![...select.options].some(o=>o.value===chosen)){const missing=root.createElement('option');missing.value=chosen;missing.textContent='Unavailable selected identity · choose another explicitly';select.append(missing);}
     select.value=chosen;
   }
-  function refresh(root,document,rows){
-    metadata=rows;
+  function refresh(root,document){
+    const reads=[];
     root.getElementById('science-experiment-bindings').querySelectorAll('select[data-reference-kind]').forEach(select=>{
       const kind=select.dataset.referenceKind;
-      const refs=select.dataset.selectedModels==='true'?document.models:rows.filter(r=>r.kind===kind);
-      const values=refs.filter(ref=>key(ref)).map(ref=>{const row=rows.find(r=>key(r)===key(ref));return [key(ref),
-        (row?.name||ref.id)+' · '+ref.revision.slice(0,12)+(row?(row.selected?' · current head':' · historical'):' · selected exact reference')];});
-      options(root,select,values,key(select.getReference()));
+      if(select.dataset.selectedModels==='true'){
+        const values=document.models.filter(ref=>key(ref)).map(ref=>[key(ref),ref.id+' · '+ref.revision.slice(0,12)+' · selected architecture']);
+        options(root,select,values,key(select.getReference()));
+      }else{
+        if(!select.revisionChoice){select.revisionChoice=window.LoomRevisionChoice.attach(root,select,revisionServices,
+          {kind,getReference:select.getReference,valid:revisionServices.valid});choices.push(select.revisionChoice);}
+        reads.push(select.revisionChoice.refresh());
+      }
     });
     root.getElementById('science-experiment-bindings').querySelectorAll('select[data-data-task-choice]').forEach(select=>
       options(root,select,document.data_tasks.map(p=>[p.id,p.id]),select.getPairing()));
-    root.getElementById('science-experiment-context-status').textContent=rows.length+' exact stored revisions available · refresh never advances selected identities';
+    root.getElementById('science-experiment-context-status').textContent='Stored choices use independent searchable pages · exact selected identities never advance on refresh';
+    return Promise.all(reads);
   }
   function render(root,document,services){
+    choices.forEach(choice=>choice.dispose());choices=[];revisionServices=services.revisionServices;
     const {el,input,flush,rerender,changed}=services,container=root.getElementById('science-experiment-bindings');container.replaceChildren();
     function button(name,action){const control=el('button',name);control.type='button';control.dataset.authorControl='';control.onclick=()=>{if(flush())action();};return control;}
     function select(label,values,chosen,change){
@@ -33,7 +39,7 @@
     function reference(label,kind,get,set,selectedModels=false){
       const wrapper=el('label',label),control=el('select');control.dataset.authorControl='';control.dataset.referenceKind=kind;
       control.dataset.selectedModels=String(selectedModels);control.getReference=get;
-      control.onchange=()=>{if(!flush()){control.value=key(get());return;}set(control.value?JSON.parse(control.value):H().reference(kind));changed();refresh(root,document,metadata);};
+      control.onchange=()=>{if(!flush()){control.value=key(get());return;}set(control.value?JSON.parse(control.value):H().reference(kind));changed();refresh(root,document);};
       wrapper.append(control);return wrapper;
     }
     function pairChoice(get,set){
@@ -60,7 +66,7 @@
     const data=section('Dataset/task pairings',document.data_tasks.length);
     document.data_tasks.forEach((pair,index)=>{
       const box=card(data,'data-task',index,'Dataset/task pairing'),g=grid(box);
-      g.append(input('Pairing ID',pair.id,value=>{pair.id=value;refresh(root,document,metadata);}),reference('Exact dataset','dataset',()=>pair.dataset,value=>{pair.dataset=value;}),reference('Exact task','task',()=>pair.task,value=>{pair.task=value;}));order(box,document.data_tasks,index);
+      g.append(input('Pairing ID',pair.id,value=>{pair.id=value;refresh(root,document);}),reference('Exact dataset','dataset',()=>pair.dataset,value=>{pair.dataset=value;}),reference('Exact task','task',()=>pair.task,value=>{pair.task=value;}));order(box,document.data_tasks,index);
     });
     data.append(button('Add dataset/task pairing',()=>{document.data_tasks.push(H().pairing(crypto.randomUUID()));rerender();}));
     const splits=section('Split selections',document.splits.length);
@@ -107,8 +113,8 @@
       });
       comparisons.append(button(excluded?'Add exclusion':'Add pair whitelist entry',()=>{document.selection[name].push(H().comparison(excluded));rerender();}));
     }
-    refresh(root,document,metadata);changed();
+    refresh(root,document);changed();
   }
   function clearPreview(root){root.getElementById('science-experiment-preview-rows').replaceChildren();root.getElementById('science-experiment-preview-status').textContent='Draft preview is not current. Check it explicitly; no training.';}
-  window.LoomExperimentForm=Object.freeze({render,refresh,clearPreview,reset(){metadata=[];}});
+  window.LoomExperimentForm=Object.freeze({render,refresh,clearPreview,reset(){choices.forEach(choice=>choice.dispose());choices=[];revisionServices=null;}});
 })();

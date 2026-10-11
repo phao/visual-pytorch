@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   let root, api, saved, draft=null, rowOffset=0, fieldOffset=0, generation=0, pending=false, contextGeneration=0, editGeneration=0;
-  let draftPage=null;
+  let draftPage=null,taskChoices=[];
   const $=id=>root.getElementById(id), helpers=()=>window.LoomDatasetAuthoring;
   const el=(tag,value)=>{const result=root.createElement(tag);if(value!==undefined)result.textContent=value;return result;};
   const uid=()=>crypto.randomUUID();
@@ -116,7 +116,8 @@
       fields();records();const metadata=$('science-author-metadata');metadata.replaceChildren();
       for(const key of ['provenance','usage'])optional(metadata,draft.document,key,key);
     }else if(draft.kind==='task')window.LoomTaskForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
-    else window.LoomExperimentForm.render(root,draft.document,{el,input,flush,rerender:render,changed});
+    else{const owner=draft;window.LoomExperimentForm.render(root,draft.document,{el,input,flush,rerender:render,changed,
+      revisionServices:{...api,updateControls:controls,valid:()=>draft===owner}});}
     status();
   }
   async function context(){
@@ -126,37 +127,33 @@
     window.LoomTaskForm.context(root,null);
     if(!m||!d)return;
     $('science-task-context-status').textContent='Reading exact interfaces; no fitting or execution…';
-    const value=await api.call('scienceTaskContext',{model:JSON.parse(m),dataset:JSON.parse(d)});
+    let value;
+    try{value=await api.call('scienceTaskContext',{model:JSON.parse(m),dataset:JSON.parse(d)});}
+    catch(error){if(ticket===contextGeneration&&draft===selected&&identity===api.workspace())issue(error);return;}
     if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
     window.LoomTaskForm.context(root,value);
   }
   async function choices(){
     const selected=draft,ticket=++contextGeneration,identity=api.workspace();
     if(!selected||selected.kind!=='task')return;
-    const rows=await api.call('scienceIndex');
+    if(!taskChoices.length)taskChoices=[['science-task-model','model'],['science-task-dataset','dataset']].map(([id,kind])=>{
+      const select=$(id);return window.LoomRevisionChoice.attach(root,select,{...api,updateControls:controls},
+        {kind,defaultHead:true,getReference:()=>select.value?JSON.parse(select.value):null,valid:()=>draft===selected});});
+    await Promise.all(taskChoices.map(choice=>choice.refresh()));
     if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
-    for(const [id,kind] of [['science-task-model','model'],['science-task-dataset','dataset']]){
-      const select=$(id),old=select.value;select.replaceChildren();
-      rows.filter(row=>row.kind===kind).forEach(row=>{const option=el('option',row.name+' · '+row.revision.slice(0,12)+(row.selected?' · current head':' · historical'));option.value=JSON.stringify({kind:row.kind,id:row.id,revision:row.revision});select.append(option);});
-      if([...select.options].some(option=>option.value===old))select.value=old;
-      else if(old){const missing=el('option','Unavailable exact '+kind+' revision · choose another explicitly');missing.value=old;select.append(missing);select.value=old;}
-      else{const head=rows.find(row=>row.kind===kind&&row.selected);if(head)select.value=JSON.stringify({kind:head.kind,id:head.id,revision:head.revision});}
-    }
     await context();
   }
   async function begin(kind='dataset',reference=null){
     const ticket=++generation,identity=api.workspace();
     const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
+    taskChoices.forEach(choice=>choice.dispose());taskChoices=[];
     draft=result;draftPage=null;rowOffset=0;fieldOffset=0;if(kind==='experiment')window.LoomExperimentForm.reset();render();
     if(kind==='task'){window.LoomTaskForm.context(root,null);await choices();}
     else if(kind==='experiment')await experimentChoices();
   }
   async function experimentChoices(){
-    const selected=draft,ticket=++contextGeneration,identity=api.workspace();
-    const rows=await api.call('scienceIndex');
-    if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
-    window.LoomExperimentForm.refresh(root,draft.document,rows);
+    if(draft?.kind==='experiment')await window.LoomExperimentForm.refresh(root,draft.document);
   }
   async function previewDraft(offset=0){
     if(!flush())return;
@@ -176,7 +173,7 @@
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));
       $('science-author-new-experiment').onclick=()=>act(()=>command(()=>begin('experiment')));
       $('science-author-edit').onclick=()=>act(()=>command(()=>{const reference=JSON.parse($('science-object').value);return begin(reference.kind,reference);}));
-      $('science-author-cancel').onclick=()=>{draft=null;generation++;contextGeneration++;render();};
+      $('science-author-cancel').onclick=()=>{taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomExperimentForm.reset();draft=null;generation++;contextGeneration++;render();};
       $('science-experiment-refresh').onclick=()=>act(()=>command(experimentChoices));
       $('science-experiment-preview').onclick=()=>act(()=>command(()=>previewDraft()));
       $('science-experiment-prev').onclick=()=>act(()=>command(()=>previewDraft(Math.max(0,draftPage.preview.offset-25))));
@@ -199,10 +196,14 @@
         $('science-author-status').textContent='Valid '+draft.kind[0].toUpperCase()+draft.kind.slice(1)+'Spec · prospective revision '+result.revision+' · not saved, no training';}));
       $('science-author-save').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,identity=api.workspace();
         const result=await api.call('scienceAuthorSave',{draft});if(ticket!==generation||draft!==selected||identity!==api.workspace())return;
-        draft=null;contextGeneration++;render();await saved(result);api.toast(result.kind[0].toUpperCase()+result.kind.slice(1)+' revision retained. Save workspace to persist it on disk.');}));
+        taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomExperimentForm.reset();draft=null;contextGeneration++;render();await saved(result);api.toast(result.kind[0].toUpperCase()+result.kind.slice(1)+' revision retained. Save workspace to persist it on disk.');}));
       controls();
     },
-    stateChanged(){if(!api)return;if(draft)status();else controls();},
+    stateChanged(){if(!api)return;taskChoices.forEach(choice=>choice.controls());if(draft)status();else controls();},
+    event(event){if(!draft||event.kind!=='externalReload')return;contextGeneration++;changed();
+      if(draft.kind==='task'){window.LoomTaskForm.context(root,null);act(choices);}
+      else if(draft.kind==='experiment')act(experimentChoices);
+    },
     selectionChanged(){controls();}
   };
 })();

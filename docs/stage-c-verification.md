@@ -90,8 +90,9 @@ These concrete gaps are observable in the current code:
   `scienceSummary` typed summaries and explicit `scienceInspect` container/scalar
   pages, shared with CLI. Historical pins, unchanged-UUID notified reload and
   stale delivery guards are tested. Complete legacy `scienceIndex`/`scienceShow`/
-  `scienceReport` reads remain available; authoring contexts still use complete
-  metadata/documents. Session recovery and terminal-completion transports also
+  `scienceReport` reads remain available; authoring stored-revision selectors now
+  use independent bounded choices without full metadata indexes. Task field/port
+  contexts and complete drafts still use complete payloads. Session recovery and terminal-completion transports also
   remain unbounded. Main browsing projection bounds are not those other bounds.
 - `scienceAuthorBegin/Check/Save/Preview` currently transfer complete drafts.
   Dataset authoring displays six fields × twenty observations but can stringify

@@ -48,12 +48,13 @@ def _row(row):
             'created_at': created, 'selected': bool(selected)}
 
 
-def index_page(workspace, kind, *, offset=0, limit=25, query='', preferred=None, heads_only=False):
+def index_page(workspace, kind, *, offset=0, limit=25, query='', preferred=None, heads_only=False, allow_missing_pin=False):
     """Casefold-sorted SQL window with an independently pinned exact choice."""
     _page(offset, limit)
     _require(isinstance(kind, str) and kind in KINDS, 'Choose a scientific object kind.')
     _require(isinstance(query, str) and len(query) <= 200 and '\0' not in query and
-             type(heads_only) is bool, 'Search text must be at most 200 characters; heads_only must be boolean.')
+             type(heads_only) is bool and type(allow_missing_pin) is bool,
+             'Search text must be at most 200 characters; page flags must be boolean.')
     if preferred is not None:
         reference(preferred, kind)
     db = workspace.db
@@ -66,15 +67,16 @@ def index_page(workspace, kind, *, offset=0, limit=25, query='', preferred=None,
         where += ' AND r.revision=h.revision'
     params = (kind, query, query)
     total = db.execute('SELECT count(*)' + tables + where, params).fetchone()[0]
-    pinned = None
+    pinned = None; missing_pin = None
     if preferred is not None:
         row = db.execute('SELECT ' + columns + tables + ' WHERE r.kind=? AND r.id=? AND r.revision=?',
                          (kind, preferred['id'], preferred['revision'])).fetchone()
-        _require(row is not None, 'Pinned exact revision no longer exists.')
-        pinned = _row(row)
+        _require(row is not None or allow_missing_pin, 'Pinned exact revision no longer exists.')
+        if row is None: missing_pin = copy.deepcopy(preferred)
+        else: pinned = _row(row)
     result = {'version': 1, 'scope': 'scientific-metadata-page', 'kind': kind,
               'query': query, 'heads_only': heads_only, 'offset': offset, 'limit': limit,
-              'total': total, 'rows': [], 'pinned': pinned, 'next_offset': None,
+              'total': total, 'rows': [], 'pinned': pinned, 'missing_pin': missing_pin, 'next_offset': None,
               'byte_limit': MAX_BYTES}
     rows = db.execute('SELECT ' + columns + tables + where +
                       ' ORDER BY r.name COLLATE VPW_CASEFOLD,r.id,r.revision LIMIT ? OFFSET ?',
