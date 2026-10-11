@@ -137,6 +137,12 @@ These concrete gaps are observable in the current code:
   stale-selection/run guards and a real96-coordinate Qt fixture with large
   manifests. Native complete dependency validation/manifest generation costs
   remain; this is not universal cost or execution convergence.
+- Request-local exact dependency/contract/compatibility/split preparation now
+  removes repeated successful native preview work without changing candidate
+  results or direct training/retry validation. Eleven focused equivalence/isolation
+  cases and a matched identical-wire measurement support this scoped optimization;
+  [preview-resolution.md](preview-resolution.md) records limits. Initial complete
+  registry/data/manifest/copy costs remain, not a new universal resource gate.
 - In-app training/report figures and the final integrated large-font/window/
   floating-panel geometry audit remain open. The actual notebook-rendering
   checkpoint fixes its reproduced clipping/description/table defects; it does

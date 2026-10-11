@@ -106,6 +106,11 @@ a visible reason. References identify model/dataset/task exactly. Compatible
 candidates contain the actual SplitManifest and resolved TrainingProtocol.
 Preview checks trainable parameters, bindings, shapes and split membership, but
 does not fit transforms, train, launch a worker or change global RNG state.
+Successful preparation is reused only within one synchronous immutable-source
+preview read; direct public candidate/training/retry calls still fully validate.
+No cross-request/workspace cache or shared mutable returned manifests exist.
+[preview-resolution.md](preview-resolution.md) specifies identities, lifetime,
+equivalence tests and measured scope; initial registry/data costs remain.
 Compatibility is not a RAM admission promise. A report selected from mutable
 heads would not have this reproducibility contract.
 

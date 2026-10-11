@@ -97,5 +97,9 @@ not whole-window/accessibility certification. Actual fits are tested separately.
 This bounds successful projected wire bytes and displayed cards, NOT complete
 native registry/dependency validation, inline dataset parsing, manifest generation,
 storage/history/copies, error text, thread-internal payloads, memory or time.
+Native preview now reuses successful exact dependency/contract/compatibility/split
+preparation within one read; [preview-resolution.md](preview-resolution.md)
+records its equivalence contract and same-fixture measurement. It is neither a
+cross-request cache nor streaming complete preview construction.
 The projection does not prove lazy storage, universal ABA safety, durable recovery,
 detached execution or that the full Stage C/D/E roadmap is complete.

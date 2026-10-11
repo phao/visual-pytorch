@@ -199,32 +199,94 @@ def dependencies(kind, doc):
     return []
 
 
+class _PreviewResolution:
+    """One synchronous immutable-source read; no cross-request cache.
+
+    Keep only the last document per dependency kind, model contract, successful
+    compatibility and split. Dependency slot capacity does not grow with page
+    size; axis indices still scale with the already validated experiment.
+    Drop an old slot before loading its replacement. Failures are never cached.
+    Full preview rows still own independent manifest/protocol/reference copies.
+    """
+    def __init__(self, experiment, resolve):
+        self.resolve=resolve;self.documents={};self.contract=None;self.compatible=None;self.manifest=None
+        self.models={digest(m) for m in experiment['models']}
+        self.pairs={d['id']:d for d in experiment['data_tasks']}
+        self.splits={s['id']:s for s in experiment['splits']}
+        self.protocols={p['id']:p for p in experiment['protocols']}
+        self.seeds=set(experiment['initialization_seeds'])
+        self.exclusions={digest({k:e[k] for k in ('model','data_task')}):e['reason'] for e in experiment['selection']['exclusions']}
+        self.pairings={digest(e) for e in experiment['selection']['pairs']}
+
+    def get(self, ref):
+        kind=ref['kind'];key=(ref['id'],ref['revision']);previous=self.documents.get(kind)
+        if previous is None or previous[0]!=key:
+            self.documents.pop(kind,None)
+            value=_get(self.resolve,ref)
+            self.documents[kind]=(key,value)
+        return self.documents[kind][1]
+
+    def check(self, refs, model, dataset, task):
+        model_key=(refs['model']['id'],refs['model']['revision'])
+        if self.contract is None or self.contract[0]!=model_key:
+            self.contract=None
+            contract=validate_model(model['models'],model['root'])
+            self.contract=(model_key,contract)
+        contract=self.contract[1]
+        key=tuple((refs[k]['id'],refs[k]['revision']) for k in ('model','dataset','task'))
+        if self.compatible!=key:
+            self.compatible=None
+            validate_task(task,dataset,contract)
+            _require(contract['parameters']>0,'Training selection has no trainable parameters.')
+            self.compatible=key
+
+    def split(self, ref, dataset, protocol):
+        key=(ref['id'],ref['revision'],digest(protocol))
+        if self.manifest is None or self.manifest[0]!=key:
+            self.manifest=None
+            value=make_split(dataset,protocol)
+            self.manifest=(key,value)
+        return copy.deepcopy(self.manifest[1])
+
+
 def candidate(experiment, coordinates, resolve, *, saved_manifest=None):
-    """Resolve one coordinate directly, without allocating the full Cartesian set."""
+    """Fully validate one direct coordinate; never use a preview's private cache."""
     validate_experiment(experiment)
+    return _candidate(experiment,coordinates,resolve,saved_manifest=saved_manifest)
+
+
+def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context=None):
     _keys(coordinates, ('model', 'data_task', 'split', 'initialization', 'protocol'), context='Selection coordinates')
-    _require(any(digest(m) == digest(coordinates['model']) for m in experiment['models']), 'Model not selected by experiment.')
-    pairs = {d['id']: d for d in experiment['data_tasks']}
-    splits = {s['id']: s for s in experiment['splits']}; protocols = {p['id']: p for p in experiment['protocols']}
+    selected = digest(coordinates['model']) in context.models if context else any(
+        digest(m) == digest(coordinates['model']) for m in experiment['models'])
+    _require(selected, 'Model not selected by experiment.')
+    pairs = context.pairs if context else {d['id']: d for d in experiment['data_tasks']}
+    splits = context.splits if context else {s['id']: s for s in experiment['splits']}
+    protocols = context.protocols if context else {p['id']: p for p in experiment['protocols']}
     _require(coordinates['data_task'] in pairs and coordinates['split'] in splits and coordinates['protocol'] in protocols and
-             type(coordinates['initialization']) is int and coordinates['initialization'] in experiment['initialization_seeds'], 'Coordinate is outside declared experiment selection.')
+             type(coordinates['initialization']) is int and coordinates['initialization'] in (context.seeds if context else experiment['initialization_seeds']), 'Coordinate is outside declared experiment selection.')
     ref = object_reference('experiment', experiment)
     result = {'id': digest(ref | {'coordinates': coordinates}), 'experiment': ref, 'coordinates': copy.deepcopy(coordinates),
               'status': 'compatible', 'reason': None, 'references': {}, 'manifest': None, 'protocol': None}
     pair = pairs[coordinates['data_task']]
     result['references'] = {'model': copy.deepcopy(coordinates['model']), 'dataset': copy.deepcopy(pair['dataset']), 'task': copy.deepcopy(pair['task'])}
     selection = experiment['selection']; pair_key = {'model': coordinates['model'], 'data_task': coordinates['data_task']}
-    exclusion = next((e['reason'] for e in selection['exclusions'] if digest({k: e[k] for k in ('model', 'data_task')}) == digest(pair_key)), None)
-    if exclusion is not None or (selection['kind'] == 'paired' and pair_key not in selection['pairs']):
+    exclusion = context.exclusions.get(digest(pair_key)) if context else next((e['reason'] for e in selection['exclusions'] if digest({k: e[k] for k in ('model', 'data_task')}) == digest(pair_key)), None)
+    paired = digest(pair_key) in context.pairings if context else pair_key in selection['pairs']
+    if exclusion is not None or (selection['kind'] == 'paired' and not paired):
         result.update(status='excluded', reason=exclusion or 'Not in the declared comparison pairing.')
         return result
     try:
-        model = _get(resolve, coordinates['model']); dataset = _get(resolve, pair['dataset']); task = _get(resolve, pair['task'])
-        contract = validate_model(model['models'], model['root'])
-        validate_task(task, dataset, contract)
-        _require(contract['parameters'] > 0, 'Training selection has no trainable parameters.')
+        get=context.get if context else lambda r:_get(resolve,r)
+        model=get(coordinates['model']);dataset=get(pair['dataset']);task=get(pair['task'])
+        if context:context.check(result['references'],model,dataset,task)
+        else:
+            contract = validate_model(model['models'], model['root'])
+            validate_task(task, dataset, contract)
+            _require(contract['parameters'] > 0, 'Training selection has no trainable parameters.')
         if saved_manifest is None:
-            result['manifest'] = make_split(dataset, splits[coordinates['split']]['protocol'])
+            protocol=splits[coordinates['split']]['protocol']
+            result['manifest'] = context.split(pair['dataset'],dataset,protocol) if context else make_split(dataset,protocol)
         else:
             expected = copy.deepcopy(splits[coordinates['split']]['protocol'])
             if expected['method'] in ('row', 'group'):
@@ -249,13 +311,14 @@ def preview_experiment(experiment, resolve, *, offset=0, limit=100):
     axes = (experiment['models'], [d['id'] for d in experiment['data_tasks']], [s['id'] for s in experiment['splits']],
             experiment['initialization_seeds'], [p['id'] for p in experiment['protocols']])
     total = math.prod(map(len, axes)); rows = []
+    context = _PreviewResolution(experiment,resolve) if offset<total else None
     # Mixed-radix indexing: large offsets do not enumerate skipped combinations.
     for index in range(offset, min(total, offset + limit)):
         value = index; coordinate = []
         for axis in reversed(axes):
             value, digit = divmod(value, len(axis)); coordinate.append(axis[digit])
         coordinate.reverse()
-        rows.append(candidate(experiment, dict(zip(('model', 'data_task', 'split', 'initialization', 'protocol'), coordinate)), resolve))
+        rows.append(_candidate(experiment, dict(zip(('model', 'data_task', 'split', 'initialization', 'protocol'), coordinate)), resolve,context=context))
     return {'version': 1, 'experiment': object_reference('experiment', experiment), 'offset': offset, 'limit': limit,
             'total_combinations': total, 'candidates': rows, 'next_offset': offset + len(rows) if offset + len(rows) < total else None,
             'scope': 'bounded-selection-preview; no-fitting-or-training'}

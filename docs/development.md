@@ -15,6 +15,41 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 02:34 -03:00 — Request-local native preview preparation
+
+Native preview now reuses only successful exact dependency/contract/compatibility/
+split preparation during one synchronous immutable-source read. Single last-value
+slots drop old data before replacement; failures are retried and complete rows
+own independent manifests/protocols/references. Direct public candidate/training/
+retry paths still fully validate. No schema/CLI/action or persistent cache change.
+[preview-resolution.md](preview-resolution.md) records the contract and limits.
+
+Eleven new focused equivalence/isolation cases pass (0.834 s). Full559 Python
+tests pass (180.658 s), with229 JavaScript tests (1311.677 ms) and the thirteen
+candidate projection tests. Real sandboxed Qt96-coordinate candidate browsing,
+all eight explicit experiment fits/all split methods, and fit/retry/report/
+notebook-generation/save-reload/failed-admission/recovery-export regressions pass;
+no host Torch/console errors. Existing interpreters only, no installs or user
+workspace/config/restart changes. A final source docstring and equivalent local
+assignment formatting were adjusted after the full suite started; no scientific
+semantics changed. Final focused checks are run again before checkpoint.
+
+Alternating three same-fixture measurements compare the previous source at
+893192a against current preparation: median0.937987 →0.057727 seconds (16.25×)
+for native preview plus projection serialization. Every response has exactly
+the same20589 wire bytes. Top-level resolver calls76 →4; model/task/split
+preparation each25 →1; traced Python peak3330399 →1355043 bytes. Pure Python3.13,
+one CPU affinity, no fitting, setup/startup excluded; scoped measurement, not
+universal app speed or physical-RAM evidence. Full inline/registry/manifest/copy/
+retention costs remain. Evidence is retained privately in stage-c-preview-costs.
+
+The user confirmed sole active product development and prefers the canonical
+visible checkout instead of hidden staging source. Checkpoint first, then switch
+the clean canonical checkout to this retained task branch and retire only its
+verified redundant worktree. This is not Stage C integration/publication. Next
+remaining concrete C native costs, in-app figures/window geometry and integration,
+followed by unchanged D/E; full goal remains active.
+
 ### 2026-10-11 02:17 -03:00 — Actual byte-bounded stored candidate browser and CLI parity
 
 The real experiment candidate view now calls `sciencePreviewPage`, not complete
