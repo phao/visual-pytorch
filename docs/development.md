@@ -1,5 +1,20 @@
 # Development state and roadmap
 
+## 2026-10-11 20:33 -03:00 — CNN/recurrent frozen-source acceptance
+
+Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the
+full 1274-case Python suite in 630.759s (1271 executed, three Qt-dependent
+skips) and all 359 JavaScript cases. The fresh original-D-focused selection
+passes 143 cases in 128.347s; the new sandboxed Qt drawing/worker/reload
+harness also passes. Skips are not counted as executed tests; earlier retained-D
+native evidence covers the unchanged native modules separately.
+
+This documentation-only acceptance precedes local integration into the retained
+D branch. It does not declare all of D or E complete. Additional within-subject
+chronological splitting remains an explicit open interpretation, not an existing
+policy. LoRA and MS-VAR/CLI report requests remain deferred. No public push,
+schema change or user-state mutation occurred.
+
 ## 2026-10-11 20:16 -03:00 — Original-D integrated CNN/recurrent example checkpoint
 
 Added a public stdlib-only .vtw20 generator for a scoped Family8 CNN/recurrent

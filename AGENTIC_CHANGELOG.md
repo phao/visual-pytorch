@@ -4,6 +4,14 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 20:33 -03:00 — CNN/recurrent frozen regression accepted
+
+Recorded actual frozen fe8cb80 acceptance: 1274 Python cases in 630.759s
+(three Qt-dependent skips), 359 JavaScript cases and 143 scoped original-D
+cases, alongside the actual sandboxed Qt drawing/worker/reload check. No
+executable source changed after the freeze. Local retained-D integration follows;
+full D/E and deferred report features are not declared complete.
+
 ## 2026-10-11 20:16 -03:00 — Integrated original-D CNN/recurrent experiment example
 
 Added a runnable stdlib .vtw generator/guide and14 focused pure/numerical cases
