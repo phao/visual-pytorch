@@ -1,5 +1,49 @@
 # Development state and roadmap
 
+## 2026-10-11 20:33 -03:00 — CNN/recurrent frozen-source acceptance
+
+Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the
+full 1274-case Python suite in 630.759s (1271 executed, three Qt-dependent
+skips) and all 359 JavaScript cases. The fresh original-D-focused selection
+passes 143 cases in 128.347s; the new sandboxed Qt drawing/worker/reload
+harness also passes. Skips are not counted as executed tests; earlier retained-D
+native evidence covers the unchanged native modules separately.
+
+This documentation-only acceptance precedes local integration into the retained
+D branch. It does not declare all of D or E complete. Additional within-subject
+chronological splitting remains an explicit open interpretation, not an existing
+policy. LoRA and MS-VAR/CLI report requests remain deferred. No public push,
+schema change or user-state mutation occurred.
+
+## 2026-10-11 20:16 -03:00 — Original-D integrated CNN/recurrent example checkpoint
+
+Added a public stdlib-only .vtw20 generator for a scoped Family8 CNN/recurrent
+cell, ragged image sequences, explicit padding/derived lengths/mask/reset and
+trajectory/final-state objectives. The default14 learned parameters are shared
+across time. Two existing policies are exercised separately: global distinct-
+timestamp chronological roles and subject-disjoint holdout. No app/file/bundle/
+experiment/protocol grammar or old identity change. The guide defines the full
+forward, shapes, controls, objective and statistical/identifiability boundaries:
+[CNN/recurrent example](cnn-recurrent-example.md).
+
+7 new pure cases2.788s and7 numerical cases88.539s pass. Whole CNN/state outputs,
+input/initial/parameter gradients match an independent pixel-mean/row-time scan;
+six channel/activation constructors execute, with actual variable times, NaN
+padding and reset semantics. Both60-update local/worker fits have exact saved
+checkpoint/history/metrics and loss improvement. Real CLI/save/export/fresh
+app-free prediction and genuine saved/rerun kernels preserve the full case.
+Actual sandboxed Qt displays two materialized drawings/five named inputs,
+trains3 updates and reloads exact run6 without host Torch or console errors.
+
+Original D requirements are being audited against current named tests/evidence,
+not inferred from earlier broad suite counts. Current time grouping and whole-
+subject splitting do not mean chronology separately within subjects. User was
+asked about that additional interpretation; no new policy is silently invented
+or old split reinterpreted here. Original-D-focused gate is running; full frozen
+1274 Python/359 JS acceptance remains next. Original D/E incomplete, reports
+deferred, public A–C and user workspaces/config/application untouched.
+
+
 ## 2026-10-11 19:28 -03:00 — Retained runtime-v2 experiment acceptance
 
 Fresh frozen0d25269b761f76c1cbc8d0924af23622f58e4d96 full suite1260 Python
