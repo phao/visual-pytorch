@@ -574,7 +574,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','addRecurrent','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -707,6 +707,22 @@ class Window(QMainWindow):
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
+        if action in {'recurrentAuthoring', 'addRecurrent'}:
+            from .recurrent_authoring import prepare, build
+            expected = {'action', 'workspace_id', 'panel_scope', 'id', 'ref'}
+            if action == 'addRecurrent':expected |= {'root_graph', 'transition', 'options'}
+            if set(req) != expected:
+                raise ValueError('Recurrent authoring has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen recurrent authoring.')
+            if action == 'recurrentAuthoring':
+                return {**prepare(models, req['id'], req['ref']), 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
+            token = {key: req[key] for key in ('id', 'ref', 'root_graph', 'transition')}
+            document, nid = build(models, token, req['options'])
+            self.workspace.put(document)
+            self.broadcast()
+            return {'id': document['id'], 'node': nid, 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
         if action == "describe":
             return self.describe(req["id"])
         if action == "generateData":
@@ -790,7 +806,7 @@ class Window(QMainWindow):
         try:
             from .evidence import dataset_report, checkpoint_report
             contract=validate_model(models,mid)
-            interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] == "Module"}
+            interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] in {"Module", "Recurrent"}}
             return {"valid": True, "contract": contract, "interfaces": interfaces,
                     'dataset_admission':dataset_report(models[mid],contract),
                     'checkpoint_status':checkpoint_report(models,mid),

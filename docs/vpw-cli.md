@@ -327,6 +327,7 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | layout | value | Closed workspace layout profile version 1 in metadata; read-only inspect returns layout_preferences. Never changes global preferences. |
 | set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
 | add-node | id, node object | Explicit new block |
+| add-recurrent | token with id/ref/root_graph/transition; options | Guarded append of an explicit sequence/state/control branch using the same pure builder as Qt; existing work is preserved. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity). |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
 | connect | id, edge object | Append explicit wire; update ordered Concat sources separately |
 | disconnect | id, exact edge object | Remove exactly that wire or fail |

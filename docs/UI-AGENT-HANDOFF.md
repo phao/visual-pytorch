@@ -470,11 +470,25 @@ can prevent double-click delivery. Current drag code updates selection classes
 in-place on pointerdown. Rebuild after actual movement/state changes instead.
 
 Visual PyTorch specifics, **not generic reuse requirements**: tensor shapes, Linear/
-Activation/Reshape, Concat, Splitter, Replicator, reference interfaces, training
+Activation/Reshape, Concat, Splitter, Replicator, Module/Recurrent reference interfaces, training
 contracts, MSE, constrained runs. Reference normal double-click inspects; Ctrl/
 Meta-double-click opens the referred graph in a new tab. Inspector also has Open
 details/Open in new tab actions. Socket click wiring and arbitrary DAG checks live
 in the domain adapter, not in the floating-menu manager.
+
+Recurrent references use the same floating Inspector and loop-type icon, not a
+new UI scheme. Their physical input sockets represent distinct explicit sources
+in sequence/state/lengths/mask/reset binding order. A deliberately shared source
+has one socket with all its argument roles in the tooltip. Returned sockets are
+sequence outputs then final states. Socket tooltips show role/identity/individual
+shape. Icons fold, compact icons drag, double-click expands, and Ctrl/Meta body
+double-click opens the transition in a new tab. Selected-port insertion defaults
+must use that tensor shape, not the packed aggregate. The guarded branch-creation
+modal makes all input roles/state outputs explicit and preserves existing work;
+its native ownership/closure tokens and precise domain semantics are specified
+in [recurrent-graph-contract.md](recurrent-graph-contract.md#qt-authoring-and-agent-parity).
+Keep this pure domain adapter (`recurrent-editing.js`), backend builder and Qt
+bridge separate from reusable floating-panel mechanics.
 
 ## 8. Visual system and accessibility
 

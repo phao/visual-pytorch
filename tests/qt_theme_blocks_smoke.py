@@ -28,7 +28,7 @@ while not js('Boolean(document.getElementById("canvas"))'):
     loop=QEventLoop();QTimer.singleShot(20,loop.quit);loop.exec()
 # Reuse real node selectors and SVG structure, without numerical/model side effects.
 mapping={'Input':'node-input','Concat':'node-input','Linear':'node-linear','Conv2d':'node-linear',
-    'Module':'node-module','Splitter':'node-module','Replicator':'node-module',
+    'Module':'node-module','Recurrent':'node-module','Splitter':'node-module','Replicator':'node-module',
     'Activation':'node-output','Output':'node-output','AvgPool2d':'node-output',
     'MaxPool2d':'node-output','AdaptiveAvgPool2d':'node-output',
     'Reshape':'node-reshape','Flatten':'node-reshape','Permute':'node-reshape'}

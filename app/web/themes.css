@@ -53,16 +53,16 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 .node.Conv2d .node-header{fill:var(--purple)}
 .node.Conv2d .node-type-icon{stroke:var(--purple)}
 .node.AvgPool2d .node-type-icon,.node.MaxPool2d .node-type-icon,.node.AdaptiveAvgPool2d .node-type-icon,.node.Flatten .node-type-icon,.node.Permute .node-type-icon{stroke:var(--mint)}
-.node.Module rect,.node.Splitter rect,.node.Replicator rect{fill:var(--node-module);stroke:var(--amber)}
+.node.Module rect,.node.Recurrent rect,.node.Splitter rect,.node.Replicator rect{fill:var(--node-module);stroke:var(--amber)}
 .node.Activation rect,.node.Output rect{fill:var(--node-output);stroke:var(--mint)}
 .node.Reshape rect{fill:var(--node-reshape);stroke:var(--mint)}
 .node.selected rect{stroke:var(--ink)}
 .node .node-header{fill:var(--blue)}.node.Linear .node-header{fill:var(--purple)}
-.node.Module .node-header,.node.Splitter .node-header,.node.Replicator .node-header{fill:var(--amber)}
+.node.Module .node-header,.node.Recurrent .node-header,.node.Splitter .node-header,.node.Replicator .node-header{fill:var(--amber)}
 .node.Activation .node-header,.node.Output .node-header,.node.Reshape .node-header{fill:var(--mint)}
 .node .node-title{fill:var(--ink)}.node .node-shape{fill:var(--blue)}.node .node-params{fill:var(--muted)}
 .node .node-type-icon{stroke:var(--blue)}.node.Linear .node-type-icon{stroke:var(--purple)}
-.node.Module .node-type-icon,.node.Splitter .node-type-icon,.node.Replicator .node-type-icon{stroke:var(--amber)}
+.node.Module .node-type-icon,.node.Recurrent .node-type-icon,.node.Splitter .node-type-icon,.node.Replicator .node-type-icon{stroke:var(--amber)}
 .node.Activation .node-type-icon,.node.Output .node-type-icon,.node.Reshape .node-type-icon{stroke:var(--mint)}
 .port{fill:var(--input);stroke:var(--blue)}.port:hover,.port.armed{fill:var(--amber);stroke:var(--amber)}
 #loss-plot text{fill:var(--muted)}

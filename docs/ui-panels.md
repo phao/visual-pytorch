@@ -45,6 +45,10 @@ hiding all menus after a successful open (same tab, tab hint, Ctrl/Meta or doubl
 click). Saved presets are not rewritten; other navigation keeps its own behavior.
 Building blocks retains the separate reusable-architecture
 selector. No Create MLP button/dialog is present.
+That selector also supplies Recurrent transition: a guarded form creates a
+separate explicit sequence/state/control branch, and the same floating Inspector
+explains its roles/ports and opens transition details. It does not create a new
+menu scheme or infer hidden initial state. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity).
 The former “A LITTLE GUIDANCE” section is removed; per-block About and hover
 descriptions remain available.
 Architectures' title owns +; its non-collapsible Currently open card precedes

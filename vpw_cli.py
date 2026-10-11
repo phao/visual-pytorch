@@ -61,6 +61,14 @@ def apply_edits(workspace, edits):
         elif kind == 'freeze-model':
             results.append({'op': kind, 'reference': workspace.freeze_model(edit['id'])})
             continue
+        elif kind == 'add-recurrent':
+            from app.recurrent_authoring import build
+            if set(edit) != {'op', 'token', 'options'}:
+                raise ValueError('Add-recurrent requires an exact token and explicit options.')
+            document, nid = build(workspace.models(), edit['token'], edit['options'])
+            workspace.put(document)
+            results.append({'op': kind, 'id': document['id'], 'node': nid})
+            continue
         elif kind == 'create':
             doc = edit.get('document') or default_model(edit.get('name', 'New architecture'), edit.get('inputs', 2), edit.get('outputs', 1))
             if doc['id'] in workspace.models():
@@ -146,6 +154,9 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
+    recurrent = sub.add_parser('prepare-recurrent', help='Read a guarded transition interface for adding an explicit recurrent branch; no execution or edits')
+    recurrent.add_argument('id', help='Parent architecture ID')
+    recurrent.add_argument('ref', help='Transition architecture ID')
     family = sub.add_parser('preview-family', help='Check an external architecture family and resolve bindings; no execution or workspace edits')
     family.add_argument('family', help='Family JSON file (or - for stdin)')
     family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
@@ -272,7 +283,10 @@ def main(argv=None):
             workspace = Workspace.load(path)
             if args.expect_revision and workspace.disk_revision != args.expect_revision:
                 raise ValueError('Revision conflict. Inspect again before applying edits.')
-            if args.command == 'preview-family':
+            if args.command == 'prepare-recurrent':
+                from app.recurrent_authoring import prepare
+                value = prepare(workspace.models(), args.id, args.ref)
+            elif args.command == 'preview-family':
                 from app.families import preview
                 value = preview(read_json(args.family), None if args.bindings is None else read_json(args.bindings))
             elif args.command == 'preview-stored-family':

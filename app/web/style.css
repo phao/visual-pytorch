@@ -110,6 +110,12 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .inspector-bottom{margin-top:auto}.inspector>.scrollport{display:flex;flex-direction:column}#inspector-content{flex:1 0 auto;padding:15px}
 .experiment{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.experiment>section{padding:12px;overflow-wrap:anywhere}.inline-actions{flex-wrap:wrap}
 .floating-panel.expanded [data-drag-handle]{cursor:default}
+#recurrent-dialog{width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
+#recurrent-dialog fieldset{border:1px solid var(--line);border-radius:7px;margin:12px 0;padding:10px;min-width:0}
+#recurrent-dialog legend{overflow-wrap:anywhere}
+#recurrent-dialog .recurrent-input-row{display:grid;gap:6px}
+#recurrent-dialog .checkbox{display:flex;align-items:center;gap:6px;margin:8px 0}
+#recurrent-error{color:var(--pink);overflow-wrap:anywhere}
 .panel-resize{position:absolute;bottom:2px;right:2px;width:14px;height:14px;padding:0;background:linear-gradient(135deg,transparent 40%,#668393 42%,transparent 49%,transparent 60%,#668393 62%,transparent 69%);border:0;border-radius:0;cursor:nwse-resize;z-index:3;touch-action:none}
 .floating-panel.expanded>.panel-resize{display:none}
 .overlay-scrollbar{position:absolute;right:4px;bottom:18px;width:10px;z-index:4;border-radius:9px;background:transparent;opacity:0;transition:opacity .15s;touch-action:none}

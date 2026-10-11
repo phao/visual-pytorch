@@ -1,5 +1,49 @@
 # Development state and roadmap
 
+## 2026-10-11 12:18 -03:00 — Recurrent palette/Inspector and agent authoring
+
+The concrete recurrent backend now has actual Qt authoring: a reusable-transition
+palette form requires explicit sequence/state roles, matching next-state Outputs,
+T, returned sequences and optional exact controls. It appends a separately
+validated branch, preserving existing work and input order, with unique stable IDs
+and boundary names. Initial states are supplied data; all generated root Outputs
+still need explicit task heads. The Inspector shows roles/sources/shapes/adapters/
+returned ports, explains recurrence, opens body details and exposes compatible
+sharing. The type loop icon, folding, compact drag, themes and existing menus stay
+in the accepted UI scheme. Physical sockets follow distinct declared sources and
+returned ports; individual wire edits cannot discard unrelated arguments. Moving
+between recurrent argument sockets leaves the old argument visibly disconnected.
+Subsequent layers/router/Output creation use the selected port's tensor shape.
+
+Pure `app/recurrent_authoring.py` serves Qt and CLI. Read `prepare-recurrent`
+exposes exact interface/graph/transition tokens; ordered atomic `add-recurrent`
+uses the same builder. Native workspace-instance/graph/closure guards reject stale
+forms, retries and same-UUID reloads without SQL/history changes. Successful Qt
+creation is one undo step. Legacy attached data/results clear because supplied
+Inputs change; independent scientific revisions remain. Existing invalid parent
+drafts are not silently repaired. The exact option/node/UI/CLI contracts are in
+`recurrent-graph-contract.md`, `vpw-cli.md` and `UI-AGENT-HANDOFF.md`.
+
+Final954 Python318.239s (951 PASS/3 Qt-only skips separately covered by55 pure/
+native checks0.847s),316 JS1295.817222ms, native ownership/undo/reload, actual
+sandboxed Qt MLP/CNN/two-state creation/rewiring/compact drag/selected-port/stale
+refusal/save-reload and all256 block/theme pairs pass. Sixteen new Python cases
+include independent tensor/all-gradient oracles and a60-update mixed-branch fit
+whose loss is below10% of start, with exact trained native/app-free prediction
+agreement. Thirteen JS cases cover ordered/deduplicated ports and atomic wire
+editing. Existing panel presets, font/window samples and snap gestures pass.
+Earlier fixture and offscreen button-hit failures are kept in private evidence,
+not hidden by weakening admission. Production Python was unchanged during live
+full numerical/export/kernel regression execution.
+
+This remains a local task-branch checkpoint, not D/E acceptance or a public
+release. A temporal architecture-family/runtime grammar remains required before
+root T can vary under retained family/experiment execution. Existing family1–5
+and `runtime-spatial-v1` still reject recurrence. Existing recurrent interface
+reconfiguration is via explicit CLI node edits for now, not the creation modal.
+No new SQL/version, task/loss policy, main integration, GitHub push, user app
+restart, workspace/config/desktop change or source fork is claimed.
+
 ## 2026-10-11 11:47 -03:00 — Shared launcher/palette stacking
 
 Removed Building Blocks' “A LITTLE GUIDANCE” at the user's request; per-block

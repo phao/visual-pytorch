@@ -4,6 +4,37 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 12:18 -03:00 — Guarded recurrent diagram authoring and visual ports
+
+Added explicit recurrent branch creation to Building Blocks and the existing
+Inspector, without redesigning floating menus. Every child Input needs a chosen
+sequence/state role; states require matching next Outputs. Supplied initial
+states/controls, returned sequences/final states, T, exact adapters and mask/reset/
+full-BPTT semantics are visible. Physical sockets follow distinct source keys and
+declared returned ports. Wire replacement/retargeting, unary/router insertion,
+Output creation and compact icon drag preserve explicit bindings; subsequent
+layer defaults use the selected tensor shape rather than aggregate packed width.
+The existing sharing selector and transition navigation include recurrent blocks.
+
+One pure guarded builder serves native Qt and CLI `prepare-recurrent`/atomic
+`add-recurrent`. Workspace-instance/root-graph/transition digests reject stale
+forms; appending preserves existing work and creates one undo step. Repeated
+branches have unique IDs/boundary names; unrelated invalid drafts remain editable.
+Legacy attached data/results clear when new supplied Inputs change the boundary.
+No schema, frozen grammar, implicit state or task/loss selection change.
+
+Fourteen pure and two independent numerical cases, thirteen JS cases, native
+ownership/undo/reload checks and actual sandboxed Qt MLP/CNN/two-state form/socket/
+compact-drag/selected-port/stale-form checks pass. Final954 Python318.239s:
+951 PASS/3 Qt-only skips separately covered in55 pure/native checks0.847s.
+All316 JS1295.817222ms; actual256 theme/block pairs and existing panel gesture/
+preset checks pass. A60-update authored mixed-branch fit reaches loss below10%
+of start; independent outputs/all input/parameter gradients and trained app-free
+predictions agree. Earlier fixture/hit-test failures are retained privately;
+production Python stayed fixed during numerical/full regressions. Existing-node
+interface reconfiguration remains explicit CLI edits; temporal family/runtime
+grammar and remaining D/E are not complete. No main/push/live-user mutations.
+
 ## 2026-10-11 11:47 -03:00 — Shared floating-menu stacking and guidance removal
 
 Removed Building Blocks' “A LITTLE GUIDANCE” at the user's request, without
