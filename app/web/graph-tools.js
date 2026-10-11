@@ -269,5 +269,17 @@
     }
     return incoming[0]?.from || doc.graph.nodes[0]?.id || null;
   }
-  return {GRID,setSpacing,metrics,snapPosition, minimumSize,width,height,resizeBlock,slots, portPoint, addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues};
+  function fitViewport(nodes,rect){
+    if(!Array.isArray(nodes)||!nodes.length||!rect||!['x','y','width','height'].every(k=>Number.isFinite(rect[k]))||rect.width<=0||rect.height<=0)return null;
+    const left=Math.min(...nodes.map(n=>n.x)),top=Math.min(...nodes.map(n=>n.y));
+    const right=Math.max(...nodes.map(n=>n.x+width(n))),bottom=Math.max(...nodes.map(n=>n.y+height(n)));
+    if(![left,top,right,bottom].every(Number.isFinite)||right<=left||bottom<=top)return null;
+    // Keep the usual 50-unit margins on roomy views, but don't reject a narrow
+    // positive free region or force a scale that overflows it at accessibility zoom.
+    const zoom=Math.min(1.3,(rect.width-2*Math.min(50,rect.width*.15))/(right-left),
+                               (rect.height-2*Math.min(50,rect.height*.15))/(bottom-top));
+    return {zoom,x:rect.x+(rect.width-(right-left)*zoom)/2-left*zoom,
+                 y:rect.y+(rect.height-(bottom-top)*zoom)/2-top*zoom,fitted:true};
+  }
+  return {GRID,setSpacing,metrics,snapPosition, minimumSize,width,height,resizeBlock,slots, portPoint, addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
 });

@@ -4,6 +4,22 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 04:37 -03:00 — Stage C window and workflow acceptance
+
+Reproduced20 covered-control/overflow/canvas failures in30 actual native-window
+configurations. Wrapped independent toolbar groups, bounded header/footer scroll
+regions and the launcher list, retaining the user's font. Shared pure Fit geometry
+now handles narrow positive uncovered regions without overflowing a forced
+minimum scale.60 one/two-tab configurations pass780 focused control hit tests,
+300 actual launcher clicks,60 Validate clicks and60 native Tab reveals. Reviewed
+real readable/extreme captures; extreme checks establish access, not legibility.
+Full613 Python191.285s/260 JS1410.552ms, actual typed authoring/read/history/export/
+curve/CNN/worker/notebook/lifecycle checks pass. Older Qt harnesses now await the
+session camera, safely clean up absent history and target current owned-editor
+labels. Reload explicitly freezes unfinished drafts while retaining their pins
+and text. Failed probes are retained. This checkpoint is ready for local C
+integration; no public release, user restart or user configuration edits.
+
 ## 2026-10-11 04:14 -03:00 — Independent snapping, relative parameter layout and session camera
 
 Separated block and floating-menu snap defaults because the user wants free-moving

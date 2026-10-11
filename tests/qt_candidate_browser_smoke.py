@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory() as directory:
     channel=QWebChannel(page);channel.registerObject('host',h.bridge);page.setWebChannel(channel)
     url=QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1]/'app/web/index.html'));url.setFragment('model='+h.model);view.setUrl(url);view.show()
     try:
-        until('Boolean(window.loom?.document)');until(lambda:h.workspace.models()[h.model]['view'].get('fitted') is True)
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before=h.workspace.db.serialize();history=copy.deepcopy(h.workspace.history.summary());rng=random.getstate()
         full=preview_experiment(h.workspace.get_spec('experiment',h.ref['id'],h.ref['revision']),h.workspace.get_spec,limit=100)
         assert full['total_combinations']==96 and len(science_browser.encoded(full))>65536
@@ -116,5 +116,6 @@ with tempfile.TemporaryDirectory() as directory:
             'failed_back_retry':'PASS','read_only_sql_history_rng':'PASS','fonts':'PASS','complete_preview_bytes':len(science_browser.encoded(full)),
             'projections':len(h.projections),'max_bytes':max(len(science_browser.encoded(p)) for p in h.projections),'host_torch':False,'console_errors':errors}))
     finally:
-        h.workspace.history.directory.cleanup();h.workspace.db.close();page.deleteLater();view.deleteLater()
+        if h.workspace.history.directory:h.workspace.history.directory.cleanup()
+        h.workspace.db.close();page.deleteLater();view.deleteLater()
         QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete);QCoreApplication.processEvents()

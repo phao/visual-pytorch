@@ -76,15 +76,9 @@ with tempfile.TemporaryDirectory() as directory:
     url.setFragment('model='+mid);view.setUrl(url);view.show()
     try:
         until('Boolean(window.loom?.document)')
-        # route() schedules Fit in an animation frame; opening the scientific
-        # tab is not a barrier for that queued presentation-only updateModel.
-        # Observe its actual admission before establishing a read-only baseline.
-        until('Boolean(window.loom.document.view.fitted)')
-        deadline=time.monotonic()+10
-        while not h.workspace.models()[mid]['view'].get('fitted'):
-            assert time.monotonic()<deadline,'Startup Fit was never admitted'
-            loop=QEventLoop();QTimer.singleShot(20,loop.quit);loop.exec()
-        assert h.writes==['updateModel'],h.writes
+        # Startup Fit completes in the webview without an updateModel admission.
+        until('Boolean(window.loom?.document?.view.fitted)')
+        assert h.writes==[],h.writes
         assert model_document(h.workspace.models(),mid)==frozen_before
         assert h.workspace.list_specs(all_revisions=True)==retained_before
         js('document.querySelector("[data-panel=science]").click();Object.assign(document.getElementById("experiment-dock").style,{height:"880px",width:"940px",top:"110px",left:"330px",bottom:"auto"});')

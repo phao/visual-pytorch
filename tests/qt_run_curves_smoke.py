@@ -91,11 +91,8 @@ with tempfile.TemporaryDirectory() as directory:
     url=QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1]/'app/web/index.html'));url.setFragment('model='+mid);view.setUrl(url);view.show()
     try:
         until('Boolean(window.loom?.document.view.fitted)')
-        # Wait for the startup presentation-only Fit write before the read baseline.
-        deadline=time.monotonic()+10
-        while not h.workspace.models()[mid]['view'].get('fitted'):
-            assert time.monotonic()<deadline
-            loop=QEventLoop();QTimer.singleShot(20,loop.quit);loop.exec()
+        # Startup camera completes locally; no SQL Fit write is expected.
+        until('Boolean(window.loom?.document?.view.fitted)')
         js('document.querySelector("[data-panel=science]").click();Object.assign(document.getElementById("experiment-dock").style,{height:"850px",width:"940px",top:"110px",left:"330px",bottom:"auto"});')
         before=h.workspace.db.serialize();history=copy.deepcopy(h.workspace.history.summary());rng=random.getstate()
         with patch('app.transport.run_json_worker',side_effect=AssertionError('Saved curves never execute')):

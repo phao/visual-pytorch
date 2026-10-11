@@ -46,6 +46,16 @@ Snap grid is 24 world units for boxes, 24 CSS stage units for menus. Grid origin
 is (0,0) in each layer, not the window decoration's top-left. UI zoom scales page
 appearance, but does not replace these logical coordinate definitions.
 
+The single application header wraps its title/tools and workspace actions without
+overlapping groups. At extreme interface zoom it is a focus-scrollable region,
+capped at 40vh, rather than pushing controls outside the window or consuming the
+canvas. The footer wraps, with a 15vh scroll cap. The launcher pack is capped to
+the stage; its list can scroll independently of its stationary grip. Ordinary
+floating-panel content still uses its existing overlay rails. These are overflow
+fallbacks, not hidden duplicate commands or reductions to the user's font size.
+Full truncated architecture/file names remain available as hover titles. Native
+single/multiple-tab checks cover real control focus/hit tests and mouse clicks.
+
 The editing stage is positioned, isolated, clipped to its rectangle. Menus are
 absolute descendants, not OS top-level windows. They therefore cannot draw over
 window chrome or outside the application's actual surface. "Off-window" means
@@ -242,7 +252,10 @@ General reusable concepts:
 - Double-click any box opens Inspector for that exact box.
 - Wire removal by double-click targets the exact edge, including source-port identity.
 - Fit chooses the largest axis-aligned canvas rectangle not covered by visible menus/pack.
-  If usable space is absent/small, request that the user hide/move a menu.
+  Insets are 50 CSS stage units per side on roomy rectangles, decreasing to 15%
+  of each dimension on narrow ones. Every positive region is usable, including
+  strips below 80 units; absent/zero space requests hiding/moving a menu. Fit
+  never forces a minimum scale that would overflow the available rectangle.
 
 Box compactness is separate from menu compactness. User setting box_spacing is
 an integer 1–100, default 35. With t=box_spacing/100, compute in world units:
@@ -297,7 +310,8 @@ semantics, datasets and results. Its boolean collapsed flag persists with the
 block and participates in undo/redo. Training disables folding and movement.
 Bézier bend is at least 50
 units, otherwise approximately 45% of horizontal separation. View wheel zoom uses
-the pointer as anchor; graph zoom is clamped to 0.05–2.5; Fit caps initial scale at 1.3.
+the pointer as anchor; manual graph zoom is clamped to 0.05–2.5; Fit caps initial
+scale at 1.3 but may go below 0.05 to keep the graph inside the free rectangle.
 These numbers are defaults, not domain laws. Menu CSS and diagram SVG text must
 remain independently tuneable when adopting larger readable defaults.
 

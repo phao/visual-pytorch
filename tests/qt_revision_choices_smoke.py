@@ -95,13 +95,16 @@ def choose(selector, reference):
     until('[...(' + selector + ').options].some(o=>o.value===' + json.dumps(value) + ') && !(' + selector + ').disabled')
     js('(' + selector + ').value=' + json.dumps(value) + ';(' + selector + ').dispatchEvent(new Event("change"))')
 
+def experiment_reference(axis,label):
+    return '[...document.querySelectorAll("[data-experiment-axis='+axis+'] label")].find(l=>l.firstChild.textContent==='+json.dumps(label)+')?.querySelector("select")'
+
 
 with tempfile.TemporaryDirectory() as directory:
     folder = Path(directory); h = Harness(folder)
     page = Page(profile, view); view.setPage(page); channel = QWebChannel(page); channel.registerObject('host', h.bridge); page.setWebChannel(channel)
     url = QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1] / 'app/web/index.html')); url.setFragment('model=' + next(iter(h.workspace.models()))); view.setUrl(url); view.show()
     try:
-        until('Boolean(window.loom?.document)'); until(lambda: h.workspace.models()[next(iter(h.workspace.models()))]['view'].get('fitted') is True)
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before = h.workspace.db.serialize()
         js('document.querySelector("[data-panel=science]").click();document.getElementById("experiment-dock").style.height="820px";document.getElementById("experiment-dock").style.width="1000px"')
         click('science-author-new-task'); until('!document.getElementById("science-task-model").disabled && !document.getElementById("science-task-dataset").disabled')
@@ -121,13 +124,13 @@ with tempfile.TemporaryDirectory() as directory:
         assert js('[...document.querySelectorAll("#science-task-bindings label")].find(l=>l.firstChild.textContent==="Task description").querySelector("textarea").value') == 'unfinished <img> description'
         click('science-author-cancel'); click('science-author-new-experiment'); until('!document.getElementById("science-author-name").disabled')
         js('[...document.querySelectorAll("#science-experiment-bindings button")].find(b=>b.textContent==="Add architecture selection").click()')
-        exp_model = 'document.querySelector("[data-experiment-axis=model] select[data-reference-kind]")'
+        exp_model = experiment_reference('model','Exact architecture')
         until('(' + exp_model + ') && !(' + exp_model + ').disabled')
         assert js('(' + exp_model + ').value') == '', 'Experiment selections must not be guessed'
         search(exp_model, 'Choices model 54'); choose(exp_model, h.refs['model'][0]); until('!(' + exp_model + ').disabled')
         js('[...document.querySelectorAll("#science-experiment-bindings button")].find(b=>b.textContent==="Add dataset/task pairing").click()')
-        exp_data = 'document.querySelector("[data-experiment-axis=data-task] select[data-reference-kind=dataset]")'
-        exp_task = 'document.querySelector("[data-experiment-axis=data-task] select[data-reference-kind=task]")'
+        exp_data = experiment_reference('data-task','Exact dataset')
+        exp_task = experiment_reference('data-task','Exact task')
         until('(' + exp_data + ') && !(' + exp_data + ').disabled && !(' + exp_task + ').disabled')
         search(exp_data, 'Choices dataset 54'); choose(exp_data, h.refs['dataset'][0]); until('!(' + exp_data + ').disabled')
         search(exp_task, 'Choices task 54'); choose(exp_task, h.refs['task'][0]); until('!(' + exp_task + ').disabled')
@@ -137,7 +140,11 @@ with tempfile.TemporaryDirectory() as directory:
         assert [js('(' + s + ').value') for s in [exp_model, exp_data, exp_task]] == values
         assert js('[...document.querySelectorAll("#science-experiment-bindings textarea")][0].value') == 'unfinished research question'
         h.broadcast('externalReload', 'Private authoring reload')
-        until('!(' + exp_model + ').disabled && !(' + exp_data + ').disabled && !(' + exp_task + ').disabled')
+        # Owned drafts retain unfinished work but freeze on actual reload; they
+        # must not silently admit a revision against the replacement origin.
+        until('document.getElementById("science-author-status").textContent.includes("Workspace reloaded")')
+        assert js('document.getElementById("science-author-save").disabled && document.getElementById("science-author-check").disabled')
+        assert js('(' + exp_model + ').disabled && (' + exp_data + ').disabled && (' + exp_task + ').disabled')
         assert [js('(' + s + ').value') for s in [exp_model, exp_data, exp_task]] == values
         assert js('[...document.querySelectorAll("#science-experiment-bindings textarea")][0].value') == 'unfinished research question'
         for theme, font, spacing in [('dark', 14, 1), ('github', 18, 4), ('math', 28, 10)]:
@@ -155,7 +162,8 @@ with tempfile.TemporaryDirectory() as directory:
         assert 'scienceIndex' not in h.calls and 'scienceTrain' not in h.calls
         assert h.workspace.list_specs('run', True) == [] and 'torch' not in sys.modules
         assert not errors, errors
-        print(json.dumps({'revisions_per_kind': 112, 'task_paging_search_historical': 'PASS', 'experiment_explicit_pickers': 'PASS', 'unfinished_text_retained': 'PASS', 'label_structure_font28': 'PASS', 'sql_readonly': 'PASS', 'no_full_metadata_index': 'PASS', 'page_count': len(h.reads), 'projection_max_bytes': max(r['bytes'] for r in h.reads), 'host_torch': False, 'console_errors': errors}))
+        print(json.dumps({'revisions_per_kind': 112, 'task_paging_search_historical': 'PASS', 'experiment_explicit_pickers': 'PASS', 'unfinished_text_retained': 'PASS', 'reload_freezes_owned_draft': 'PASS', 'label_structure_font28': 'PASS', 'sql_readonly': 'PASS', 'no_full_metadata_index': 'PASS', 'page_count': len(h.reads), 'projection_max_bytes': max(r['bytes'] for r in h.reads), 'host_torch': False, 'console_errors': errors}))
     finally:
-        h.workspace.history.directory.cleanup(); h.workspace.db.close(); view.close(); view.setPage(QWebEnginePage(view)); page.deleteLater()
+        if h.workspace.history.directory:h.workspace.history.directory.cleanup()
+        h.workspace.db.close(); view.close(); view.setPage(QWebEnginePage(view)); page.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete); profile.deleteLater(); QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

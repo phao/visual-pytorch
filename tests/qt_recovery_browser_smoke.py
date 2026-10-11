@@ -71,7 +71,7 @@ with tempfile.TemporaryDirectory() as directory:
     channel=QWebChannel(page);channel.registerObject('host',h.bridge);page.setWebChannel(channel)
     url=QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1]/'app/web/index.html'));url.setFragment('model='+h.model);view.setUrl(url);view.show()
     try:
-        until('Boolean(window.loom?.document)');until(lambda:h.workspace.models()[h.model]['view'].get('fitted') is True)
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before=h.workspace.db.serialize();history=len(h.workspace.history.undo_stack);evidence=copy.deepcopy(h.experiment_recoveries)
         js('document.querySelector("[data-panel=science]").click();Object.assign(document.getElementById("experiment-dock").style,{width:"1000px",height:"880px",top:"90px",left:"200px",bottom:"auto"});')
         until('document.getElementById("science-recovery-object").options.length===25 && !document.getElementById("science-recovery-next").disabled')
@@ -121,5 +121,6 @@ with tempfile.TemporaryDirectory() as directory:
             'small_notifications':'PASS','fonts':'PASS','projections':len(h.projections),'max_bytes':max(map(lambda v:len(encoded(v)),h.projections)),
             'host_torch':False,'console_errors':errors}))
     finally:
-        h.workspace.history.directory.cleanup();h.workspace.db.close()
+        if h.workspace.history.directory:h.workspace.history.directory.cleanup()
+        h.workspace.db.close()
         page.deleteLater();view.deleteLater();QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete);QCoreApplication.processEvents()

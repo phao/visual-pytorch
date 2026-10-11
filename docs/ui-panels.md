@@ -146,3 +146,17 @@ context hit-testing/editor deletion/undo/redo via a private
 workspace. Native Qt tests cover menu assembly, display persistence and tab style.
 Desktop readability/dialogs/full interaction and Alt-Tab/Dolphin integration
 still require a normal-desktop trial. Chromium sandboxing was retained.
+
+Responsive chrome: header title/tools and workspace actions wrap independently,
+with maximum height40vh and focus-scrollable overflow at extreme UI zoom. Footer
+wraps with maximum height15vh. The launcher list has a stage-height cap and its
+own thin scroll region, leaving the grip visible. Standard floating-panel content
+retains overlay rails. Fit uses shared rendered block metrics and adaptive margins
+inside the largest uncovered stage rectangle, even below80 CSS units; only absent
+space fails. These camera operations remain non-persistent. Native-window checks
+use long names, one/two tabs, private state and physical mouse clicks.
+
+References: [MDN flex shrink](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-shrink),
+[automatic minimum width](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/min-width)
+and [scrollable overflow](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow).
+These informed the CSS; actual installed Qt behavior is established by the tests.

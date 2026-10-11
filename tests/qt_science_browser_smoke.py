@@ -110,10 +110,8 @@ with tempfile.TemporaryDirectory() as directory:
     url.setFragment('model=' + next(iter(h.workspace.models()))); view.setUrl(url); view.show()
     try:
         until('Boolean(window.loom?.document)')
-        # The inherited editor asynchronously fits/persists its first canvas.
-        # Start the read-only observation after that real initialization write,
-        # not before its requestAnimationFrame/bridge completion.
-        until(lambda: h.workspace.models()[next(iter(h.workspace.models()))]['view'].get('fitted') is True)
+        # Await the local animation-frame Fit, not a persisted camera write.
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before = h.workspace.db.serialize(); initial_runs = len(h.workspace.list_specs('run', True)); writes = []
         h.workspace.db.set_trace_callback(lambda sql: writes.append(sql[:200]) if sql.lstrip().split(' ', 1)[0].upper() in ('INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'CREATE', 'DROP', 'ALTER') else None)
         for action, args in [('scienceBrowse', {'kind': 'dataset'}), ('scienceSummary', {'reference': h.old}), ('scienceInspect', {'reference': h.old})]:
@@ -181,7 +179,8 @@ with tempfile.TemporaryDirectory() as directory:
         assert not errors, errors
         print(json.dumps({'large_inline_shape': [1250, 512], 'revision_paging': 'PASS', 'historical_identity': 'PASS', 'scalar_key_value_paging': 'PASS', 'same_uuid_reload': 'PASS', 'themes_font_28': 'PASS', 'sql_read_only': 'PASS', 'projection_max_bytes': max(r['bytes'] for r in h.reads), 'read_calls': len(h.reads), 'host_torch': False, 'console_errors': errors}))
     finally:
-        h.workspace.history.directory.cleanup(); h.workspace.db.close()
+        if h.workspace.history.directory:h.workspace.history.directory.cleanup()
+        h.workspace.db.close()
         view.close(); view.setPage(QWebEnginePage(view)); page.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         profile.deleteLater(); QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

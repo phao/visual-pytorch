@@ -79,7 +79,7 @@ with tempfile.TemporaryDirectory() as directory:
     url.setFragment('model='+mid);view.setUrl(url);view.show()
     try:
         until('Boolean(window.loom?.document.view.fitted)')
-        until(lambda:h.workspace.models()[mid]['view'].get('fitted'))
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         assert model_document(h.workspace.models(),mid)==frozen
         before=h.workspace.db.serialize();source=(folder/'workspace.vtw').read_bytes()
         js('document.querySelector("[data-panel=science]").click();Object.assign(document.getElementById("experiment-dock").style,{height:"880px",width:"960px",top:"110px",left:"330px",bottom:"auto"});document.getElementById("science-notebook").open=true;')
@@ -196,5 +196,7 @@ with tempfile.TemporaryDirectory() as directory:
             'host_torch':False,'host_nbclient':False,'console_errors':errors}))
     finally:
         if h.job:h.job.stop();h.job.wait(30000);QCoreApplication.processEvents()
-        view.close();page.deleteLater();QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete);QCoreApplication.processEvents()
+        view.close();view.setPage(QWebEnginePage(view));page.deleteLater()
+        QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete);QCoreApplication.processEvents()
+        profile.deleteLater();QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
         for w in workspaces:w.db.close()

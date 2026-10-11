@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory() as directory:
     url.setFragment('model='+h.model['id']); view.setUrl(url); view.show()
     try:
         until('Boolean(window.loom?.document)')
-        until(lambda:h.workspace.models()[h.model['id']]['view'].get('fitted') is True)
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before = h.workspace.db.serialize(); history = copy.deepcopy(h.workspace.history.summary())
         history_steps = len(h.workspace.history.undo_stack)
         js('document.querySelector("[data-panel=science]").click();document.getElementById("experiment-dock").style.height="850px";document.getElementById("experiment-dock").style.width="900px";')

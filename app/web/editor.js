@@ -63,6 +63,7 @@
     Object.entries(state.theme_tokens || {}).forEach(([key,value])=>document.documentElement.style.setProperty('--'+key,value));
     document.documentElement.style.setProperty("--ui-font-size",(state.display?.font_size || 14)+"px");
     $("file-name").textContent = state.path ? state.path.split(/[\\/]/).pop() : (Object.keys(state.models).length ? "Untitled.vtw" : "Welcome");
+    $("file-name").title=$("file-name").textContent;
     $("save-state").textContent = state.dirty ? "Unsaved changes · Ctrl+S" : state.path ? "All changes saved" : "No workspace open";
     $("save-workspace").disabled = !Object.keys(state.models).length;
     $("constrained-mode").checked = state.constrained_mode !== false;
@@ -186,6 +187,7 @@
   function render() {
     if (!doc) return;
     $("model-title").textContent = doc.name;
+    $("model-title").title=doc.name;
     renderLibrary();
     renderGraph();
     renderInspector();
@@ -376,13 +378,9 @@
   }
   function fit() {
     if (!doc) return;
-    const rect = floating.available(), nodes = doc.graph.nodes;
-    if (!rect || rect.width<80 || rect.height<80) {toast("Hide or move a panel to make room, then Fit the graph.");return;}
-    const left = Math.min(...nodes.map(n => n.x)), top = Math.min(...nodes.map(n => n.y));
-    const right = Math.max(...nodes.map(n => n.x + G.width(n))), bottom = Math.max(...nodes.map(n => n.y + G.height(n)));
-    const scale = Math.min(1.3, (rect.width - 100) / (right - left), (rect.height - 100) / (bottom - top));
-    const fittedScale = Math.max(.05, scale);
-    doc.view = {zoom: fittedScale, x: rect.x + (rect.width - (right - left) * fittedScale) / 2 - left * fittedScale, y: rect.y + (rect.height - (bottom - top) * fittedScale) / 2 - top * fittedScale, fitted: true};
+    const fitted=G.fitViewport(doc.graph.nodes,floating.available());
+    if(!fitted){toast("Hide or move a panel to make room, then Fit the graph.");return;}
+    doc.view=fitted;
     updateViewport();
   }
 

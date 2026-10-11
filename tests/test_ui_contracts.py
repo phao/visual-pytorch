@@ -73,7 +73,8 @@ class UIContractTests(unittest.TestCase):
     def test_node_resize_uses_saved_geometry_and_bias_precedes_truncated_stats(self):
         js=(ROOT/'app/web/editor.js').read_text()
         self.assertIn('width:G.width(n)',js)
-        self.assertIn('n.x + G.width(n)',js)
+        self.assertIn('G.fitViewport(doc.graph.nodes,floating.available())',js)
+        self.assertIn('n.x+width(n)',(ROOT/'app/web/graph-tools.js').read_text())
         self.assertIn("class:'node-resize'",js)
         self.assertIn("'Bias '+(n.bias!==false?'on':'off')",js)
         self.assertIn('shortened(note,4.9,14)',js)
@@ -291,6 +292,16 @@ class UIContractTests(unittest.TestCase):
         self.assertEqual(declarations('#toast')['pointer-events'],'none')
         self.assertNotIn('pointer-events',declarations('#toast.toast-visible'))
         self.assertEqual(declarations('#toast.toast-visible #toast-close')['pointer-events'],'auto')
+
+    def test_crowded_toolbar_has_bounded_reachable_scroll_regions_and_session_fit(self):
+        self.assertEqual(declarations('.topbar')['max-height'],'40vh')
+        self.assertEqual(declarations('.topbar')['overflow'],'auto')
+        self.assertEqual(declarations('.topbar .canvas-toolbar')['flex-wrap'],'wrap')
+        self.assertEqual(declarations('.topbar .actions')['flex-wrap'],'wrap')
+        self.assertEqual(declarations('.canvas-container')['min-height'],'0')
+        self.assertEqual(declarations('.menu-pack:not(.collapsed)')['max-height'],'100%')
+        self.assertEqual(declarations('#pack-menus')['overflow'],'auto')
+        self.assertEqual(declarations('footer')['max-height'],'15vh')
 
     def test_renderer_policy_precedes_application_and_window_creation(self):
         tree = ast.parse((ROOT / "app/desktop.py").read_text())

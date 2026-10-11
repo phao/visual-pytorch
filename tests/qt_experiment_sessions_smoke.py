@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory() as directory:
     channel=QWebChannel(page);channel.registerObject('host',h.bridge);page.setWebChannel(channel)
     url=QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1]/'app/web/index.html'));url.setFragment('model='+h.model);view.setUrl(url);view.show()
     try:
-        until('Boolean(window.loom?.document)');until(lambda:h.workspace.models()[h.model]['view'].get('fitted') is True)
+        until('Boolean(window.loom?.document?.view.fitted)')  # Camera is session-only.
         before=h.workspace.db.serialize();steps=len(h.workspace.history.undo_stack)
         js('document.querySelector("[data-panel=science]").click();Object.assign(document.getElementById("experiment-dock").style,{width:"1040px",height:"890px",top:"90px",left:"240px",bottom:"auto"});document.getElementById("science-kind").value="experiment";document.getElementById("science-kind").dispatchEvent(new Event("change"))')
         until('document.getElementById("science-object").options.length===2')

@@ -170,6 +170,21 @@ pre,input,select{font-size:calc(var(--ui-font-size,14px) - 1px)}
 .topbar{height:auto;min-height:76px;padding-block:8px;flex-wrap:wrap}
 .topbar .canvas-toolbar{flex:1 1 440px}.canvas-tools{flex-wrap:wrap;justify-content:flex-end}
 .actions{margin-left:auto}.compact-palette{flex-wrap:wrap}.compact-palette small{white-space:normal}
+/* Keep the single toolbar reachable at large interface zoom. Ordinary windows
+   wrap; only constrained heights scroll this region, leaving the canvas usable. */
+.topbar{min-height:min(76px,40vh);max-height:40vh;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--muted) transparent}
+.topbar>:is(.brand,.navigation,.workspace-label,.canvas-toolbar,.actions){min-width:0;max-width:100%}
+.topbar .canvas-toolbar{flex-wrap:wrap;flex-shrink:1}
+.topbar .canvas-toolbar>div:first-child{min-width:0;flex:1 1 9em;max-width:100%}
+.topbar .canvas-toolbar h2{max-width:100%}
+.topbar .canvas-tools{flex:1 1 auto;min-width:0;max-width:100%;align-self:center}
+.topbar .actions{flex-wrap:wrap;min-width:0;max-width:100%;justify-content:flex-end}
+.topbar .actions>*{max-width:100%}
+.canvas-container{min-height:0}
+footer{height:auto;min-height:28px;max-height:15vh;overflow:auto;flex-wrap:wrap;gap:2px 8px;scrollbar-width:thin;scrollbar-color:var(--muted) transparent}
+footer>div{min-width:0;max-width:100%}footer :is(#status,#runtime){min-width:0;overflow-wrap:anywhere}
+.menu-pack:not(.collapsed){display:flex;flex-direction:column;max-width:100%;max-height:100%}
+.pack-heading{flex-shrink:0}#pack-menus{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--muted) transparent}
 /* Palette explanations are tooltips, not permanent rows of text. */
 .palette{min-height:44px;gap:10px;padding:10px 12px}
 .palette small{display:none}.palette>span:last-child:not(.type-symbol){margin-left:0}
