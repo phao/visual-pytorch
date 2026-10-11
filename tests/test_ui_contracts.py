@@ -268,6 +268,30 @@ class UIContractTests(unittest.TestCase):
             for obsolete in ('Ctrl+F','Find…','findText(', 'id="find"', 'safe("find")'):
                 self.assertNotIn(obsolete,text,path)
 
+    def test_camera_gestures_are_session_only_and_opens_ignore_legacy_view(self):
+        js=(ROOT/'app/web/editor.js').read_text()
+        zoom=js.split('function zoom(',1)[1].split('function fit(',1)[0]
+        fit=js.split('function fit(',1)[1].split('function renderLayoutPreferences(',1)[0]
+        self.assertNotIn('persist()',zoom);self.assertNotIn('persist()',fit)
+        self.assertIn("ended?.moved && ended.kind!=='pan'",js)
+        self.assertIn('snapshot.view={x:0,y:0,zoom:1}',js)
+        self.assertIn('if(doc)doc.view={x:0,y:0,zoom:1}',js)
+
+    def test_parameter_layout_is_opt_in_guarded_and_not_a_training_admission(self):
+        js=(ROOT/'app/web/editor.js').read_text()
+        self.assertIn('layout-expanded-parameter_sizing',(ROOT/'app/web/index.html').read_text())
+        self.assertIn("await call('layoutParameterCounts'",js)
+        self.assertIn('JSON.stringify(doc.graph)!==graph',js)
+        self.assertIn('L.apply(doc,collapsed,options,G,counts)',js)
+        self.assertIn('parameterSizingPending=false;header()',js)
+        self.assertIn('dataset.menuGridSnap=String(state.display?.menu_grid_snap===true)',js)
+        self.assertIn("initialize(document,()=>document.documentElement.dataset.menuGridSnap==='true')",js)
+
+    def test_toast_text_does_not_block_buttons_but_close_stays_interactive(self):
+        self.assertEqual(declarations('#toast')['pointer-events'],'none')
+        self.assertNotIn('pointer-events',declarations('#toast.toast-visible'))
+        self.assertEqual(declarations('#toast.toast-visible #toast-close')['pointer-events'],'auto')
+
     def test_renderer_policy_precedes_application_and_window_creation(self):
         tree = ast.parse((ROOT / "app/desktop.py").read_text())
         main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")

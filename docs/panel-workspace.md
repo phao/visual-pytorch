@@ -65,18 +65,20 @@ does not broaden authority for computational edits. The scope is not persisted.
 
 ## User-owned snap preference
 
-Options → Display preferences → **Snap to grid by default** is the strict boolean
-`grid_snap` in the user config (default false). Preview is transient; Cancel
+Options → Display preferences has independent **Snap blocks to grid by default**
+(`grid_snap`) and **Snap menus to grid by default** (`menu_grid_snap`) strict
+booleans in user config (both default false). Preview is transient; Cancel
 restores the original value; Save persists it. Legacy config reads remain
 nonmutating. This interaction default is global, unlike the workspace preset.
 
-For each movement/resize event: snapping = default XOR Ctrl. With the default
+For each movement/resize event: snapping = that layer's default XOR Ctrl. With the default
 off, Ctrl enables snapping; with it on, Ctrl permits free movement. Block drags
 snap top-left in the 24-world-unit grid; block resizes snap bottom-right. Panel
 and pack drags snap top-left in the 24-CSS-pixel stage grid; panel resizes snap
 bottom-right. Shift-drag still moves the menu layer; it uses the pack as a shared
 snap anchor and preserves relative panel offsets where bounds permit. Ctrl
-inverts that gesture too. Focused block-grip arrow resizing uses the same rule;
+inverts the menu default for that gesture too, independently of the block option.
+Focused block-grip arrow resizing uses the block rule;
 Shift/Ctrl still choose its larger step. Group selection remains deferred.
 
 The plain page Find toolbar/menu/shortcut command is removed. This is not an

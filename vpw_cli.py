@@ -130,7 +130,7 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
-    for command in ('show','validate','export','export-trained'):
+    for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
     specs = sub.add_parser('spec-list', help='Independent object browsing heads or all retained revisions')
@@ -257,6 +257,11 @@ def main(argv=None):
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}
             elif args.command == 'show':
                 value = workspace.models()[args.id]
+            elif args.command == 'parameter-counts':
+                from app.presentation import block_parameter_counts
+                models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)
+                interfaces={n['id']:validate_model(models,n['ref']) for n in model['graph']['nodes'] if n['type']=='Module'}
+                value={'id':args.id,'counts':block_parameter_counts(model,contract,interfaces)}
             elif args.command == 'spec-list':
                 value = workspace.list_specs(args.kind, args.all_revisions)
             elif args.command == 'spec-show':

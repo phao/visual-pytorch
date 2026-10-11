@@ -22,8 +22,10 @@ initial geometry and closes menus without destroying their contents.
 
 Normal empty-canvas drag pans the graph. Shift + primary-button drag on stage
 translates the menu layer, including hidden ordinary menu positions, excluding
-full-stage expanded menus and text-input interactions. Snap to grid by default is
-a user Display preference (default off); Ctrl inverts it during movement/resize.
+full-stage expanded menus and text-input interactions. Two independent user
+Display preferences control default grid snapping: blocks (`grid_snap`) and menus
+(`menu_grid_snap`), both default off; Ctrl inverts the appropriate layer's default
+during movement/resize.
 Snapped menu drags use top-left in the 24-unit stage grid; resizes use bottom-right,
 preserving top-left/minimum size where feasible. Shift layer movement snaps the
 pack anchor when snapping is active and applies one shared delta. Blocks use a
@@ -86,7 +88,7 @@ Fit and never change tensor shapes, datasets or learned weights. Linear footers
 always start Bias on/off; counts and weight dimensions use only the last axis.
 
 Default font is 14px with UI zoom 1.15. Options → Display preferences edits font/
-zoom/theme, numeric 1–10 menu spacing (default 4) and separate 1–100 NN box spacing
+zoom/theme, independent block/menu snap defaults, numeric 1–10 menu spacing (default 4) and separate 1–100 NN box spacing
 (default 35). Menu content uses that value as a CSS-pixel padding unit without
 scaling fonts or frame/heading drag handles. Legacy Compact/Spaced preferences
 load as 4/10 without writing; explicit Save persists the numeric value.

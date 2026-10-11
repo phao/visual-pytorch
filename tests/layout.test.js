@@ -2,6 +2,13 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const L=require('../app/web/layout.js'),G=require('../app/web/graph-tools.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
+test('Parameter option requires a boolean and a complete exact-decimal count map',()=>{
+  assert.throws(()=>L.validate({...L.defaults().expanded,parameter_sizing:1}));
+  const doc=fixture(),before=clone(doc),p={...L.defaults().expanded,parameter_sizing:true};
+  for(const counts of [null,{},Object.fromEntries(doc.graph.nodes.map(n=>[n.id,0])),
+    Object.fromEntries(doc.graph.nodes.map(n=>[n.id,'-1']))])assert.throws(()=>L.apply(doc,false,p,G,counts));
+  assert.deepEqual(doc,before);
+});
 const fixture=()=>({id:'fixture',graph:{input_order:['a','b'],nodes:[
   {id:'a',type:'Input',features:2,x:99,y:17}, {id:'b',type:'Input',features:3,x:99,y:180},
   {id:'la',type:'Linear',features:2,width:250,height:120,x:99,y:17},
@@ -34,6 +41,39 @@ test('Bulk collapse/reflow and expansion retain semantics, preferred sizes and s
   assert.deepEqual(big.graph.nodes.map(n=>n.id),doc.graph.nodes.map(n=>n.id));
   assert.deepEqual(big.graph.edges,doc.graph.edges);
   assert.ok(Math.max(...big.graph.nodes.map(n=>n.x+G.width(n)))>Math.max(...small.graph.nodes.map(n=>n.x+G.width(n))));
+});
+test('Relative sizing collapses zeros, expands positive minima, scales linearly to 4x and stays idempotent',()=>{
+  const doc=fixture();doc.graph.nodes.push({id:'large',type:'Linear',features:10,x:0,y:0},{id:'medium',type:'Module',ref:'r',x:0,y:0});
+  const counts=Object.fromEntries(doc.graph.nodes.map(n=>[n.id,n.id==='la'?'10':n.id==='medium'?'55':n.id==='large'?'100':'0']));
+  const p={...L.defaults().expanded,parameter_sizing:true},result=L.apply(doc,false,p,G,counts);
+  const by=new Map(result.graph.nodes.map(n=>[n.id,n]));
+  assert.equal(G.height(by.get('la')),G.minimumSize(by.get('la')).height);
+  assert.equal(G.height(by.get('medium')),G.minimumSize(by.get('medium')).height*2.5);
+  assert.equal(G.height(by.get('large')),G.minimumSize(by.get('large')).height*4);
+  for(const n of result.graph.nodes)assert.equal(n.collapsed,counts[n.id]==='0');
+  assert.equal(by.get('la').width,250,'Sizing changes height only');noOverlap(result.graph.nodes);
+  const signature=d=>{const c=clone(d);c.graph.nodes.forEach(n=>{for(const k of ['x','y','collapsed','height'])delete n[k];});return c;};
+  assert.deepEqual(signature(result),signature(doc));assert.deepEqual(L.apply(result,false,p,G,counts),result);
+  const ordinary=L.apply(result,false,{...p,parameter_sizing:false},G);assert.ok(ordinary.graph.nodes.every(n=>!n.collapsed));
+});
+test('Equal positives use minimum height, all zero graphs collapse, and large counts subtract exactly',()=>{
+  const doc=fixture(),p={...L.defaults().expanded,parameter_sizing:true};
+  for(const raw of ['0','7']){
+    const counts=Object.fromEntries(doc.graph.nodes.map(n=>[n.id,raw]));const out=L.apply(doc,false,p,G,counts);
+    for(const n of out.graph.nodes){assert.equal(n.collapsed,raw==='0');if(raw==='7')assert.equal(n.height,G.minimumSize(n).height);}
+  }
+  const ids=doc.graph.nodes.filter(n=>n.type==='Linear'||n.type==='Activation');
+  const counts=Object.fromEntries(doc.graph.nodes.map(n=>[n.id,n.id===ids[0].id?'9007199254740992':n.id===ids[1].id?'9007199254740993':'0']));
+  const out=L.apply(doc,false,p,G,counts),positive=out.graph.nodes.filter(n=>!n.collapsed);
+  assert.equal(positive[0].height,G.minimumSize(positive[0]).height);assert.equal(positive[1].height,G.minimumSize(positive[1]).height*4);
+});
+test('Parameter sizing uses actual effective heights for both layout directions and optional no-reflow',()=>{
+  const doc=fixture(),counts=Object.fromEntries(doc.graph.nodes.map(n=>[n.id,n.type==='Linear'?'10':'0']));
+  for(const direction of ['LR','TB'])for(const rearrange of [false,true]){
+    const result=L.apply(doc,false,{...L.defaults().expanded,parameter_sizing:true,direction,rearrange},G,counts);
+    if(rearrange)noOverlap(result.graph.nodes);
+    else assert.deepEqual(result.graph.nodes.map(n=>[n.x,n.y]),doc.graph.nodes.map(n=>[n.x,n.y]));
+  }
 });
 test('Layers advance in the requested direction, account for actual sizes and configured gaps',()=>{
   for(const collapsed of [false,true])for(const direction of ['LR','TB']){

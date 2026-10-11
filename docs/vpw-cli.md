@@ -16,11 +16,20 @@ and `dim` (default −1). This axis indexes sample dimensions, excluding batch B
 CLI validate/export and ordinary `set-node` edits use exactly the GUI convention.
 See [softmax.md](softmax.md) for valid axes, PyTorch mapping and loss semantics.
 
+`parameter-counts ARCHITECTURE_ID` is read-only and returns exact per-block
+learnable parameter counts as decimal strings, including architecture references.
+It uses the same validated contract as the GUI's optional parameter-relative
+expanded layout, without loading Qt/PyTorch or running the network. Invalid
+graphs fail instead of receiving guessed counts. Workspace `layout.expanded`
+may include `parameter_sizing: true`; see [layout.md](layout.md) for its
+zero-parameter folding and relative-height rules.
+
 ```sh
 python vpw_cli.py lab.vtw init
 python vpw_cli.py lab.vtw inspect
 python vpw_cli.py lab.vtw show ARCHITECTURE_ID
 python vpw_cli.py lab.vtw validate ARCHITECTURE_ID
+python vpw_cli.py lab.vtw parameter-counts ARCHITECTURE_ID
 python vpw_cli.py lab.vtw export ARCHITECTURE_ID
 python vpw_cli.py lab.vtw export-trained ARCHITECTURE_ID
 python vpw_cli.py lab.vtw preview-dataset observations.json --limit 20

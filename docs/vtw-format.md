@@ -142,7 +142,7 @@ architectures.document is a JSON object:
 | name | 1–100 nonblank characters; row name is the stripped document name |
 | graph | Object with nodes and edges arrays |
 | training | Optional object: epochs/lr/seed default to 400/0.03/7 |
-| view | Optional presentation object: x, y, zoom, optional fitted |
+| view | Optional legacy camera object: x, y, zoom, optional fitted. GUI opens ignore it and center/fit; current camera is session-only and GUI edits submit neutral view. See [layout.md](layout.md). |
 | result | Latest result object or null |
 | dataset_binding | Null, or a version-1 binding object identifying input/output groups by stable node ID, sample shape and canonical start/stop offsets, plus output_mode |
 
@@ -481,9 +481,10 @@ history with a notice; history is not a durable recovery/backup facility.
 
 User settings are separate: ~/.tensorloon/config.json stores ui_zoom (0.5–3),
 font_size (integer 12–28), theme, spacing (integer 1–10), box_spacing (integer
-1–100), memory_limit_percent and grid_snap (strict boolean). Defaults are 1.15,
-14, dark, 4, 35, 10 and false. Ctrl inverts grid_snap during block/panel movement
-and resize; Shift retains menu-layer movement. See [panel-workspace.md](panel-workspace.md).
+1–100), memory_limit_percent, grid_snap and menu_grid_snap (strict booleans).
+Defaults are 1.15, 14, dark, 4, 35, 10, false and false. grid_snap applies only to
+blocks; menu_grid_snap applies to panels/pack. Ctrl inverts each independently
+during its movement/resize; Shift retains menu-layer movement. See [panel-workspace.md](panel-workspace.md).
 Older string spacing values compact/spaced load as 4/10 in memory, without a
 file write; the next explicit preference Save writes numeric spacing. New
 preference changes accept only integers in range, not strings, floats or booleans.

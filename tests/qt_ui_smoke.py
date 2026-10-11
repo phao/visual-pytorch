@@ -354,7 +354,10 @@ with tempfile.TemporaryDirectory() as td:
         assert view.grab().save(str(Path(screenshot).with_name(Path(screenshot).stem+'-collapsed.png')))
     js('document.getElementById("layout-collapsed-section").open=false;document.getElementById("layout-expanded-section").open=true;')
     js('document.getElementById("layout-expanded-layer_gap").value="80";')
+    js('document.getElementById("expand-all").scrollIntoView({block:"nearest"})')
     QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,block_center('#expand-all'))
+    QTest.qWait(100)
+    assert js('(() => {const p=document.getElementById("expand-all"),r=p.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===p;})()'), 'Notification text must not intercept a panel button'
     until('window.loom.document.graph.nodes.every(n=>n.collapsed===false)')
     QTest.qWait(100)
     assert len(h.workspace.history.undo_stack)==history_before+2
@@ -367,7 +370,8 @@ with tempfile.TemporaryDirectory() as td:
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(small_doc))
     js('window.loom.perform("undo");')
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(before_bulk))
-    assert js('JSON.stringify(window.loom.document.view)')==view_before_bulk
+    # Viewport is now session-only: graph undo must not restore a stored camera.
+    assert h.workspace.models()[h.model['id']]['view']=={'x':0,'y':0,'zoom':1}
     config_before=h.config.path.read_bytes() if h.config.path.exists() else None
     js('document.getElementById("layout-expanded-direction").value="TB";document.getElementById("layout-expanded-layer_gap").value="123";document.getElementById("save-layout-preferences").click();')
     until('window.loom.state.layout_preferences.expanded.layer_gap===123')

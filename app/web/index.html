@@ -113,6 +113,8 @@
             <div class="inline-fields"><label>Between layers<input id="layout-expanded-layer_gap" type="number" min="8" max="1000" step="1" value="80"></label><label>Between blocks<input id="layout-expanded-block_gap" type="number" min="8" max="1000" step="1" value="32"></label></div>
             <label class="layout-check"><input id="layout-expanded-rearrange" type="checkbox" checked>Rearrange blocks</label>
             <label class="layout-check"><input id="layout-expanded-fit" type="checkbox" checked>Fit after expanding</label>
+            <label class="layout-check" title="Collapse zero-parameter blocks. Smallest learnable blocks use minimum expanded height; others scale relatively up to 4× that height."><input id="layout-expanded-parameter_sizing" type="checkbox">Size by learnable parameters</label>
+            <p class="tiny">When enabled: collapse blocks with 0 parameters; expand learnable blocks with relative heights. Smallest positive count uses minimum expanded height. Requires a valid architecture.</p>
             <button id="expand-all" class="primary">Expand all</button>
           </div>
         </details>

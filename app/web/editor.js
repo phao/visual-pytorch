@@ -6,12 +6,13 @@
   const L = window.LoomLayout;
   const T = window.LoomTensorOperators;
   const snapEnabled = event => window.LoomPanels.snapEnabled(event,document.documentElement.dataset.gridSnap==='true');
-  const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.gridSnap==='true');
+  const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.menuGridSnap==='true');
   const activationInfo = window.LoomActivations.info;
   let host, state = {models: {}, recent: []}, doc = null, description = null;
   let selected = null, selectedPort = null, selectedWire = null, connecting = null, drag = null, panel = "experiment";
   let syncQueue = Promise.resolve(), describeGeneration = 0;
   let panelWorkspace, panelSavePending=false;
+  let parameterSizingPending=false;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
@@ -54,6 +55,7 @@
 
   function header() {
     document.documentElement.dataset.gridSnap=String(state.display?.grid_snap===true);
+    document.documentElement.dataset.menuGridSnap=String(state.display?.menu_grid_snap===true);
     document.documentElement.dataset.theme=state.theme || 'dark';
     document.documentElement.dataset.spacing=String(state.display?.spacing ?? 4);
     document.documentElement.style.setProperty('--menu-unit',(state.display?.spacing ?? 4)+'px');
@@ -71,7 +73,7 @@
     $("resume-area").hidden = !Object.keys(state.models).length;
     $("runtime").textContent = (state.binding || "Qt webview") + " · SQLite workspace" +
       (state.rendering?.mode === "software" ? " · software webview" : "");
-    for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy();
+    for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy() || parameterSizingPending;
     $('save-panel-arrangement').disabled=!doc||panelSavePending;
     $('restore-panel-arrangement').disabled=!doc||panelSavePending;
   }
@@ -99,6 +101,7 @@
     const id = modelID();
     endDrag();
     doc = id && state.models[id] ? prepareModel(clone(state.models[id])) : null;
+    if(doc)doc.view={x:0,y:0,zoom:1}; // Saved legacy view is not the initial viewport.
     $("welcome").hidden = Boolean(doc);
     $("editor").hidden = !doc;
     description = null;
@@ -120,6 +123,7 @@
   }
 
   function hydrate(value) {
+    const viewport=doc&&state.panel_scope===value.panel_scope?clone(doc.view):null;
     const layoutChanged=state.workspace_id!==value.workspace_id ||
       JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
     state = value;
@@ -127,8 +131,9 @@
     if(layoutChanged)renderLayoutPreferences();
     if (doc && state.models[doc.id]) {
       doc = prepareModel(clone(state.models[doc.id]));
+      doc.view=viewport || {x:0,y:0,zoom:1};
       render();
-      describe();
+      describe().then(()=>{if(!viewport&&doc)fit();});
     } else if (doc && !state.models[doc.id]) {
       navigate(null);
     }
@@ -224,7 +229,8 @@
   function persist() {
     if (!doc) return Promise.resolve();
     const snapshot = clone(doc), mid = doc.id;
-    state.models[mid] = clone(doc);
+    snapshot.view={x:0,y:0,zoom:1}; // Keep viewport state out of persisted edits/history.
+    state.models[mid] = clone(snapshot);
     state.dirty = true;
     header();
     syncQueue = syncQueue.then(async () => {
@@ -367,9 +373,8 @@
     view.x = anchor.x - x * view.zoom;
     view.y = anchor.y - y * view.zoom;
     updateViewport();
-    persist();
   }
-  function fit(save=true) {
+  function fit() {
     if (!doc) return;
     const rect = floating.available(), nodes = doc.graph.nodes;
     if (!rect || rect.width<80 || rect.height<80) {toast("Hide or move a panel to make room, then Fit the graph.");return;}
@@ -379,12 +384,11 @@
     const fittedScale = Math.max(.05, scale);
     doc.view = {zoom: fittedScale, x: rect.x + (rect.width - (right - left) * fittedScale) / 2 - left * fittedScale, y: rect.y + (rect.height - (bottom - top) * fittedScale) / 2 - top * fittedScale, fitted: true};
     updateViewport();
-    if(save)persist();
   }
 
   function renderLayoutPreferences(){
     const options=state.layout_preferences || L.defaults();
-    for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries(options[mode])){
+    for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries({...L.defaults()[mode],...options[mode]})){
       const control=$('layout-'+mode+'-'+key);if(!control)continue;
       if(control.type==='checkbox')control.checked=value;else control.value=value;
     }
@@ -394,20 +398,33 @@
       const control=$('layout-'+mode+'-'+key);
       p[key]=control.type==='checkbox'?control.checked:control.type==='number'?Number(control.value):control.value;
     }
+    if(mode==='expanded')p.parameter_sizing=$('layout-expanded-parameter_sizing').checked;
     return L.validate(p);
   }
   function readLayoutPreferences(){
     return {version:1,collapsed:readLayoutProfile('collapsed'),expanded:readLayoutProfile('expanded')};
   }
-  function bulkBlocks(collapsed){
-    if(!doc || busy() || drag)return;
+  async function bulkBlocks(collapsed){
+    if(!doc || busy() || drag || parameterSizingPending)return;
     try{
       const options=readLayoutProfile(collapsed?'collapsed':'expanded');
-      const updated=L.apply(doc,collapsed,options,G);
+      let counts=null;
+      if(!collapsed && options.parameter_sizing){
+        const scope=state.panel_scope,wid=state.workspace_id,mid=doc.id;
+        parameterSizingPending=true;header();await syncQueue;
+        if(state.panel_scope!==scope || state.workspace_id!==wid || doc?.id!==mid || busy() || drag)throw Error('Workspace changed; retry parameter sizing.');
+        const graph=JSON.stringify(doc.graph);
+        const result=await call('layoutParameterCounts',{workspace_id:wid,panel_scope:scope,id:mid,graph:clone(doc.graph)});
+        if(state.panel_scope!==scope || state.workspace_id!==wid || doc?.id!==mid || JSON.stringify(doc.graph)!==graph || busy() || drag)throw Error('Architecture changed; retry parameter sizing.');
+        if(result.workspace_id!==wid || result.panel_scope!==scope || result.id!==mid)throw Error('Parameter sizing response belongs to another architecture.');
+        counts=result.counts;
+      }
+      const updated=L.apply(doc,collapsed,options,G,counts);
       doc=updated;connecting=null;$('pending-wire').setAttribute('hidden','');
       render();if(options.fit)fit(false);persist();
-      toast(collapsed?'All blocks minimized. Undo restores the previous layout.':'All blocks expanded. Undo restores the previous layout.');
+      toast(collapsed?'All blocks minimized. Undo restores the previous layout.':options.parameter_sizing?'Parameter layout applied: zero-parameter blocks collapsed; learnable blocks expanded. Undo restores the previous layout.':'All blocks expanded. Undo restores the previous layout.');
     }catch(error){toast(error.message,true);}
+    finally{parameterSizingPending=false;header();}
   }
   $('minimize-all').onclick=()=>bulkBlocks(true);
   $('expand-all').onclick=()=>bulkBlocks(false);
@@ -918,7 +935,7 @@
         }
       }
       renderGraph();
-    } else if (ended?.moved) persist();
+    } else if (ended?.moved && ended.kind!=='pan') persist();
   }
   $("canvas").addEventListener("pointerup", endDrag);
   window.addEventListener('pointerup',event=>{if(drag?.deferredCapture)endDrag(event);});

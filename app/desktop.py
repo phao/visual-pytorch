@@ -272,7 +272,7 @@ class Window(QMainWindow):
             self.apply_theme();self.broadcast()
 
     def display_options(self):
-        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing','grid_snap')}
+        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False,'menu_grid_snap':False}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing','grid_snap','menu_grid_snap')}
         dialog = QDialog(self)
         dialog.setWindowTitle(APP_NAME+' — Display preferences')
         dialog.setMinimumWidth(max(480, self.config.values['font_size'] * 30))
@@ -298,16 +298,21 @@ class Window(QMainWindow):
         boxes.setRange(1,100);boxes.setValue(self.config.values.get('box_spacing',35))
         boxes.setToolTip('Independent of menu spacing. 1 is densest, 100 roomiest; text size is unchanged.')
         layout.addRow('NN box spacing (1–100)',boxes)
-        snap=QCheckBox('Snap to grid by default',dialog)
+        snap=QCheckBox('Snap blocks to grid by default',dialog)
         snap.setObjectName('display-grid-snap')
         snap.setChecked(self.config.values.get('grid_snap',False))
-        snap.setToolTip('Ctrl temporarily inverts snapping for block/panel movement and resizing. Shift-drag still moves the menu layer.')
+        snap.setToolTip('Ctrl temporarily inverts snapping for block movement and resizing. Independent of menus.')
         layout.addRow(snap)
+        menu_snap=QCheckBox('Snap menus to grid by default',dialog)
+        menu_snap.setObjectName('display-menu-grid-snap')
+        menu_snap.setChecked(self.config.values.get('menu_grid_snap',False))
+        menu_snap.setToolTip('Ctrl temporarily inverts menu/pack movement and resizing. Shift-drag still moves the menu layer. Independent of blocks.')
+        layout.addRow(menu_snap)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         preview=buttons.addButton('Preview',QDialogButtonBox.ButtonRole.ActionRole)
         preview.setObjectName('preview-display')
         preview.setToolTip('Try these settings without saving; Cancel restores the previous appearance.')
-        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value(),'grid_snap':snap.isChecked()}
+        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value(),'grid_snap':snap.isChecked(),'menu_grid_snap':menu_snap.isChecked()}
         def preview_now():
             self.set_display(persist=False,**values())
             dialog.setMinimumWidth(max(480,self.config.values['font_size']*30))
@@ -317,7 +322,7 @@ class Window(QMainWindow):
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
         accepted=dialog.exec()==QDialog.DialogCode.Accepted
         if accepted and self.set_display(**values()):return
-        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False}.get(key)) for key in original}!=original:
+        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False,'menu_grid_snap':False}.get(key)) for key in original}!=original:
             self.set_display(persist=False,**original)
 
     def safety_options(self):
@@ -637,6 +642,23 @@ class Window(QMainWindow):
         from .desktop_experiments import ACTIONS, dispatch as science_dispatch
         if action in ACTIONS: return science_dispatch(self, req, bridge)
         models = self.workspace.models()
+        if action=='layoutParameterCounts':
+            if set(req)!={'action','workspace_id','panel_scope','id','graph'}:
+                raise ValueError('Parameter layout request has missing or unsupported fields.')
+            wid=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            mid=req['id']
+            if req['workspace_id']!=wid or req['panel_scope']!=self.workspace.panel_scope or mid not in models:
+                raise ValueError('Workspace changed; retry parameter sizing.')
+            expected=copy.deepcopy(models[mid]['graph'])
+            for n in expected['nodes']:
+                n.setdefault('x',0);n.setdefault('y',0)
+                if n['type']=='Linear':n.setdefault('bias',True)
+            if req['graph']!=expected:raise ValueError('Architecture changed; retry parameter sizing after its edits are saved.')
+            from .presentation import block_parameter_counts
+            contract=validate_model(models,mid)
+            interfaces={n['id']:validate_model(models,n['ref']) for n in models[mid]['graph']['nodes'] if n['type']=='Module'}
+            return {'workspace_id':wid,'panel_scope':self.workspace.panel_scope,'id':mid,
+                    'counts':block_parameter_counts(models[mid],contract,interfaces)}
         if action == "setConstrainedMode":
             if job_busy(self.job):
                 raise ValueError("Stop the current run before changing its safety mode.")

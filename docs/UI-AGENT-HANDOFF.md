@@ -36,7 +36,7 @@ not a prohibition on improving the design.
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |
 | --- | --- | --- | --- |
-| Canvas world | Model/world units | Box positions and graph view | Block drag; Ctrl inverts snap default; empty drag pans |
+| Canvas world | Model/world units | Box positions/sizes; camera session-only | Block drag; Ctrl inverts block snap default; empty drag pans |
 | Floating menus | CSS viewport units relative to editing stage | Explicit workspace preset; ordinary moves tab-local | Menu drag; Shift-drag translates menu layer |
 | Whole interface | Qt WebEngine zoom | App config JSON | Ctrl+/Ctrl−; not canvas zoom |
 
@@ -111,7 +111,8 @@ when the title is offstage. It does not guarantee the whole title remains visibl
 
 Grid rules:
 
-- User Display preference `grid_snap` defaults false; Ctrl inverts it per event.
+- Independent user Display preferences `grid_snap` (blocks) and `menu_grid_snap`
+  (panels/pack/layer) default false; Ctrl inverts the appropriate one per event.
   Preview/Cancel/Save behave like other display preferences. Shift retains its
   menu-layer role; group selection remains deferred.
 - Snapped menu/pack drag: align its **top-left** to the nearest 24-unit grid point.
@@ -305,7 +306,7 @@ nwse-resize cursor, accessible label/disabled state and keyboard focus. Drag in
 inverse canvas/world coordinates; do not change top-left. Active snapping aligns bottom-right
 to the 24-unit world grid, raising a snapped corner as necessary to satisfy the
 minimum. Arrow keys change a focused grip by 8 units; Shift or Ctrl uses 24, and
-Ctrl inverts the global snap default. The Inspector has no removal or diagram width/height controls.
+Ctrl inverts the block snap default. The Inspector has no removal or diagram width/height controls.
 The block context menu's Automatic size deletes both size preferences, preserving
 position, folding and computation. It is undoable and disabled during training;
 the dispatcher rechecks the captured model/block IDs and busy state. Repeating
@@ -356,7 +357,17 @@ Expanded defaults: LR, layer gap 80, block gap 32, rearrange=true, fit=true.
 Gaps are integers 8–1000 world units, independent of diagram/UI zoom and padding.
 Directions LR and TB mean left-to-right/top-to-bottom node ranking; ports retain
 their existing left/right positions in both. Style/profile controls do not alter
-port identity or compute order. Current control values apply on each button press;
+port identity or compute order. Current control values apply on each button press.
+Expanded profiles optionally accept strict boolean `parameter_sizing` (default
+off; missing legacy key means off). Enabled Expand all collapses zero-parameter
+blocks and expands positive-count blocks. The least positive count uses readable
+minimum height; linear relative scaling reaches 4× minimum at the largest count,
+or all minimum when counts tie. Module instances include internals. Widths are
+unchanged. This intentionally replaces positive blocks' preferred heights;
+undo/Automatic size can restore/reset them. Native exact decimal counts are read
+only for a validated matching graph/workspace instance; stale replies never
+replace a newer graph. Ordinary layout still supports drafts. See
+[layout.md](layout.md) for the formula, count grammar, CLI and precise limits.
 Save layout preferences updates both profiles in the current workspace's
 `metadata.layout_preferences` JSON, as one session undo entry. Explicit Save
 workspace writes the `.vtw` snapshot. Full state carries `workspace_id` and
@@ -377,7 +388,9 @@ Prepare the changed graph on a private clone, applying all compact flags before
 measuring layout dimensions. Reject bad preferences/endpoints or coordinates
 outside ±100000 without replacing the original diagram. Apply state, geometry and
 optional fitting as exactly one workspace/history edit. Undo restores previous
-folding, positions and view; expanded width/height preferences are retained.
+folding and positions; the session camera is preserved, not restored from history.
+Ordinary expansion retains preferred dimensions; parameter sizing replaces
+positive-count preferred heights deliberately, with undo restoring them.
 Keep current scientific results/datasets/bindings intact. Do not allow either
 button during training or an active block gesture. Fit honors floating overlays
 and may request more visible room when panels cover the canvas.
@@ -496,7 +509,16 @@ a custom left-click pop-up menu. Validation banners anchor upper-right, 16 units
 from stage right and 12 from top. Notifications sit bottom-center above menu
 layers: 5500ms automatic lifetime, opacity transitions 250ms in/out, then hidden;
 an accessible × button dismisses early. New notifications cancel old close timers.
+Notification text is pointer-transparent, so a low-positioned panel button remains
+usable underneath it; only the visible close button accepts pointer events.
 Respect reduced motion. Use a separate message span so updates retain the button.
+
+Canvas pan/zoom/Fit are session-only and never write the workspace or add history
+steps. Every architecture open ignores legacy camera metadata and centers/fits
+its current geometry. Ordinary acknowledgements preserve the tab camera;
+workspace-instance changes refit. GUI model edits submit neutral legacy `view`,
+not the active camera. Old files are not rewritten merely by opening them.
+Global interface zoom is still persisted independently as a user preference.
 
 Themes share one geometry/interaction system with semantic colour tokens in
 app/themes.py: Aurora, Bauhaus, Blueprint, Cyberpunk, Dark, GitHub, Light, Math,

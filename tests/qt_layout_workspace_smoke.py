@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert len(h.workspace.history.undo_stack) == before
     h.job = SimpleNamespace(isRunning=lambda: True)
     try: h.dispatch('setLayoutPreferences', layout=LAYOUT_DEFAULTS)
-    except ValueError as error: assert 'Stop training' in str(error)
+    except ValueError as error: assert 'Stop the current run' in str(error)
     else: raise AssertionError('Layout policy admitted during active job')
     assert h.workspace.layout_preferences == layout
     h.job = None; path = Path(directory) / 'transfer.vtw'; h.workspace.save(path)

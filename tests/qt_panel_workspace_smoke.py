@@ -68,26 +68,26 @@ with tempfile.TemporaryDirectory() as directory:
     try:
         assert js(view,'!document.getElementById("find")')
         # Real mouse events, not calls to a coordinate helper.
-        for enabled in (False,True):
-            h.config.values['grid_snap']=enabled;h.broadcast()
-            until(view,'document.documentElement.dataset.gridSnap==='+json.dumps(str(enabled).lower()))
+        for block_enabled,menu_enabled in ((False,False),(True,False),(False,True),(True,True)):
+            h.config.values.update(grid_snap=block_enabled,menu_grid_snap=menu_enabled);h.broadcast()
+            until(view,'document.documentElement.dataset.gridSnap==='+json.dumps(str(block_enabled).lower())+' && document.documentElement.dataset.menuGridSnap==='+json.dumps(str(menu_enabled).lower()))
             for ctrl in (False,True):
                 js(view,'window.loom.perform("reset-panels");document.querySelector("[data-open-panel=library-panel]").click()')
                 p0=rect(view,'library-panel');drag(view,'#library-panel [data-drag-handle]',53,67,ctrl);p=rect(view,'library-panel')
-                if enabled!=ctrl:assert aligned(p['x']) and aligned(p['y']),(enabled,ctrl,p)
+                if menu_enabled!=ctrl:assert aligned(p['x']) and aligned(p['y']),(block_enabled,menu_enabled,ctrl,p)
                 else:assert abs(p['x']-p0['x']-53)<1 and abs(p['y']-p0['y']-67)<1,(p0,p)
                 drag(view,'#library-panel .panel-resize',17,13,ctrl);r=rect(view,'library-panel')
-                if enabled!=ctrl:assert aligned(r['x']+r['width']) and aligned(r['y']+r['height']),r
+                if menu_enabled!=ctrl:assert aligned(r['x']+r['width']) and aligned(r['y']+r['height']),r
                 else:assert abs(r['width']-p['width']-17)<1 and abs(r['height']-p['height']-13)<1,(p,r)
                 js(view,'window.loom.perform("reset-panels");window.loom.fit()');QTest.qWait(100)
                 before=js(view,'window.loom.document.graph.nodes.find(n=>n.type==="Linear")')
                 drag(view,'.node.Linear .node-title',53,67,ctrl)
                 after=js(view,'window.loom.document.graph.nodes.find(n=>n.type==="Linear")')
-                if enabled!=ctrl:assert aligned(after['x']) and aligned(after['y']),after
+                if block_enabled!=ctrl:assert aligned(after['x']) and aligned(after['y']),after
                 else:assert after['x']!=before['x'] and after['y']!=before['y'],(before,after)
                 drag(view,'.node.Linear .node-resize',17,13,ctrl)
                 resized=js(view,'window.loom.document.graph.nodes.find(n=>n.type==="Linear")')
-                if enabled!=ctrl:assert aligned(resized['x']+resized['width']) and aligned(resized['y']+resized['height']),resized
+                if block_enabled!=ctrl:assert aligned(resized['x']+resized['width']) and aligned(resized['y']+resized['height']),resized
         # Wait for acknowledged graph edits before measuring presentation-only work.
         until(view,'!window.loom.state.history.notice');QTest.qWait(100)
         js(view,'window.loom.perform("reset-panels");document.querySelector("[data-open-panel=library-panel]").click()')

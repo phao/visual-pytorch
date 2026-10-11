@@ -1,5 +1,38 @@
 # Development state and roadmap
 
+## 2026-10-11 04:14 -03:00 — Final interaction/layout convergence
+
+This supersedes the checkpoint below's single snap default. Display now has
+independent `grid_snap` (blocks) and `menu_grid_snap` (menus/pack/layer), both off
+by default. Ctrl inverts the relevant default for movement/resize; Shift still
+moves the menu layer. Actual Qt mouse checks cover all four default combinations
+with and without Ctrl, plus independent native Preview/Cancel/Save.
+
+The expanded Layout profile optionally enables parameter-relative sizing:
+zero-parameter blocks collapse, positive blocks expand, the least positive count
+uses minimum expanded height and the greatest uses four times minimum (equal
+counts all use minimum). Exact native and CLI counts reject invalid graphs and
+stale responses; no training or Torch import is needed. This is one undoable
+presentation action with workspace-owned options, not a computational change.
+See [layout.md](layout.md) for widths, no-reflow behavior and manual-height rules.
+
+Pan/zoom/Fit are session-only: no dirty flag, SQL/file rewrite or undo entry;
+opening ignores historical camera positions and fits the architecture. Existing
+model geometry/folding edits and global interface zoom remain persistent.
+Toast bodies are pointer-transparent so they no longer block low panel controls;
+the visible close button stays interactive.
+
+Final validation:612 Python tests in195.726s and258 JavaScript tests in1086.422ms;
+actual sandboxed Qt parameter layout, single history action, option save/reload,
+camera non-mutation, independent snapping/preferences/presets, context menus,
+nine UI font/theme/spacing samples, Softmax and actual worker fit/retry/report/
+notebook generation/save-reload/failed-admission/recovery-export pass. Independent
+PyTorch outputs, weights and gradients are bitwise identical after visual layout.
+Initial harness failures and the real toast interception are retained in private
+campaign evidence with final passing logs; no blanket geometry/accessibility or
+cost guarantee is inferred. Stage C remains local/incomplete, main/public refs
+and user application/workspaces/configuration are unchanged.
+
 ## 2026-10-11 — Explicit panel preset and interaction preferences
 
 [panel-workspace.md](panel-workspace.md) specifies the optional `.vtw`

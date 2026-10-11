@@ -49,7 +49,7 @@ LAYOUT_DEFAULTS = {'version': 1,
     'collapsed': {'style': 'layered', 'direction': 'LR', 'layer_gap': 48,
                   'block_gap': 16, 'rearrange': True, 'fit': True},
     'expanded': {'style': 'layered', 'direction': 'LR', 'layer_gap': 80,
-                 'block_gap': 32, 'rearrange': True, 'fit': True}}
+                 'block_gap': 32, 'rearrange': True, 'fit': True, 'parameter_sizing': False}}
 
 
 def validate_layout(value):
@@ -58,8 +58,10 @@ def validate_layout(value):
         raise ValueError('Layout preferences require version 1 and exactly two profiles.')
     for mode in ('collapsed', 'expanded'):
         profile = value[mode]
+        required={'style', 'direction', 'layer_gap', 'block_gap', 'rearrange', 'fit'}
+        allowed=required | ({'parameter_sizing'} if mode=='expanded' else set())
         if (not isinstance(profile, dict) or
-                set(profile) != {'style', 'direction', 'layer_gap', 'block_gap', 'rearrange', 'fit'} or
+                not required <= set(profile) <= allowed or
                 profile['style'] != 'layered' or profile['direction'] not in ('LR', 'TB')):
             raise ValueError('Choose a Layered layout and supported direction for each block state.')
         for key in ('layer_gap', 'block_gap'):
@@ -68,4 +70,25 @@ def validate_layout(value):
         for key in ('rearrange', 'fit'):
             if type(profile[key]) is not bool:
                 raise ValueError('Layout toggles must be booleans.')
+        if 'parameter_sizing' in profile and type(profile['parameter_sizing']) is not bool:
+            raise ValueError('Parameter sizing must be a boolean.')
     return copy.deepcopy(value)
+
+
+def block_parameter_counts(model, contract, interfaces):
+    """Exact decimal counts from a validated native graph; module instances include internals."""
+    result={}
+    for node in model['graph']['nodes']:
+        kind=node['type'];shape=contract['shapes'][node['id']]
+        if kind=='Linear':
+            count=shape['input_shape'][-1]*node['features']+(node['features'] if node.get('bias',True) else 0)
+        elif kind=='Conv2d':count=shape['operator']['parameters']
+        elif kind=='Module':count=interfaces[node['id']]['parameters']
+        elif kind in {'Input','Output','Activation','Reshape','Concat','Splitter','Replicator',
+                       'Flatten','Permute','MaxPool2d','AvgPool2d','AdaptiveAvgPool2d'}:count=0
+        else:raise ValueError('Parameter sizing is not implemented for '+kind+'.')
+        if type(count) is not int or count<0:raise ValueError('Parameter counts must be nonnegative integers.')
+        result[node['id']]=str(count)
+    if sum(int(v) for v in result.values())!=contract['parameters']:
+        raise ValueError('Block parameter counts disagree with the validated architecture.')
+    return result

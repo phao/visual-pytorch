@@ -142,6 +142,7 @@ class CLIConfigTests(unittest.TestCase):
             path.write_text(json.dumps({'font_size':18,'future_key':'kept'}))
             before=path.read_bytes();c=Config(path)
             self.assertFalse(c.values['grid_snap']);self.assertEqual(path.read_bytes(),before)
+            self.assertFalse(c.values['menu_grid_snap'])
             for enabled in (True,False):
                 c.save(grid_snap=enabled)
                 self.assertIs(Config(path).values['grid_snap'],enabled)
@@ -149,6 +150,14 @@ class CLIConfigTests(unittest.TestCase):
             for invalid in (0,1,'true',None,[],{}):
                 before=path.read_bytes()
                 with self.assertRaises(ValueError):c.save(grid_snap=invalid)
+                self.assertEqual(path.read_bytes(),before)
+            c.save(grid_snap=True,menu_grid_snap=False)
+            self.assertTrue(Config(path).values['grid_snap']);self.assertFalse(Config(path).values['menu_grid_snap'])
+            c.save(grid_snap=False,menu_grid_snap=True)
+            self.assertFalse(Config(path).values['grid_snap']);self.assertTrue(Config(path).values['menu_grid_snap'])
+            for invalid in (0,1,'true',None,[],{}):
+                before=path.read_bytes()
+                with self.assertRaises(ValueError):c.save(menu_grid_snap=invalid)
                 self.assertEqual(path.read_bytes(),before)
 
     def test_legacy_menu_choices_migrate_in_memory_until_explicit_save(self):

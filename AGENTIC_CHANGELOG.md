@@ -4,6 +4,25 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 04:14 -03:00 — Independent snapping, relative parameter layout and session camera
+
+Separated block and floating-menu snap defaults because the user wants free-moving
+menus independently of snapped diagrams. Both are off by default; Ctrl inverts
+only the relevant layer, with transactional Preview/Cancel/Save. Added the
+workspace-owned expanded-layout option: zero-parameter blocks collapse, the
+smallest positive block uses minimum expanded height, and larger blocks scale
+relatively up to four times minimum. Native and read-only CLI counts use the
+same validated graph contract; scientific computation is unchanged.
+Pan, zoom and Fit now remain session-only and opening starts fitted, because
+viewport changes should not dirty a workspace. Fixed toast text intercepting
+underlying controls; only its visible close button intercepts input.
+Full612 Python tests (195.726s),258 JavaScript tests (1086.422ms), actual sandboxed
+Qt independent snap combinations, parameter sizing/history/save/reload, camera,
+preferences, UI/Softmax and worker fit/retry/report/notebook checks pass. Numerical
+outputs, weights and gradients remain bitwise equal after parameter layout.
+Failed probes remain in campaign evidence. Local C branch only: no integration,
+publication, user configuration change or application restart.
+
 ## 2026-10-11 03:58 -03:00 — Panel presets, snap defaults and clean architecture opens
 
 Implemented explicit workspace-owned panel arrangements, with strict portable

@@ -196,7 +196,8 @@ pre,input,select{font-size:calc(var(--ui-font-size,14px) - 1px)}
 .architecture-bookkeeping .bookkeeping-contract{color:var(--blue)}
 .loom-math{overflow-wrap:normal}.loom-math .MathJax_SVG{color:inherit!important}
 #toast{display:flex;align-items:center;gap:14px;opacity:0;transition:opacity .25s ease;pointer-events:none;max-width:calc(100vw - 32px)}
-#toast.toast-visible{opacity:1;pointer-events:auto}
+#toast.toast-visible{opacity:1}
+#toast.toast-visible #toast-close{pointer-events:auto}
 #toast-message{min-width:0;overflow-wrap:anywhere}
 #toast-close{flex-shrink:0;background:transparent;border:0;padding:2px 6px;color:inherit;font-size:20px;line-height:1.2}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
