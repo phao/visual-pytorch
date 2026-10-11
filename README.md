@@ -49,6 +49,10 @@ the drawing-to-training workflow; it is not a real-world benchmark.
 Recurrent operators, notebook generation and richer experiment management remain
 future work. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
+
+The local development branch additionally includes [Softmax with selectable
+sample axes](docs/softmax.md) and the richer Stage C experiment interfaces.
+These are not included in the initial `v0.1.0-alpha.1` prerelease.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
 ![Compact blocks retain dimensions and bias; bulk layout has independent profiles](assets/screenshots/interface-collapsed.png)

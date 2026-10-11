@@ -6,12 +6,7 @@
   const L = window.LoomLayout;
   const T = window.LoomTensorOperators;
   const floating = window.LoomPanels.initialize(document);
-  const activationInfo = {
-    ReLU: ["h = max(0, z)", "Keeps positive features; zeros negative ones."],
-    Tanh: ["h = tanh(z)", "Smooth, zero-centered output between −1 and 1."],
-    Sigmoid: ["h = 1 / (1 + exp(−z))", "Bounds each feature between 0 and 1. Regression still uses MSE, not a classification loss."],
-    GELU: ["h = z · Φ(z)", "Smooth gating using the normal CDF. PyTorch uses the exact, non-approximated mode."],
-  };
+  const activationInfo = window.LoomActivations.info;
   let host, state = {models: {}, recent: []}, doc = null, description = null;
   let selected = null, selectedPort = null, selectedWire = null, connecting = null, drag = null, panel = "experiment";
   let syncQueue = Promise.resolve(), describeGeneration = 0;
@@ -288,7 +283,7 @@
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
-      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? "Elementwise · 0 params" : "Named tensor · float32";
+      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
       const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(note,4.9,14));
       noteText.append(svgElement('title',{},note));group.append(noteText);
       if(n.collapsed){
@@ -296,7 +291,7 @@
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
-          n.type==='Activation'?n.activation:['Input','Output','Reshape'].includes(n.type)?line:
+          n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape'].includes(n.type)?line:
           n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
@@ -438,6 +433,11 @@
       html += '<div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'</div><p class="inspect-note">Preserve the number of elements in each sample. One dimension may be -1, inferred from the incoming tensor. Batch B never changes.</p>';
     } else if (n.type === "Activation") {
       html += '<label class="inspect-label">Activation</label><select id="node-activation"' + (busy() ? ' disabled' : '') + '>' + Object.keys(activationInfo).sort().map(key => '<option' + (key === n.activation ? ' selected' : '') + '>' + key + '</option>').join('') + '</select><div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'<br>0 trainable parameters</div><p class="inspect-note">' + esc(activationInfo[n.activation][1]) + '</p><p class="inspect-note">Activations give the network nonlinear expressive power.</p>';
+      if(n.activation==='Softmax'){
+        const rank=s?.input_shape?.length,dim=n.dim??-1;
+        const resolved=rank?((dim%rank)+rank)%rank:null;
+        html+='<label class="inspect-label" for="softmax-dim">Normalization axis · sample dimensions</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+(busy()?' disabled':'')+'><p class="inspect-note">Axis numbers exclude batch B. Default −1 is the last axis; 0 is the first sample axis.'+(resolved===null?' Connect the input to validate this axis.':' PyTorch dim = '+(resolved+1)+(s?.output_axes?.[resolved]?' ('+esc(s.output_axes[resolved])+')':'')+'.')+'</p>';
+      }
     } else if (n.type === "Concat") {
       html += '<label class="inspect-bias"><input id="flatten-concat" type="checkbox"'+(n.flatten!==false?' checked':'')+(busy()?' disabled':'')+'>Flatten each sample before joining</label><p class="inspect-note">Connect branch outputs to this box. Checked: flatten and concatenate sample values. Unchecked: concatenate the last axis, requiring equal other dimensions. Port order determines concatenation order.</p>';
       n.sources.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + ' · ' + (node(nid)?.features || "?") + '</span><button data-move-input="' + i + '"' + (!i || busy() ? ' disabled' : '') + '>↑</button></div>');
@@ -490,7 +490,17 @@
       persist();
     };
     if ($("bias")) $("bias").onchange = () => { n.bias = $("bias").checked; invalidateRun(); persist(); };
-    if ($("node-activation")) $("node-activation").onchange = () => { n.activation = $("node-activation").value; invalidateRun(); persist(); };
+    if ($("node-activation")) $("node-activation").onchange = () => {
+      n.activation = $("node-activation").value;
+      if(n.activation==='Softmax')n.dim=-1;else delete n.dim;
+      invalidateRun(); persist();
+    };
+    if($('softmax-dim'))$('softmax-dim').onchange=()=>{
+      if(busy())return;
+      try{n.dim=window.LoomActivations.axis($('softmax-dim').value,s?.input_shape?.length??null);}
+      catch(error){toast(error.message,true);renderInspector();return;}
+      invalidateRun();persist();
+    };
     if ($("port-label")) $("port-label").onchange = () => {
       const label = $("port-label").value.trim();
       if (!label) { toast("Give this port a name.", true); renderInspector(); return; }
@@ -511,7 +521,7 @@
     if ($("open-reference")) $("open-reference").onclick = () => safe("openModel", {id: n.ref});
     if ($("tab-reference")) $("tab-reference").onclick = () => safe("openModel", {id: n.ref, newTab: true});
     $("equation").textContent = n.type === "Activation" ? activationInfo[n.activation][0] : n.type === "Reshape" ? "y = x.reshape(B, …shape)" : n.type === "Concat" ? "x = cat(parts, dim="+(n.flatten===false?"−1":"1")+")" : n.type === "Splitter" ? "parts = split(x, sizes, dim=−1)" : n.type === "Replicator" ? "outᵢ = x" : n.type === "Module" ? "y = module(x)" : n.type === "Linear" ? (n.bias ? "y = x Aᵀ + b" : "y = x Aᵀ") : "ŷ = fθ(x)";
-    const activationTex={ReLU:'h=\\max(0,z)',Tanh:'h=\\tanh(z)',Sigmoid:'h=\\frac{1}{1+e^{-z}}',GELU:'h=z\\,\\Phi(z)'};
+    const activationTex=window.LoomActivations.tex;
     const tex=n.type==='Activation'?activationTex[n.activation]:n.type==='Linear'?'y=xA^{\\mathsf T}'+(n.bias?'+b':''):n.type==='Replicator'?'y_i=x':n.type==='Module'?'y=\\operatorname{module}(x)':n.type==='Reshape'?'y=\\operatorname{reshape}(x,B,\\ldots)':n.type==='Concat'?'y=\\operatorname{cat}(x_1,\\ldots)':n.type==='Splitter'?'(y_1,\\ldots)=\\operatorname{split}(x)':'\\hat y=f_\\theta(x)';
     window.LoomMath.set($("equation"),tex).catch(()=>{}); // Keep readable plain formula on failure.
     if(T.types.includes(n.type)){
@@ -537,7 +547,7 @@
     const id = "n_" + Math.random().toString(36).slice(2, 10);
     const block = {id, type, x: after.x + 245, y: after.y};
     if (type === "Linear") Object.assign(block, {features: shape(after)?.output || 1, bias: true});
-    else if (type === "Activation") block.activation = $("activation-select").value;
+    else if (type === "Activation") {block.activation = $("activation-select").value;if(block.activation==='Softmax')block.dim=-1;}
     else if (type === "Reshape") block.shape = shape(after)?.output_shape || [-1];
     else if(T.types.includes(type))Object.assign(block,T.defaults(type,shape(after)?.output_shape));
     else if (type === "Concat") {block.sources=[port?after.id+"@"+port:after.id];block.flatten=true;}

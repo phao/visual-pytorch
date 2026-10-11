@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 03:25 -03:00 — Selectable-axis Softmax across the product
+
+Added Softmax to the existing Activation block, with explicit sample-axis
+validation and native/exported PyTorch mapping, because the user requested
+N-way probability outputs. Inspector edits, compact labels, history, `.vtw`,
+CLI and frozen notebook closures share the contract. Existing activation
+documents and batch independence are preserved. New bundles capture the added
+runtime module; an immutable pre-Softmax closure verifies real legacy notebook
+execution without rewriting inputs. Full588 Python/245 JavaScript tests and
+actual sandboxed Qt Softmax plus fit/retry/report/generation/recovery-export
+checks pass. The first full run exposed a missing notebook dependency; this was
+fixed, not suppressed. Local C development only, not a published release.
+
 ## 2026-10-11 03:03 -03:00 — Exact saved-attempt curves and CLI parity
 
 Implemented a read-only head/point projection and actual SVG/table viewers in

@@ -13,6 +13,7 @@
   <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
   <script src="tensor-operators.js" defer></script>
+  <script src="activations.js" defer></script>
   <script src="building-block-help.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
@@ -68,7 +69,7 @@
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
       <div id="library-scroll" class="scrollport">
       <div class="sidebar-section"><div class="eyebrow">BUILDING BLOCKS</div><button id="add-linear" class="palette"><span class="type-symbol purple-text">ƒ</span><span><b>Linear</b><small>Learn a matrix and a bias</small></span><span>+</span></button>
-      <label for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Tanh</option></select>
+      <label for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Softmax</option><option>Tanh</option></select>
       <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>

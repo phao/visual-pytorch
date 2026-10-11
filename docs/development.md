@@ -15,6 +15,39 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 03:25 -03:00 — Explicit selectable-axis Softmax
+
+The user's requested N-way Softmax is now an Activation choice. A declared sample
+axis excludes batch B and resolves to the corresponding PyTorch dimension in
+both native compilation and standalone export. The Inspector, compact labels,
+history, `.vtw`, atomic CLI edits and captured notebook runtime agree. Validation
+rejects invalid axes before allocating Torch layers; old activation documents
+are unchanged. [softmax.md](softmax.md) specifies the complete contract and
+primary references, including the distinction from raw-logit cross-entropy.
+
+Full588 Python tests pass191.436s; full245 JavaScript tests pass1178.411ms.
+Fourteen Softmax cases include independent scalar probabilities and analytic
+gradients, multidimensional positive/negative axes, batch independence, joined
+input paths, extreme logits, singleton axes, standalone export and an actual
+probability-target fit. Three new notebook regressions include actual fresh-kernel
+Softmax execution, genuine pre-Softmax execution and rejection of an incomplete
+new closure. Final17 focused cases pass6.507s. Actual sandboxed Qt tests pass
+palette/inspector changes, invalid edits, undo/redo, folding, code and save/reload;
+the rendered capture was inspected. Final actual fit/retry/report/notebook-
+generation/save-reload/failed-admission/recovery-export regression also passes,
+without host Torch or console errors. Eight GUI candidate fits/all split methods
+were independently checked during this change, before the final notebook fix.
+
+The initial584-test run failed13 tests plus one error after extracting activation
+contracts without copying the new module into notebook runtimes. New bundles now
+capture all21 modules; verified genuine legacy20-module bundles remain untouched.
+A source-only immutable fixture pins the pre-extraction runtime. Earlier smoke
+failures were incorrect test API/metric/SQL-baseline/DOM assumptions, corrected
+without relaxing numerical or identity checks. Logs and capture are retained in
+the private campaign's `evidence/stage-c-saved-curves-20261011/`. No new database
+schema or user config, restart, installer or remote publication. C remains
+unmerged/incomplete; whole-window geometry/integration and D/E are still next.
+
 ### 2026-10-11 03:03 -03:00 — Saved-attempt curves in the actual editor
 
 `scienceRunCurve` and read-only CLI `run-curve` now share an exact retained-head

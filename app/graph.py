@@ -127,7 +127,11 @@ def contract(models, mid, ancestry=(), cache=None):
             matrix_affine = matrix_affine and len(before) == 1
             origin = (nid, None)
         elif kind == 'Activation':
-            activation_name(n.get('activation'))
+            from .activations import normalize_activation
+            normalize_activation(n)
+            if n['activation'] == 'Softmax':
+                from .activations import softmax_axis
+                softmax_axis(n, len(before))
             affine = False
             origin = (nid, None)
         elif kind == 'Reshape':

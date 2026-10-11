@@ -6,6 +6,11 @@ standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 Argument usage errors use argparse exit 2. Architecture names never substitute
 for explicit IDs.
 
+The local prototype also accepts `Activation` nodes with `activation:Softmax`
+and `dim` (default −1). This axis indexes sample dimensions, excluding batch B;
+CLI validate/export and ordinary `set-node` edits use exactly the GUI convention.
+See [softmax.md](softmax.md) for valid axes, PyTorch mapping and loss semantics.
+
 ```sh
 python vpw_cli.py lab.vtw init
 python vpw_cli.py lab.vtw inspect

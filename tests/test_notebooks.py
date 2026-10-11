@@ -293,6 +293,69 @@ write_no_training_audit()
         self.assertTrue(all(c.execution_count is None for c in after if c.cell_type == 'code'))
         self.assertEqual((attempt / 'requested.ipynb').read_bytes(), (Path(exported['path']) / 'requested.ipynb').read_bytes())
 
+    def test_actual_softmax_rerun_kernel_contains_complete_runtime_and_probability_predictor(self):
+        from app.core import default_model
+        from evidence_fixture import experiment
+        from test_authoring import measurements
+        m=default_model('Explicit probabilities',inputs=1,outputs=3)
+        m['graph']['nodes'].insert(2,{'id':'probabilities','type':'Activation','activation':'Softmax','dim':-1})
+        m['graph']['edges']=[{'from':'input','to':'linear1'},{'from':'linear1','to':'probabilities'},
+                             {'from':'probabilities','to':'output'}]
+        data=measurements();data['fields'][1]['shape']=[3]
+        for row in data['records']:row['values']['y']=[.2,.3,.5]
+        task={'version':1,'id':'probability-task','name':'Probability regression',
+              'inputs':[{'port':'input','field':'x','transforms':[]}],
+              'heads':[{'id':'probability','port':'output','field':'y','loss':'mse','weight':1.,'transforms':[]}]}
+        ref=experiment(self.w,m,data,task,'softmax-notebook',updates=3,history_limit=4)
+        e=self.w.get_spec('experiment',ref['id'],ref['revision']);e.pop('revision');e['initialization_seeds']=[7]
+        ref=self.w.put_spec('experiment',e);self.e=self.w.get_spec('experiment',ref['id'],ref['revision'])
+        recipe=self.recipe();before=self.w.db.serialize()
+        directory,attempt,result=self.execute(recipe,destination='softmax-rerun')
+        self.assertTrue((directory/'runtime/app/activations.py').is_file())
+        view=json.loads((attempt/'report-data.json').read_text());self.assertEqual(len(view['runs']),1)
+        self.assertEqual(view['runs'][0]['status'],'completed')
+        predictor=next(attempt.glob('predictor-*.py'));self.assertIn('nn.Softmax(dim=1)',predictor.read_text())
+        probe='import runpy,sys,torch;ns=runpy.run_path(sys.argv[1]);y=ns["model"](torch.tensor([[1.],[2.]]));assert tuple(y.shape)==(2,3);assert torch.allclose(y.sum(1),torch.ones(2));assert not any(n=="app" or n.startswith("app.") for n in sys.modules);print("PASS")'
+        check=subprocess.run([sys.executable,'-c',probe,str(predictor)],text=True,capture_output=True,cwd=self.root,timeout=20)
+        self.assertEqual(check.returncode,0,check.stderr);self.assertEqual(check.stdout.strip(),'PASS')
+        self.assertEqual(self.w.db.serialize(),before);self.assertEqual(self.w.list_specs('run'),[])
+
+    def test_actual_pre_softmax_bundle_keeps_its_original_runtime_and_executes(self):
+        import hashlib
+        import zipfile
+        from app.notebooks import RUNTIME
+        fixture=Path(__file__).parent/'fixtures/legacy-report-runtime-v1.zip'
+        self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(),
+                         '7114ff088dd8acfb72bc92704cadaf45473ee1b0b61c222a4d62615a269e1c8a')
+        legacy=self.root/'legacy';legacy.mkdir()
+        with zipfile.ZipFile(fixture) as archive:
+            self.assertTrue(all(not Path(n).is_absolute() and '..' not in Path(n).parts for n in archive.namelist()))
+            archive.extractall(legacy)
+        run=self.trial('legacy-failed',python='/missing/legacy-notebook-python')
+        recipe=self.recipe('result-report',[run['reference']]);before=self.w.db.serialize()
+        old_runtime=tuple(n for n in RUNTIME if n!='activations.py')
+        with patch('app.notebooks.RUNTIME',old_runtime),patch('app.notebooks.__file__',str(legacy/'app/notebooks.py')):
+            exported=create_bundle(self.w,recipe,self.root/'legacy-bundle')
+        root,manifest,notebook=verify_bundle(exported['path'])
+        self.assertNotIn('runtime/app/activations.py',manifest['files'])
+        original=(root/'requested.ipynb').read_bytes()
+        result=execute_bundle(root,timeout=60)
+        self.assertEqual(result['execution']['status'],'completed',result['execution']['error'])
+        self.assertEqual((root/'requested.ipynb').read_bytes(),original)
+        self.assertFalse((root/'runtime/app/activations.py').exists())
+        view=json.loads((Path(result['path'])/'report-data.json').read_text())
+        self.assertFalse(view['notebook_execution']['training_requested'])
+        self.assertEqual(self.w.db.serialize(),before)
+
+    def test_new_runtime_cannot_masquerade_as_old_bundle_to_omit_activation_dependency(self):
+        ref=self.recipe();exported=create_bundle(self.w,ref,self.root/'incomplete-activation')
+        root=Path(exported['path']);manifest=json.loads((root/'manifest.json').read_text())
+        manifest['files'].pop('runtime/app/activations.py')
+        (root/'runtime/app/activations.py').unlink()
+        (root/'manifest.json').write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(GraphError,'requires its captured activations.py'):
+            verify_bundle(root)
+
     def test_actual_cell_timeout_retains_terminal_failure(self):
         def slow(payload, index):
             nb = build_notebook(payload, index)

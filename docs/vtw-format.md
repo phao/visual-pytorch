@@ -217,7 +217,7 @@ Current training tensors are float32.
 | --- | --- | --- |
 | Input | shape; legacy features; optional axes | Exact named sample shape; explicit shape takes precedence; features=d means shape=[d]. axes lists unique sample-axis names (one per dimension), never B. |
 | Linear | features, bias (default true) | nn.Linear(in_last,out_features); last axis only, shared weights across all preceding sample positions. |
-| Activation | activation | ReLU, Tanh, Sigmoid or exact GELU; axes preserved. |
+| Activation | activation; Softmax dim=-1 | ReLU, Tanh, Sigmoid or exact GELU are elementwise. Softmax normalizes a slice along one sample axis, excluding B; dim indexes sample dimensions, negative indices count from the end. Runtime nn.Softmax gets the resolved index plus 1. Shapes and axes are preserved. |
 | Reshape | shape | x.reshape(B,*resolved_shape); sample product preserved; one -1 inferred; B never reshaped. |
 | Concat | sources, flatten (default true) | Ordered incoming tensors; flatten each sample then concatenate dim 1, or concatenate dim -1 with matching preceding dimensions when flatten=false. |
 | Splitter | parts=[{output:port_id,features:size},...] | torch.split on last axis; positive sizes sum to incoming last-axis width; other axes preserved. |

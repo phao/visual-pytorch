@@ -18,16 +18,12 @@ from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
 from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
+from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
+from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
 VERSION = 6
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
-ACTIVATIONS = {
-    "ReLU": "nn.ReLU(inplace=False)",
-    "Tanh": "nn.Tanh()",
-    "Sigmoid": "nn.Sigmoid()",
-    "GELU": "nn.GELU(approximate='none')",
-}
 
 
 def timestamp():
@@ -56,12 +52,6 @@ def default_model(name="Linear regression", inputs=2, outputs=1):
 
 class GraphError(ValueError):
     pass
-
-
-def activation_name(value):
-    if not isinstance(value, str) or value not in ACTIVATIONS:
-        raise GraphError("Choose an activation: ReLU, Tanh, Sigmoid, or GELU.")
-    return value
 
 
 def default_mlp(name="MLP regression", inputs=2, outputs=1, hidden=(16, 16), activation="Tanh"):
@@ -264,7 +254,7 @@ def check_document(doc):
         if node["type"] == "Linear" and not isinstance(node.get("bias", True), bool):
             raise GraphError("Bias must be true or false.")
         if node["type"] == "Activation":
-            activation_name(node.get("activation"))
+            normalize_activation(node)
         if node["type"] == "Module" and not isinstance(node.get("ref"), str):
             raise GraphError("An architecture block needs a reference ID.")
         for key in ("x", "y"):
@@ -676,7 +666,7 @@ def generate_code(models, model_id):
                 s = contract["shapes"][node["id"]]
                 op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
             elif node["type"] == "Activation":
-                op = ACTIVATIONS[activation_name(node.get("activation"))]
+                op = activation_constructor_code(node, len(contract['shapes'][node['id']]['input_shape']))
             elif node["type"] == "Reshape":
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
             elif node['type'] in TENSOR_OPERATORS:
@@ -728,7 +718,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
                               device='cpu', dtype=torch.float32)
         elif node["type"] == "Activation":
             name = activation_name(node.get("activation"))
-            layer = getattr(nn, name)()
+            layer = (nn.Softmax(dim=softmax_axis(node, len(contract['shapes'][node['id']]['input_shape'])) + 1)
+                     if name == 'Softmax' else getattr(nn, name)())
         elif node["type"] == "Reshape":
             layer = Reshape(contract["shapes"][node["id"]]["output_shape"])
         elif node['type'] in TENSOR_OPERATORS:
