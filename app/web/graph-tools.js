@@ -16,13 +16,17 @@
     return {width,padding,headerY,titleY,shapeY,detailY,footerInset,baseHeight:detailY+padding+footerInset,socketTop:titleY+5,rowGap:14+5*t};
   }
   const id = () => "n_" + Math.random().toString(36).slice(2, 12);
+  function blockToggleShortcut(event){
+    if(event.key!==' ' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)return false;
+    return !event.target?.isContentEditable && !event.target?.closest?.('input,textarea,select,button,a,summary,[contenteditable],[role="button"],[role="textbox"],[role="combobox"],[role="slider"],[role="checkbox"],[role="switch"]');
+  }
   const node = (doc, nid) => doc.graph.nodes.find(n => n.id === nid);
   const routers = n => ["Splitter", "Replicator"].includes(n.type);
-  const multiOutput = n => routers(n) || n.type==='Recurrent';
+  const multiOutput = n => routers(n) || R.multiport(n);
   const outputs = n => n.type === "Splitter" ? n.parts.map(p => p.output) : n.outputs;
-  const outputPorts = n => n.type==='Recurrent'?R.ports(n):outputs(n);
+  const outputPorts = n => R.multiport(n)?R.ports(n):outputs(n);
   function tensorShape(n,entry,port=null){
-    if(n.type==='Recurrent')return entry?.ports?.[port];
+    if(R.multiport(n))return entry?.ports?.[port];
     if(n.type==='Splitter'){
       const base=entry?.input_shape,part=n.parts.find(row=>row.output===port);
       return base&&part?[...base.slice(0,-1),part.features]:undefined;
@@ -31,7 +35,7 @@
   }
   function replaceSource(n,oldKey,newKey){
     if(n.type==='Concat')n.sources=n.sources.map(key=>key===oldKey?newKey:key);
-    if(n.type==='Recurrent')R.replaceSource(n,oldKey,newKey);
+    if(R.multiport(n))R.replaceSource(n,oldKey,newKey);
   }
   function unusedLabel(doc, type, prefix, first = 1) {
     const used = new Set(doc.graph.nodes.filter(n => n.type === type).map(n => (n.label || n.id).trim()));
@@ -50,7 +54,7 @@
     const m=metrics();return {width:m.width,height:Math.max(m.baseHeight,m.socketTop+10+count*m.rowGap)};
   }
   const width = n => n.collapsed ? 72 : Math.max(minimumSize(n).width,n.width || 0);
-  const height = n => n.collapsed ? Math.max(['Linear','Conv2d'].includes(n.type)?54:44,16*Math.max(slots(n,true).length,slots(n,false).length)+10) : Math.max(minimumSize(n).height,n.height || 0);
+  const height = n => n.collapsed ? Math.max(['Linear','Conv2d','LSTM'].includes(n.type)?54:44,16*Math.max(slots(n,true).length,slots(n,false).length)+10) : Math.max(minimumSize(n).height,n.height || 0);
   function resizeBlock(n,w,h,snap=false){
     if(!Number.isFinite(w) || !Number.isFinite(h))throw new Error('Use finite block dimensions.');
     const min=minimumSize(n),corner=snapPosition(n.x+Math.max(min.width,w),n.y+Math.max(min.height,h),snap);
@@ -61,7 +65,7 @@
   function slots(n, output) {
     if ((output && n.type === "Output") || (!output && n.type === "Input")) return [];
     if (!output && n.type === "Concat") return [...n.sources,null];
-    if(n.type==='Recurrent')return output?R.ports(n):R.sources(n);
+    if(R.multiport(n))return output?R.ports(n):R.sources(n);
     if (output && routers(n)) return outputs(n);
     return [null];
   }
@@ -206,7 +210,7 @@
     if(multiOutput(a) && (!fromPeer || !outputPorts(a).includes(fromPeer)))throw new Error("Choose a declared output socket.");
     if(!multiOutput(a) && fromPeer!==null)throw new Error('This box has no named output socket.');
     const key=fromPeer ? from+'@'+fromPeer : from;
-    if(b.type==='Recurrent') {
+    if(R.multiport(b)) {
       if(!R.sources(b).includes(toPeer))throw new Error('Choose a declared recurrent input socket.');
       // Replace just this physical source binding; other argument wires stay put.
       doc.graph.edges=doc.graph.edges.filter(e=>!(e.to===to && sourceKey(e)===toPeer));
@@ -221,7 +225,7 @@
       });
     }
     doc.graph.edges = doc.graph.edges.filter(e =>
-      !(e.to === to && !['Concat','Recurrent'].includes(b.type)) && !(e.from === from && e.to === to && (e.from_port || null)===(fromPeer || null)));
+      !(e.to === to && !['Concat','Recurrent','LSTM'].includes(b.type)) && !(e.from === from && e.to === to && (e.from_port || null)===(fromPeer || null)));
     const edge={from,to};
     if(multiOutput(a)) {
       edge.from_port=fromPeer;
@@ -254,14 +258,14 @@
     const index=draft.graph.edges.findIndex(e=>sameWire(e,edge));
     const found=draft.graph.edges[index],dest=node(draft,to);
     if(!found || !node(draft,found.from) || !dest)throw new Error('Connection or destination no longer exists.');
-    if(found.to===to && (dest.type!=='Recurrent' || toPeer===sourceKey(found)))return false;
+    if(found.to===to && (!R.multiport(dest) || toPeer===sourceKey(found)))return false;
     if(dest.type==='Input' || to===found.from)throw new Error('Choose a valid input socket.');
     if(draft.graph.edges.some(e=>!sameWire(e,found) && sameWire(e,{...found,to})))
       throw new Error('That source is already connected to this destination.');
     const occupied=draft.graph.edges.some(e=>e.to===to);
-    if(dest.type==='Recurrent' && (!R.sources(dest).includes(toPeer) || draft.graph.edges.some(e=>e.to===to && sourceKey(e)===toPeer)))
+    if(R.multiport(dest) && (!R.sources(dest).includes(toPeer) || draft.graph.edges.some(e=>e.to===to && sourceKey(e)===toPeer)))
       throw new Error('Choose an empty declared recurrent input socket.');
-    if((!['Concat','Recurrent'].includes(dest.type) && occupied) || (dest.type==='Concat' && toPeer!==null))
+    if((!['Concat','Recurrent','LSTM'].includes(dest.type) && occupied) || (dest.type==='Concat' && toPeer!==null))
       throw new Error('That input is occupied. Choose an empty socket (the last socket on Concat).');
     const seen=new Set(),todo=[to];
     while(todo.length){
@@ -270,7 +274,7 @@
       draft.graph.edges.filter(e=>e.from===current && !sameWire(e,found)).forEach(e=>todo.push(e.to));
     }
     removeWire(draft,found);
-    if(found.to===to && dest.type==='Recurrent') {
+    if(found.to===to && R.multiport(dest)) {
       // The old argument stays visibly disconnected; moving to another socket
       // must not silently bind both arguments to the one remaining wire.
       R.replaceSource(dest,sourceKey(found),'disconnected/'+id());
@@ -294,7 +298,7 @@
     if(!removed)throw new Error('Block does not exist.');
     // Unary operations and tensor aliases can bypass without guessing a merge/slice.
     const distinctDestinations=new Set(outgoing.map(edge=>edge.to)).size===outgoing.length;
-    const bypass=incoming.length===1 && !['Input','Output','Concat','Splitter','Recurrent'].includes(removed.type) && (removed.type!=='Replicator' || distinctDestinations);
+    const bypass=incoming.length===1 && !['Input','Output','Concat','Splitter','Recurrent','LSTM'].includes(removed.type) && (removed.type!=='Replicator' || distinctDestinations);
     const replacements=bypass ? outgoing.map(edge=>({...incoming[0],to:edge.to})) : [];
     const sourceKey=bypass ? incoming[0].from+(incoming[0].from_port?'@'+incoming[0].from_port:'') : null;
     doc.graph.nodes=doc.graph.nodes.filter(n=>n.id!==nid);
@@ -303,7 +307,7 @@
     for(const join of doc.graph.nodes.filter(n=>n.type==='Concat')){
       join.sources=[...new Set(join.sources.flatMap(key=>key===nid || key.startsWith(nid+'@') ? sourceKey?[sourceKey]:[] : [key]))];
     }
-    if(bypass)for(const recurrent of doc.graph.nodes.filter(n=>n.type==='Recurrent'))
+    if(bypass)for(const recurrent of doc.graph.nodes.filter(R.multiport))
       for(const key of R.sources(recurrent))if(key===nid || key.startsWith(nid+'@'))R.replaceSource(recurrent,key,sourceKey);
     return incoming[0]?.from || doc.graph.nodes[0]?.id || null;
   }
@@ -319,5 +323,5 @@
     return {zoom,x:rect.x+(rect.width-(right-left)*zoom)/2-left*zoom,
                  y:rect.y+(rect.height-(bottom-top)*zoom)/2-top*zoom,fitted:true};
   }
-  return {GRID,setSpacing,metrics,snapPosition, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
+  return {GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
 });

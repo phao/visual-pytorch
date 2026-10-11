@@ -26,7 +26,7 @@ from .file_sync import revision, stamp
 from .job_state import job_busy
 
 from PyQt6.QtCore import QObject, QSettings, QThread, QTimer, QUrl, Qt, pyqtSignal as Signal, pyqtSlot as Slot
-from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont
+from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont, QDesktopServices
 from PyQt6.QtWidgets import (QApplication, QFileDialog, QInputDialog, QMainWindow,
                             QMessageBox, QTabWidget, QDialog, QFormLayout, QDoubleSpinBox,
                             QSpinBox, QDialogButtonBox, QComboBox, QCheckBox)
@@ -604,6 +604,14 @@ class Window(QMainWindow):
 
     def _dispatch(self, req, bridge):
         action = req.get("action")
+        if action == 'openHelpResource':
+            resources={'pytorch-basics':'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
+                       'pytorch-nn':'https://docs.pytorch.org/docs/stable/nn.html'}
+            if set(req) != {'action','id'} or not isinstance(req['id'],str) or req['id'] not in resources:
+                raise ValueError('Unknown help resource.')
+            if not QDesktopServices.openUrl(QUrl(resources[req['id']])):
+                raise ValueError('Could not open the help resource in your browser.')
+            return True
         if action == "state":
             return self.state()
         if action == "newWorkspace":

@@ -47,6 +47,8 @@ def _dependency_specification(models, mid, declared, *, temporal=False):
         from .core import check_document
         check_document(models[key])
         for n in models[key]['graph']['nodes']:
+            if n['type'] == 'LSTM':
+                raise GraphError('Runtime-spatial-v1 and runtime-temporal-v1 do not support LSTM graph blocks yet; use a concrete graph.')
             if n['type'] == 'Recurrent' and not temporal:
                 raise GraphError('Runtime-spatial-v1 does not declare temporal recurrent ports; use a concrete recurrent graph until the temporal runtime contract is selected.')
             if n['type'] in {'Module', 'Recurrent'}: closure(n['ref'])

@@ -1,5 +1,40 @@
 # Development state and roadmap
 
+## 2026-10-11 16:10 -03:00 — Concrete LSTM state gate and Help hub
+
+Local D now implements concrete stacked, bidirectional and projected LSTM with
+explicit supplied initial states/lengths and named sequence/hidden/cell outputs.
+See [exact contract and remaining authoring limits](lstm-graph-contract.md).
+Container17 and ModelRevision4 fence the new operator; family1–6 and existing
+runtime-spatial/temporal-v1 still reject it. A–C public main stays unchanged.
+No claim of runtime-T LSTM, palette creation or guarded constructor editing.
+Parameter-sized layout for LSTM also remains to be integrated.
+
+Independent explicit gate/gradient scans cover16 constructors, row-specific
+packing, nonfinite padding, zero-length gradients/state identity, shared ownership
+and nested/mixed graphs. Bounded70-update teacher fitting and60-update masked
+task/real worker, restored/app-free predictions and actual saved/rerun kernels
+pass. Full frozen Python runtime1102 tests469.637s passes (3 Qt-only skips covered
+in11 native export cases0.876s). After that suite completed, Help changed frontend
+and native desktop dispatch only; full337 JavaScript tests,39 focused Python
+UI/preset tests and actual sandboxed Qt LSTM/Space/Help plus workspace-panel
+checks pass. The entire Python suite was not rerun after those UI-only changes.
+
+Space toggles the selected block, respecting typing/native controls and history.
+Help replaces the bottom shortcut caption, with H toggling, a24-row table and
+separate drawing/learning-resource sections. Links scroll locally without
+changing architecture navigation; external official PyTorch resources use an
+allowlist and system-browser launch on explicit clicks. Native tests intercept
+the OS browser launcher, not a real user's browser. Help is tab-local and excluded
+from unchanged version-1 five-panel presets; ordinary frame/layer behaviors apply.
+Actual large-font/narrow-table, drag/resize, no-SQL/config/history mutation and
+existing preset/open-tab/ESC-hide behavior are verified. Future richer Help
+documentation/NN examples are a direction, not implemented full guides.
+
+Remaining D requires coherent LSTM authoring and explicit new family/runtime
+grammars plus requirement-level convergence. E durable/distributed execution is
+still unstarted. Full A–E goal remains active; no public D push or user-state edits.
+
 ## 2026-10-11 15:30 -03:00 — A–C published; retained D restored and verified
 
 GitHub push succeeded; remote main matches

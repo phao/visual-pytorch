@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 16
+# Visual Torch Workspace (.vtw): format specification, version 17
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -18,16 +18,17 @@ version-7 container; they add no SQL table or sidecar. The
 [explicit runtime task execution](runtime-task-execution.md) requires version13;
 [recurrent graph references](recurrent-graph-contract.md) require version14;
 [retained temporal families](temporal-families.md) require version15;
-[explicit temporal experiment execution](temporal-task-execution.md) requires version16.
+[explicit temporal experiment execution](temporal-task-execution.md) requires version16;
+[projected/bidirectional LSTM ports](lstm-graph-contract.md) require version17.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 16. The current reader accepts versions 1–16; opening
-an older file copies it into memory and upgrades the working version to 16.
-Opening alone never rewrites the source; explicit Save writes version 16.
+PRAGMA user_version = 17. The current reader accepts versions 1–17; opening
+an older file copies it into memory and upgrades the working version to 17.
+Opening alone never rewrites the source; explicit Save writes version 17.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -93,7 +94,12 @@ execution choice and TaskBundle v3's exact temporal provenance. Earlier headers
 containing experiment/run v5 fail. No SQL table, TaskSpec, DatasetSpec or report
 recipe version changes. Existing concrete/spatial execution retains its explicit
 meaning. See [temporal-task-execution.md](temporal-task-execution.md).
-Older binaries are not expected to open version 16;
+Version17 adds the closed LSTM v1 operator and ModelRevision v4, without SQL
+changes. Older headers containing these drawings/revisions fail closed. Existing
+family1–6 and spatial/temporal runtime policies do not gain LSTM semantics.
+See [LSTM graph contract](lstm-graph-contract.md) for explicit batch-leading
+hidden/cell adapters, projection/direction order, lengths and limits.
+Older binaries are not expected to open version 17;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -134,7 +140,7 @@ creates external evidence; no browser projection is a persisted scientific spec.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 16;
+PRAGMA user_version = 17;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -185,7 +191,8 @@ experiment/run additionally support integer version4 in a version-13 container;
 model additionally supports integer version3 in a version-14 container;
 family additionally supports integer version6 and specialization integer version5
 in a version-15 container; experiment/run additionally support integer version5
-in a version-16 container);
+in a version-16 container; model additionally supports integer version4
+in a version-17 container);
 other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
@@ -311,6 +318,7 @@ Current training tensors are float32.
 | Replicator | outputs=[port_id,...] | All ports alias the same full tensor; no clone or parameters. |
 | Module | ref | Independently instantiated graph reference; exact packed input shape match, canonical forward_tensor output. |
 | Recurrent | ref, sequence_inputs, states, sequence_outputs, optional controls | Explicit transition graph unroll; named state/sequence output ports, constant shared step weights, validated control adapters. See recurrent-graph-contract.md. |
+| LSTM | inputs, hidden_size, num_layers, bidirectional, proj_size, bias, optional lengths | Native stacked/projected/bidirectional LSTM with explicit sequence/initial-hidden/initial-cell source bindings and named sequence/hidden/cell returns. See lstm-graph-contract.md. |
 | Output | optional shape, label | Identity boundary. Shape asserts incoming dimensions; it never implicitly reshapes. |
 
 Structured operators use integer op_version=1. Missing version is interpreted
@@ -391,7 +399,12 @@ Recurrent instead has explicitly bound incoming wire keys and named outgoing
 ports. Feedback is internal to its loop; the surrounding graph remains acyclic.
 Recurrent bodies occupy a registered `transition` submodule below the owner.
 
-State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent
+LSTM has three fixed named output sockets and explicitly bound incoming sources.
+Its registered native parameters use LSTM gate/direction/projection names, without
+a transition-architecture reference. Hidden/cell graph states are batch-leading,
+and adapt to PyTorch's layer-leading states explicitly.
+
+State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent/LSTM
 and the six structured operators above,
 in topological order, nested through references. Boundary/Concat/router nodes
 do not occupy these operation indices. Paths can change after graph insertion/

@@ -4,6 +4,44 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 16:10 -03:00 — Help hub and selected-block Space folding
+
+Moved bottom-of-canvas shortcut prose into a normal floating Help panel, because
+the user wants an uncluttered drawing and a documentation hub that can grow.
+Added H toggling, Drawing / Shortcuts / Learning resources sections and a
+24-row semantic table. Official PyTorch links use a closed desktop allowlist and
+open only after user activation, outside the trusted editor. Local section links
+never change the model URL. Help remains tab-local so existing five-panel .vtw
+presets keep their exact grammar. Panel shortcuts leave native controls alone.
+Plain Space folds the selected block in one undoable edit, without stealing text,
+buttons or dialogs. Actual sandboxed Qt verifies toggles, typing/control guards,
+drag/resize, larger-font table wrapping, section navigation, browser dispatch
+(OS launcher mocked), unchanged SQL/history/config and existing panel presets.
+Full JavaScript and focused Python UI/preset regressions pass. No user app restart.
+CPW/Git handoffs preserve this local D checkpoint; main/public are unchanged.
+
+## 2026-10-11 16:10 -03:00 — Verified concrete projected/bidirectional LSTM
+
+Reviewed/restored the deferred draft and implemented a closed concrete LSTM
+operator with explicit sequence/initial-hidden/initial-cell/length bindings and
+three stable returned ports. Batch-first graph states adapt explicitly to native
+state axes; projected cell width stays separate from hidden width. Packed
+positive prefixes, zero-length identity states/zero sequence gradients, shared
+parameters, current-batch RAM admission, container17/ModelRevision4, CLI,
+app-free export and notebook closures are specified. Old family/runtime grammars
+reject it instead of changing their meanings.
+
+Final frozen-runtime suite:1102 Python469.637s (1099 executed/3 Qt-only skips,
+covered by11 native family-export cases0.876s). Independent gate scans check all
+inputs/states/parameters across16 constructor combinations, not another native
+LSTM wrapper. Bounded70-update fitting,60-update concrete task/real worker,
+exact saved/app-free prediction and actual saved/rerun notebook kernels pass.
+Real Qt checks imported-example inspection/ports/folding/drag/history/reload;
+this is NOT a palette creation form. Initial obsolete legacy-closure fixtures
+were corrected without changing their captured bytes/hashes. D remains incomplete:
+LSTM creation/constructor editing, family/runtime-T grammar and remaining D gates
+are still pending. E is unstarted. No public/main merge or push.
+
 ## 2026-10-11 15:30 -03:00 — Verified A–C push and retained D convergence
 
 Pushed verified A–C main d2fcecbb010a3c690d8c66ce47e3223e730ed59b to GitHub,

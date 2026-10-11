@@ -310,12 +310,13 @@
       let line;
       if (n.type === "Input") line = shapeText(n.shape || [n.features]);
       else if (n.type === "Output") line = shapeText(s?.output_shape || n.shape);
-      else if(n.type==='Recurrent')line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??'?');
+      else if(R.multiport(n))line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??s?.lstm?.steps??'?');
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
       const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const sharingNote=n.share_with?(['Linear','Conv2d'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+note:note;
+      const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):note;
+      const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
       const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
       noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
       if(n.collapsed){
@@ -324,10 +325,10 @@
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
           n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape'].includes(n.type)?line:
-          n.type==='Recurrent'?'T '+(s?.recurrent?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
-        const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
+          R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
+        const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
-        if(['Linear','Conv2d'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
+        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
         group.append(svgElement('title',{},label+' · '+line+' · '+sharingNote));
       }
       for (const output of [false, true]) {
@@ -336,7 +337,7 @@
           const circle = svgElement("circle", {cx: p.x - n.x, cy: p.y - n.y, r: 5,
             class: "port " + (output ? "port-out" : "port-in") + (connecting?.id === n.id && connecting?.peer === peer ? " armed" : ""), "data-id": n.id});
           if (peer) circle.dataset.peer = peer;
-          circle.append(svgElement("title", {}, n.type==='Recurrent'?R.portTitle(n,output,peer)+' · '+shapeText(output?s?.ports?.[peer]:sourceShape(peer)):peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor"));
+          circle.append(svgElement("title", {}, R.multiport(n)?R.portTitle(n,output,peer)+' · '+shapeText(output?s?.ports?.[peer]:sourceShape(peer)):peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor"));
           group.append(circle);
         }
       }
@@ -485,6 +486,11 @@
       html += '<p class="inspect-note">' + (n.type === "Splitter" ? 'Partition the incoming tensor on its last axis into ordered slices. Positive sizes must sum to ' + (s?.input || "the incoming width") + '. Connect each socket to any downstream branch.' : 'Each port exposes the same full tensor, without a physical copy. Connect ports to downstream branches.') + '</p>';
       ids.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + '</span>' + (n.type === "Splitter" ? '<input data-split-size="' + i + '" type="number" min="1" value="' + n.parts[i].features + '"' + (busy() ? ' disabled' : '') + '>' : '<small>full tensor</small>') + '</div>');
       html += '<button id="add-output-port"' + (busy() ? ' disabled' : '') + '>+ Output port</button>';
+    } else if(n.type==='LSTM') {
+      html+='<div class="contract-card">LSTM · '+esc(n.num_layers??1)+' layers · '+(n.bidirectional?'bidirectional':'forward')+'<br>Cell width: '+esc(n.hidden_size)+'<br>Hidden width: '+esc(n.proj_size||n.hidden_size)+'<br>Bias '+(n.bias!==false?'on':'off')+' · '+esc(s?.lstm?.parameters??'?')+' learned parameters</div>';
+      for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+'<br>source: '+esc(row.source)+' '+esc(shapeText(sourceShape(row.source)))+(row.adapter?'<br>adapter: '+esc(row.adapter):'')+'</div>';
+      for(const port of R.ports(n))html+='<div class="contract-card">'+esc(R.portTitle(n,true,port))+'<br>'+esc(shapeText(s?.ports?.[port]))+'</div>';
+      html+='<p class="inspect-note">Sequence [B,T,F]; states [B,layers × directions,width]. PyTorch receives states transposed to [layers × directions,B,width]. Projection narrows hidden, not cell. Supplied initial states are explicit; no carry between calls. Lengths run only positive prefixes; zero-length rows keep initial states and emit zero. Execution lengths never choose loss masks. Dropout is fixed at zero. Concrete graph only; family/runtime authoring is not yet available.</p>';
     } else if(n.type==='Recurrent') {
       html+='<button id="edit-recurrent-interface"'+(busy()?' disabled':'')+'>Edit recurrent interface…</button>';
       html+='<div class="contract-card">Transition: '+esc(state.models[n.ref]?.name||n.ref)+'<br>T: '+esc(s?.recurrent?.steps??'unresolved')+' · one parameter owner<br>'+esc(s?.recurrent?.contract?.parameters??'?')+' learned parameters</div><p class="inspect-note">Sequence inputs have a leading T axis. Initial states are supplied data; final states are explicit returned ports. Change T or supplied tensor dimensions by inspecting their Input boxes. Drag a source to a named input socket to replace only that binding.</p>';
@@ -501,7 +507,7 @@
     if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
     if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
-    if(['Linear','Conv2d','Module','Recurrent'].includes(n.type)){
+    if(['Linear','Conv2d','Module','Recurrent','LSTM'].includes(n.type)){
       const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
       if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
       html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
@@ -1096,6 +1102,9 @@
     if(blockIcon && ['Enter',' '].includes(event.key) && !event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey){
       event.preventDefault();const nid=blockIcon.closest('.node').dataset.id;foldBlock(nid,!node(nid).collapsed);return;
     }
+    if(doc && node(selected) && !busy() && !drag && !connecting && G.blockToggleShortcut(event)){
+      event.preventDefault();if(!event.repeat)foldBlock(selected,!node(selected).collapsed);return;
+    }
     const grip=event.target.closest('.node-resize'),delta={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[event.key];
     if(grip && delta && doc && !busy()){
       event.preventDefault();const n=node(grip.closest('.node').dataset.id),factor=event.shiftKey || event.ctrlKey?3:1;
@@ -1317,5 +1326,10 @@
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-replicator','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));
   $("dots").querySelector("circle").setAttribute("cy", 0);
-  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: invert snapping · wheel: zoom · empty drag: pan · Shift-drag: menus";
+  document.querySelectorAll('.help-sections a').forEach(link=>link.onclick=event=>{
+    event.preventDefault();$(link.getAttribute('href').slice(1)).scrollIntoView({block:'start'});
+  });
+  document.querySelectorAll('[data-help-resource]').forEach(link=>link.onclick=event=>{
+    event.preventDefault();safe('openHelpResource',{id:link.dataset.helpResource});
+  });
 })();
