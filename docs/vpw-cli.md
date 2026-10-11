@@ -79,6 +79,15 @@ storage accepts the full signed 64-bit range through GUI/CLI/backend validation;
 explicit float32 numerical preparation does not promise exact integer arithmetic.
 There are no persistent CLI draft tokens or new SQLite tables.
 
+`task-context-page fields|input_ports|output_ports --model ID REVISION --dataset
+ID REVISION [--query TEXT] [--offset N] [--limit 1..25] [--pin STABLE_ID]` shares
+the actual task GUI's exact bounded field/port suggestion backend. It preserves
+scientific ordinals, reports missing inspected IDs explicitly and labels partial
+shape previews. It does not transmit records/complete vocabularies/metadata or
+validate a task's compatibility. It is read-only, with unchanged file bytes and
+no new persistent grammar. See [task-context-pages.md](task-context-pages.md)
+for the complete DTO, byte limit and unbounded native registry/sort costs.
+
 `spec-page --pin ID REVISION` resolves a selected exact reference independently
 of search/page/head filtering. A nonexistent pin fails by default; adding
 `--allow-missing-pin` returns that exact unavailable reference as `missing_pin`

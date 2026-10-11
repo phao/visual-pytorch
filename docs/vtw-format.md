@@ -38,6 +38,10 @@ training preparation does not promise exact arithmetic on large integers.
 The Qt [typed dataset session](typed-dataset-sessions.md) and raw-value buffers
 are transient editor state, not `.vtw` rows, retained revisions or CLI sessions.
 Only successful parent admission followed by workspace Save persists edits.
+Task field/port suggestion pages are also read-only projections, not partial
+model/dataset documents or persistent bindings. Their shared GUI/CLI protocol is
+in [task-context-pages.md](task-context-pages.md); stored scientific order/IDs
+and full metadata remain unchanged.
 
 ## 2. Exact relational schema
 

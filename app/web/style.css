@@ -50,6 +50,7 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 #science-author-id,#science-author-status{overflow-wrap:anywhere}
 #science-author .inline-actions{margin:calc(2 * var(--menu-unit,4px)) 0}
 #science-task-bindings .science-author-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+#science-task-context-pages p{overflow-wrap:anywhere}
 #science-task-bindings .science-task-transform{display:flex;flex-wrap:wrap;align-items:end;margin:var(--menu-unit,4px) 0}
 .science-task-transform>span{flex:1 1 130px;overflow-wrap:anywhere}
 .science-task-transform>label{flex:1 1 140px}

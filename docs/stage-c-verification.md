@@ -92,7 +92,9 @@ These concrete gaps are observable in the current code:
   stale delivery guards are tested. Complete legacy `scienceIndex`/`scienceShow`/
   `scienceReport` reads remain available; authoring stored-revision selectors now
   use independent bounded choices without full metadata indexes. Task field/port
-  contexts and complete drafts still use complete payloads. Session recovery and terminal-completion transports also
+  suggestions now have independent bounded exact collection pages, inspected IDs
+  and explicitly labelled shape previews; complete task/experiment drafts remain
+  full payloads. Session recovery and terminal-completion transports also
   remain unbounded. Main browsing projection bounds are not those other bounds.
 - Task/experiment `scienceAuthorBegin/Check/Save/Preview` still transfer complete drafts.
   New owned-session backend/Qt commands support projected reads, sequence-fenced
@@ -107,7 +109,9 @@ These concrete gaps are observable in the current code:
   encoding a huge tensor/metadata/vocabulary merely to preview it, preserves
   hidden values and full int64 tokens, and limits actual result bytes/control
   count. This does not bound all host/storage/dependency/history costs.
-  Task contexts still transfer every field;
+  Task contexts now avoid full field/vocabulary/metadata transport; see
+  [task-context-pages.md](task-context-pages.md). Host registry decoding still has
+  complete costs, and
   task/experiment forms render all bindings, transforms and selection cards.
 - Saved metric/run pages and notebook figure tables bound returned/rendered
   rows, not arbitrary metadata size, full registry validation/inline costs,
@@ -128,7 +132,7 @@ the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. The next implementation unit is owned
-task/experiment typed-authoring draft/context migration and admission integration, preserving
+task/experiment typed-authoring draft migration and admission integration, preserving
 incomplete text and exact identity rather than transferring whole drafts. Hiding
 the full JSON in a collapsed panel is not a fix.
 
@@ -164,6 +168,19 @@ Rendered ID/header column squeezing is repaired and checked against actual font
 geometry. Native dataset/task/experiment/session/browser/raw-editor regressions
 also pass, including real multihead/ragged/eight-candidate/all-split fits.
 These are dataset/shared-hook evidence, not completed task-form/resource/C acceptance.
+
+The subsequent field/port context checkpoint passes 498 Python tests (172.967 s)
+and 156 JavaScript tests (714 ms). Eight new backend/CLI and eight asynchronous
+controller cases cover exact historical refs, independent searches/pins/actual
+cursors, explicit unavailable IDs, literal/partial descriptors, Unicode byte
+budgets, arbitrary JSON field-name compatibility and preserved manual controls.
+Actual sandboxed Qt tests 600 fields, 32 input/output ports and 20000 category
+labels: 17 projections peak 8147 bytes, unchanged SQL, no complete context/index
+requests, host Torch or console errors. Historical selection, invalid weight
+text, rank-8 previews, supplementary-character IDs, failed-page retry and actual
+font14/18/28 geometry pass. Native dataset/task/experiment regressions pass,
+including real fits. These are context projection/editor preservation checks,
+not task/experiment draft migration, universal host costs or integrated C.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

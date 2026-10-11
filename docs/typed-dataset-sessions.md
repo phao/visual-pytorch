@@ -170,6 +170,7 @@ scrolls locally instead of compressing IDs/headings vertically.
 This bounds transport, small-value preview work and rendered control count. It
 does **not** provide lazy SQLite storage, a universal allocation/OOM or disk bound,
 bounded dependency/registry/history validation, crash recovery or detached jobs.
-Constrained estimates remain heuristics. Task/experiment full forms, field/port
-contexts, local selection cards/axes, recovery/completion costs, in-app figures
+Constrained estimates remain heuristics. Field/port suggestions now have
+[bounded context pages](task-context-pages.md), not whole-host cost bounds.
+Task/experiment full forms, local selection cards/axes, recovery/completion costs, in-app figures
 and integrated C acceptance remain open. D/E requirements are unchanged.

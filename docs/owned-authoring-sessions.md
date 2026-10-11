@@ -109,7 +109,8 @@ whole draft. Do not truncate data/keys/ontology/text to meet the patch limit.
 
 Next: migration of task/experiment typed forms/context onto
 owner/sequence pages, preserving invalid local text and existing typed helpers;
-paged field/port contexts and local selection cards; then in-app figures,
+local selection cards/axes; field/port suggestions now have separate
+[bounded context pages](task-context-pages.md). Then in-app figures,
 integrated C acceptance and unchanged D/E. Stateless CLI specification/import
 commands continue to use the same registry: transient tab tokens are not `.vtw`
 or CLI persistence features.

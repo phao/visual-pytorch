@@ -152,6 +152,12 @@ def main(argv=None):
             p.add_argument('--path', default='[]', help='JSON array of stored member/array ordinals')
             p.add_argument('--part', choices=('value', 'key'), default='value')
             p.add_argument('--offset', type=int, default=0); p.add_argument('--limit', type=int, default=25)
+    context=sub.add_parser('task-context-page',help='Bounded exact model-port/dataset-field suggestions; no execution')
+    context.add_argument('collection',choices=('fields','input_ports','output_ports'))
+    context.add_argument('--model',nargs=2,required=True,metavar=('ID','REVISION'))
+    context.add_argument('--dataset',nargs=2,required=True,metavar=('ID','REVISION'))
+    context.add_argument('--query',default='');context.add_argument('--offset',type=int,default=0)
+    context.add_argument('--limit',type=int,default=25);context.add_argument('--pin')
     preview = sub.add_parser('preview-dataset', help='Bounded typed dataset diagnostics; does not change the workspace')
     preview.add_argument('dataset', help='DatasetSpec JSON file')
     preview.add_argument('--limit', type=int, default=20)
@@ -254,6 +260,11 @@ def main(argv=None):
                     value = science_browser.summary(workspace, ref) if args.command == 'spec-summary' else \
                         science_browser.inspect_page(workspace, ref, path=json.loads(args.path),
                             part=args.part, offset=args.offset, limit=args.limit)
+            elif args.command == 'task-context-page':
+                from app import task_context
+                value=task_context.page(workspace,{'kind':'model','id':args.model[0],'revision':args.model[1]},
+                    {'kind':'dataset','id':args.dataset[0],'revision':args.dataset[1]},args.collection,
+                    query=args.query,offset=args.offset,limit=args.limit,pin=args.pin)
             elif args.command == 'preview-experiment':
                 from app.experiment_objects import preview_experiment
                 value = preview_experiment(workspace.get_spec('experiment', args.id, args.revision), workspace.get_spec,

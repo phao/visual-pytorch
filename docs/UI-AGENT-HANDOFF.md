@@ -694,7 +694,14 @@ Fence pending successes/errors by owner/workspace/generation/disposal, validate
 returned kind/query/cursor/pin, and guard repeated navigation. Suggestion refresh
 must not rebuild/discard incomplete unrelated fields. A notified same-UUID reload
 also invalidates suggestions without replacing draft refs/text. This does not
-page local draft axes or bound whole draft/field/port transport. The executable
+page local draft axes or bound whole draft transport. Task field/port suggestions
+now use independent bounded datalist pages, literal search, exact-ID inspection
+and visible missing pins. Keep original scientific ordinal alongside alphabetic
+browsing, and label partial shape/axes previews as previews with actual rank.
+Do not send observations/vocabularies/arbitrary metadata merely for suggestions.
+Search/paging must not rebuild/flush binding controls or discard invalid text.
+The shared GUI/CLI contract and unbounded native-cost limits are in
+[task-context-pages.md](task-context-pages.md). The executable
 realization and reusable limitations are in
 [authoring-revision-choices.md](authoring-revision-choices.md).
 For large mutable documents, distinguish an owned editor session/sequence from
@@ -726,7 +733,7 @@ entire multi-batch form transaction. Large markers are not truncated values.
 Reserve readable table ID columns and local horizontal scrolling instead of
 squeezing headings letter-by-letter; test rendered geometry across font settings.
 The exact reusable protocol is in [typed-dataset-sessions.md](typed-dataset-sessions.md).
-Task/experiment forms/context remain unmigrated. Keep notification signals from shadowing
+Task/experiment draft forms remain unmigrated. Keep notification signals from shadowing
 native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.

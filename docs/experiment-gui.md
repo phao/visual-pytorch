@@ -35,8 +35,12 @@ Task context and experiment stored-revision selectors now use independent search
 page controls instead of complete metadata indexes. They preserve historical and
 explicitly unavailable pins without rebuilding/discarding other text controls.
 Task context defaults once to a returned head; experiment selections remain
-explicit. Local draft axes/pairing choices and full field/port/draft transport
-remain unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md).
+explicit. Field/input-port/output-port suggestions now use independent search/
+pages and exact-ID inspection, preserving manual binding text. Shape/axes previews
+and category counts omit full vocabularies/metadata; browsing retains scientific
+ordinals. Local draft axes/pairing choices and task/experiment full drafts remain
+unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md) and
+[task-context-pages.md](task-context-pages.md).
 
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
@@ -83,8 +87,9 @@ actions. Failed batches preserve invalid text; atomicity is per accepted batch,
 not a multi-batch form transaction. See [typed-dataset-sessions.md](typed-dataset-sessions.md)
 for closed commands, DTOs, edits, preservation and native evidence. Transport,
 small-preview work and DOM bounds are not lazy storage or universal host RAM/
-validation/history bounds. Task/experiment forms and field/port contexts still
-transfer complete payloads; external/lazy storage remains open.
+validation/history bounds. Task/experiment forms still transfer complete drafts;
+field/port suggestions now have bounded pages, though native registry decoding
+still has complete costs. External/lazy storage remains open.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
 explicit Save workspace is still required to persist the working copy to disk.
@@ -304,7 +309,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |
 | scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
-| scienceTaskContext | exact model, dataset references | Read-only ordered port/field suggestions; no records or fitted state in response |
+| scienceTaskContext | exact model, dataset references | Legacy complete port/field suggestions; no records/fitted state |
+| scienceTaskContextPage | workspace_id, exact model/dataset, collection; optional query/offset/limit/pin | Actual bounded field/port suggestions; task-context-pages.md specifies DTO |
 | scienceTaskCompatibility | task draft, exact model/dataset references | Intrinsic draft check plus interface-only compatible/incompatible result |
 | scienceFreeze | drawing id | Freeze complete normalized model closure |
 | sciencePut | kind, document | Strict registry admission |
@@ -328,7 +334,11 @@ experiment RunRecord. Its durable receipts are external; session history is not
 stored in the workspace or domain undo stack.
 
 `scienceTaskContext` returns version 1, model/dataset references, input_ports,
-output_ports, fields and record_count. `scienceTaskCompatibility` returns version
+output_ports, fields and record_count. It is a supported legacy read, not the
+actual GUI suggestion path. `scienceTaskContextPage` uses independent exact
+collection pages with IDs/ordinals/labelled shape previews, not whole vocabularies/
+metadata. See [task-context-pages.md](task-context-pages.md) for closed grammar
+and CLI parity. `scienceTaskCompatibility` returns version
 1, prospective task reference, model/dataset references, status, reason (string
 or null), and scope `interface-only-no-fitting-or-execution`. Invalid intrinsic
 drafts, stale heads/workspaces and invalid/missing exact references raise errors;

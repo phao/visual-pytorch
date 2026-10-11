@@ -19,6 +19,7 @@
   <script src="dataset-authoring.js" defer></script>
   <script src="task-authoring.js" defer></script>
   <script src="task-form.js" defer></script>
+  <script src="task-context.js" defer></script>
   <script src="experiment-authoring.js" defer></script>
   <script src="experiment-form.js" defer></script>
   <script src="run-evidence.js" defer></script>
@@ -152,6 +153,7 @@
               <div class="science-author-grid"><label>Exact architecture for compatibility<select id="science-task-model" data-author-control></select></label><label>Exact dataset for compatibility<select id="science-task-dataset" data-author-control></select></label></div>
               <p id="science-task-context-status" class="tiny"></p><button id="science-task-context-refresh" data-author-control>Refresh context choices</button>
               <datalist id="science-task-input-ports"></datalist><datalist id="science-task-output-ports"></datalist><datalist id="science-task-fields"></datalist>
+              <div id="science-task-context-pages"></div>
               <div id="science-task-bindings"></div>
               <p class="tiny">MSE/MAE use numerical targets. Cross-entropy uses raw logits and fixed categorical indices, with no target transforms. A mask excludes elements; sample weights weight observations/elements; objective weight scales this head. All outputs need a named head.</p>
               <button id="science-task-compatibility" data-author-control>Check exact interface compatibility</button><p id="science-task-compatibility-status" role="status" class="tiny"></p>

@@ -25,7 +25,7 @@
   function status(){
     if(!draft)return;
     const stale=draft.workspace_id!==api.workspace();
-    if(stale&&draft.kind==='task'){contextGeneration++;changed();window.LoomTaskForm.context(root,null);}
+    if(stale&&draft.kind==='task'){contextGeneration++;changed();window.LoomTaskForm.context(root,null);window.LoomTaskContext?.clear();}
     if(stale&&draft.kind==='experiment'){contextGeneration++;draftPage=null;window.LoomExperimentForm.clearPreview(root);}
     const counts=draft.kind==='dataset'?draft.document.fields.length+' fields · '+draft.document.records.length+' observations':
       draft.kind==='task'?draft.document.inputs.length+' input bindings · '+draft.document.heads.length+' objectives':
@@ -54,6 +54,7 @@
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
     $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
     $('science-experiment-next').disabled=blocked||!draftPage||draftPage.preview.next_offset===null||!Number.isSafeInteger(draftPage.preview.next_offset);
+    window.LoomTaskContext?.controls();
   }
   function fields(){
     const container=$('science-author-fields');container.replaceChildren();
@@ -127,13 +128,12 @@
     const m=$('science-task-model').value,d=$('science-task-dataset').value;
     $('science-task-compatibility-status').textContent='';
     window.LoomTaskForm.context(root,null);
-    if(!m||!d)return;
+    if(!m||!d){window.LoomTaskContext?.clear();return;}
     $('science-task-context-status').textContent='Reading exact interfaces; no fitting or execution…';
-    let value;
-    try{value=await api.call('scienceTaskContext',{model:JSON.parse(m),dataset:JSON.parse(d)});}
+    try{await window.LoomTaskContext.show({model:JSON.parse(m),dataset:JSON.parse(d)},
+      ()=>ticket===contextGeneration&&draft===selected&&identity===api.workspace());}
     catch(error){if(ticket===contextGeneration&&draft===selected&&identity===api.workspace())issue(error);return;}
     if(ticket!==contextGeneration||draft!==selected||identity!==api.workspace())return;
-    window.LoomTaskForm.context(root,value);
   }
   async function choices(){
     const selected=draft,ticket=++contextGeneration,identity=api.workspace();
@@ -174,11 +174,13 @@
     active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.());},
     ownActive(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
+      window.LoomTaskContext?.mount(document,{...services,updateControls:controls,
+        blocked:()=>pending||!draft||draft.kind!=='task'||draft.workspace_id!==api.workspace()});
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));
       $('science-author-new-experiment').onclick=()=>act(()=>command(()=>begin('experiment')));
       $('science-author-edit').onclick=()=>act(()=>command(()=>{const reference=JSON.parse($('science-object').value);return begin(reference.kind,reference);}));
-      $('science-author-cancel').onclick=()=>{taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomExperimentForm.reset();draft=null;generation++;contextGeneration++;render();};
+      $('science-author-cancel').onclick=()=>{taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomTaskContext?.clear();window.LoomExperimentForm.reset();draft=null;generation++;contextGeneration++;render();};
       $('science-experiment-refresh').onclick=()=>act(()=>command(experimentChoices));
       $('science-experiment-preview').onclick=()=>act(()=>command(()=>previewDraft()));
       $('science-experiment-prev').onclick=()=>act(()=>command(()=>previewDraft(Math.max(0,draftPage.preview.offset-25))));
@@ -201,12 +203,12 @@
         $('science-author-status').textContent='Valid '+draft.kind[0].toUpperCase()+draft.kind.slice(1)+'Spec · prospective revision '+result.revision+' · not saved, no training';}));
       $('science-author-save').onclick=()=>act(()=>command(async()=>{if(!flush())return;const selected=draft,ticket=generation,identity=api.workspace();
         const result=await api.call('scienceAuthorSave',{draft});if(ticket!==generation||draft!==selected||identity!==api.workspace())return;
-        taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomExperimentForm.reset();draft=null;contextGeneration++;render();await saved(result);api.toast(result.kind[0].toUpperCase()+result.kind.slice(1)+' revision retained. Save workspace to persist it on disk.');}));
+        taskChoices.forEach(choice=>choice.dispose());taskChoices=[];window.LoomTaskContext?.clear();window.LoomExperimentForm.reset();draft=null;contextGeneration++;render();await saved(result);api.toast(result.kind[0].toUpperCase()+result.kind.slice(1)+' revision retained. Save workspace to persist it on disk.');}));
       controls();
     },
     stateChanged(){if(!api)return;taskChoices.forEach(choice=>choice.controls());if(draft)status();else controls();},
     event(event){if(!draft||event.kind!=='externalReload')return;contextGeneration++;changed();
-      if(draft.kind==='task'){window.LoomTaskForm.context(root,null);act(choices);}
+      if(draft.kind==='task'){window.LoomTaskForm.context(root,null);window.LoomTaskContext?.clear();act(choices);}
       else if(draft.kind==='experiment')act(experimentChoices);
     },
     selectionChanged(){controls();}

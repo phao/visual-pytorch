@@ -36,8 +36,10 @@ cards are NOT paged by this checkpoint, unlike remote stored revision choices.
 Refreshing suggestions does not rebuild other controls, discard unfinished or
 invalid text, renumber IDs, reorder selections or admit a draft. Existing
 validation, no-op/history, optimistic exact base/current head and explicit Save
-workspace rules are unchanged. Complete large-draft/long-cell editing remains
-the next owned authoring transport task, not secretly solved by these pickers.
+workspace rules are unchanged. Task/experiment complete drafts remain a separate
+owned-session migration; dataset editing now has [typed sessions](typed-dataset-sessions.md).
+Actual task field/port suggestions have independent [context pages](task-context-pages.md),
+not full field/vocabulary transport. Those are separate bounds from these pickers.
 
 ## Delivery, controls and layout
 
@@ -78,7 +80,7 @@ Metadata pages do not fetch document columns. Compact ASCII JSON projections
 remain <=65536 bytes; CLI/bridge envelopes are not included. No new SQLite
 schema, persistent cache, alternate draft database or numerical-worker call.
 This does not bound all source validation/SQLite costs, whole draft transport,
-task field/port contexts, arbitrary metadata, local draft choices/cards or
+arbitrary metadata, local draft choices/cards or
 recovery/completion payloads. Do not describe this as lazy dataset storage or a
 universal memory guarantee.
 

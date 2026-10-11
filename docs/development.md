@@ -15,6 +15,46 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 00:16 -03:00 — Independent task field/port context pages
+
+The actual task form now uses independent bounded dataset-field/input-port/
+output-port suggestions, with search, exact-ID inspection, actual cursor retry
+and alphabetic browsing that retains scientific ordinal. Manual binding/invalid
+numeric text is never rebuilt or flushed by these reads. Historical model/data
+hashes are exact; missing member IDs are explicit, not substituted. Descriptors
+omit observations/vocabulary values/arbitrary metadata and label partial shape/
+axes and name previews. Existing JSON-shaped field names fall back to stable-ID
+display without changing stored bytes; long names have bounded explicit previews.
+The CLI task-context-page command shares the pure backend/closed DTO. No new SQL
+schema/Qt tokens or compatibility promise; legacy full context read remains.
+Host registry decoding/validation and native scan/sort still have full costs.
+Task/experiment draft/card/local-axis migration and C/D/E remain open. Protocol:
+[task-context-pages.md](task-context-pages.md).
+
+Eight backend tests and eight asynchronous controller cases pass, covering exact
+IDs/order/SQL/RNG/CLI parity, hidden large vocabulary/metadata, shape/name preview,
+Unicode byte-shortened pages, independent search/pins/cursors, retry/pending/busy,
+wrong/stale owner/ref/selection replies and unchanged binding controls. Actual
+sandboxed Qt tests 600 fields, 32 input/output ports, 20000 category labels,
+historical data versus newer head, manual/invalid numeric text, injected backward
+read failure, rank-8 preview, supplementary-character IDs and closed requests.
+Fonts14/18/28 in dark/GitHub/Math and long-ID local wrapping pass; capture inspected.
+17 projections peak8147 bytes, unchanged SQL, no full scienceTaskContext/Index,
+no host Torch/Jupyter/console errors. Actual multihead/ragged task and eight-
+candidate/all-split experiment fits, plus linked dataset editor regression, pass.
+The final name-compatibility run passes 498 Python tests (172.967 s) and 156
+JavaScript tests (714 ms); all eight new backend cases also pass on stdlib Python.
+Earlier kernel/notebook/predictor evidence is retained, not newly rerun this unit.
+
+Initial native fixture exceeded the inherited 64-block grammar and incorrectly
+counted two revision options without Choose explicitly. The valid 64-block/32-
+port fixture and three-option assertion preserve actual paging/historical gates,
+not an implementation-capability claim beyond that block limit. Shape tests use
+supported rank 8 rather than an unsupported rank 30. HTML maxlength is 400 UTF-16
+units to permit native 200-code-point supplementary IDs; native validation remains
+authoritative. Current next-cursor encoding is included in byte admission. All
+spec/file/CLI/reusable UI documents agree; no publication/user app/config changes.
+
 ### 2026-10-10 23:59 -03:00 — Typed dataset session migration and shared value editing
 
 The actual dataset form now opens only an owned header/typed page, queues

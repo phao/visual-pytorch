@@ -227,7 +227,7 @@ with tempfile.TemporaryDirectory() as directory:
         dispatch=h.dispatch
         def switch_during_context(request,target):
             value=dispatch(request,target)
-            if request['action']=='scienceTaskContext':h.workspace=replacement;h.broadcast()
+            if request['action']=='scienceTaskContextPage':h.workspace=replacement;h.broadcast()
             return value
         # A genuine in-flight bridge response carries the old context after the
         # state signal changed workspace. It must not repopulate new suggestions.
@@ -244,7 +244,7 @@ with tempfile.TemporaryDirectory() as directory:
         h.workspace=original;h.broadcast();until('!document.getElementById("science-author-save").disabled')
         def fail_old_context(request,target):
             value=dispatch(request,target)
-            if request['action']=='scienceTaskContext':
+            if request['action']=='scienceTaskContextPage':
                 h.workspace=replacement;h.broadcast();raise ValueError('Obsolete original-context failure')
             return value
         with patch.object(h,'dispatch',side_effect=fail_old_context):

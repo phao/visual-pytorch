@@ -106,7 +106,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
-         'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
+         'scienceTaskContext', 'scienceTaskContextPage', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
@@ -236,6 +236,16 @@ def dispatch(window, req, source=None):
     if action == 'scienceAuthorPreview':
         from . import authoring
         return authoring.experiment_preview(workspace, req['draft'], offset=req.get('offset', 0), limit=req.get('limit', 25))
+    if action == 'scienceTaskContextPage':
+        from . import task_context
+        from .authoring import workspace_id
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        req=_json(req)
+        _keys(req,('action','workspace_id','model','dataset','collection'),('query','offset','limit','pin'),context='Task context page')
+        if req['workspace_id']!=workspace_id(workspace):raise ValueError('Task suggestions belong to another workspace. Refresh context choices.')
+        return task_context.page(workspace,req['model'],req['dataset'],req['collection'],
+            **{key:req[key] for key in ('query','offset','limit','pin') if key in req})
     if action in {'scienceTaskContext', 'scienceTaskCompatibility'}:
         from . import authoring
         if action == 'scienceTaskContext': return authoring.task_context(workspace, req['model'], req['dataset'])
