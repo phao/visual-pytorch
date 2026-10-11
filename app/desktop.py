@@ -104,7 +104,9 @@ class TaskTrainingJob(QThread):
 
 
 class Bridge(QObject):
-    event = Signal(str)
+    # Preserve the QWebChannel name without shadowing QObject.event(), which is
+    # called for DeferredDelete and other native Qt events on the bridge itself.
+    notification = Signal(str, name='event')
 
     def __init__(self, window, view):
         super().__init__(view)
@@ -116,13 +118,16 @@ class Bridge(QObject):
             if len(payload) > 16_000_000:
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
+            if isinstance(req, dict) and req.get('action', '').startswith('scienceDraft'):
+                from .revisions import _parse
+                req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)
             return json.dumps({"ok": True, "value": value}, allow_nan=False)
         except Exception as exc:
             return json.dumps({"ok": False, "error": str(exc)})
 
     def send(self, kind, payload=None):
-        self.event.emit(json.dumps({"kind": kind, "payload": payload}, allow_nan=False))
+        self.notification.emit(json.dumps({"kind": kind, "payload": payload}, allow_nan=False))
 
 
 class Window(QMainWindow):
@@ -606,7 +611,7 @@ class Window(QMainWindow):
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
         from .desktop_experiments import ACTIONS, dispatch as science_dispatch
-        if action in ACTIONS: return science_dispatch(self, req)
+        if action in ACTIONS: return science_dispatch(self, req, bridge)
         models = self.workspace.models()
         if action == "setConstrainedMode":
             if job_busy(self.job):

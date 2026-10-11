@@ -15,6 +15,47 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-10 23:01 -03:00 — Owned draft transport and Qt lifecycle repair
+
+The new transient `Sessions` backend/Qt commands open a projected header, read
+ordinal container/scalar/key pages, apply atomic ordered patches against exact
+sequences and Check/Commit through existing authoring validators without sending
+the entire draft over the channel. Actual bridge owner, Workspace object,
+connection and UUID fence mutation; replacement with the same UUID cannot admit
+old bytes. Failed batches/checks preserve drafts; successful commit closes the
+session and uses existing no-op/history/evidence behavior. Different tabs cannot
+use each other's token. Explicit close/owner teardown releases transient state.
+There are no new SQLite tables, scientific revisions or CLI persistence tokens.
+
+The typed forms still use the old full-draft path. The service is a verified
+migration prerequisite, not a claim that authoring payloads/resources are solved.
+Large-cell replacement, unfinished raw JSON, resource admission, local selection
+cards and field/port contexts remain open. Full host parsing/copy/history/registry
+costs are not bounded by 65536-byte requests/projections and 25-row/operation pages.
+See [owned-authoring-sessions.md](owned-authoring-sessions.md) for exact schemas,
+identity/sequence semantics, atomicity and truthful scope.
+
+Nine new stdlib tests and 35 focused authoring/browser checks pass. The full
+suite passes 468 Python tests (171.988 s) and 113 JavaScript tests (571 ms).
+Actual sandboxed QWebChannel tests 1600 records, pages/long scalars, separate
+owners, duplicate/unknown-key rejection, sequence/origin/pending fences, pure
+check, undo/redo/no-op/retained evidence/save-reload and owner destruction. No
+host Torch or console errors. The large scientific browser and 112-revision
+picker fixtures pass again, including exact pins/long keys/same-UUID reload/
+font28/unchanged SQL. Current actual task/experiment GUI multihead/ragged/eight-
+candidate/all-split fits and existing history/conflict/origin checks also pass.
+
+Direct bridge DeferredDelete reproduced an inherited Python `event` signal
+shadowing native Qt's event method. The fix uses Python `notification` with Qt
+signal name `event`; actual `host.event.connect` delivery, direct bridge cleanup
+and view/tab cleanup all pass. The installed PyQt6 signal documentation and
+primary QObject reference are recorded in the service spec. A first negative
+byte-budget fixture mistakenly used a below-limit string; its encoding was
+corrected to exercise real header overflow, without weakening rollback checks.
+The test-only lingering WebEngine page reference was dropped before its profile,
+eliminating the fixture's cleanup warning. No user app/config/workspace changes,
+main integration or publication. Full C and unchanged D/E remain unfinished.
+
 ### 2026-10-10 22:49 -03:00 — Bounded exact authoring revision choices
 
 Task and experiment stored-model/dataset/task selectors now use independent

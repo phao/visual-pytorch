@@ -7,6 +7,12 @@ contracts are in [experiment-objects.md](experiment-objects.md). The task
 trainer/export component is specified separately in task-training-contract.md. The legacy
 architecture-owned dataset/checkpoint path stays supported unchanged.
 
+Owned authoring sessions on this branch are transient tab/host state, not an
+additional vtw kind/table or a document revision. Their exact sequence/page/patch/
+admission contract is in [owned-authoring-sessions.md](owned-authoring-sessions.md).
+The existing typed forms have not migrated; CLI retained-object grammar and
+content identities remain unchanged.
+
 ## Documents versus browsing heads
 
 `spec_revisions` stores immutable, content-addressed version-1 documents. The

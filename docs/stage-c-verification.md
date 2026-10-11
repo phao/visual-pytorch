@@ -95,6 +95,10 @@ These concrete gaps are observable in the current code:
   contexts and complete drafts still use complete payloads. Session recovery and terminal-completion transports also
   remain unbounded. Main browsing projection bounds are not those other bounds.
 - `scienceAuthorBegin/Check/Save/Preview` currently transfer complete drafts.
+  New owned-session backend/Qt commands support projected reads, sequence-fenced
+  patches and Check/Commit without whole draft transport. Forms have not migrated
+  yet; [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
+  tested transport scope and remaining large-value/resource work.
   Dataset authoring displays six fields × twenty observations but can stringify
   a huge tensor cell/metadata/vocabulary. This is a control-count limit, not a
   byte-size or whole-data-cost bound. Task contexts still transfer every field;

@@ -152,14 +152,30 @@ def inspect_page(workspace, ref, *, path=None, part='value', offset=0, limit=25)
     order or an array's unchanged scientific order. Keys themselves can be read
     as chunked scalars with part=key, avoiding huge keys in request/response paths.
     """
-    _page(offset, limit)
+    _inspection_arguments(path, part, offset, limit)
     _require(isinstance(ref, dict) and ref.get('kind') in KINDS, 'Choose an exact scientific revision.')
     reference(ref, ref['kind'])
-    path = [] if path is None else path
-    _require(isinstance(path, list) and len(path) <= 1024 and all(_integer(i) for i in path),
+    value = workspace.get_spec(ref['kind'], ref['id'], ref['revision'])
+    return inspect_value(value, {'reference': copy.deepcopy(ref), 'scope': 'exact-spec-inspection-page'},
+                         path=path, part=part, offset=offset, limit=limit)
+
+
+def _inspection_arguments(path, part, offset, limit):
+    _page(offset, limit)
+    _require(path is None or isinstance(path, list) and len(path) <= 1024 and all(_integer(i) for i in path),
              'Inspection path must contain at most 1024 exact nonnegative ordinals.')
     _require(part in ('value', 'key'), 'Inspection part must be value or key.')
-    value = workspace.get_spec(ref['kind'], ref['id'], ref['revision']); key = None
+
+
+def inspect_value(value, identity, *, path=None, part='value', offset=0, limit=25):
+    """Same bounded ordinal projection for immutable bytes or an owned draft.
+
+    Caller supplies trusted identity, never a partial document for admission.
+    Draft ordinals are valid only at the captured editor sequence.
+    """
+    _inspection_arguments(path, part, offset, limit)
+    path = [] if path is None else path
+    key = None
     for index in path:
         _require(isinstance(value, (dict, list)) and index < len(value), 'Inspection path does not exist in this exact revision.')
         if isinstance(value, dict):
@@ -169,7 +185,7 @@ def inspect_page(workspace, ref, *, path=None, part='value', offset=0, limit=25)
     if part == 'key':
         _require(key is not None, 'Only a dictionary member has a key to inspect.')
         value = key
-    result = {'version': 1, 'scope': 'exact-spec-inspection-page', 'reference': copy.deepcopy(ref),
+    result = {'version': 1, **identity,
               'path': list(path), 'part': part, 'type': _type(value), 'offset': offset,
               'limit': limit, 'byte_limit': MAX_BYTES, 'entries': [], 'scalar': None,
               'total': len(value) if isinstance(value, (dict, list)) else len(_literal(value)), 'next_offset': None}

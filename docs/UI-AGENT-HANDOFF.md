@@ -697,6 +697,18 @@ also invalidates suggestions without replacing draft refs/text. This does not
 page local draft axes or bound whole draft/field/port transport. The executable
 realization and reusable limitations are in
 [authoring-revision-choices.md](authoring-revision-choices.md).
+For large mutable documents, distinguish an owned editor session/sequence from
+an immutable scientific revision. Read only projected pages; send atomic ordered
+patch batches against that sequence rather than repeatedly submitting complete
+drafts. Bind actual owner/working-copy/connection identity on the host, retaining
+unsaved inspection after switches but rejecting admission into a replacement.
+Close explicitly or on owner teardown; failed checks must preserve bytes.
+Preserve scientific order and invalid local text. A wire limit is not a bound on
+whole-host parsing/copies/history/validation; long values need separate editing
+and resource safeguards rather than truncation. The current tested backend/Qt
+service is in [owned-authoring-sessions.md](owned-authoring-sessions.md); existing
+typed forms are not migrated yet. Keep notification signals from shadowing
+native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
 

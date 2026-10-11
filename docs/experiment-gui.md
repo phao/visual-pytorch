@@ -65,6 +65,10 @@ remain in the draft, not truncated. This bounds rendered cell count, NOT transpo
 or draft size: authoring still loads the complete inline document into its draft.
 The bounded read browser above does not bound authoring context/draft transport.
 External/lazy storage and richer diagnostics are still open work.
+New owned-session backend/Qt transport supplies bounded pages and atomic
+owner/sequence-fenced patches, but these typed forms have not migrated to it.
+[owned-authoring-sessions.md](owned-authoring-sessions.md) specifies its tested
+scope and remaining large-value/resource work; current form payloads stay unbounded.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
 explicit Save workspace is still required to persist the working copy to disk.

@@ -101,18 +101,56 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
-EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
-ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'} | NOTEBOOK_ACTIONS
+EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
+DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
+                 'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose'}
+ACTIONS = READS | EDITS | DRAFT_ACTIONS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'} | NOTEBOOK_ACTIONS
 
 
-def dispatch(window, req):
+def dispatch(window, req, source=None):
     action = req['action']; workspace = window.workspace
     if action not in READS and job_busy(window.job):
         raise ValueError('Stop the current run before changing scientific objects or starting another action.')
+    if action in DRAFT_ACTIONS:
+        from .authoring_sessions import Sessions, _json
+        from .datasets import _keys
+        req = _json(req)  # Limit the entire compact request, not only patch values.
+        required, optional = {
+            'scienceDraftOpen': (('action', 'kind'), ('reference', 'id')),
+            'scienceDraftDescribe': (('action', 'session'), ()),
+            'scienceDraftRead': (('action', 'session', 'sequence'), ('path', 'part', 'offset', 'limit')),
+            'scienceDraftPatch': (('action', 'session', 'sequence', 'operations'), ()),
+            'scienceDraftCheck': (('action', 'session', 'sequence'), ()),
+            'scienceDraftCommit': (('action', 'session', 'sequence'), ()),
+            'scienceDraftClose': (('action', 'session'), ()),
+        }[action]
+        _keys(req, required, optional, context=action+' request (including exact sequence where applicable)')
+        owner = source if source is not None else window
+        if not hasattr(window, 'authoring_sessions'):
+            window.authoring_sessions = Sessions()
+        sessions = window.authoring_sessions
+        if action == 'scienceDraftOpen':
+            result = sessions.open(workspace, owner, req['kind'], base=req.get('reference'), sid=req.get('id'))
+            if source is not None and hasattr(source, 'destroyed') and not getattr(source, '_draft_cleanup_connected', False):
+                source.destroyed.connect(lambda: sessions.close_owner(owner))
+                source._draft_cleanup_connected = True
+            return result
+        token = req['session']
+        if action == 'scienceDraftDescribe': return sessions.describe(token, owner)
+        if action == 'scienceDraftRead':
+            return sessions.read(token, owner, req.get('sequence'), path=req.get('path'),
+                part=req.get('part', 'value'), offset=req.get('offset', 0), limit=req.get('limit', 25))
+        if action == 'scienceDraftClose': return sessions.close(token, owner)
+        if action == 'scienceDraftPatch': return sessions.patch(workspace, token, owner, req.get('sequence'), req['operations'])
+        if action == 'scienceDraftCheck': return sessions.check(workspace, token, owner, req.get('sequence'))
+        result = sessions.commit(workspace, token, owner, req.get('sequence'))
+        window.broadcast(); window.broadcast('scienceChanged')
+        return result
     if action in NOTEBOOK_ACTIONS:
         from .desktop_notebooks import dispatch as notebook_dispatch
         return notebook_dispatch(window, req)
