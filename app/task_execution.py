@@ -4,8 +4,10 @@ This is the execution component of Stage C; experiment_objects handles independe
 terminal storage. Legacy identity-preprocessing checkpoints are separate.
 """
 import copy
+import ast
 import inspect
 import math
+import types
 
 from .core import GraphError, generate_code, validate_model
 from .datasets import (_apply_step, _column, _flat, _integer, _keys, _number,
@@ -14,6 +16,7 @@ from .evidence import digest, parameter_schema
 from .memory import available_memory, estimate_memory, memory_percent
 from .revisions import frozen_document
 from .task_runtime import forward_ports
+from .runtime_tasks import record_shapes
 
 
 def training_protocol(*, epochs=20, updates=None, examples=None, seconds=None,
@@ -60,24 +63,31 @@ def validate_protocol(protocol):
     return copy.deepcopy(protocol)
 
 
-def task_bundle(model, dataset, task, manifest, protocol):
+def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
     """Freeze the actual runnable closure/data/task, not just mutable IDs."""
     result = {'version': 1, 'model': frozen_document('model', model),
               'dataset': frozen_document('dataset', dataset), 'task': frozen_document('task', task),
               'manifest': copy.deepcopy(manifest), 'protocol': validate_protocol(protocol)}
+    if runtime is not None:
+        result.update(version=2,runtime=copy.deepcopy(runtime))
     validate_bundle(result)
     return result
 
 
 def validate_bundle(bundle):
-    _keys(bundle, ('version', 'model', 'dataset', 'task', 'manifest', 'protocol'), context='TaskBundle')
-    _version(bundle, 'TaskBundle')
+    _require(isinstance(bundle,dict),'TaskBundle must be a closed object.')
+    _keys(bundle, ('version', 'model', 'dataset', 'task', 'manifest', 'protocol')+
+          (('runtime',) if bundle.get('version')==2 else ()), context='TaskBundle')
+    _require(type(bundle['version']) is int and bundle['version'] in (1,2),'TaskBundle supports integer version1 or2.')
     for kind in ('model', 'dataset', 'task'):
         _require('revision' in bundle[kind], 'Execution requires exact frozen ' + kind + ' revision.')
         frozen_document(kind, bundle[kind])
     validate_protocol(bundle['protocol'])
     from .datasets import check_manifest, validate_task
     model = bundle['model']; contract = validate_model(model['models'], model['root'])
+    if bundle['version']==2:
+        from .runtime_tasks import contract as runtime_contract
+        contract=runtime_contract(model,bundle['dataset'],bundle['task'],bundle['runtime'])
     validate_task(bundle['task'], bundle['dataset'], contract)
     check_manifest(bundle['dataset'], bundle['manifest'])
     _require(contract['parameters'] > 0, 'Task training requires trainable parameters.')
@@ -86,10 +96,24 @@ def validate_bundle(bundle):
 
 def run_identity(bundle):
     validate_bundle(bundle)
-    return {'version': 1, **{kind: {'kind': kind, 'id': bundle[kind]['id'], 'revision': bundle[kind]['revision']}
+    result={'version': 1, **{kind: {'kind': kind, 'id': bundle[kind]['id'], 'revision': bundle[kind]['revision']}
                             for kind in ('model', 'dataset', 'task')},
             'manifest': digest(bundle['manifest']), 'protocol': digest(bundle['protocol']),
             'compiler': 'native-graph-v1', 'task_runtime': 'masked-additive-v1'}
+    if bundle['version']==2:
+        result.update(version=2,compiler='native-runtime-spatial-v1',runtime=digest(bundle['runtime']))
+    return result
+
+
+def compile_task_model(bundle, *, constrained=True, memory_limit_percent=10.):
+    """Use one compiler path for workers and restored task predictors."""
+    contract = validate_bundle(bundle)
+    from .core import compile_model
+    spec=bundle['model'];decl=None
+    if bundle['version']==2:decl=bundle['runtime']['specialization']['runtime']['inputs']
+    return compile_model(spec['models'],spec['root'],constrained,
+                         memory_limit_percent=memory_limit_percent,runtime_inputs=decl,
+                         initial_shapes={g['id']:g['shape'] for g in contract['input_groups']} if decl is not None else None)
 
 
 def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available_bytes=None):
@@ -160,14 +184,17 @@ def fitted_inputs(bundle, fitted, records):
         fid = binding['field']; field = fields[fid]; state = fitted['inputs'][binding['port']]
         _require(all(isinstance(r, dict) and fid in r for r in records), 'Inference record is missing input field ' + fid + '.')
         values = [r[fid] for r in records]
+        actual=None
+        if 'runtime_policy' in bundle and binding['port'] in bundle['runtime_policy']['runtime_inputs']:
+            actual=record_shapes(bundle,records)[binding['port']]
         for value in values:
-            _value(value, field)
+            _value(value,field if actual is None else {**field,'shape':actual})
         if 'derived' in binding:
             length = binding['length']
             _require(all(isinstance(v, list) and len(v) <= length for v in values), 'Derived inference input cannot truncate/miss sequences.')
             values = [[float(len(v))] if binding['derived'] == 'length' else [float(i < len(v)) for i in range(length)] for v in values]
         else:
-            shape = list(field['shape'])
+            shape = list(field['shape'] if actual is None else actual)
             for transform, step in zip(binding['transforms'], state['steps']):
                 values, shape, _ = _apply_step(values, shape, field, transform, step)
             width = math.prod(shape)
@@ -181,13 +208,14 @@ def fitted_inputs(bundle, fitted, records):
 def restore_task_predictor(bundle, checkpoint, *, constrained=True, memory_limit_percent=10.):
     check_task_checkpoint(bundle, checkpoint, constrained=constrained, memory_limit_percent=memory_limit_percent)
     import torch
-    from .core import compile_model
     bundle = copy.deepcopy(bundle); checkpoint = copy.deepcopy(checkpoint)
-    spec = bundle['model']
     with torch.random.fork_rng(devices=[]):
-        model = compile_model(spec['models'], spec['root'], constrained=False)
+        model = compile_task_model(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     model.load_state_dict({k: torch.tensor(v, dtype=torch.float32, device='cpu') for k, v in checkpoint['weights'].items()}, strict=True)
     model.eval()
+    if bundle['version']==2:
+        from .runtime_tasks import input_policy
+        bundle['runtime_policy']=input_policy(bundle)
     class Predictor:
         """Returns stable Output IDs. Regression stays in declared target space;
         classification returns LOGITS, not secretly softmaxed probabilities.
@@ -199,14 +227,49 @@ def restore_task_predictor(bundle, checkpoint, *, constrained=True, memory_limit
 
 def _predict_records(model, input_spec, fitted, records):
     import torch
+    contract=model.contract
+    if 'runtime_policy' in input_spec:
+        shapes=record_shapes(input_spec,records)
+        contract=model.preview_shapes(shapes,batch_size=len(records),gradients=False)['contract']
     from_values = fitted_inputs(input_spec, fitted, records)
     n = len(records)
     inputs = {g['id']: torch.tensor(from_values[g['id']], dtype=torch.float32, device='cpu').reshape(n, *g['shape'])
-              for g in model.contract['input_groups']}
+              for g in contract['input_groups']}
     with torch.no_grad():
-        result = forward_ports(model, inputs, model.contract)
+        result = forward_ports(model, inputs, contract)
     _require(all(bool(torch.isfinite(v).all()) for v in result.values()), 'Inference arithmetic produced nonfinite outputs.')
     return result
+
+
+def _helper_source(helper):
+    """Never lower changed on-disk code as if it were the loaded implementation."""
+    raw=inspect.getsource(helper);tree=ast.parse(raw)
+    _require(len(tree.body)==1 and isinstance(tree.body[0],ast.FunctionDef) and tree.body[0].name==helper.__name__,
+             'Predictor helper source changed since import; restart before exporting.')
+    # Compile in its whole-module context: Python's optimizer can generate
+    # different instructions for an otherwise identical isolated definition.
+    module_source=inspect.getsource(inspect.getmodule(helper))
+    compiled=compile(module_source,'<predictor-helper-module>','exec',dont_inherit=True)
+    code=next((c for c in compiled.co_consts if isinstance(c,types.CodeType) and c.co_name==helper.__name__),None)
+    def meaning(c):
+        return (c.co_code,c.co_flags,getattr(c,'co_exceptiontable',b''),c.co_names,c.co_varnames,c.co_freevars,c.co_cellvars,
+                c.co_argcount,c.co_posonlyargcount,c.co_kwonlyargcount,
+                tuple(meaning(v) if isinstance(v,types.CodeType) else v for v in c.co_consts))
+    _require(code is not None and meaning(code)==meaning(helper.__code__),
+             'Predictor helper implementation changed since import; restart before exporting.')
+    return raw
+
+
+def generate_task_architecture(bundle, *, constrained=True, memory_limit_percent=10.):
+    """The exact execution compiler, distinct from the constructor-baseline export."""
+    contract=validate_bundle(bundle)
+    if bundle['version']==1:
+        return generate_code(bundle['model']['models'],bundle['model']['root'])
+    from .family_export import family_source
+    architecture=family_source(bundle['runtime']['family'],constrained=constrained,
+                               memory_limit_percent=memory_limit_percent)['code']
+    shapes={g['id']:g['shape'] for g in contract['input_groups']}
+    return architecture+'\nmodel = ArchitectureFamily(bindings='+repr(bundle['runtime']['specialization']['bindings'])+', initial_shapes='+repr(shapes)+').network\n'
 
 
 def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limit_percent=10.):
@@ -216,15 +279,19 @@ def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limi
     than maintaining a visually similar but scientifically different exporter.
     """
     check_task_checkpoint(bundle, checkpoint, constrained=constrained, memory_limit_percent=memory_limit_percent)
-    helpers = (_require, _integer, _number, _flat, _unflatten, _value, _column, _apply_step,
+    helpers = (_require, _integer, _number, _flat, _unflatten, _value, _column, _apply_step, record_shapes,
                fitted_inputs, forward_ports, _predict_records)
+    architecture=generate_task_architecture(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     source = ['# Visual PyTorch trained task inference; GPL-3.0-only. No training occurs.',
-              'import copy', 'import math', 'MAX_FLOAT32 = 3.4028234663852886e38',
-              'class GraphError(ValueError):\n    pass', generate_code(bundle['model']['models'], bundle['model']['root'])]
-    source.extend(inspect.getsource(helper) for helper in helpers)
+              'import copy', 'import math', 'MAX_FLOAT32 = 3.4028234663852886e38','MAX_INTEGER = 2**53 - 1',
+              'class GraphError(ValueError):\n    pass', architecture]
+    source.extend(_helper_source(helper) for helper in helpers)
     fields = {binding['field'] for binding in bundle['task']['inputs']}
     input_spec = {'dataset': {'fields': [f for f in bundle['dataset']['fields'] if f['id'] in fields]},
                   'task': {'inputs': bundle['task']['inputs']}}
+    if bundle['version']==2:
+        from .runtime_tasks import input_policy
+        input_spec['runtime_policy']=input_policy(bundle)
     source.extend([f'_input_spec = {input_spec!r}', f'_fitted = {checkpoint["fitted"]!r}',
                    f'task_specification = {bundle["task"]!r}',
                    f'target_fields = {[f for f in bundle["dataset"]["fields"] if f["id"] in {h["field"] for h in bundle["task"]["heads"]}]!r}',

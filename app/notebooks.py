@@ -24,7 +24,7 @@ from .memory import memory_percent
 from .report_runtime import new_file, new_json, resolve_payload
 
 RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.py', 'experiment_objects.py',
-           'families.py', 'family_records.py', 'family_axes.py',
+           'families.py', 'family_records.py', 'family_axes.py', 'runtime_tasks.py', 'family_export.py',
            'file_sync.py', 'graph.py', 'history.py', 'memory.py', 'operators.py', 'presentation.py', 'runtime_shapes.py',
            'report_runtime.py', 'revisions.py', 'task_execution.py', 'task_result.py',
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
@@ -215,7 +215,10 @@ def verify_bundle(root):
     no_activations = pre_axes - {'runtime/app/activations.py'}
     sets = (expected, pre_axes, pre_family, legacy, no_activations,
             expected - family_paths, expected - {'runtime/app/activations.py'})
-    _require(set(manifest['files']) in sets + tuple(v - {'runtime/app/runtime_shapes.py'} for v in sets),
+    sets=sets+tuple(v-{'runtime/app/runtime_shapes.py'} for v in sets)
+    for dependency in ('runtime_tasks.py','family_export.py'):
+        sets=sets+tuple(v-{'runtime/app/'+dependency} for v in sets)
+    _require(set(manifest['files']) in sets,
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
         part = PurePosixPath(relative); path = root / relative
@@ -256,6 +259,14 @@ def verify_bundle(root):
         _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                          n.module == 'runtime_shapes' for n in ast.walk(tree)),
                  'This report runtime requires its captured runtime_shapes.py dependency.')
+    for dependency in ('runtime_tasks','family_export'):
+        if 'runtime/app/'+dependency+'.py' not in manifest['files']:
+            import ast
+            for relative in manifest['files']:
+                if not relative.startswith('runtime/app/') or not relative.endswith('.py'):continue
+                tree=ast.parse((root/relative).read_text(encoding='utf-8'))
+                _require(not any(isinstance(n,ast.ImportFrom) and n.level==1 and n.module==dependency for n in ast.walk(tree)),
+                         'This report runtime requires its captured '+dependency+'.py dependency.')
     requested = manifest['requested_notebook']
     _keys(requested, ('path', 'sha256'), context='Requested notebook identity')
     _require(requested['path'] == 'requested.ipynb' and isinstance(requested['sha256'], str), 'Invalid notebook path/identity.')

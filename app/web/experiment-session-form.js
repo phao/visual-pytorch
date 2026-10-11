@@ -53,7 +53,10 @@
     h.session===owner.header.session&&h.workspace_id===owner.header.workspace_id&&h.sequence===sequence;}
   async function mutate(operations){const owner=state,ticket=epoch,sequence=owner.header.sequence;
     const result=await api.call('scienceDraftExperimentEdit',{...args(),operations});if(!live(owner,ticket))return false;
-    if(!matchesHeader(result,owner,sequence+1))throw Error('Experiment edit acknowledgement does not match the owned sequence.');owner.header=result;return true;
+    if(!matchesHeader(result,owner,sequence+1))throw Error('Experiment edit acknowledgement does not match the owned sequence.');
+    for(const op of operations)if(op.op==='property'&&op.target.kind==='document'&&op.key==='version')owner.documentVersion=JSON.parse(op.text);
+    if(owner.versionControl&&!('dirty' in owner.versionControl.dataset)&&!('invalid' in owner.versionControl.dataset))owner.versionControl.value=String(owner.documentVersion);
+    owner.header=result;return true;
   }
   async function flush(){capture();if([...$('science-author').querySelectorAll('[data-experiment-control]')].some(n=>'invalid' in n.dataset))
     throw Error('Correct invalid experiment fields before continuing. Your text has not been discarded.');
@@ -119,7 +122,13 @@
   function select(label,options,value,target,key){const wrapper=el('label',label),n=el('select');n.dataset.experimentControl='';n.dataset.authorControl='';
     for(const [id,name] of options){const o=el('option',name);o.value=id;n.append(o);}
     if(!options.some(([id])=>id===value)){const o=el('option','Unavailable value · '+value);o.value=value;n.append(o);}n.value=value;
-    n.onchange=()=>{try{enqueue(target,key,JSON.stringify(n.value),n);}catch(error){issue(error);}};wrapper.append(n);return wrapper;
+    n.onchange=()=>{try{
+      if(key==='execution'){
+        const queued=state.edits.find(e=>e.operation.target.kind==='document'&&e.operation.key==='version');
+        if((queued?Number(queued.operation.text):state.documentVersion)<4)enqueue({kind:'document'},'version','4',n);
+      }
+      enqueue(target,key,JSON.stringify(n.value),n);
+    }catch(error){issue(error);}};wrapper.append(n);return wrapper;
   }
   function choice(label,d,target,key,g,kind,local=false){let value=scalar(d,null);
     if(d?.present&&d.text===null)return control(label,d,target,key);
@@ -143,6 +152,7 @@
       if(collection==='models'){
         if(p.family){grid.append(text('Family choice ID','id'),ref('Exact family','family','family'),
           text('Fixed bindings JSON','bindings',{mode:'json',area:true}),text('Ordered binding axes JSON','axes',{mode:'json',area:true}));
+          grid.append(select('Family execution', [['concrete-v1','Concrete baseline'],['runtime-spatial-v1','Runtime image H/W']],scalar(p.execution,'concrete-v1'),target,'execution'));
           card.append(el('p','Each axis: {"symbol":"stable-id","values":[2,4]}. Version 3 also supports [false,true] and declared string choices such as ["ReLU","Tanh"]. Last axis changes fastest. Missing defaults stay conditional; incompatible combinations remain visible. No automatic training.'));
         }else grid.append(ref('Exact architecture','reference','model'));
       }
@@ -178,9 +188,11 @@
       }));card.append(order);
     }g.range.textContent=(g.page.rows.length?g.offset+1:0)+'–'+(g.offset+g.page.rows.length)+' / '+g.page.total+' · scientific order';controls();
   }
-  function renderRoots(){const roots=Object.fromEntries(state.groups.models.page.roots.map(p=>[p.key,p]));state.rootControls.replaceChildren(
+  function renderRoots(){const roots=Object.fromEntries(state.groups.models.page.roots.map(p=>[p.key,p]));state.documentVersion=scalar(roots.version,1);
+    const version=control('Selection version · 4 enables runtime execution',roots.version,{kind:'document'},'version',{mode:'number',integer:true,min:1,max:4});
+    state.versionControl=version.querySelector('input');state.rootControls.replaceChildren(
     control('Research question',roots.question,{kind:'document'},'question',{area:true}),
-    control('Selection version · 3 enables constructor choices',roots.version,{kind:'document'},'version',{mode:'number',integer:true,min:1,max:3}),
+    version,
     select('Comparison mode',[['crossed','Crossed · every architecture × dataset/task'],['paired','Paired · explicit whitelist']],scalar(roots['selection.kind']),{kind:'document'},'selection.kind'),
     el('p','Crossed requires an empty whitelist; paired needs explicit entries. Changing mode never removes entries; exclusions keep reasons.'));
   }

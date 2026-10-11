@@ -124,7 +124,7 @@ class RetainedRuntimeTests(unittest.TestCase):
             retain(old,family=doc,materialize=False);older=Path(td)/'old.vtw';old.save(older)
             with closing(sqlite3.connect(older)) as db:db.execute('PRAGMA user_version=11');db.commit()
             before=older.read_bytes();loaded=Workspace.load(older)
-            try:self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],12)
+            try:self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],VERSION)
             finally:loaded.db.close()
             self.assertEqual(older.read_bytes(),before)
 

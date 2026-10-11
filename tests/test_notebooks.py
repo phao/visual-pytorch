@@ -333,7 +333,7 @@ write_no_training_audit()
             archive.extractall(legacy)
         run=self.trial('legacy-failed',python='/missing/legacy-notebook-python')
         recipe=self.recipe('result-report',[run['reference']]);before=self.w.db.serialize()
-        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py'))
+        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py','runtime_tasks.py','family_export.py'))
         with patch('app.notebooks.RUNTIME',old_runtime),patch('app.notebooks.__file__',str(legacy/'app/notebooks.py')):
             exported=create_bundle(self.w,recipe,self.root/'legacy-bundle')
         root,manifest,notebook=verify_bundle(exported['path'])
@@ -360,7 +360,7 @@ write_no_training_audit()
             archive.extractall(legacy)
         run = self.trial('pre-family-failed', python='/missing/pre-family-python')
         recipe = self.recipe('result-report', [run['reference']]); before = self.w.db.serialize()
-        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py'))
+        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py','runtime_tasks.py','family_export.py'))
         with patch('app.notebooks.RUNTIME', old_runtime), patch('app.notebooks.__file__', str(legacy / 'app/notebooks.py')):
             exported = create_bundle(self.w, recipe, self.root / 'pre-family-bundle')
         root, manifest, _ = verify_bundle(exported['path'])
@@ -409,6 +409,17 @@ write_no_training_audit()
                 (root / 'manifest.json').write_text(json.dumps(manifest))
                 with self.assertRaisesRegex(GraphError, 'closure'):
                     verify_bundle(root)
+
+    def test_new_runtime_cannot_omit_task_or_export_dependency_before_kernel(self):
+        for name in ('runtime_tasks.py','family_export.py'):
+            with self.subTest(name=name):
+                exported=create_bundle(self.w,self.recipe(),self.root/('incomplete-'+name))
+                root=Path(exported['path']);manifest=json.loads((root/'manifest.json').read_text())
+                relative='runtime/app/'+name;manifest['files'].pop(relative);(root/relative).unlink()
+                (root/'manifest.json').write_text(json.dumps(manifest))
+                with patch('app.notebooks._jupyter',side_effect=AssertionError('No kernel')):
+                    with self.assertRaisesRegex(GraphError,'requires its captured '+name):execute_bundle(root)
+                self.assertFalse((root/'executions').exists())
 
     def test_new_runtime_cannot_masquerade_as_old_bundle_to_omit_activation_dependency(self):
         ref=self.recipe();exported=create_bundle(self.w,ref,self.root/'incomplete-activation')

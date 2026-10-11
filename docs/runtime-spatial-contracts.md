@@ -4,9 +4,11 @@ This is the executable contract of `app/runtime_shapes.py`, `app/graph.py` and
 `app/core.py`, with retained family declarations and owned Qt/CLI authoring. The native compiler and
 checked standalone family constructor can explicitly accept varying image H/W
 without creating new weights. Family v5 and specialization v4 require `.vtw`12,
-without new SQL tables. Ordinary diagrams, frozen ModelRevisions, worker tasks
-and dataset bindings remain concrete. Retaining a runtime domain does not make
-those fixed-shape execution paths dynamic. Recurrent state/length/mask/reset and
+without new SQL tables. Ordinary diagrams and frozen ModelRevisions remain concrete.
+Explicit experiment/run v4 runtime execution now requires `.vtw`13 and maps a
+dataset's actual shapes through the retained domain; see
+[runtime-task-execution.md](runtime-task-execution.md). Retaining a domain alone
+still does not change older/concrete tasks. Recurrent state/length/mask/reset and
 mixed composition remain subsequent D work; D/E are not complete.
 
 ## Retained declarations and exact provenance
@@ -84,7 +86,10 @@ integer. Sample dimensions and their product stay in the editor's exact-integer
 range. Arbitrary runtime channel counts, general symbolic shapes, sequence length
 and ragged within-batch samples are NOT supported by this contract.
 
-The compiler constructs once on CPU float32 after ordinary whole-model admission.
+The compiler constructs once on CPU float32 after whole-model admission. Optional
+`initial_shapes` supplies a checked actual runtime case for construction-time RAM
+admission, avoiding charging unused baseline activations; it requires an explicit
+domain and does not change parameter shapes or the baseline contract.
 Calling `.double()` explicitly supports CPU float64 inputs. Calls reject mixed
 input/parameter dtypes, non-CPU devices, sparse tensors, wrong names/ranks/fixed
 dimensions and mismatched batches before packing or executing the first layer.

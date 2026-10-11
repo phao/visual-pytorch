@@ -75,11 +75,17 @@ validates these without regenerating splits. Execution policy records
 Generation records Python/platform. There are no absolute private source paths.
 
 New bundles include `activations.py`, `families.py`, `family_records.py`,
-`family_axes.py` and `runtime_shapes.py` in the25-file copied closure. Prior
+`family_axes.py`, `runtime_shapes.py`, `runtime_tasks.py` and `family_export.py`
+in the27-file copied closure. Genuine prior25-file runtimes are accepted only
+if captured source does not require the two new dependencies. Current-source
+omissions fail before a kernel. Explicit runtime tasks and per-run runtime
+architecture/predictor exports are specified in
+[runtime-task-execution.md](runtime-task-execution.md). Prior
 complete24-file runtimes are supported only when core does not import
 runtime_shapes.py; incomplete new source is rejected before kernel launch.
-This captures the [runtime spatial API](runtime-spatial-contracts.md), not a new
-variable-resolution dataset/report protocol. Prior complete 23-file runtimes are
+The captured [runtime spatial API](runtime-spatial-contracts.md) now participates
+in explicitly opted-in dataset/report execution; concrete modes remain fixed.
+Prior complete 23-file runtimes are
 supported only when their source does not import family_axes.py; omitting it
 from new source is rejected before launch. [Family experiments](family-experiment-axes.md)
 capture lazy ordered binding coordinates and exact derived run provenance,

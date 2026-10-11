@@ -20,7 +20,9 @@ def validate_choice(value, *, version=2):
     if not family_choice(value):
         reference(value, 'model')
         return
-    _keys(value, ('id', 'family', 'bindings', 'axes'), context='Family model choice')
+    _keys(value, ('id', 'family', 'bindings', 'axes'),('execution',) if version>=4 else (),context='Family model choice')
+    if 'execution' in value:
+        _require(value['execution'] in ('concrete-v1','runtime-spatial-v1'),'Choose concrete-v1 or explicit runtime-spatial-v1 family execution.')
     _require(_identifier(value['id']), 'Family choice needs a stable selection ID.')
     reference(value['family'], 'family')
     _require(isinstance(value['bindings'], dict) and len(value['bindings']) <= 128,
@@ -124,7 +126,13 @@ def resolve_model(choices, coordinate, resolve, *, version=2):
     if result['status'] != 'verified':
         return {k: v for k, v in result.items() if k != 'missing'} | {'references': {'family': copy.deepcopy(ref)}}
     records = resolution_records(source, result['resolved'])
-    return {'status': 'verified', 'model': records['model'],
+    runtime=None
+    if choice.get('execution')=='runtime-spatial-v1':
+        from .runtime_tasks import proof
+        try:runtime=proof(source,records['specialization'],records['model'])
+        except ValueError as error:
+            return {'status':'incompatible','reason':str(error),'references':{'family':copy.deepcopy(ref)}}
+    return {'status': 'verified', 'model': records['model'], **({'runtime':runtime} if runtime is not None else {}),
             'references': {k: records[k + '_ref'] for k in ('model', 'family', 'specialization')}}
 
 

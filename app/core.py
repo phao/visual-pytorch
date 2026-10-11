@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 12
+VERSION = 13
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -620,6 +620,11 @@ class Workspace:
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
                     if _parse(text)['version'] >= (4 if kind == 'specialization' else 5):
                         raise GraphError('Runtime family contracts require a version-12 container.')
+            if version < 13:
+                from .revisions import _parse
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version']>=4:
+                        raise GraphError('Runtime task execution requires a version-13 container.')
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:
@@ -753,11 +758,13 @@ def generate_code(models, model_id):
 
 
 def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
-                  runtime_inputs=None):
+                  runtime_inputs=None, initial_shapes=None):
     if runtime_inputs is not None:
         from .runtime_shapes import compile_runtime_model
         return compile_runtime_model(models, mid, runtime_inputs, constrained=constrained,
-                                     memory_limit_percent=memory_limit_percent)
+                                     memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
+    if initial_shapes is not None:
+        raise GraphError('Initial runtime shapes require an explicit runtime input declaration.')
     preflight(models, mid, constrained, memory_limit_percent=memory_limit_percent)
     import torch
     import torch.nn as nn

@@ -5,6 +5,9 @@ file containing a real `torch.nn.Module` class. It extends
 [scoped constructors](scoped-constructors.md) and all earlier family grammars,
 not the fixed-instance or saved-checkpoint predictor exporters. It does NOT train
 at export time or turn a family into a saved inference checkpoint.
+Explicit runtime task predictors now reuse this checked constructor rather than
+a second lowering; their distinct execution policy is specified in
+[runtime-task-execution.md](runtime-task-execution.md).
 
 ## Qt and CLI
 

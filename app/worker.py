@@ -17,10 +17,12 @@ def main():
 
     try:
         request = json.load(sys.stdin)
-        if request.get('kind') == 'task-v1':
+        if request.get('kind') in ('task-v1','task-v2'):
             from .datasets import _keys
             from .task_training import train_task
             _keys(request, ('kind', 'bundle'), ('constrained', 'memory_limit_percent'), 'Task worker request')
+            if type(request['bundle'].get('version')) is not int or request['kind']!='task-v'+str(request['bundle']['version']):
+                raise ValueError('Worker request kind must match the exact TaskBundle version.')
             result = train_task(request['bundle'], progress=lambda point: send('progress', point), cancel=cancel,
                                 constrained=request.get('constrained', True),
                                 memory_limit_percent=request.get('memory_limit_percent', DEFAULT_MEMORY_LIMIT_PERCENT))

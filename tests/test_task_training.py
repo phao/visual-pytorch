@@ -183,7 +183,7 @@ class TaskTrainingTests(unittest.TestCase):
 
     def test_combined_ram_admission_includes_optimizer_model_and_collation_before_compile(self):
         b = bundle()
-        with patch('app.task_training.compile_model', side_effect=AssertionError('must not allocate')):
+        with patch('app.task_training.compile_task_model', side_effect=AssertionError('must not allocate')):
             with self.assertRaisesRegex(GraphError, 'RAM'): train_task(b, memory_limit_percent=.00001)
         with self.assertRaisesRegex(GraphError, 'RAM'): resolve_run(b, available_bytes=128 * 1024**2)
         _, m = resolve_run(b, constrained=False, available_bytes=128 * 1024**2)

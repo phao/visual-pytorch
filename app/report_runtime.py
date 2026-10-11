@@ -159,7 +159,7 @@ def run_report(payload, directory):
         writer = csv.DictWriter(stream, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
         new_file(directory / 'metrics.csv', stream.getvalue())
         from .core import generate_code
-        from .task_execution import generate_task_predictor
+        from .task_execution import generate_task_predictor, generate_task_architecture
         from .experiment_objects import candidate_bundle
         for entry in workspace.list_specs('model', True):
             model = workspace.get_spec('model', entry['id'], entry['revision'])
@@ -172,6 +172,9 @@ def run_report(payload, directory):
                                                 record['selection']['experiment']['revision'])
                 bundle = candidate_bundle(experiment, record['selection']['coordinates'], workspace.get_spec,
                                           saved_manifest=record['resolved']['manifest'])
+                if bundle['version']==2:
+                    new_file(directory / ('runtime-architecture-' + summary['reference']['revision'] + '.py'),
+                             generate_task_architecture(bundle,constrained=False))
                 new_file(directory / ('predictor-' + summary['reference']['revision'] + '.py'),
                          generate_task_predictor(bundle, evidence['checkpoint'], constrained=False))
         return view

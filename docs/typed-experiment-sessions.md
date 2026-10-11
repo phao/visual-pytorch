@@ -68,6 +68,11 @@ reload stays stale. These are transient fences, not durable recovery/general ABA
 Version-2 family choices reuse these commands and ownership fences. Add family
 selection explicitly upgrades the draft to version 2; historical version-2 edits
 preserve that version. Family model cards expose id, family, bindings and axes;
+they also expose optional execution. Explicitly choosing either concrete baseline
+or runtime image H/W upgrades to version4 before the named policy edit; omitted
+policy stays concrete without any automatic write. Acknowledgement updates the
+visible version and controller; later edits cannot silently downgrade it. See
+[runtime-task-execution.md](runtime-task-execution.md) for exact semantics.
 fixed/axis JSON stays raw exact text with staged large-value repair. Root version
 is a named property used for the explicit upgrade, not a new persistent field.
 See [family-experiment-axes.md](family-experiment-axes.md) for grammar, coordinates,
@@ -106,8 +111,8 @@ workspace_id, experiment id, collection, offset, limit, total, path, rows,
 next_offset, byte_limit65536, text_limit256, reference_text_limit8192 and roots.
 Each row has ordinal, current absolute ordinal path, and properties. Each
 property has key, path, present, text and summary. Root properties are name,
-question, selection.kind and version. Version edits permit the explicit v1→v2
-experiment upgrade, not downgrade of an owned v2 draft. Descriptor path is null
+question, selection.kind and version. Version edits permit monotonic explicit
+upgrades through v4, never downgrade of an owned draft. Descriptor path is null
 when an intermediate/leaf is
 missing; missing does not mean a present JSON null. A complete `text` is literal
 strict JSON, not a JavaScript Number. Otherwise an explicit type/size summary

@@ -153,11 +153,15 @@ def admission(c, batch_size, *, constrained=True, memory_limit_percent=DEFAULT_M
 
 
 def compile_runtime_model(models, mid, runtime_inputs, *, constrained=True,
-                          memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
+                          memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT, initial_shapes=None):
     """Construct once; reject weight-dependent axes before allocating layers."""
     spec = specification(models, mid, runtime_inputs)
     from .core import compile_model, preflight, _graph_values, _graph_tensor
-    preflight(models,mid,constrained,memory_limit_percent=memory_limit_percent)
+    if initial_shapes is None:
+        preflight(models,mid,constrained,memory_limit_percent=memory_limit_percent)
+    else:
+        initial = shape_contract(models,mid,spec,initial_shapes)
+        admission(initial,1,constrained=constrained,memory_limit_percent=memory_limit_percent,gradients=False)
     frozen = {}
     def capture(key):
         if key in frozen: return

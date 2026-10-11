@@ -31,7 +31,7 @@ PROPERTIES = {
     'exclusions': {k: (k,) for k in ('model', 'data_task', 'reason')},
 }
 REFERENCE_KEYS = {'reference': 'model', 'model': 'model', 'dataset': 'dataset', 'task': 'task', 'family': 'family'}
-FAMILY_PROPERTIES = {k: (k,) for k in ('id', 'family', 'bindings', 'axes')}
+FAMILY_PROPERTIES = {k: (k,) for k in ('id', 'family', 'bindings', 'axes', 'execution')}
 
 
 def _properties(collection, value):

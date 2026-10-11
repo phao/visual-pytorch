@@ -4,6 +4,35 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 09:57 -03:00 — Explicit runtime task execution
+
+Added opt-in experiment/run v4 execution selection, frozen Runtime TaskBundle2 /
+RunIdentity2 and container13 gating because retaining a runtime family alone
+must not reinterpret old experiments/checkpoints. Actual dataset H/W now drives
+the checked runtime compiler, current-RAM preparation/forward admission, saved
+inference and portable report generation. Initial allocation uses the actual
+case; shared multi-input paths keep one parameter owner at distinct resolutions.
+Fitted preprocessing remains exact-field-shape-only; untransformed saved inputs
+may vary H/W without refit/reallocated weights. Owned Qt selection explicitly
+upgrades/acknowledges grammar4 while preserving all session fences.
+
+Captured notebook closure adds runtime task/export modules (27 files), rejects
+current-source omissions before kernel launch, and retains old input bytes.
+Per-run runtime architecture exports are distinct from constructor-baseline
+sources. Added pure, independent numerical, actual CLI/worker/Jupyter and private
+sandboxed Qt tests and synchronized file-format/execution/editor specifications.
+
+Exploratory testing exposed loaded/source desynchronization during live edits;
+helper lowering now compares full-module-compiled implementation against loaded
+bytecode/flags/exception tables and refuses stale source. A standalone-function
+bytecode comparison was rejected after false positives from optimizer context.
+Changed the pre-allocation test mock to the actual new compiler entry point.
+All failed probes remain in campaign evidence. Final unchanged-source871 tests
+291.637s pass (868 PASS/3 Qt-environment skips covered by93 native/pure tests),
+299 JS and55 focused execution/export tests pass, plus actual sandboxed Qt.
+D recurrence/mixed and E remain unfinished; no publication,
+main integration, user app restart or user configuration/workspace mutation.
+
 ## 2026-10-11 09:17 -03:00 — Retained runtime H/W family contracts
 
 Added family v5's optional stable-root-Input runtime_inputs declaration and

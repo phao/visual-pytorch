@@ -164,7 +164,7 @@ class ArchitectureFamily(nn.Module):
     Invalid grammar/types/shapes/sharing/budgets fail BEFORE parameter allocation.
     None policy values use the explicitly captured workspace export policy.
     """
-    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None, runtime_inputs=None):
+    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None, runtime_inputs=None, initial_shapes=None):
         super().__init__()
         runtime = _runtime(); source = family_definition()
         resolved = runtime.families.specialize(source, bindings)
@@ -174,7 +174,7 @@ class ArchitectureFamily(nn.Module):
         runtime_inputs = source.get('runtime_inputs') if runtime_inputs is None else runtime_inputs
         # compile_model performs the whole-model preflight before any nn layer.
         self.network = runtime.core.compile_model(resolved['models'], resolved['root'], constrained,
-                                                   memory_limit_percent=percentage, runtime_inputs=runtime_inputs)
+                                                   memory_limit_percent=percentage, runtime_inputs=runtime_inputs, initial_shapes=initial_shapes)
         self._resolved = copy.deepcopy(resolved)
         self._semantic = _semantic_schema(runtime, resolved, source)
         self._provenance = export_metadata()

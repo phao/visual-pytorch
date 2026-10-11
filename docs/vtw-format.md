@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 12
+# Visual Torch Workspace (.vtw): format specification, version 13
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -15,15 +15,16 @@ version-7 container; they add no SQL table or sidecar. The
 [typed constructor choices](constructor-choices.md) require version10;
 [scoped Module constructors](scoped-constructors.md) require version11;
 [retained runtime H/W contracts](runtime-spatial-contracts.md) require version12;
+[explicit runtime task execution](runtime-task-execution.md) requires version13;
 runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 12. The current reader accepts versions 1–12; opening
-an older file copies it into memory and upgrades the working version to 12.
-Opening alone never rewrites the source; explicit Save writes version 12.
+PRAGMA user_version = 13. The current reader accepts versions 1–13; opening
+an older file copies it into memory and upgrades the working version to 13.
+Opening alone never rewrites the source; explicit Save writes version 13.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -64,7 +65,12 @@ headers containing these records fail. SQL tables, concrete ModelRevisions and
 fixed-shape worker/task contracts do not change. See
 [runtime-spatial-contracts.md](runtime-spatial-contracts.md) for the closed fields,
 dependency proof and actual-call guards.
-Older binaries are not expected to open version 12;
+Version13 adds experiment/run v4's explicit family execution selection and exact
+runtime TaskBundle v2 provenance/identity. Earlier headers containing those v4
+records fail. Existing concrete experiments/bundles retain their old execution;
+there are no new SQL tables, ModelRevision semantics or report recipe version.
+See [runtime-task-execution.md](runtime-task-execution.md).
+Older binaries are not expected to open version 13;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -105,7 +111,7 @@ creates external evidence; no browser projection is a persisted scientific spec.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 6;
+PRAGMA user_version = 13;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(

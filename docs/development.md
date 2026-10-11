@@ -1,5 +1,48 @@
 # Development state and roadmap
 
+## 2026-10-11 09:57 -03:00 — Stage D explicit runtime task execution
+
+Experiment/run v4 adds an optional per-family concrete-v1/runtime-spatial-v1
+execution choice. Omission preserves old concrete execution even for family5.
+Runtime TaskBundle2 retains exact family/specialization proof and baseline model;
+RunIdentity2 records native-runtime-spatial-v1 and the full proof digest. Container13
+gates v4 records without new tables or changed ModelRevision semantics.
+
+Dataset/task fields determine an actual rectangular H/W case within the declared
+domain. Pure shape/task checks precede preparation and current-RAM admission;
+initial runtime allocation charges the actual case rather than unused baseline
+activations. Workers, restored predictors and checked standalone source share
+that compiler. Predictors accept new H/W only for untransformed image fields;
+fitted transforms require exact saved field shapes, never refit or reinterpret.
+Named multi-input shared encoders can use distinct rectangular resolutions.
+The Qt execution selector explicitly queues grammar4 before its property and
+updates displayed/controller version on acknowledgement; no automatic upgrades.
+
+Portable notebook closure now has27 files, with runtime_tasks/family_export and
+pre-kernel missing-dependency gates preserving genuine older captured closures.
+Runtime reports add exact per-run runtime architecture exports alongside baseline
+sources and trained predictors. Fresh app-free export contains no raw records.
+
+An exploratory full run was invalidated by source edits during execution: loaded
+co_firstlineno no longer matched inspect source. Predictor helper capture now
+checks complete-module-compiled bytecode/flags/exception structure against the
+loaded implementation and refuses stale source before export. Isolated-function
+compilation gave false positives due Python optimizer context; whole-module
+compilation repairs that boundary. RAM pre-allocation mock tests now target the
+shared compile_task_model entry point rather than a removed alias. Early probes
+are retained, not hidden. Independent functional Adam weights/population means,
+actual CLI/worker fits/save/reload, app-free inference, shared multi-input fits,
+real two-resolution Jupyter rerun and sandboxed Qt opt-in/worker delivery pass.
+Final unchanged-source regression:871 tests291.637s,868 PASS/3 Qt-environment
+skips separately covered by93 pure/native tests3.040s.299 JavaScript tests
+1244.825837ms and55 focused execution/export tests31.236s pass. Full regression
+includes the nine new runtime numerical/CLI/worker/kernel cases. The real Qt test
+passes with three updates, container13 reload, no host Torch/console errors.
+
+This is branch-only/local D progress, not recurrent state/length/mask/reset/mixed
+composition or E completion. No main/public integration/push, installer change,
+user app restart or real workspace/config edits. The full goal remains active.
+
 ## 2026-10-11 09:17 -03:00 — Stage D retained runtime declaration checkpoint
 
 Family v5 stores optional runtime_inputs by stable root Input ID. Specialization

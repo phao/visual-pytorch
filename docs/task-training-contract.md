@@ -17,6 +17,11 @@ loss/vocabulary, transforms and split IDs before Torch import. A browsing head i
 never an implicit execution reference. `task_bundle` makes owned frozen values;
 `validate_bundle` rejects unversioned/tampered/incompatible closures.
 
+Explicit spatial-runtime family execution adds TaskBundle v2 and RunIdentity v2,
+without changing this concrete v1 contract. Its exact frozen proof, dataset-derived
+actual shapes, compiler, saved inference restrictions and opt-in experiment/run
+v4 grammar are specified in [runtime-task-execution.md](runtime-task-execution.md).
+
 `run_identity` integer version 1 captures the three `{kind,id,revision}` references,
 manifest/protocol hashes, `compiler: native-graph-v1` and
 `task_runtime: masked-additive-v1`. These reuse the canonical JSON hash convention
@@ -158,6 +163,7 @@ sensitive research data, not as safe-to-publish merely because they have hashes.
 Python: `train_task`, `task_bundle`, `training_protocol`, `check_task_checkpoint`,
 `restore_task_predictor`, `generate_task_predictor`.
 Worker: `{"kind":"task-v1","bundle":...,"constrained":true,"memory_limit_percent":10}`.
+The explicit runtime path uses `task-v2`; kind and bundle integer version must match.
 Qt: `TaskTrainingJob`, using the existing bounded JSONL transport and real signals.
 CLI: `train-stored` and `export-task-trained`; see [vpw-cli.md](vpw-cli.md).
 Bounded exact experiment selection/history and notebook generation now have an

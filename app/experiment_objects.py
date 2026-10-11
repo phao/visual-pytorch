@@ -69,7 +69,7 @@ def split_protocol(protocol):
 
 
 def validate_experiment(doc):
-    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3))
+    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4))
     _require(_text(doc['question']), 'Experiment needs an explicit question.')
     for key in ('models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols'):
         _require(isinstance(doc[key], list) and doc[key], 'Experiment selection axes must be nonempty arrays.')
@@ -146,7 +146,7 @@ def _utc(value):
 
 
 def validate_run(doc):
-    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3))
+    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4))
     _keys(doc['selection'], ('experiment', 'coordinates', 'candidate_id'), context='Run selection')
     reference(doc['selection']['experiment'], 'experiment')
     coords = doc['selection']['coordinates']
@@ -249,14 +249,18 @@ class _PreviewResolution:
             self.documents[kind]=(key,value)
         return self.documents[kind][1]
 
-    def check(self, refs, model, dataset, task):
+    def check(self, refs, model, dataset, task, runtime=None):
         model_key=(refs['model']['id'],refs['model']['revision'])
+        if runtime is not None:model_key=(*model_key,refs['dataset']['revision'],refs['task']['revision'],digest(runtime))
         if self.contract is None or self.contract[0]!=model_key:
             self.contract=None
             contract=validate_model(model['models'],model['root'])
+            if runtime is not None:
+                from .runtime_tasks import contract as runtime_contract
+                contract=runtime_contract(model,dataset,task,runtime)
             self.contract=(model_key,contract)
         contract=self.contract[1]
-        key=tuple((refs[k]['id'],refs[k]['revision']) for k in ('model','dataset','task'))
+        key=tuple((refs[k]['id'],refs[k]['revision']) for k in ('model','dataset','task'))+(digest(runtime),)
         if self.compatible!=key:
             self.compatible=None
             validate_task(task,dataset,contract)
@@ -323,9 +327,13 @@ def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context
             model = resolved['model']
         else: model=get(coordinates['model'])
         dataset=get(pair['dataset']);task=get(pair['task'])
-        if context:context.check(result['references'],model,dataset,task)
+        runtime=resolved.get('runtime') if experiment['version']>=2 else None
+        if context:context.check(result['references'],model,dataset,task,runtime)
         else:
             contract = validate_model(model['models'], model['root'])
+            if runtime is not None:
+                from .runtime_tasks import contract as runtime_contract
+                contract=runtime_contract(model,dataset,task,runtime)
             validate_task(task, dataset, contract)
             _require(contract['parameters'] > 0, 'Training selection has no trainable parameters.')
         if experiment['version'] >= 2:
@@ -387,10 +395,12 @@ def candidate_bundle(experiment, coordinates, resolve, *, saved_manifest=None):
     _require(selected['status'] == 'compatible', selected['reason'] or 'Selection is not executable.')
     if experiment['version'] >= 2:
         from .family_axes import resolve_model
-        model = resolve_model(experiment['models'], coordinates['model'], resolve, version=experiment['version'])['model']
+        resolved=resolve_model(experiment['models'], coordinates['model'], resolve, version=experiment['version'])
+        model=resolved['model']
     else: model = _get(resolve, selected['references']['model'])
     return task_bundle(model, *[_get(resolve, selected['references'][kind]) for kind in ('dataset', 'task')],
-                       selected['manifest'], selected['protocol'])
+                       selected['manifest'], selected['protocol'],
+                       runtime=resolved.get('runtime') if experiment['version']>=2 else None)
 
 
 def validate_dependencies(kind, doc, resolve):
@@ -489,7 +499,7 @@ def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, p
         stage = 'worker'
         from .transport import run_json_worker
         raw = run_json_worker([python, '-u', '-m', 'app.worker'],
-            {'kind': 'task-v1', 'bundle': bundle, 'constrained': workspace.constrained_mode,
+            {'kind': 'task-v'+str(bundle['version']), 'bundle': bundle, 'constrained': workspace.constrained_mode,
              'memory_limit_percent': memory_limit_percent}, on_progress=progress, cancel=cancel,
             cwd=str(Path(__file__).resolve().parent.parent), timeout=timeout)
         _require(digest(raw.get('bundle')) == digest(bundle), 'Worker substituted a different frozen execution bundle.')

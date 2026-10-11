@@ -201,7 +201,7 @@ class FamilyAxisTests(unittest.TestCase):
         draft = authoring.begin(self.w, 'experiment', base=object_reference('experiment', self.e))
         header = {'session': 'owned', 'sequence': 0, 'id': draft['id'], 'workspace_id': draft['workspace_id']}
         page = experiment_drafts.page(draft['document'], header, 'models')
-        self.assertEqual([p['key'] for p in page['rows'][0]['properties']], ['id', 'family', 'bindings', 'axes'])
+        self.assertEqual([p['key'] for p in page['rows'][0]['properties']], ['id', 'family', 'bindings', 'axes', 'execution'])
         doc = experiment_drafts.edit(draft['document'], {'op': 'property', 'target': {'kind': 'entry', 'collection': 'models', 'ordinal': 0},
             'key': 'axes', 'text': '[{"symbol":"hidden-width","values":[3,2]}]'})
         draft['document'] = doc; authoring.check(self.w, draft)

@@ -16,6 +16,9 @@ atomic exact specialization provenance are fully specified in
 report recipes remain version 1. Version3 typed family coordinates and terminal
 provenance are specified in [constructor-choices.md](constructor-choices.md),
 requiring container10; old experiment/run versions retain their existing grammar.
+Version4 optionally selects explicit concrete/runtime family execution, requiring
+container13; [runtime-task-execution.md](runtime-task-execution.md) specifies its
+provenance, actual dataset cases and preserved older checkpoint identities.
 
 ## Common rules and exact references
 
