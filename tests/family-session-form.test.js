@@ -52,6 +52,23 @@ async function temporalOpened(version=4){
     descriptor('runtime_policy',null,[1]),{key:'runtime_inputs',present:false,text:null,path:null,summary:null}]}});
 }
 const temporalField=f=>f.get('science-family-roots').querySelectorAll('[data-key]').find(n=>n.dataset.key==='runtime_policy');
+test('temporal-v2 policy explicitly upgrades version-seven before exact policy edit',async()=>{
+  const f=await temporalOpened(7),n=temporalField(f);
+  const text='{"version":2,"kind":"runtime-temporal-v2","inputs":{"sequence":[0]}}';
+  edit(n,text);const done=f.click('science-family-save');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'8'},
+    {op:'property',target:{kind:'document'},key:'runtime_policy',text}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+});
+test('temporal-v2 preserves its exact unsupported version for backend refusal',async()=>{
+  const f=await temporalOpened(8),n=temporalField(f);
+  const text='{"version":1,"kind":"runtime-temporal-v2","inputs":{"sequence":[0]}}';
+  edit(n,text);const done=f.click('science-family-save');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[{op:'property',target:{kind:'document'},key:'runtime_policy',text}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].reject(Error('Wrong runtime-v2 version'));
+  await done;assert.equal(n.value,text);assert.equal(f.saved.length,0);
+});
 test('temporal JSON queues explicit version-six acknowledgement before policy and keeps stable IDs',async()=>{
   const f=await temporalOpened(),n=temporalField(f);assert.equal(n.tagName,'textarea');
   const text='{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0],"mask":[0]}}';edit(n,text);

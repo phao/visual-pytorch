@@ -36,7 +36,12 @@ Domain-specific update: a concrete LSTM drawing seeds Family7 with a null runtim
 policy in the existing owned architecture-family editor. Typed cards/staged JSON
 support checked integer selection expressions; preview/retention/materialization
 remain separate. This does not change general floating-panel mechanics or imply
-runtime-T LSTM support. See [LSTM family contract](lstm-families.md).
+runtime-T LSTM support. The separate Family8 extension uses the same editor;
+entering a runtime-temporal-v2 policy explicitly queues its grammar upgrade.
+Invalid text and old policy meaning remain intact, with no floating-panel redesign.
+Typed runtime-v2 experiments are not yet supported. See
+[LSTM family contract](lstm-families.md) and
+[runtime-v2 families](runtime-temporal-v2-families.md).
 
 ## 2. Coordinate systems and stacking
 

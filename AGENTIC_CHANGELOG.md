@@ -4,6 +4,23 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 18:25 -03:00 — Retained runtime-T family implementation
+
+Added closed Family8/Specialization7/resolution6 and container19, checked native/
+standalone compilation, exact v2 witness and current-case warm-start guards to
+make the native backend usable as a retained architecture family. Shared CLI/
+owned Qt services preserve invalid edits, atomically retain exact proof/history,
+and explicitly upgrade7→8 without widening old policies. Real Qt caught the
+missed host version ceiling; fixed and independently guarded.
+
+28 new pure/numerical checks, focused116 Python (3 native-covered skips),66
+native/pure,356 JS and actual sandboxed Qt explicit-upgrade/fixed-T regression
+checks pass; independent gates/all gradients, variable-T fits/sharing, RAM and
+fresh app-free predictions included.26 old1–6 and32 Family7 receipts/records
+agree exactly with committed pins. Initial failures are preserved. Fresh final
+full regression is still underway; no integration/publication claim yet. D
+task/worker/kernel routes remain unfinished, E unstarted, reports deferred.
+
 ## 2026-10-11 18:06 -03:00 — Separate native runtime-T LSTM grammar
 
 Implemented explicit runtime-temporal-v2 proof/API and concrete standalone

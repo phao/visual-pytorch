@@ -90,8 +90,8 @@
       n.title='Optional H/W sample axes by stable root Input ID. 1=H, 2=W; B/C stay fixed. Explicit family version 5. Weights must be independent of runtime axes; actual shapes/RAM are checked before each call.';
     }
     if(key==='runtime_policy'){
-      n.placeholder='{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0]}} · null = fixed';
-      n.title='Explicit family6/7 policy. Null means fixed concrete shapes and is required for LSTM in family7. Runtime-temporal-v1 supports Recurrent, not LSTM. Stable root Input IDs with semantic T sample axis [0]; frames/states/learned dimensions remain fixed and mask/reset T must be declared separately. Older spatial runtime_inputs must be removed explicitly, not silently converted.';
+      n.placeholder='{"version":2,"kind":"runtime-temporal-v2","inputs":{"sequence":[0]}} · null = fixed';
+      n.title='Explicit policy: family6/7 uses version1 runtime-temporal-v1 for Recurrent, not LSTM. Family8 uses version2 runtime-temporal-v2 for Recurrent/LSTM. Null means fixed shapes and is required for LSTM in family7. Editing a v2 policy explicitly upgrades to family8. Stable root Input IDs with semantic T sample axis [0]; frames/states/learned dimensions remain fixed. Declare mask/reset T separately; remove fixed Output annotations explicitly when needed. Older spatial runtime_inputs must be removed explicitly, not silently converted. Runtime-v2 experiment/task execution is not yet admitted.';
     }
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
     else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):selector?(key==='mode'?'independent':'integer'):'';
@@ -105,7 +105,7 @@
       if(key==='mode'&&n.value==='tied')upgrade(2,n);
       if(['type','values'].includes(key))upgrade(3,n);
       if(key==='runtime_inputs'&&text!==null)upgrade(5,n);
-      if(key==='runtime_policy'&&text!==null)upgrade(6,n);
+      if(key==='runtime_policy'&&text!==null)upgrade(JSON.parse(text)?.kind==='runtime-temporal-v2'?8:6,n);
       enqueue(target,key,text,n);
     }catch(e){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(e);}};
     wrapper.append(n);if(!readOnly&&d.path&&(large||json))wrapper.append(button('Edit staged JSON…',()=>raw(d.path,key)));

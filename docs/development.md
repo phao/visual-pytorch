@@ -1,5 +1,36 @@
 # Development state and roadmap
 
+## 2026-10-11 18:25 -03:00 — Retained runtime-T family implementation checkpoint
+
+Implemented explicit Family8/Specialization7/resolution6 and container19 because
+native temporal-v2 alone did not provide retained reproducible family meaning.
+Exact nullable/v2 policies, proof hashes, native compilation and checked exports
+preserve old grammar semantics. Owned Qt policy edits explicitly upgrade7→8;
+host version ceiling now admits8 but refuses downgrades/unknown versions. SQL
+retention, history and file fences stay atomic; model/task/experiment versions
+are unchanged. Contracts and CLI/UI specs are synchronized in
+[runtime-v2 families](runtime-temporal-v2-families.md).
+
+28 new pure/numerical cases pass:64 independent shape/count points at3 times,
+16 native/export constructors at3 times and all gradients, zero/NaN padding,
+35 variable-T updates per native/export route against independent student
+equations,156-element shared-owner branches with independent times, RAM guards,
+huge baseline/small actual warm start, exact legacy receipts and fresh app-free
+checkpoint prediction. Focused116 Python13.977s (3 Qt-only skips separately
+covered by66 system-Python native/pure checks3.219s),356 JS1372.117225ms,
+actual sandboxed Qt7→8/null-policy regression/exact export/history/reload pass.
+26 old-family1–6 and32 Family7 resolution/record points agree with committed pins.
+
+Initial fixture failures retained: mocked memory's origin rather than imported
+runtime binding, insufficient mocked training headroom, cross-VM JS prototypes
+and changed tooltip phrase. Actual Qt revealed the missed host upgrade ceiling;
+fixed with dedicated owned-session regressions. One early Qt test changed the
+policy before asserting its original null seed; fixed its order. An initial full
+run overlaps this repair; a fresh final full regression is underway, so no full
+acceptance/integration/publication is claimed at this implementation checkpoint.
+Retained runtime-v2 task/experiment/worker/kernel routes and original D gates
+remain required. E is unstarted and report features deferred; public A–C unchanged.
+
 ## 2026-10-11 18:06 -03:00 — Runtime-T LSTM native v2 checkpoint
 
 Added a separate explicit runtime_temporal_v2 API, version-2 dependency proof,

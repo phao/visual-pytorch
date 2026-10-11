@@ -91,13 +91,21 @@ are stable root Input IDs and values are H/W sample axes1/2, not constructor
 bindings. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
 The family6 `runtime_policy` JSON textarea explicitly queues version6 before
 setting a nonblank value. Blank text retains JSON null, rather than removing this
-required field. Its only nonnull grammar is version1/kind runtime-temporal-v1
+required field. In family6/7 its only nonnull grammar is version1/kind runtime-temporal-v1
 with stable root Input IDs mapped to sample axis [0]. Invalid JSON remains visible
 and blocks actions. Older `runtime_inputs` is not silently converted or removed;
 an explicit migration must remove it and acknowledge the new policy. A drawing
 with reachable Recurrent seeds family6 with runtime_policy:null, never inferred
 dynamic time. Family6 constructor cards may target Recurrent's direct child scope.
 See [temporal-families.md](temporal-families.md).
+Family8 explicitly adds version2/kind runtime-temporal-v2, admitting LSTM and
+Recurrent without widening old policies. Editing that kind queues version8
+before the exact JSON policy edit; unsupported policy versions are not repaired.
+Host sessions permit upgrades through8, never downgrades or unsupported9.
+Invalid text, exact owner/sequence/instance guards, atomic edits/retention and
+undo/history remain unchanged. New LSTM drawing seeds still use family7/null;
+variable T must be selected explicitly. Fixed Output annotations are not removed
+automatically. See [runtime-v2 families](runtime-temporal-v2-families.md).
 Template
 graph/name may be edited explicitly; template ID is read-only.
 

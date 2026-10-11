@@ -212,10 +212,10 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
-         (('runtime_policy',) if doc.get('version') in (6, 7) else ()),
+         (('runtime_policy',) if doc.get('version') in (6, 7, 8) else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7), 'Family supports integer version 1 through 7.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8), 'Family supports integer version 1 through 8.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -228,8 +228,8 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
-                require(node['type'] != 'LSTM' or doc['version'] == 7, 'Family versions 1–6 do not support LSTM templates; use explicit family7.')
-                require(node['type'] != 'Recurrent' or doc['version'] in (6,7),
+                require(node['type'] != 'LSTM' or doc['version'] in (7,8), 'Family versions 1–6 do not support LSTM templates; use explicit family7/8.')
+                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8),
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
@@ -268,6 +268,13 @@ def validate_family(doc):
         require(type(value['version']) is int and value['version'] == 1 and value['kind'] == 'runtime-temporal-v1',
                 'Family temporal policy requires integer version1 and kind runtime-temporal-v1; LSTM needs a later runtime grammar.')
         from .temporal_shapes import declaration
+        declaration(models, doc['root'], value['inputs'])
+    if doc['version'] == 8 and doc['runtime_policy'] is not None:
+        value = doc['runtime_policy']
+        keys(value, ('version', 'kind', 'inputs'), where='Family temporal-v2 policy')
+        require(type(value['version']) is int and value['version'] == 2 and value['kind'] == 'runtime-temporal-v2',
+                'Family8 requires explicit version2/kind runtime-temporal-v2, or null fixed policy.')
+        from .temporal_shapes_v2 import declaration
         declaration(models, doc['root'], value['inputs'])
     require(isinstance(doc['symbols'], list) and len(doc['symbols']) <= 128, 'Family allows at most 128 symbols.')
     symbols, names = {}, set()
@@ -536,6 +543,13 @@ def specialize(doc, supplied=None):
             spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None
             result.update(version=5 if doc['version']==7 else 4, runtime=None if spec is None else {
                 'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
+                'specification_sha256':digest(spec)}, runtime_specification=spec)
+        elif doc['version'] == 8:
+            from .temporal_shapes_v2 import specification
+            policy = doc['runtime_policy']
+            spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None
+            result.update(version=6, runtime=None if spec is None else {
+                'version':3, 'kind':'runtime-temporal-v2', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
         return result
     bindings = {}

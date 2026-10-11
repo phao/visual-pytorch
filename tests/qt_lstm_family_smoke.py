@@ -22,10 +22,12 @@ from app.core import Workspace, VERSION, validate_model
 from app.desktop import Bridge, Window
 from app.family_export import stored_source
 from examples.lstm_family import definition
+from examples.runtime_lstm_family import definition as runtime_definition
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')
 ROOT = Path(__file__).resolve().parents[1]
+RUNTIME_V2 = os.environ.get('VTW_LSTM_FAMILY_VARIANT') == 'runtime-v2'
 app = QApplication(['lstm-family-smoke']); view = QWebEngineView(); view.resize(1440, 1000)
 profile = QWebEngineProfile(view); errors = []
 
@@ -40,7 +42,8 @@ class Harness(QObject):
     state = Window.state; describe = Window.describe
     def __init__(self, folder):
         super().__init__(); self.config = Config(folder/'config.json'); self.workspace = Workspace()
-        doc = definition(); self.mid = doc['root']
+        doc = runtime_definition() if RUNTIME_V2 else definition(); self.mid = doc['root']
+        if RUNTIME_V2: doc.update(version=7, runtime_policy=None)
         for model in doc['models'].values(): self.workspace.put(model)
         self.family_ref = self.workspace.put_spec('family', doc); self.workspace.save(folder/'initial.vtw')
         self.job = None; self.torch_python = None; self.rendering = {}; self.bridge = Bridge(self, view); self.requests = []
@@ -95,6 +98,8 @@ with tempfile.TemporaryDirectory() as directory:
         change('#science-object', json.dumps(h.family_ref, separators=(',', ':')))
         click('science-author-edit'); until('!document.getElementById("science-family-check").disabled')
         assert js('document.querySelector("#science-family-roots [data-key=version]").value==="7"')
+        if RUNTIME_V2:
+            change('#science-family-roots [data-key=runtime_policy]', json.dumps(runtime_definition()['runtime_policy']))
         # Card zero is sequence.shape. A v7 typed selection is edited through
         # the real textarea, not dispatched directly to the host by the test.
         value = [{'select': {'symbol': 'directions'}, 'then': {'symbol': 'time'}, 'else': {'symbol': 'time'}}, {'symbol': 'width'}]
@@ -114,7 +119,7 @@ with tempfile.TemporaryDirectory() as directory:
             loop = QEventLoop(); QTimer.singleShot(150, loop.quit); loop.exec()
             assert view.grab().save(os.environ['VTW_LSTM_FAMILY_CAPTURE'])
         click('science-family-save'); until('document.getElementById("science-family-editor").hidden')
-        saved = h.workspace.get_spec('family', h.family_ref['id']); assert saved['version'] == 7
+        saved = h.workspace.get_spec('family', h.family_ref['id']); assert saved['version'] == (8 if RUNTIME_V2 else 7)
         until('!document.getElementById("science-family-export").disabled && JSON.parse(document.getElementById("science-object").value).revision==='+json.dumps(saved['revision']))
         output = folder/'family.py'; before_export = h.workspace.db.serialize()
         with patch('app.desktop_experiments.QFileDialog.getSaveFileName', return_value=(str(output), '')):
@@ -124,7 +129,10 @@ with tempfile.TemporaryDirectory() as directory:
         assert output.read_text() == expected['code']; assert h.workspace.db.serialize() == before_export
         click('science-family-create'); until('document.getElementById("science-family-instance-status").textContent.includes("784 parameters")')
         ref = h.workspace.list_specs('specialization')[0]; record = h.workspace.get_spec('specialization', ref['id'])
-        assert record['version'] == 6 and record['runtime'] is None
+        assert record['version'] == (7 if RUNTIME_V2 else 6)
+        if RUNTIME_V2:
+            assert record['runtime']['version'] == 3 and record['runtime']['kind'] == 'runtime-temporal-v2'
+        else: assert record['runtime'] is None
         root = record['model']['id']; assert validate_model(h.workspace.models(), root)['parameters'] == 784
         h.dispatch({'action': 'undo'}); assert root not in h.workspace.models()
         assert h.workspace.get_spec('specialization', ref['id'], record['revision']) == record
@@ -132,13 +140,14 @@ with tempfile.TemporaryDirectory() as directory:
         h.workspace.save(folder/'final.vtw'); opened = Workspace.load(folder/'final.vtw')
         try:
             assert opened.get_spec('specialization', ref['id']) == record
-            assert opened.db.execute('PRAGMA user_version').fetchone()[0] == VERSION == 18
+            assert opened.db.execute('PRAGMA user_version').fetchone()[0] == VERSION == 19
         finally: opened.db.close()
         assert not errors, errors; assert 'torch' not in sys.modules
         print(json.dumps({'ok': True, 'drawing_seed_family7': True, 'typed_selection_card': True,
                           'projection_zero_forward_only': True, 'parameters': 784, 'preview_sql_unchanged': True,
-                          'invalid_text_retained': True, 'exact_export': True, 'specialization6': True,
-                          'undo_redo_reload_vtw18': True, 'host_torch': False, 'console_errors': errors}))
+                          'invalid_text_retained': True, 'exact_export': True, 'specialization_version': record['version'],
+                          'runtime_v2_explicit_upgrade': RUNTIME_V2,
+                          'undo_redo_reload_vtw19': True, 'host_torch': False, 'console_errors': errors}))
     finally:
         view.setPage(QWebEnginePage(view)); page.deleteLater(); channel.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete); app.processEvents(); profile.deleteLater()
