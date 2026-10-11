@@ -4,6 +4,15 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 04:38 -03:00 — Local Stage C integration
+
+Integrated accepted C taskbfafccb into main0a3bc8c under the repository integration
+lock, verifying clean sole-checkout ownership, unchanged target, ancestry and
+exact source equality. Updated current product/CLI/spec status while retaining
+historical checkpoint evidence and the unchanged initial prerelease. C includes
+actual typed authoring, exact evidence, worker training and notebook execution;
+known complete native costs are explicit limits, not blanket guarantees.
+D/E remain required and unstarted. No push, restart or user-state mutation.
 ## 2026-10-11 04:37 -03:00 — Stage C window and workflow acceptance
 
 Reproduced20 covered-control/overflow/canvas failures in30 actual native-window

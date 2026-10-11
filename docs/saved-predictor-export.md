@@ -1,4 +1,4 @@
-# Exact saved-attempt predictor export — branch-only Stage C
+# Exact saved-attempt predictor export — Stage C
 
 View/Export checkpoint predictor use the **displayed retained attempt** of an
 exact RunRecord revision. An unread edit to the number control does not change

@@ -1,11 +1,12 @@
-# Stage C requirement audit — retained local development branch
+# Stage C requirement audit
 
-This is an evidence map, not a completion declaration. Stage C follows the
+This is the requirement evidence map for locally integrated Stage C. It follows the
 external nepr review's “datasets, selections and notebook reports” programme
 (review commit `777dd1c25e11583877e607064ffe7e61dfdb54a4`). The original requirement
 paragraph and exit gate are distinguished below from remaining product work.
 Do not promote an import, test count or one browser fixture into full platform
-acceptance. This branch is not yet integrated into `main` or published.
+acceptance. [Final acceptance](stage-c-acceptance.md) records the current local
+integration and actual desktop/kernel checks; no new publication is implied.
 
 ## Original implementation requirements
 
@@ -79,12 +80,14 @@ notebook behavior is specified in [experiment-gui.md](experiment-gui.md).
    numerical environment. These are local Linux/interpreter checks, not remote,
    cross-platform, GPU, every-Jupyter-frontend or optimizer-resume guarantees.
 
-## Remaining product convergence, not extra invented report gates
+## Historical convergence and current cost boundaries
 
-The bounded computational exit examples above are implemented and tested. Full
-Stage C release acceptance remains open because the user requested an actual
-practical/didactic GUI and synchronized agent interface, not merely a backend.
-These concrete gaps are observable in the current code:
+The computational exit examples above and the practical desktop/CLI convergence
+are now tested and locally integrated. The following records the convergence
+work and retained native cost boundaries; it must not be read as a declaration
+that final GUI acceptance is still pending. The original C programme did not add
+universal lazy-storage/RAM/platform proof gates. See the final acceptance note
+for window tests, source-tree equality and next D/E work.
 
 - The main read browser now uses bounded `scienceBrowse` metadata pages,
   `scienceSummary` typed summaries and explicit `scienceInspect` container/scalar
@@ -146,8 +149,9 @@ These concrete gaps are observable in the current code:
 - In-app saved-attempt training curves now read exact retained head metrics in
   run views and independent report cards, with CLI parity, missing-value gaps,
   stable page axes and exact tables; [saved-run-curves.md](saved-run-curves.md)
-  specifies the projection and its cost boundaries. The final integrated
-  large-font/window/floating-panel geometry audit remains open. The notebook-rendering
+  specifies the projection and its cost boundaries. Final native window checks
+  cover60 one/two-tab font/zoom/theme/spacing configurations with actual focused
+  controls, mouse clicks and native Tab reveals. The notebook-rendering
   checkpoint fixes its reproduced clipping/description/table defects; it does
   not certify every editor view, font or assistive technology.
 - The task branch and tests/specs must be reviewed and integrated together.
@@ -169,7 +173,8 @@ full JSON in a collapsed panel is not a cost bound.
 Native task binding/transform page, literal-edit and owned compatibility primitives
 now exist with actual bridge checks; [typed-task-sessions.md](typed-task-sessions.md)
 records their exact scope. The actual task controller now uses them with bounded
-visible cards and same-session child staging; full Stage C remains incomplete.
+visible cards and same-session child staging. Stage C is accepted locally;
+symbolic/recurrent and detached execution remain future D/E work.
 
 After these concrete C convergence items and the integration audit, proceed to
 the unchanged D family/recurrent and E durable batch/distributed requirements.

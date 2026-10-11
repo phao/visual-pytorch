@@ -4,9 +4,9 @@ The native Qt bridge now supports bounded literal binding and transform pages
 inside an existing owned task session, exact literal edit batches and an owned
 compatibility check. The actual typed task form now uses these commands: Open
 returns a header, inputs/heads and their visible pipelines page independently,
-and edits queue as exact literal text. Experiment forms remain unmigrated.
-This branch-only implementation does not complete Stage C or universal resource
-convergence.
+and edits queue as exact literal text. [Experiment forms](typed-experiment-sessions.md)
+also use owned sessions. These locally integrated Stage C controllers do not
+establish universal resource bounds or complete the A–E programme.
 
 ## Visible form and preservation
 

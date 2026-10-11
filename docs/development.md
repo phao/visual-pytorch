@@ -1,5 +1,25 @@
 # Development state and roadmap
 
+## 2026-10-11 04:38 -03:00 — Stage C accepted and integrated locally
+
+Stage C is locally integrated in main0a3bc8cd826eb11a18abc08892faad347f8b274b
+from tested task checkpointbfafccb416c71063e89bab0449217e7745ebcf70, with verified
+ancestry and identical source tree. [Stage C acceptance](stage-c-acceptance.md)
+maps original requirements, actual desktop/CLI/kernel evidence and explicit
+limits.613 Python191.285s/260 JS1410.552ms pass; actual typed authoring, scientific
+browsing/choices/raw staging/recovery/candidates/saved predictors/curves,
+eight-trial notebook execution, failure/timeout/Stop, native lifecycle14/10 and
+CNN training/export pass.60 native windows also pass780 focused toolbar checks,
+300 launcher clicks,60 Validate clicks and60 native Tab reveals. Old camera,
+history-cleanup and replaced-form harness assumptions were repaired, not hidden.
+This supersedes earlier incomplete/branch-only checkpoint status below; those
+entries remain historical. Native complete data/registry/manifest/copy costs and
+platform/accessibility limits remain explicit, not universal resource promises.
+A and first B CNN slice remain integrated. D symbolic/recurrent composition is
+next, followed by E durable/heavyweight execution; neither is implemented yet.
+Origin/main and the initial published prerelease remain unchanged. No push,
+user application restart or user configuration/workspace edit was performed.
+
 ## 2026-10-11 04:14 -03:00 — Final interaction/layout convergence
 
 This supersedes the checkpoint below's single snap default. Display now has
@@ -64,13 +84,13 @@ Campaigns can record product commits, research notes and frozen experimental
 snapshots. Concurrent product writers use separate worktrees and serialize
 integration as described in AGENTS.md; campaign locks alone are insufficient.
 
-Current development checkpoint: A and the bounded B CNN slice are integrated;
-C remains local on `task/stage-c-experiments`. The latest C checkpoints below add
+Current development checkpoint: A, the bounded B CNN slice and Stage C are
+integrated locally in `main`. The historical C checkpoints below add
 explicit GUI notebook execution, rendered report-figure acceptance and a
 requirement-level [C audit](stage-c-verification.md). Earlier
 checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
-Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
+D/E remain required, and the initial public prerelease is unchanged.
 
 ### 2026-10-11 03:28 -03:00 — Related controls framed as browsing units
 

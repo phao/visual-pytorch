@@ -1,4 +1,4 @@
-# Concrete experiment GUI — branch-only Stage C checkpoint
+# Concrete experiment GUI — Stage C
 
 The accepted floating Experiment dock now has an **Experiments & history** tab.
 This is not in the initial public prerelease. It uses the immutable v6 registry,
@@ -536,4 +536,5 @@ tests and a real large-selection Qt fixture: 80-entry axes, 1000 seeds, exact
 historical long-value staging, independent pages/pins, failure retry and one
 undoable Commit/save-reload. The existing eight-fit/all-split regression also
 passes on the new controller. Current results are in [development.md](development.md).
-Partial Stage C remains branch-only and unpublished.
+Stage C is locally integrated; see [acceptance](stage-c-acceptance.md) for final
+evidence and explicit boundaries. No new public release is implied.

@@ -1,4 +1,4 @@
-# Saved-run presentation contract — branch-only Stage C
+# Saved-run presentation contract — Stage C
 
 This is a read-only projection of existing version-1 RunRecord/ReportRecipe
 objects in `.vtw` v6, not another evidence store or training protocol. Python,

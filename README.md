@@ -9,7 +9,7 @@ or a certified tool for safety-critical work.
 
 **Initial public preview · v0.1.0-alpha.1 · under active construction.**
 Source installation is available now; packaged installers are not provided yet.
-The current numerical workflow is CPU regression, including small CNNs—not a
+The tagged preview's numerical workflow is CPU regression, including small CNNs—not a
 complete catalogue of trainable architectures. Feedback and independent review
 are very welcome. This project is independent of the PyTorch project.
 
@@ -46,13 +46,16 @@ the drawing-to-training workflow; it is not a real-world benchmark.
 - `.vtw` SQLite workspaces and an agent-friendly CLI for atomic, revision-checked
   edits. The desktop notices external changes without silently replacing dirty work.
 
-Recurrent operators, notebook generation and richer experiment management remain
-future work. See [development](docs/development.md) and the
+Current development source additionally includes [Softmax with selectable
+sample axes](docs/softmax.md), independent dataset/task/experiment objects,
+immutable run history, structured minibatch losses, train-only preprocessing,
+group/time splits, exact saved predictors/curves and explicit notebook generation
+and real-kernel execution. These additions are not included in the initial
+`v0.1.0-alpha.1` prerelease. See [Stage C acceptance](docs/stage-c-acceptance.md),
+[experiment GUI](docs/experiment-gui.md) and [notebook setup](docs/notebook-reports.md).
+Recurrent/symbolic model families and durable detached/distributed execution
+remain future work. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
-
-The local development branch additionally includes [Softmax with selectable
-sample axes](docs/softmax.md) and the richer Stage C experiment interfaces.
-These are not included in the initial `v0.1.0-alpha.1` prerelease.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
 ![Compact blocks retain dimensions and bias; bulk layout has independent profiles](assets/screenshots/interface-collapsed.png)
@@ -100,6 +103,13 @@ For a structured CNN example, create a new workspace with
 python -m examples.cnn_regression /path/to/new-cnn.vtw, then open it in the app.
 It includes explicit Conv2d/Tanh/pooling/Flatten/Linear blocks and synthetic data;
 add --train for a bounded one-thread fit before opening. Existing files are refused.
+
+For the richer development workflow, create a new file with
+`python -m examples.experiment_workspace /path/to/new-experiments.vtw`, open it,
+then select Experiment → Experiments & history. Browse exact dataset/task/model
+revisions, preview candidates, run a trial and inspect its retained evidence.
+Notebook generation and execution are separate explicit actions and need the
+optional environments described in [notebook setup](docs/notebook-reports.md).
 
 `A`, `B`, `E`, `I` toggle Architectures, Building blocks, Experiment and Inspector.
 `D` deletes the selection; undo/redo repairs accidental edits. Empty canvas

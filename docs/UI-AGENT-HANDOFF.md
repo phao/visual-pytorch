@@ -712,7 +712,7 @@ informed movable/closable/expandable affordances. The implemented menus are HTML
 not QDockWidget instances. The pack, independent layer gestures and snapping
 anchors are the owner's requested interaction design, not borrowed native behavior.
 
-## Typed scientific drafts (branch-only Visual PyTorch extension)
+## Typed scientific drafts (Stage C Visual PyTorch extension)
 
 The floating Experiment/history tab hosts typed dataset, task and experiment drafts. Reuse
 their interaction pattern, not the domain grammar by accident: stable identities,
@@ -857,7 +857,7 @@ coordinates plus workspace identity, never a partial projection as a scientific
 specification. Native capture/training guards remain authoritative. See
 [candidate-browser.md](candidate-browser.md) for the tested concrete contract.
 
-## Saved evidence and comparison recipes (branch-only domain extension)
+## Saved evidence and comparison recipes (Stage C domain extension)
 
 Reuse the separation between inspecting immutable facts and explicitly requesting
 execution. A structured view identifies its exact object revision and retained
