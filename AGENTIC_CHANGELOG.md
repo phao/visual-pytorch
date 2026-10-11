@@ -4,6 +4,18 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 19:28 -03:00 — Retained runtime-v2 experiment acceptance verified
+
+Frozen0d25269 full1260 Python488.828s (3 native-covered skips),74 native/pure,
+359 JS,19 new pure/numerical, actual sandboxed Qt v1/v2 and55 legacy experiment
+points pass. Persistent genuine saved/rerun kernels reproduce the same exact
+checkpoint and metrics and include both runtime/predictor companions. No
+executable changes after the frozen checkpoint; this entry documents actual
+acceptance. Initial real report-export omission/test-poll failures preserved.
+Local Git/campaign records identify following integration; original D gates and
+E remain incomplete, reports deferred, no public or user-state changes.
+
+
 ## 2026-10-11 19:18 -03:00 — Retained runtime-v2 experiments and actual kernels
 
 Added explicit experiment/run6/runtime-temporal-v2, .vtw20 compatibility fences,
