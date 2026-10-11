@@ -3,10 +3,12 @@
 ## Status and boundary
 
 `app/recurrent.py` is an implemented eager execution primitive over an ordinary
-compiled graph. It is not yet a diagram block, architecture-family grammar,
-`.vtw` object, CLI command, task-worker mode or notebook-capsule feature. Those
-integrations remain Stage D work. No workspace version, old ModelRevision,
-family hash or task interpretation changes in this checkpoint.
+compiled graph. The [recurrent graph contract](recurrent-graph-contract.md) now
+exposes it through a closed multiport graph node, container14/ModelRevision3,
+existing atomic CLI graph edits, concrete task workers, saved predictors and
+captured notebook helpers. The GUI palette/inspector and a retained temporal
+family/runtime grammar remain Stage D work. Old ModelRevision/family hashes and
+task interpretations are preserved; finite tied repeats do not become recurrent.
 
 The existing graph defines one transition; it stays acyclic. Recurrence lives
 in a shared transition object plus explicit state bindings and a runtime loop.

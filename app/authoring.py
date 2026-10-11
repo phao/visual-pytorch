@@ -44,7 +44,7 @@ def drawing_seed(workspace, root, admit=None):
         parsed = _parse(row[0])
         models[mid] = {k: parsed[k] for k in ('id', 'name', 'graph')}
         for node in models[mid]['graph']['nodes']:
-            if node['type'] == 'Module': visit(node['ref'])
+            if node['type'] in {'Module', 'Recurrent'}: visit(node['ref'])
     visit(root)
     return model_document(models, root)
 

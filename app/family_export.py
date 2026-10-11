@@ -18,7 +18,7 @@ from .memory import memory_percent
 CORE = ('GraphError', 'feature_count', 'tensor_shape', 'input_shape', 'reshape_shape',
         'ordered_nodes', 'operation_nodes', 'boundary_groups', 'validate_model',
         'safety_report', 'preflight', 'check_document', '_pack_inputs', '_graph_values',
-        '_graph_tensor', 'compile_model')
+        '_graph_tensor', '_recurrent_graph_forward', 'compile_model')
 EVIDENCE = ('digest', 'legacy_input_order', 'pin_input_order', 'graph_signature',
             'identity', 'parameter_schema')
 
@@ -33,13 +33,13 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes')}
+               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math
 from collections import OrderedDict
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory, estimate_memory, format_bytes
-from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for
+from .operators import TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
 from .activations import activation_name, normalize_activation, softmax_axis
 MAX_INTEGER = 2**53 - 1''')
     sources['evidence'] = _selected(folder / 'evidence.py', EVIDENCE, '''import hashlib
@@ -115,7 +115,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'families', 'runtime_shapes'):
+            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'recurrent', 'recurrent_nodes', 'families', 'runtime_shapes'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:

@@ -64,7 +64,7 @@ def identity(models, mid):
         doc=models[nid]
         closure[nid]=graph_signature(doc['graph'])
         for n in doc['graph']['nodes']:
-            if n['type']=='Module':visit(n['ref'])
+            if n['type'] in {'Module', 'Recurrent'}:visit(n['ref'])
     visit(mid)
     doc=models[mid]
     return {'version':1,'architecture':digest(closure),
@@ -98,8 +98,8 @@ def parameter_schema(models, mid, prefix='', stable_prefix=None):
             continue
         path=prefix+f'layer_{i}'
         stable=stable_prefix+'/'+node['id']
-        if node['type']=='Module':
-            schema.update(parameter_schema(models,node['ref'],path+'.',stable))
+        if node['type'] in {'Module', 'Recurrent'}:
+            schema.update(parameter_schema(models,node['ref'],path+('.transition.' if node['type'] == 'Recurrent' else '.'),stable))
         elif node['type'] in {'Linear', 'Conv2d'}:
             shape=contract['shapes'][node['id']]
             weight_shape = shape['operator']['weight_shape'] if node['type'] == 'Conv2d' else [shape['output'],shape['input']]

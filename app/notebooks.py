@@ -28,6 +28,7 @@ RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.
            'file_sync.py', 'graph.py', 'history.py', 'memory.py', 'operators.py', 'presentation.py', 'runtime_shapes.py',
            'report_runtime.py', 'revisions.py', 'task_execution.py', 'task_result.py',
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
+RUNTIME += ('recurrent.py', 'recurrent_nodes.py')
 FORMAT = 'visual-pytorch-report-bundle'
 
 
@@ -216,7 +217,7 @@ def verify_bundle(root):
     sets = (expected, pre_axes, pre_family, legacy, no_activations,
             expected - family_paths, expected - {'runtime/app/activations.py'})
     sets=sets+tuple(v-{'runtime/app/runtime_shapes.py'} for v in sets)
-    for dependency in ('runtime_tasks.py','family_export.py'):
+    for dependency in ('runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py'):
         sets=sets+tuple(v-{'runtime/app/'+dependency} for v in sets)
     _require(set(manifest['files']) in sets,
              'Report source closure is incomplete or contains unexpected paths.')
@@ -259,7 +260,7 @@ def verify_bundle(root):
         _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                          n.module == 'runtime_shapes' for n in ast.walk(tree)),
                  'This report runtime requires its captured runtime_shapes.py dependency.')
-    for dependency in ('runtime_tasks','family_export'):
+    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes'):
         if 'runtime/app/'+dependency+'.py' not in manifest['files']:
             import ast
             for relative in manifest['files']:

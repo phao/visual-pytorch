@@ -17,12 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
+from .operators import TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 13
+VERSION = 14
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -223,9 +223,9 @@ def check_document(doc):
         if not isinstance(node.get("id"), str) or node["id"] in ids:
             raise GraphError("Block IDs must be unique strings.")
         ids.add(node["id"])
-        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
+        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Recurrent", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
             raise GraphError("Unsupported block type.")
-        if node['type'] in TENSOR_OPERATORS:
+        if node['type'] in TENSOR_OPERATORS | {'Recurrent'}:
             normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
@@ -255,7 +255,7 @@ def check_document(doc):
             raise GraphError("Bias must be true or false.")
         if node["type"] == "Activation":
             normalize_activation(node)
-        if node["type"] == "Module" and not isinstance(node.get("ref"), str):
+        if node["type"] in REFERENCE_TYPES and not isinstance(node.get("ref"), str):
             raise GraphError("An architecture block needs a reference ID.")
         for key in ("x", "y"):
             v = node.get(key, 0)
@@ -409,7 +409,7 @@ class Workspace:
     def put(self, doc):
         check_document(doc)
         for node in doc["graph"]["nodes"]:
-            if node["type"] == "Module":
+            if node["type"] in REFERENCE_TYPES:
                 if not self.db.execute("SELECT 1 FROM architectures WHERE id=?", (node["ref"],)).fetchone():
                     raise GraphError("The referenced architecture does not exist in this workspace.")
         document = copy.deepcopy(doc)
@@ -450,7 +450,7 @@ class Workspace:
             """, (doc["id"], doc["name"].strip(), json.dumps(document, allow_nan=False), timestamp()))
             self.db.execute("DELETE FROM architecture_refs WHERE owner_id=?", (doc["id"],))
             for node in doc["graph"]["nodes"]:
-                if node["type"] == "Module":
+                if node["type"] in REFERENCE_TYPES:
                     self.db.execute("INSERT INTO architecture_refs VALUES (?,?,?)",
                                     (doc["id"], node["id"], node["ref"]))
             if data is not None:
@@ -572,7 +572,7 @@ class Workspace:
             expected_refs = set()
             for doc in loaded.values():
                 check_document(doc)
-                expected_refs.update((doc['id'], n['id'], n['ref']) for n in doc['graph']['nodes'] if n['type']=='Module')
+                expected_refs.update((doc['id'], n['id'], n['ref']) for n in doc['graph']['nodes'] if n['type'] in REFERENCE_TYPES)
             if expected_refs != set(w.db.execute('SELECT owner_id,node_id,target_id FROM architecture_refs')):
                 raise GraphError('Architecture reference index does not match the graph documents.')
             for mid, name in w.db.execute('SELECT id,name FROM architectures'):
@@ -620,6 +620,13 @@ class Workspace:
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
                     if _parse(text)['version'] >= (4 if kind == 'specialization' else 5):
                         raise GraphError('Runtime family contracts require a version-12 container.')
+            if version < 14:
+                from .revisions import _parse
+                if any(n['type'] == 'Recurrent' for m in w.models().values() for n in m['graph']['nodes']):
+                    raise GraphError('Recurrent graph references require a version-14 container.')
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
+                    if _parse(text)['version'] >= 3:
+                        raise GraphError('Recurrent ModelRevisions require a version-14 container.')
             if version < 13:
                 from .revisions import _parse
                 for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
@@ -670,7 +677,10 @@ def _graph_values(module, x, contract):
             value = x if len(contract['input_groups']) == 1 else x[:, g['start']:g['stop']].reshape(x.shape[0], *g['shape'])
         elif 'layer' in item:
             layer = getattr(module, item['layer'])
-            if kind == 'Module' and 'runtime_contract' in item:
+            if kind == 'Recurrent':
+                # The app-free emitter captures this helper under the same name.
+                value = _recurrent_graph_forward(layer, parts, item['recurrent'])
+            elif kind == 'Module' and 'runtime_contract' in item:
                 child = item['runtime_contract']
                 value = _graph_tensor(_graph_values(layer, parts[0], child), child)
             elif kind == 'Reshape' and 'runtime_reshape' in item:
@@ -688,6 +698,11 @@ def _graph_values(module, x, contract):
             value = parts[0]  # Output is an identity boundary.
         values[nid] = value
     return values
+
+
+def _recurrent_graph_forward(layer, parts, plan):
+    from .recurrent_nodes import graph_forward
+    return graph_forward(layer, parts, plan)
 
 
 def _graph_tensor(values, contract):
@@ -711,6 +726,23 @@ def generate_code(models, model_id):
              "        super().__init__()", "        self.dims = tuple(dims)",
              "    def forward(self, x):", "        return x.permute(*self.dims)", ""]
     emitted = set()
+    def has_recurrence(mid, seen):
+        if mid in seen: return False
+        seen.add(mid)
+        return any(n['type'] == 'Recurrent' or
+                   (n['type'] in REFERENCE_TYPES and has_recurrence(n['ref'], seen))
+                   for n in models[mid]['graph']['nodes'])
+    if has_recurrence(model_id, set()):
+        from .memory import MIB
+        from .recurrent import (_recurrent_inputs, _recurrent_run, _runner_class, recurrent_memory_report)
+        from .recurrent_nodes import _control, graph_forward
+        from .task_execution import _helper_source
+        lines.extend(['from pathlib import Path', 'import math', 'GraphError = ValueError',
+                      'MAX_INTEGER = 2**53 - 1', f'MIB = {MIB!r}'])
+        for helper in (feature_count, memory_percent, available_memory, format_bytes, recurrent_memory_report,
+                       _recurrent_inputs, _recurrent_run, _runner_class, _control, graph_forward):
+            lines.append(_helper_source(helper))
+        lines.append('_recurrent_graph_forward = graph_forward')
 
     def cname(mid):
         return "Architecture_" + str(uuid.uuid5(uuid.NAMESPACE_URL, mid)).replace("-", "")[:12]
@@ -721,7 +753,7 @@ def generate_code(models, model_id):
         model, contract = models[mid], validate_model(models, mid)
         order = operation_nodes(model)
         for n in order:
-            if n["type"] == "Module":
+            if n["type"] in REFERENCE_TYPES:
                 emit(n["ref"])
         lines.extend([
             f"class {cname(mid)}(nn.Module):",
@@ -739,6 +771,8 @@ def generate_code(models, model_id):
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
             elif node['type'] in TENSOR_OPERATORS:
                 op = constructor_code(contract['shapes'][node['id']]['operator'])
+            elif node['type'] == 'Recurrent':
+                op = f'_runner_class(nn)({cname(node["ref"])}(), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
             else:
                 op = f'{cname(node["ref"])}()'
             lines.append(f"        self.layer_{index} = {op}")
@@ -785,6 +819,17 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         def forward(self, x):
             return x.permute(*self.dims)
 
+    def recurrent_reference(current, seen=None):
+        # Legacy plain Modules keep their construction-only nested policy.
+        # A recurrent descendant must retain per-call admission through wrappers.
+        seen = set() if seen is None else seen
+        if current in seen:
+            return False
+        seen.add(current)
+        return any(n['type'] == 'Recurrent' or
+                   (n['type'] == 'Module' and recurrent_reference(n['ref'], seen))
+                   for n in models[current]['graph']['nodes'])
+
     layers = OrderedDict()
     for index, node in enumerate(operation_nodes(models[mid])):
         if 'parameter_owner' in contract['shapes'][node['id']]:
@@ -805,8 +850,16 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             if 'dtype' in kwargs:
                 kwargs['dtype'] = torch.float32
             layer = (Permute if node['type'] == 'Permute' else getattr(nn, spec['constructor']))(**kwargs)
+        elif node['type'] == 'Recurrent':
+            from .recurrent import _runner_class
+            c = contract['shapes'][node['id']]['recurrent']['contract']
+            layer = _runner_class(nn)(compile_model(models, node['ref'], constrained=constrained,
+                                                     memory_limit_percent=memory_limit_percent), c,
+                                      constrained=constrained, memory_limit_percent=memory_limit_percent)
         else:
-            layer = compile_model(models, node["ref"], constrained=False)
+            layer = compile_model(models, node["ref"],
+                                  constrained=constrained and recurrent_reference(node['ref']),
+                                  memory_limit_percent=memory_limit_percent)
         layers[f"layer_{index}"] = layer
 
     class GraphModule(nn.Module):
@@ -846,8 +899,8 @@ def layer_descriptions(models, mid, prefix="", stable_prefix=None):
         if 'parameter_owner' in contract['shapes'][node['id']]:
             continue
         path = prefix + f"layer_{i}"
-        if node["type"] == "Module":
-            layers.extend(layer_descriptions(models, node["ref"], path + ".",stable_prefix+'/'+node['id']))
+        if node["type"] in REFERENCE_TYPES:
+            layers.extend(layer_descriptions(models, node["ref"], path + ('.transition.' if node['type'] == 'Recurrent' else '.'),stable_prefix+'/'+node['id']))
         else:
             layers.append({"path": path, "node_id": node["id"], "architecture": models[mid]["name"],
                            "stable_id":stable_prefix+'/'+node['id'],

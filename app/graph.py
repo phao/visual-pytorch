@@ -6,7 +6,7 @@ from .operators import TENSOR_OPERATORS, LAYER_TYPES, axes_for, describe
 def parameter_owners(model):
     """Local explicit module identity, independent of wire/topological order.
 
-    Only whole Linear/Conv2d/Module reuse is supported. Chained aliases resolve
+    Whole Linear/Conv2d/Module/Recurrent reuse is supported. Chained aliases resolve
     to one existing owner; constructor compatibility is checked by contract.
     """
     from .core import GraphError
@@ -16,8 +16,8 @@ def parameter_owners(model):
         if 'share_with' not in node:
             continue
         target = node['share_with']
-        if node['type'] not in {'Linear', 'Conv2d', 'Module'} or not isinstance(target, str) or not target:
-            raise GraphError('share_with requires a Linear, Conv2d or Module block and an existing local block ID.')
+        if node['type'] not in {'Linear', 'Conv2d', 'Module', 'Recurrent'} or not isinstance(target, str) or not target:
+            raise GraphError('share_with requires a Linear, Conv2d, Module or Recurrent block and an existing local block ID.')
         if target not in nodes or nodes[target]['type'] != node['type']:
             raise GraphError('Shared parameter owner is missing or has a different block type: ' + nid + '.')
     for nid in nodes:
@@ -62,6 +62,12 @@ def topology(model):
             keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
             if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
                 raise GraphError('Concat sources must list each incoming source exactly once, in order.')
+        elif n['type'] == 'Recurrent':
+            from .recurrent_nodes import sources
+            keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
+            expected = sources(n)
+            if len(set(keys)) != len(keys) or set(keys) != set(expected):
+                raise GraphError('Recurrent bindings must name exactly its unambiguous incoming wire sources.')
         elif len(ins) != 1:
             raise GraphError('Connect every block: each ordinary block has exactly one input; use Concat to join branches.')
         if n['type'] == 'Output' and outs:
@@ -144,8 +150,12 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
                 raise GraphError(f'Wire from {src} must select a declared output port.')
             return {'node': src, 'port': port}, ports[src][port], origins[(src, port)]
         if port is not None:
-            raise GraphError('Only Splitter and Replicator wires select output ports.')
+            raise GraphError('Only Splitter, Replicator and Recurrent wires select output ports.')
         return {'node': src, 'port': None}, shapes[src]['output_shape'], origins[(src, None)]
+
+    def source_axes(src):
+        entry = shapes[src['node']]
+        return entry.get('port_axes', {}).get(src['port'], entry['output_axes'])
 
     for n in order:
         kind, nid = n['type'], n['id']
@@ -153,10 +163,13 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
         if kind == 'Concat':
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
+        if kind == 'Recurrent':
+            from .recurrent_nodes import sources
+            incoming.sort(key=lambda e: sources(n).index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
         resolved = [source(e) for e in incoming]
         before = resolved[0][1] if resolved else effective[nid]
         current = list(before)
-        axes = shapes[resolved[0][0]['node']]['output_axes'] if resolved else axes_for(n, len(before))
+        axes = source_axes(resolved[0][0]) if resolved else axes_for(n, len(before))
         operator = None
         item = {'id': nid, 'type': kind, 'sources': [r[0] for r in resolved]}
         origin = resolved[0][2] if resolved else (nid, None)
@@ -216,6 +229,32 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             affine = affine and ref['affine']
             matrix_affine = matrix_affine and ref['matrix_affine']
             origin = (nid, None)
+        elif kind == 'Recurrent':
+            from .recurrent_nodes import describe as recurrent_describe
+            child = contract(models, n['ref'], (*ancestry, mid), cache, _runtime_contexts=_runtime_contexts)
+            bound = {}
+            for edge, result in zip(incoming, resolved):
+                src = result[0]
+                entry = shapes[src['node']]
+                src_axes = entry.get('port_axes', {}).get(src['port'], entry['output_axes'])
+                key = edge['from'] + '@' + edge['from_port'] if 'from_port' in edge else edge['from']
+                bound[key] = (result[1], src_axes)
+            recurrent, outputs, port_axes = recurrent_describe(n, child, bound)
+            item['recurrent'] = recurrent
+            ports[nid] = outputs
+            current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
+            axes = None
+            params += child['parameters']
+            activation_elements += recurrent['steps'] * child['activation_elements']
+            convolution_workspace_elements += recurrent['steps'] * child['convolution_workspace_elements']
+            ops += recurrent['steps'] * child['operations']
+            max_width = max(max_width, child['max_width'])
+            max_input = max(max_input, child['max_input'])
+            affine = matrix_affine = False
+            for row in n['sequence_outputs']:
+                origins[(nid, row['port'])] = (nid, 'sequence/' + row['output'])
+            for row in n['states']:
+                origins[(nid, row['port'])] = (nid, 'state/' + row['input'])
         elif kind == 'Concat':
             item['flatten'] = n.get('flatten', True)
             if item['flatten']:
@@ -225,7 +264,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
                 if any(r[1][:-1] != before[:-1] for r in resolved):
                     raise GraphError('Last-axis Concat requires matching other sample dimensions.')
                 current = before[:-1] + [sum(r[1][-1] for r in resolved)]
-                if any(shapes[r[0]['node']]['output_axes'] != axes for r in resolved):
+                if any(source_axes(r[0]) != axes for r in resolved):
                     axes = None
             origin = (nid, None)
         elif kind in {'Splitter', 'Replicator'}:
@@ -249,6 +288,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         shapes[nid] = {'input': before[-1], 'output': current[-1],
                        'input_shape': list(before), 'output_shape': list(current),
                        'output_axes': axes}
+        if kind == 'Recurrent':
+            shapes[nid].update(ports=outputs, port_axes=port_axes, recurrent=recurrent)
         if operator is not None:
             shapes[nid]['operator'] = operator
         origins[(nid, None)] = origin
@@ -256,7 +297,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         if kind in LAYER_TYPES:
             item['layer'] = f'layer_{operation_index}'
             operation_index += 1
-            if kind != 'Module':
+            if kind not in {'Module', 'Recurrent'}:
                 ops += 1
         elif kind in {'Concat', 'Splitter', 'Replicator'}:
             ops += 1
@@ -275,6 +316,9 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             same = (a['input'], a['output'], node.get('bias', True)) == (b['input'], b['output'], canonical.get('bias', True))
         elif kind == 'Conv2d':
             same = a['operator']['kwargs'] == b['operator']['kwargs']
+        elif kind == 'Recurrent':
+            from .recurrent_nodes import specification
+            same = node['ref'] == canonical['ref'] and specification(node) == specification(canonical)
         else:
             same = node['ref'] == canonical['ref']
         if not same:

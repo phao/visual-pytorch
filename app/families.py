@@ -188,6 +188,8 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
+                require(node['type'] != 'Recurrent',
+                        'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
                 require(doc['version'] >= 2 or 'share_with' not in node,

@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 13
+# Visual Torch Workspace (.vtw): format specification, version 14
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -16,15 +16,16 @@ version-7 container; they add no SQL table or sidecar. The
 [scoped Module constructors](scoped-constructors.md) require version11;
 [retained runtime H/W contracts](runtime-spatial-contracts.md) require version12;
 [explicit runtime task execution](runtime-task-execution.md) requires version13;
-runtime recurrent execution is not implied by finite tied uses.
+[recurrent graph references](recurrent-graph-contract.md) require version14.
+Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 13. The current reader accepts versions 1–13; opening
-an older file copies it into memory and upgrades the working version to 13.
-Opening alone never rewrites the source; explicit Save writes version 13.
+PRAGMA user_version = 14. The current reader accepts versions 1–14; opening
+an older file copies it into memory and upgrades the working version to 14.
+Opening alone never rewrites the source; explicit Save writes version 14.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -70,7 +71,12 @@ runtime TaskBundle v2 provenance/identity. Earlier headers containing those v4
 records fail. Existing concrete experiments/bundles retain their old execution;
 there are no new SQL tables, ModelRevision semantics or report recipe version.
 See [runtime-task-execution.md](runtime-task-execution.md).
-Older binaries are not expected to open version 13;
+Version14 adds closed `Recurrent` multiport references and ModelRevision v3's
+reachable transition closure. Earlier headers containing either new semantic
+feature fail. No SQL tables, family1–5 grammar, TaskBundle1, experiment/run or
+report recipe grammar changes. Existing concrete task execution can capture the
+new model revision. See [recurrent-graph-contract.md](recurrent-graph-contract.md).
+Older binaries are not expected to open version 14;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -208,7 +214,8 @@ from datasets.payload; Workspace.put() accepts the materialized document.
 dataset: null deletes the current dataset. Unknown JSON fields survive normal
 round trips but do not acquire execution semantics.
 
-architecture_refs must exactly index every Module as (owner ID, node ID, ref ID).
+architecture_refs must exactly index every Module and Recurrent as
+(owner ID, node ID, ref ID).
 Targets must exist. A stale independent index is rejected; deleting a referenced
 target is blocked. Deleting an unreferenced architecture cascades its legacy
 data/runs, not independent revisions/frozen closures.
@@ -281,6 +288,7 @@ Current training tensors are float32.
 | Splitter | parts=[{output:port_id,features:size},...] | torch.split on last axis; positive sizes sum to incoming last-axis width; other axes preserved. |
 | Replicator | outputs=[port_id,...] | All ports alias the same full tensor; no clone or parameters. |
 | Module | ref | Independently instantiated graph reference; exact packed input shape match, canonical forward_tensor output. |
+| Recurrent | ref, sequence_inputs, states, sequence_outputs, optional controls | Explicit transition graph unroll; named state/sequence output ports, constant shared step weights, validated control adapters. See recurrent-graph-contract.md. |
 | Output | optional shape, label | Identity boundary. Shape asserts incoming dimensions; it never implicitly reshapes. |
 
 Structured operators use integer op_version=1. Missing version is interpreted
@@ -352,12 +360,16 @@ Direct split groups additionally specify axis_start/axis_stop. Extract higher-ra
 split slices on the last axis; flat start/stop is not sufficient. Replicas share
 canonical offsets. Other terminal groups use concatenated flat offsets.
 
-References currently expose one bundled socket pair, not independently wired
+Module references currently expose one bundled socket pair, not independently wired
 named ports. Each occurrence has independent weights. Reference cycles are
 rejected even when each internal DAG is acyclic. Its output presentation does not
 replace its canonical adapter.
 
-State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module
+Recurrent instead has explicitly bound incoming wire keys and named outgoing
+ports. Feedback is internal to its loop; the surrounding graph remains acyclic.
+Recurrent bodies occupy a registered `transition` submodule below the owner.
+
+State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent
 and the six structured operators above,
 in topological order, nested through references. Boundary/Concat/router nodes
 do not occupy these operation indices. Paths can change after graph insertion/

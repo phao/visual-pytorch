@@ -42,6 +42,8 @@ def specification(models, mid, runtime_inputs):
         from .core import check_document
         check_document(models[key])
         for n in models[key]['graph']['nodes']:
+            if n['type'] == 'Recurrent':
+                raise GraphError('Runtime-spatial-v1 does not declare temporal recurrent ports; use a concrete recurrent graph until the temporal runtime contract is selected.')
             if n['type'] == 'Module': closure(n['ref'])
     closure(mid)
     baseline = validate_model(models, mid)

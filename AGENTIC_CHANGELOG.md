@@ -4,6 +4,29 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 11:30 -03:00 — Recurrent graph, storage and execution integration
+
+Added a closed multi-input/multi-output Recurrent graph reference to the verified
+transition executor: explicit stable child/wire bindings, CPU float32 control
+adapters that validate exact integer/bool values, semantic T axes, once-per-owner
+parameters, T-scaled work/storage, nested reference safety and app-free forward.
+Container14/ModelRevision3 retain the reachable transition closure without new
+SQL tables or silently extending old family/runtime grammars. Existing atomic
+CLI admission, task workers, frozen checkpoints/predictors and29-file notebook
+closures now support concrete recurrent graphs. Fixed older container13 frozen-
+model loading and propagation of constrained flag/RAM percentage through Module
+wrappers with recurrent descendants. Ordinary Module-only policy is preserved.
+
+Added30 graph/storage/numerical/task cases. Final938-Python regression311.166s
+(935 PASS/3 Qt-only skips covered by123 pure/native checks3.479s),299 JavaScript
+tests1238.600884ms, native/export independent gradients,40-update worker parity,
+fresh app-free predictors and actual saved/rerun kernel checkpoint/metric equality
+pass. Earlier fixture errors and first937-test regression are retained in campaign
+evidence; no production Python edits occurred during live numerical/export tests.
+Specs and a disposable constrained graph/.vtw example are included. Recurrent
+palette/inspector, retained temporal family/runtime grammar and remaining D/E are
+not complete. No main/public push, user app/config/workspace or desktop changes.
+
 ## 2026-10-11 10:33 -03:00 — Explicit recurrent transition execution foundation
 
 Implemented a Torch-lazy explicit-state recurrent executor over existing graphs,

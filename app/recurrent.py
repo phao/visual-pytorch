@@ -23,8 +23,8 @@ def _ids(values, where, *, empty=False):
         raise GraphError(where + ': use unique, nonempty stable port IDs.')
 
 
-def recurrent_contract(models, mid, specification):
-    """Validate a closed v1 state interface against the actual transition graph."""
+def interface_contract(c, specification):
+    """Pure interface validation over an already checked transition contract."""
     _keys(specification, ('version', 'sequence_inputs', 'states', 'sequence_outputs'), 'Recurrent specification')
     if type(specification['version']) is not int or specification['version'] != 1:
         raise GraphError('Recurrent specification version must be integer 1.')
@@ -48,9 +48,6 @@ def recurrent_contract(models, mid, specification):
     _ids([s['port'] for s in spec['sequence_outputs']], 'Sequence output ports', empty=True)
     if set(spec['sequence_inputs']) & {s['input'] for s in spec['states']}:
         raise GraphError('A transition Input cannot be both sequence and state.')
-    from .revisions import model_document
-    models = model_document(models, mid)['models']
-    c = validate_model(models, mid)
     inputs = {g['id']: g for g in c['input_groups']}
     outputs = {g['id']: g for g in c['output_groups']}
     if set(inputs) != set(spec['sequence_inputs']) | {s['input'] for s in spec['states']}:
@@ -62,19 +59,26 @@ def recurrent_contract(models, mid, specification):
         before, after = inputs[state['input']], outputs[state['output']]
         if before['shape'] != after['shape'] or before.get('axes') != after.get('axes'):
             raise GraphError('State ' + state['port'] + ': next state must preserve initial-state shape and axes.')
-    schema = parameter_schema(models, mid)
-    return {'version': 1, 'specification': spec, 'transition': mid,
-            'transition_identity': identity(models, mid)['architecture'],
-            'identity': {'version': 1, 'kind': 'recurrent-transition-v1',
-                         'architecture': identity(models, mid)['architecture'], 'interface': digest(spec)},
-            'parameters': c['parameters'],
-            'parameter_schema': {'transition.' + k: v for k, v in schema.items()},
+    return {'version': 1, 'specification': spec, 'parameters': c['parameters'],
             'inputs': inputs, 'outputs': outputs,
             'activation_elements': c['activation_elements'],
             'convolution_workspace_elements': c['convolution_workspace_elements'],
             'policies': {'state': 'explicit-in-out', 'mask': 'skip-step-zero-output',
                          'reset': 'initial-before-active-step', 'gradient': 'full-no-implicit-detach',
                          'time': 'positive-runtime-T', 'execution': 'cpu-float32-eager'}}
+
+
+def recurrent_contract(models, mid, specification):
+    """Validate a closed v1 state interface against the actual transition graph."""
+    from .revisions import model_document
+    models = model_document(models, mid)['models']
+    result = interface_contract(validate_model(models, mid), specification)
+    architecture = identity(models, mid)['architecture']
+    result.update(transition=mid, transition_identity=architecture,
+                  identity={'version': 1, 'kind': 'recurrent-transition-v1',
+                            'architecture': architecture, 'interface': digest(result['specification'])},
+                  parameter_schema={'transition.' + k: v for k, v in parameter_schema(models, mid).items()})
+    return result
 
 
 def recurrent_memory_report(contract, batch, steps, constrained=True, *,
