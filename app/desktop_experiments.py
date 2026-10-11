@@ -378,8 +378,9 @@ def dispatch(window, req, source=None):
         if not folder: return None
         if window.workspace is not workspace or job_busy(window.job):
             raise ValueError('Workspace changed while selecting a destination. Try again.')
-        from .notebooks import create_bundle
-        return create_bundle(workspace, req['reference'], folder,
+        from .notebooks import create_bundle_isolated
+        python = req.get('python') or window.torch_python or ''
+        return create_bundle_isolated(workspace, req['reference'], folder, python,
             offset=req.get('offset', 0), limit=req.get('limit', 100), allow_partial=req.get('allow_partial', False),
             memory_limit_percent=window.state()['memory_limit_percent'])
     elif action == 'scienceTrain':

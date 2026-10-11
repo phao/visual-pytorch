@@ -160,11 +160,9 @@ print('Input closure verified; mode:', payload['documents'][-1]['document']['mod
     return notebook
 
 
-def create_bundle(workspace, recipe_ref, destination, **selection):
-    """Create a new directory atomically; never overwrite an existing export."""
+def capture_bundle(workspace, recipe_ref, **selection):
+    """Capture exact data/runtime bytes without importing notebook dependencies."""
     payload = payload_for(workspace, recipe_ref, **selection)
-    root = Path(destination).expanduser().absolute()
-    _require(not root.exists(), 'Refusing to overwrite an existing report bundle.')
     source = Path(__file__).resolve().parent
     files = {'payload.json': _json(payload), 'LICENSE': (source.parent / 'LICENSE').read_bytes()}
     for name in RUNTIME:
@@ -182,6 +180,27 @@ executions/<attempt>/requested.ipynb, executed.ipynb and execution.json.
 Manual Jupyter execution retains numerical artifacts in a fresh attempt directory,
 but only the explicit execution adapter saves the executed notebook/receipt automatically.
 """ + '\nRecipe: ' + json.dumps(recipe_ref, sort_keys=True) + '\n').encode('utf-8')
+    return {'version': 1, 'payload': payload, 'files': {name: raw.decode('utf-8') for name, raw in files.items()}}
+
+
+def publish_bundle(captured, destination):
+    """Validate a closed captured generation request, then publish index last.
+
+This runs where nbformat is installed. Generation never executes notebook cells.
+The capture holds source bytes, not paths that a worker may silently reread.
+"""
+    from .revisions import _parse
+    _require(isinstance(captured, dict) and set(captured) == {'version', 'payload', 'files'} and
+             type(captured['version']) is int and captured['version'] == 1, 'Invalid notebook generation capture.')
+    payload = captured['payload']; resolve_payload(payload)
+    recipe_ref = payload['recipe']
+    expected = {'payload.json', 'LICENSE', 'README.txt', 'requirements.txt'} | {'runtime/app/' + n for n in RUNTIME}
+    _require(isinstance(captured['files'], dict) and set(captured['files']) == expected and
+             all(isinstance(v, str) for v in captured['files'].values()), 'Captured notebook source closure is incomplete or unsafe.')
+    _require(_parse(captured['files']['payload.json']) == payload, 'Captured notebook payload bytes differ from its specification.')
+    files = {name: raw.encode('utf-8') for name, raw in captured['files'].items()}
+    root = Path(destination).expanduser().absolute()
+    _require(not root.exists(), 'Refusing to overwrite an existing report bundle.')
     index = {p: {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} for p, raw in files.items()}
     notebook = build_notebook(payload, index)
     nbformat = _jupyter('nbformat'); requested = nbformat.writes(notebook).encode('utf-8')
@@ -196,6 +215,56 @@ but only the explicit execution adapter saves the executed notebook/receipt auto
     return {'path': str(root), 'recipe': recipe_ref, 'mode': notebook.metadata.visual_pytorch.mode,
             'status': 'generated-not-executed', 'input_index_hash': digest(index),
             'requested_sha256': manifest['requested_notebook']['sha256']}
+
+
+def create_bundle(workspace, recipe_ref, destination, **selection):
+    """Direct authoring API for an environment with nbformat installed."""
+    return publish_bundle(capture_bundle(workspace, recipe_ref, **selection), destination)
+
+
+def create_bundle_isolated(workspace, recipe_ref, destination, python, **selection):
+    """Lightweight-host generation through the selected report environment.
+
+Bounded synchronous generation, not a kernel run or detached job. Captures
+complete existing inline data/source costs; it does not claim lazy storage.
+"""
+    from .notebook_execution import validate_selection
+    from .transport import run_json_worker
+    interpreter = Path(python).expanduser().resolve()
+    _require(interpreter.is_file() and os.access(interpreter, os.X_OK), 'Choose an executable report Python for notebook generation.')
+    root = Path(destination).expanduser().resolve()
+    _require(not root.exists(), 'Refusing to overwrite an existing report bundle.')
+    captured = capture_bundle(workspace, recipe_ref, **selection)
+    result = run_json_worker([str(interpreter), '-m', 'app.notebook_worker'],
+        {'operation': 'generate', 'capture': captured, 'directory': str(root)},
+        cwd=Path(__file__).resolve().parent.parent, timeout=30, max_line_bytes=1024**2)
+    _require(isinstance(result, dict) and set(result) == {'generated', 'selection'}, 'Invalid notebook generation response.')
+    selected = validate_selection(result['selection'])
+    raw_files = {name: raw.encode('utf-8') for name, raw in captured['files'].items()}
+    index = {name: {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} for name, raw in raw_files.items()}
+    requested = root / 'requested.ipynb'
+    _require(selected['path'] == str(root) and selected['recipe'] == recipe_ref and
+             selected['input_index_hash'] == digest(index) and requested.is_file() and not requested.is_symlink(),
+             'Notebook generation response differs from its captured inputs.')
+    sha = hashlib.sha256(requested.read_bytes()).hexdigest()
+    mode = captured['payload']['documents'][-1]['document']['mode']
+    expected_result = {'path': str(root), 'recipe': recipe_ref, 'mode': mode, 'status': 'generated-not-executed',
+                       'input_index_hash': digest(index), 'requested_sha256': sha}
+    _require(result['generated'] == expected_result and selected['requested_sha256'] == sha and selected['mode'] == mode,
+             'Notebook generation response has incorrect mode or byte identity.')
+    # Recheck captured bytes locally: a valid child response cannot substitute
+    # the selected source/data before GUI admission. This is not a writer lock.
+    from .revisions import _parse
+    manifest = _parse((root / 'manifest.json').read_text(encoding='utf-8'))
+    _require(manifest == {'version': 1, 'format': FORMAT, 'recipe': recipe_ref, 'files': index,
+                         'requested_notebook': {'path': 'requested.ipynb', 'sha256': sha}},
+             'Generated notebook manifest differs from its captured byte index.')
+    for name, raw in raw_files.items():
+        path = root / name
+        _require(not path.is_symlink() and path.resolve().is_relative_to(root) and path.read_bytes() == raw,
+                 'Generated notebook source/data bytes changed: ' + name)
+    _require(not (root / 'executions').exists(), 'Notebook generation unexpectedly created an execution directory.')
+    return expected_result
 
 
 def verify_bundle(root):

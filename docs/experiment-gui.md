@@ -323,8 +323,10 @@ prediction units, privacy and validation-resource boundaries.
 
 Generate notebook bundle creates a new complete directory via a native chooser,
 without executing cells or overwriting files. Install optional
-`requirements-report.txt` in the GUI interpreter for authoring; the numerical
-worker may use another Python. Missing optional dependencies fail clearly before
+`requirements-report.txt` in the selected report Python, not the Qt host.
+Generation captures exact dependency/runtime bytes and uses a separate authoring
+process with a 30-second child deadline; it does not launch a kernel. Missing
+optional dependencies fail clearly before
 output creation. The Notebook execution disclosure also asynchronously inspects
 existing/generated bundles and explicitly runs trusted notebooks through a real
 kernel in the chosen report/numerical environment, not the Qt process. Its
@@ -371,7 +373,7 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceImport | kind | Native JSON chooser, strict admission |
 | scienceResultReport | runs, question, optional id/name/workspace_id | Reading recipe over exact runs; supplied workspace UUID checked before admission |
 | scienceTrain | experiment reference, coordinates, optional run_id/name/retry | Explicit isolated fit/retry |
-| scienceGenerateNotebook | report reference, optional output/offset/limit/allow_partial | Generate, never execute |
+| scienceGenerateNotebook | report reference, optional python/output/offset/limit/allow_partial | Generate in selected report Python, never execute |
 | scienceNotebookInspect | workspace_id, optional directory/python/request_id | Async input inspection, no kernel; selection via terminal event |
 | scienceExecuteNotebook | workspace_id, exact inspected selection, optional python/timeout | Explicit confirmation, async actual kernel, new external artifacts |
 | scienceNotebookHistory | none | Read copied session notebook execution rows |
@@ -471,17 +473,20 @@ WebEngine test browses eight rows, performs a three-update fit and retry,
 preserves the historical dropdown revision, explicitly selects the new head,
 creates a saved-result recipe, generates without training and saves/reloads v6.
 It checks zero console errors and no GUI-host Torch import. Notebook generation
-uses a private Qt+nbformat environment; user environments/config/files are untouched.
+used a private Qt+nbformat environment at that historical checkpoint. Current
+generation uses the selected report Python; the GUI host requires neither
+nbformat nor Torch. User environments/config/files are untouched.
 
 At the initial GUI checkpoint, 353 Python/57 JS tests passed before the separate palette UI followup, plus inherited WebEngine gestures/themes and native
 layout checks. New rendered CSS regression checks 240 block/palette pairs.
 Subsequent checkpoints implement structured metric/predictor views, saved multi-run
 recipes, explicit GUI notebook execution and bounded rendered-notebook/figure
 acceptance. Their contracts are linked above and current checks are recorded in
-[development.md](development.md). This is still not full C completion: full
-metadata/raw-data/manifest transport and authoring/report presentation bounds,
-richer in-app figures and requirement-by-requirement C convergence remain.
-D/E stay open.
+[development.md](development.md). Those initial incomplete-C statements are
+superseded by [Stage C acceptance](stage-c-acceptance.md), including its original
+requirement mapping and explicit cost/platform boundaries. Complete native
+metadata/raw-data/manifest processing is not universally lazy or cost-bounded;
+that limitation is not a claim of unfinished required C semantics. D/E stay open.
 
 Eleven native Qt lifecycle tests include an actual thread finished while GUI
 delivery is deliberately withheld, central edit/run/replace/close guards, exact

@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from .notebook_execution import validate_selection, inspect_bundle
-from .notebooks import execute_bundle
+from .notebooks import execute_bundle, publish_bundle
 
 
 def main():
@@ -12,6 +12,12 @@ def main():
         print(json.dumps({'kind': kind, 'payload': value}, allow_nan=False), flush=True)
     try:
         req = json.load(sys.stdin)
+        if req['operation'] == 'generate':
+            if set(req) != {'operation', 'capture', 'directory'}:
+                raise ValueError('Invalid notebook generation request.')
+            generated = publish_bundle(req['capture'], req['directory'])
+            emit('result', {'generated': generated, 'selection': inspect_bundle(req['directory'])})
+            return 0
         if req['operation'] == 'inspect':
             emit('result', {'selection': inspect_bundle(req['directory'])})
             return 0

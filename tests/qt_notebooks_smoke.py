@@ -159,6 +159,10 @@ with tempfile.TemporaryDirectory() as directory:
         js('document.getElementById("science-object").value='+json.dumps(value)+';document.getElementById("science-object").dispatchEvent(new Event("change"))')
         until('!document.getElementById("science-report").hidden')
         with patch('app.desktop_experiments.QFileDialog.getSaveFileName',return_value=(str(folder/'generated'),'') ):
+            js('document.getElementById("science-notebook-python").value="/no-such-report-author-python"')
+            click('science-generate');until('document.getElementById("toast-message").textContent.includes("executable report Python")')
+            assert not (folder/'generated').exists() and h.workspace.db.serialize()==before
+            js('document.getElementById("science-notebook-python").value='+json.dumps(python))
             click('science-generate');until('document.getElementById("science-notebook-selection").textContent.includes('+json.dumps(str(folder/'generated'))+')')
         assert (folder/'generated/requested.ipynb').is_file() and not (folder/'generated/executions').exists()
         assert h.workspace.db.serialize()==before
@@ -188,12 +192,12 @@ with tempfile.TemporaryDirectory() as directory:
             assert js('document.getElementById("science-notebook-execute").disabled')
         h.workspace=origin;h.broadcast();until('window.loom.state.workspace_id==='+json.dumps(workspace_id(origin)))
         assert h.workspace.db.serialize()==before
-        assert not any(x in sys.modules for x in ('torch','nbclient','jupyter_client'))
+        assert not any(x in sys.modules for x in ('torch','nbformat','nbclient','jupyter_client'))
         assert not errors,errors
         print(json.dumps({'saved_and_rerun_real_kernel':'PASS','eight_rerun_fits':'PASS','failure_timeout_stop_artifacts':'PASS',
             'kernel_shutdown_and_sql_isolation':'PASS','generation_inspection_confirmation':'PASS','themes_fonts_safe_dom':'PASS',
             'late_inspection_and_corrupt_receipt_reads':'PASS',
-            'host_torch':False,'host_nbclient':False,'console_errors':errors}))
+            'host_torch':False,'host_nbformat':False,'host_nbclient':False,'console_errors':errors}))
     finally:
         if h.job:h.job.stop();h.job.wait(30000);QCoreApplication.processEvents()
         view.close();view.setPage(QWebEnginePage(view));page.deleteLater()

@@ -56,11 +56,13 @@ enabled; no `--no-sandbox`, GPU-intensive workload or external job is needed.
 
 ## Remaining platform work and limitations
 
-Stage B's complete CNN/tensor-image workflow is next. Stage C still needs rich
-dataset/task/experiment/run/report schemas, group/time splits, fitted transforms,
-minibatching, history browsing and notebook reports. Stage D still needs scoped
-families/repetition/ties/recurrent state and mixed compositions. Stage E still
-needs detached jobs/receipts/checkpoint-attempt lineage/distributed semantics.
+The test counts above describe the historical A checkpoint, not the current
+suite. The first B CNN slice and C dataset/task/experiment/run/report workflows
+were subsequently implemented; see [cnn-workflow.md](cnn-workflow.md) and
+[stage-c-acceptance.md](stage-c-acceptance.md). Those stages must continue to
+preserve A's evidence/binding gates. D/E are separate later milestones, not
+implied by this A audit. Newer task predictors retain fitted preprocessing;
+that does not change the legacy identity-preprocessing checkpoint below.
 
 The stored v1 checkpoint is for inference: identity preprocessing and CPU
 float32 parameters. It does not store optimizer state or promise training resume,

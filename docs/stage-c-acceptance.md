@@ -1,10 +1,13 @@
 # Stage C acceptance — datasets, experiments and reports
 
-Status: integrated locally in `main` at `0a3bc8cd826eb11a18abc08892faad347f8b274b`,
+Historical acceptance: integrated locally in `main` at `0a3bc8cd826eb11a18abc08892faad347f8b274b`,
 after acceptance checkpoint `bfafccb416c71063e89bab0449217e7745ebcf70`;
 not a public release. Merge ancestry and exact source-tree equality were verified.
 This
 implements C of the pinned nepr programme, not completion of the full A–E goal.
+The current [A–C finalization gate](stage-abc-finalization.md) records fresh
+checks and the selected-report-environment generation correction; the original
+acceptance evidence below is retained as historical evidence.
 The original requirement and exit-example mapping is in
 [stage-c-verification.md](stage-c-verification.md), based on nepr commit
 `777dd1c25e11583877e607064ffe7e61dfdb54a4`.

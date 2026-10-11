@@ -18,10 +18,25 @@ native directory chooser. No source code or raw HTML is rendered from the bundle
 The inspected selection displays mode, absolute local bundle path, exact recipe,
 requested notebook hash and input-index hash. The editable report/kernel Python
 defaults to the detected numerical interpreter; timeout per cell defaults to
-600 seconds and must be a positive integer. Generation needs nbformat in the
-GUI interpreter; inspection/execution need the optional report requirements in
-the selected interpreter. Qt need not import nbclient, jupyter_client or Torch.
+600 seconds and must be a positive integer. Generation, inspection and execution
+use the selected report interpreter (falling back to the detected numerical
+Python when generation has no explicit selection). Install the optional report
+requirements there, not in the lightweight Qt host. Qt need not import nbformat,
+nbclient, jupyter_client or Torch.
 The interpreter is resolved and checked as executable before admission.
+
+Generation captures exact immutable dependency documents and the complete
+runtime/license/source bytes in the host without optional notebook imports.
+A separate authoring process validates that capture and writes a new bundle;
+it launches no kernel or training. The host checks the returned recipe, mode,
+input index, requested notebook hash, manifest and all captured bytes before
+automatic asynchronous inspection. Changed/missing bytes fail closed.
+The existing v1 bundle and .vtw grammars are unchanged. The payload's generation
+environment identifies snapshot capture; the selected Python performs notebook
+construction. Generation is currently synchronous with a 30-second child
+deadline, not a cancellable background job; complete inline capture/validation
+costs and partial filesystem failures remain explicit. Inspection and execution
+retain their existing asynchronous/Stop contracts.
 
 The Run button names its behavior: saved-result execution reads retained evidence
 without training; rerun execution launches the captured fresh CPU fits. A native
