@@ -1,6 +1,6 @@
 # Development state and roadmap
 
-## 2026-10-11 20:33 -03:00 — CNN/recurrent frozen-source acceptance
+## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen-source acceptance
 
 Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the
 full 1274-case Python suite in 630.759s (1271 executed, three Qt-dependent

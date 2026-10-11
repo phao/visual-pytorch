@@ -4,7 +4,7 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
-## 2026-10-11 20:33 -03:00 — CNN/recurrent frozen regression accepted
+## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen regression accepted
 
 Recorded actual frozen fe8cb80 acceptance: 1274 Python cases in 630.759s
 (three Qt-dependent skips), 359 JavaScript cases and 143 scoped original-D
