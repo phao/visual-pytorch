@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 7
+# Visual Torch Workspace (.vtw): format specification, version 8
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -17,9 +17,9 @@ tied weights and recurrent execution are not implied by this checkpoint.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 7. The current reader accepts versions 1–7; opening
-an older file copies it into memory and upgrades the working version to 7.
-Opening alone never rewrites the source; explicit Save writes version 7.
+PRAGMA user_version = 8. The current reader accepts versions 1–8; opening
+an older file copies it into memory and upgrades the working version to 8.
+Opening alone never rewrites the source; explicit Save writes version 8.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -35,7 +35,11 @@ Version 7 adds exact family/specialization provenance to the same immutable
 registry. A version-1–6 header containing either new kind is rejected. Load/save
 re-resolve each specialization from its exact family revision and all explicit
 bindings, then compare its exact frozen model, not merely matching shapes/counts.
-Older binaries are not expected to open version 7;
+Version 8 adds closed experiment/run document version 2 for ordered family
+binding axes and exact terminal specialization provenance, without SQL changes.
+An earlier container containing these version-2 records is rejected. See
+[family-experiment-axes.md](family-experiment-axes.md) for the complete grammar.
+Older binaries are not expected to open version 8;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -116,7 +120,8 @@ BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 
 Independent revision kinds are dataset, experiment, family, model, report, run,
 specialization and task
-(integer document version 1); other kinds/versions are rejected.
+(integer document version 1; experiment/run additionally support integer version
+2 in a version-8 container); other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
 retained revisions. Exact schemas, frozen reference closures, hash/guard checks,

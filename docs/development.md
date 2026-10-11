@@ -1,5 +1,48 @@
 # Development state and roadmap
 
+## 2026-10-11 06:42 -03:00 — Stage D: explicit family experiment axes
+
+Version-2 experiments select exact historical architecture families with fixed
+stable-symbol bindings and ordered integer axes. Mixed-radix preview skips
+Cartesian prefixes without enumeration, training or SQL writes; conditional,
+invalid and excluded points remain visible. Candidate identities bind exact
+choice coordinates. Decimal-string parameter projections preserve counts beyond
+browser Number precision. Owned Qt cards explicitly upgrade v1 drafts and retain
+invalid JSON/raw integer text; paired family points still require explicit entry
+JSON rather than a rich point picker. Existing concrete v1 semantics remain.
+
+`.vtw` v8 gates the new experiment/run grammar without changing SQL tables or
+old hashes. Terminal admission recreates canonical frozen model/specialization
+provenance from the pinned family under one savepoint. Qt delivery, CLI execution
+and the new `admit-run` recovery edit share that service. Saved evidence, retries,
+standalone models/predictors and actual notebook reruns resolve the same exact
+instances. Portable runtime has24 files; incomplete new closures fail before a
+kernel starts. Genuine old20/21-file bundles continue to execute unchanged;
+23-file admission compatibility is not a newly tested immutable kernel fixture.
+
+Final710 Python tests pass215.332s;277 JS pass1199.230766ms;21 pure family-axis
+checks pass0.807s. Independent outputs/input/parameter gradients and standalone
+exports cover four width/depth points, eight bounded worker fits and deterministic
+retry; a real Jupyter kernel reruns all four points with predictors/curves/sources.
+Actual sandboxed Qt edits axes, previews20 points, runs one3-update trial, opens
+saved evidence and saves/reloads exact provenance without host Torch or console
+errors. Existing actual Qt family editor/retained-browser regressions pass.
+Numerical batches are serial and one-threaded. A real candidate capture is reviewed.
+
+Failed probes remain in campaign evidence: pure fixture/import/envelope/owner
+assumptions, missing xvfb-run before launch, two verifier error-message regression
+failures, and an actual owned-editor bug that hardcoded document version1.
+Fixed that publish gate to preserve v2 and permit only explicit v1 experiment
+upgrade, without weakening ownership or dependency guards. A saved-evidence
+consumer that assumed every model coordinate was a concrete reference now reads
+the exact resolved closure. Final regression and native checks pass.
+
+Specification: [family-experiment-axes.md](family-experiment-axes.md).
+This is a local task checkpoint, not full D acceptance or main/public integration.
+Genuine sharing, richer constructor choices, runtime guards and recurrent/mixed
+contracts remain; E follows D acceptance. Full goal stays active. No public push,
+installer, user-app restart or user workspace/configuration change.
+
 ## 2026-10-11 05:50 -03:00 — Stage D: owned typed family authoring
 
 Continued the canonical D task fromefed917. New architecture family seeds from a

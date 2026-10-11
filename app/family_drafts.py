@@ -125,6 +125,6 @@ def preview(document, header, bindings=None):
                       binding_count=len(resolved['bindings']), architecture_hash=resolved['architecture_hash'],
                       root=resolved['root'], architectures=len(resolved['models']),
                       blocks=sum(len(m['graph']['nodes']) for m in resolved['models'].values()),
-                      parameters=contract['parameters'], input_shape=contract['input_shape'],
+                      parameters=contract['parameters'], parameters_exact=str(contract['parameters']), input_shape=contract['input_shape'],
                       output_shape=contract['output_shape'], occurrences=len(resolved['occurrences']))
     return science_browser._bounded(result)

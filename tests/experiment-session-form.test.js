@@ -149,3 +149,33 @@ test('external role IDs keep literal spaces, commas, order and duplicates for na
   assert.equal(f.requests[8].args.operations[0].text,JSON.stringify(['r,1',' r 2 ','r,1']));f.requests[8].resolve(header(1));await tick();f.requests[9].reject(Error('duplicate IDs'));await done;
   assert.equal(f.field('train observation IDs','split').value,'r,1\n r 2 \nr,1');
 });
+test('family cards expose exact family choices and preserve ordered axis JSON integer tokens',async()=>{
+  const family={kind:'family',id:'family',revision:'f'.repeat(64)},props=[descriptor('id','width-depth',[2,0,0]),
+    descriptor('family',family,[2,0,1]),descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3])];
+  const f=await opened(fixture(),{models:{rows:[{ordinal:0,path:[2,0],properties:props}]}});
+  assert.ok(f.field('Exact family','model'));const n=f.field('Ordered binding axes JSON','model');
+  edit(n,'[{"symbol":"width","values":[9007199254740993,2]}]','input');f.root.activeElement=n;
+  const done=f.click('science-author-check');await tick();const op=f.requests[8].args.operations[0];
+  assert.equal(op.key,'axes');assert.equal(op.text,'[{"symbol":"width","values":[9007199254740993,2]}]');
+  f.requests[8].resolve(header(1));await tick();f.requests[9].reject(Error('Editor-range integer required'));await done;
+  assert.equal(n.value,'[{"symbol":"width","values":[9007199254740993,2]}]');assert.equal(f.form.active(),true);
+});
+test('adding family choice explicitly upgrades experiment grammar and inserts without changing other axes',async()=>{
+  const f=await opened(fixture()),done=f.button('Add family selection','models').onclick();await tick();
+  f.requests[8].resolve(page(f.requests[8],{path:[11]}));await tick();const operations=f.requests[9].args.operations;
+  assert.equal(JSON.stringify(operations[0]),JSON.stringify({op:'property',target:{kind:'document'},key:'version',text:'2'}));
+  assert.equal(operations[1].op,'insert-json');assert.equal(JSON.stringify(operations[1].path),'[11]');
+  const value=JSON.parse(operations[1].text);assert.equal(value.id,'entry');assert.equal(value.family.kind,'family');assert.deepEqual(value.axes,[]);
+  f.requests[9].resolve(header(1));await tick();replyPages(f,10);await done;
+});
+test('family axis invalid JSON stays visible and blocks native Check',async()=>{
+  const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3])];
+  const f=await opened(fixture(),{models:{rows:[{ordinal:0,path:[2,0],properties:props}]}}),n=f.field('Ordered binding axes JSON','model');
+  edit(n,'[{"symbol":');await f.click('science-author-check');assert.equal(f.requests.length,8);assert.equal(n.value,'[{"symbol":');assert.ok('invalid' in n.dataset);
+});
+test('draft family candidate labels display bindings and exact decimal parameter counts',async()=>{
+  const f=await opened(fixture()),done=f.click('science-experiment-preview');await tick();const p=preview(f.requests[8]);
+  p.candidates[0].coordinates.model={id:'width-depth',bindings:{width:4,depth:3}};p.candidates[0].parameters_exact='9007199254740993';
+  f.requests[8].resolve(p);await done;const text=f.get('science-experiment-preview-rows').children[0].children.map(n=>n.textContent).join(' ');
+  assert.match(text,/width-depth.*width=4.*depth=3/);assert.match(text,/9007199254740993 trainable parameters/);
+});

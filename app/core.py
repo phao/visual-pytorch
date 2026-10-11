@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 7
+VERSION = 8
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -559,7 +559,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, 3, 4, 5, 6, VERSION} or magic != (FORMAT,):
+            if version not in {1, 2, 3, 4, 5, 6, 7, VERSION} or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -590,6 +590,11 @@ class Workspace:
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
             validate_all(w.db)
+            if version < 8:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] == 2:
+                        raise GraphError('Version-2 experiment/run revisions require a version-8 container.')
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:

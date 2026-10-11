@@ -303,11 +303,19 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
 | put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/family/model/report/run/specialization/task revision and exact dependencies, optionally select for browsing |
+| admit-run | document; optional select boolean (default true) | Reconstruct exact family provenance from the pinned experiment and atomically retain missing derived records plus a validated terminal run; supports explicit recovery without training |
 | specialize-family | exactly one of family/family_ref; optional bindings, id, name, materialize | Atomically retain exact family, resolved specialization and frozen model; optionally add new concrete drawings, never implicitly replace |
 | select-spec | reference={kind,id,revision} | Select a retained exact revision, never edit its bytes |
 | archive-spec | kind, id | Hide browsing head; revision bytes are retained and recoverable |
 | freeze-model | id | Capture current valid architecture's complete reachable closure as an independent model revision |
 | rebind-dataset | id | Explicitly bind valid existing x/y columns to the current input/output port contract; no numerical reordering/transformation; clears current result, preserves historical runs |
+
+Experiment/run version-2 documents add explicit ordered family binding axes in
+container v8. Existing preview/run/report/notebook commands resolve the same
+family coordinates and preserve exact specialization provenance; no parallel
+CLI state or transient editor token is added. Full grammar and examples are in
+[family-experiment-axes.md](family-experiment-axes.md). Import a family before its
+experiment; import a completed run's exact dependency closure before its record.
 
 Create referenced targets before their owners. Custom documents follow
 [vtw-format.md](vtw-format.md). Computational edits invalidate current results in

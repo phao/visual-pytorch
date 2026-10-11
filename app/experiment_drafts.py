@@ -13,7 +13,7 @@ from .core import GraphError
 COLLECTIONS = ('models', 'data_tasks', 'splits', 'initialization_seeds',
                'protocols', 'pairs', 'exclusions')
 ROOTS = {'name': ('name',), 'question': ('question',),
-         'selection.kind': ('selection', 'kind')}
+         'selection.kind': ('selection', 'kind'), 'version': ('version',)}
 PROPERTIES = {
     'models': {'reference': ()},
     'data_tasks': {k: (k,) for k in ('id', 'dataset', 'task')},
@@ -30,7 +30,12 @@ PROPERTIES = {
     'pairs': {k: (k,) for k in ('model', 'data_task')},
     'exclusions': {k: (k,) for k in ('model', 'data_task', 'reason')},
 }
-REFERENCE_KEYS = {'reference': 'model', 'model': 'model', 'dataset': 'dataset', 'task': 'task'}
+REFERENCE_KEYS = {'reference': 'model', 'model': 'model', 'dataset': 'dataset', 'task': 'task', 'family': 'family'}
+FAMILY_PROPERTIES = {k: (k,) for k in ('id', 'family', 'bindings', 'axes')}
+
+
+def _properties(collection, value):
+    return FAMILY_PROPERTIES if collection == 'models' and isinstance(value, dict) and 'family' in value else PROPERTIES[collection]
 
 
 def _collection(document, collection):
@@ -97,7 +102,7 @@ def page(document, header, collection, *, offset=0, limit=6):
     for ordinal in range(offset, min(len(values), offset+limit)):
         row = {'ordinal': ordinal, 'path': path+[ordinal],
                'properties': [_property(values[ordinal], keys, path+[ordinal], key)
-                              for key, keys in PROPERTIES[collection].items()]}
+                              for key, keys in _properties(collection, values[ordinal]).items()]}
         if not _append(result, row): break
     return _finish(result)
 
@@ -112,7 +117,7 @@ def _target(document, target, key):
     _require(target['kind'] == 'entry', 'Choose a document or ordered experiment entry.')
     values, path = _collection(document, target['collection']); ordinal = target['ordinal']
     _require(_integer(ordinal) and ordinal < len(values), 'Experiment selection ordinal is missing.')
-    properties = PROPERTIES[target['collection']]
+    properties = _properties(target['collection'], values[ordinal])
     _require(isinstance(key, str) and key in properties, 'Choose a supported experiment entry property.')
     return values[ordinal], path+[ordinal], properties[key]
 

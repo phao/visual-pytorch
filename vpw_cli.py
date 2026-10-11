@@ -38,6 +38,13 @@ def apply_edits(workspace, edits):
                               materialize=edit.get('materialize', True))
             results.append({'op': kind, **retained})
             continue
+        elif kind == 'admit-run':
+            from app.experiment_objects import admit_run
+            from app.datasets import _keys
+            _keys(edit, ('op', 'document'), ('select',), 'Admit-run edit')
+            ref = admit_run(workspace, edit['document'], select=edit.get('select', True))
+            results.append({'op': kind, 'reference': ref})
+            continue
         elif kind == 'put-spec':
             ref = workspace.put_spec(edit['kind'], edit['document'], edit.get('select', True))
             results.append({'op': kind, 'reference': ref})

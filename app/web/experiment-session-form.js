@@ -103,13 +103,15 @@
     const large=d?.present&&d.text===null;n.dataset.large=String(large);
     if(large){n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · use staged editor';}
     else if(!d?.present)n.value='';else if(mode==='number')n.value=d.text==='null'?'':d.text;
+    else if(mode==='json')n.value=d.text;
     else if(mode==='ids')n.value=scalar(d,[]).join('\n');else n.value=scalar(d);
     n.oninput=()=>{n.dataset.dirty='';changed();};n.onchange=()=>{try{let text;
       if(mode==='number'){text=n.value.trim();if(optional&&text==='')text='null';else{
         if(integer){if(!/^-?(0|[1-9]\d*)$/.test(text))throw Error('Enter an exact decimal integer.');const v=BigInt(text);
           if((Number.isFinite(min)&&v<BigInt(min))||(Number.isFinite(max)&&v>BigInt(max)))throw Error('Integer is outside its declared range.');
         }else{const v=JSON.parse(text);if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max||(exclusiveMax&&v===max))throw Error('Enter a finite number in its declared range.');}
-      }}else text=JSON.stringify(mode==='ids'?window.LoomExperimentAuthoring.ids(n.value):n.value);
+      }}else if(mode==='json'){text=n.value.trim();JSON.parse(text);}
+      else text=JSON.stringify(mode==='ids'?window.LoomExperimentAuthoring.ids(n.value):n.value);
       enqueue(target,key,text,n);
     }catch(error){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(error);}};
     wrapper.append(n);if(large){if(d.summary.preview!==null)wrapper.append(el('small','Partial preview · '+d.summary.preview));wrapper.append(rawButton(target,key));}return wrapper;
@@ -138,7 +140,12 @@
       const grid=el('div');grid.className='science-author-grid';card.append(grid);g.cards.append(card);
       const text=(label,key,opts={})=>control(label,p[key],target,key,opts),num=(label,key,opts={})=>text(label,key,{mode:'number',...opts});
       const ref=(label,key,kind,local=false)=>choice(label,p[key],target,key,g,kind,local);
-      if(collection==='models')grid.append(ref('Exact architecture','reference','model'));
+      if(collection==='models'){
+        if(p.family){grid.append(text('Family choice ID','id'),ref('Exact family','family','family'),
+          text('Fixed bindings JSON','bindings',{mode:'json',area:true}),text('Ordered binding axes JSON','axes',{mode:'json',area:true}));
+          card.append(el('p','Each axis: {"symbol":"stable-id","values":[2,4]}. Last binding axis changes fastest. Missing defaults stay conditional; incompatible combinations remain visible. No automatic training.'));
+        }else grid.append(ref('Exact architecture','reference','model'));
+      }
       else if(collection==='data_tasks')grid.append(text('Pairing ID','id'),ref('Exact dataset','dataset','dataset'),ref('Exact task','task','task'));
       else if(collection==='initialization_seeds')grid.append(num('Initialization seed','value',{integer:true,min:0,max:2**31-1}));
       else if(collection==='splits'){const method=scalar(p.method);grid.append(text('Split ID','id'));
@@ -159,7 +166,8 @@
         grid.append(num('Protocol initialization seed (axis overrides)','seeds.initialization',{integer:true,min:0,max:2**31-1}),num('Independent shuffle seed','seeds.shuffle',{integer:true,min:0,max:2**31-1}));
         const label=el('label','Shuffle training observations '),n=el('input');n.type='checkbox';n.dataset.experimentControl='';n.dataset.authorControl='';n.checked=scalar(p.shuffle,false);
         n.onchange=()=>enqueue(target,'shuffle',JSON.stringify(n.checked),n);label.append(n);grid.append(label);
-      }else{grid.append(ref('Selected exact architecture','model','models',true),ref('Dataset/task pairing ID','data_task','data_tasks',true));
+      }else{grid.append(scalar(p.model,null)?.bindings?
+        text('Exact family coordinate JSON','model',{mode:'json',area:true}):ref('Selected exact architecture','model','models',true),ref('Dataset/task pairing ID','data_task','data_tasks',true));
         if(collection==='exclusions')grid.append(text('Exclusion reason','reason',{area:true}));
       }
       const order=el('div');order.className='inline-actions';order.dataset.axisOrder='';
@@ -192,6 +200,9 @@
         collection==='models'?window.LoomExperimentAuthoring.reference('model'):collection==='data_tasks'?window.LoomExperimentAuthoring.pairing(crypto.randomUUID()):
         collection==='splits'?window.LoomExperimentAuthoring.split(crypto.randomUUID(),g.method.value):collection==='initialization_seeds'?7:
         collection==='protocols'?window.LoomExperimentAuthoring.protocol(crypto.randomUUID()):window.LoomExperimentAuthoring.comparison(collection==='exclusions'))}]));section.append(g.add);
+      if(collection==='models')section.append(button('Add family selection',()=>structure(collection,f=>[
+        {op:'property',target:{kind:'document'},key:'version',text:'2'},
+        {op:'insert-json',path:f.path,index:f.total,text:JSON.stringify(window.LoomExperimentAuthoring.family(crypto.randomUUID()))}])));
     }$('science-experiment-context-status').textContent='Independent exact stored/local choices · bounded scientific-order axes · no training';clearPreview();controls();
   }
   async function refreshChoices(){const owner=state;await settled(Object.values(owner.groups).flatMap(g=>g.choices.map(c=>c.refresh())));}
@@ -200,7 +211,8 @@
     if(!matching(result,request,'owned-experiment-preview',owner)||result.offset!==offset||result.limit!==25||!exact(result.experiment,owner)||
       result.execution!=='no-fitting-or-training'||!/^\d+$/.test(result.total_combinations_exact))throw Error('Preview does not match the exact experiment, owner and cursor.');
     owner.preview=result;const box=$('science-experiment-preview-rows');box.replaceChildren();for(const row of result.candidates){const card=el('div');card.className='science-candidate';card.dataset.draftCandidate=row.status;
-      card.append(el('span',row.status+' · model '+row.coordinates.model.id+' @ '+row.coordinates.model.revision.slice(0,12)+' · '+row.coordinates.data_task+' · seed '+row.coordinates.initialization+' · '+row.coordinates.split+' · '+row.coordinates.protocol));
+      card.append(el('span',row.status+' · '+window.LoomExperimentAuthoring.modelLabel(row.coordinates.model)+' · '+row.coordinates.data_task+' · seed '+row.coordinates.initialization+' · '+row.coordinates.split+' · '+row.coordinates.protocol));
+      if(row.parameters_exact!==undefined&&row.parameters_exact!==null)card.append(el('small',row.parameters_exact+' trainable parameters'));
       if(row.reason)card.append(el('small',row.reason.text+(row.reason.next_offset===null?'':' · partial reason; inspect/export full experiment')));
       if(row.counts)card.append(el('small','Observations · train '+row.counts.train+' · validation '+row.counts.validation+' · test '+row.counts.test+' · excluded '+row.counts.excluded));box.append(card);
     }$('science-experiment-preview-status').textContent=offset+'–'+(offset+result.candidates.length)+' of '+result.total_combinations_exact+' · prospective '+result.experiment.revision.slice(0,12)+' · interface/split preview only, no fitting or execution RAM admission. Retain before runs.';controls();return true;

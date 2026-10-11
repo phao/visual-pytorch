@@ -230,7 +230,7 @@ class FamilyRecordTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'family.vtw'; self.w.save(path)
             with closing(sqlite3.connect(path)) as db:
-                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 7)
+                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], VERSION)
             opened = Workspace.load(path)
             try:
                 self.assertEqual(opened.get_spec(**dict(kind='specialization', sid=result['specialization']['id'])), self.record(result))
@@ -262,7 +262,7 @@ class FamilyRecordTests(unittest.TestCase):
                 self.assertEqual(opened.get_spec('model', ref['id'], ref['revision']), self.w.get_spec('model', ref['id'], ref['revision']))
                 opened.save(path)
             finally: opened.db.close()
-            with closing(sqlite3.connect(path)) as db: self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 7)
+            with closing(sqlite3.connect(path)) as db: self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], VERSION)
 
     def _insert_concrete(self):
         doc = default_model(); self.w.put(doc); return doc['id']

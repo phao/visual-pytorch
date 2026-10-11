@@ -20,6 +20,7 @@ def project(source, identity):
                'references': candidate['references'],
                'counts': None if manifest is None else {**{role:len(ids) for role,ids in manifest['roles'].items()},
                                                         'excluded':len(manifest['excluded'])}}
+        if 'parameters_exact' in candidate: row['parameters_exact'] = candidate['parameters_exact']
         end = source['offset'] + len(result['candidates']) + 1
         cursor = end if end < source['total_combinations'] else None
         proposed = {**result, 'candidates': [*result['candidates'], row], 'next_offset': cursor}

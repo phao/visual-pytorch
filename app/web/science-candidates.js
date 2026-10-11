@@ -45,7 +45,9 @@
         ' · no training'+(result.next_offset!==null&&!Number.isSafeInteger(result.next_offset)?' · native page offset limit reached':'');
       result.candidates.forEach(row=>{
         const card=text('div','');card.className='science-candidate';card.dataset.candidateStatus=row.status;
-        const c=row.coordinates;card.append(text('span',row.status+' · '+c.model.id+' · '+c.data_task+' · seed '+c.initialization+' · '+c.split+' · '+c.protocol));
+        const c=row.coordinates,label=c.model.kind==='model'?c.model.id:c.model.id+' · '+Object.entries(c.model.bindings).map(([k,v])=>k+'='+v).join(', ');
+        card.append(text('span',row.status+' · '+label+' · '+c.data_task+' · seed '+c.initialization+' · '+c.split+' · '+c.protocol));
+        if(row.parameters_exact!==undefined&&row.parameters_exact!==null)card.append(text('small',row.parameters_exact+' trainable parameters'));
         if(row.counts)card.append(text('small',Object.entries(row.counts).map(([role,count])=>role+': '+count).join(' · ')));
         if(row.reason)card.append(text('small',row.reason.text+(row.reason.next_offset!==null?' … [partial reason; inspect exact experiment and dependencies]':'')));
         const button=text('button','Run this candidate');button.dataset.scienceRun='';button.onclick=()=>run(s,result,row);card.append(button);$('science-candidates').append(card);

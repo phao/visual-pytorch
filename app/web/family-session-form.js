@@ -136,7 +136,7 @@
         const result=await api.call('scienceDraftFamilyPreview',{...args(),bindings:JSON.parse($('science-family-bindings').value)});
         if(!live(owner,ticket)||edit!==owner.edit)return;
         if(result.scope!=='owned-family-preview'||result.session!==owner.header.session||result.sequence!==owner.header.sequence||result.workspace_id!==owner.header.workspace_id||result.id!==owner.header.id)throw Error('Family preview returned a different owner/sequence.');
-        owner.preview=result;$('science-family-preview-result').textContent=JSON.stringify(result,null,2);$('science-family-status').textContent=result.status+' · no model allocation or training';});
+        owner.preview=result;$('science-family-preview-result').textContent=JSON.stringify(result,(key,value)=>key==='parameters'&&result.parameters_exact!==undefined&&!Number.isSafeInteger(value)?result.parameters_exact:value,2);$('science-family-status').textContent=result.status+' · no model allocation or training';});
       $('science-family-check').onclick=()=>act(async()=>{if(!await flush())return;const owner=state,ticket=epoch,result=await api.call('scienceDraftCheck',args());if(!live(owner,ticket))return;
         if(result.kind!=='family'||result.id!==owner.header.id||!/^[a-f0-9]{64}$/.test(result.revision))throw Error('Family validation returned another identity.');
         $('science-family-status').textContent='Valid family · prospective '+result.revision+' · not retained';});
@@ -149,7 +149,7 @@
       $('science-family-create').onclick=()=>act(async()=>{const identity=api.workspace(),family=JSON.parse($('science-object').value);
         if(family.kind!=='family')throw Error('Select an exact retained family revision.');
         const result=await api.call('scienceFamilyResolve',{workspace_id:identity,family,bindings:JSON.parse($('science-family-instance-bindings').value),materialize:$('science-family-materialize').checked});
-        if(identity!==api.workspace())return;$('science-family-instance-status').textContent='Retained specialization '+result.specialization.revision+' · '+result.parameters+' parameters · '+(result.materialized?'editable drawing added':'registry only');
+        if(identity!==api.workspace())return;$('science-family-instance-status').textContent='Retained specialization '+result.specialization.revision+' · '+(result.parameters_exact??result.parameters)+' parameters · '+(result.materialized?'editable drawing added':'registry only');
         api.toast('Concrete instance retained. Save workspace to persist it.');});
       controls();
     },

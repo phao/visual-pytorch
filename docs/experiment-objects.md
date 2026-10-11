@@ -1,4 +1,4 @@
-# Concrete experiments, terminal runs and report recipes — version 1
+# Concrete experiments, terminal runs and report recipes — version 1 baseline
 
 This is the executable Stage C task-branch contract, not a completed experiment
 GUI. The separate concrete notebook generator/runtime are specified in
@@ -8,6 +8,12 @@ All three object kinds require a `.vtw` container with `user_version=6`.
 The SQL tables and reference JSON hash convention are in
 [revision-store.md](revision-store.md). A revision is local integrity evidence,
 not authentication or proof that an experiment happened.
+
+This document defines the preserved version-1 baseline. Version-2 experiment/run
+extensions for explicit ordered family binding axes, conditional coordinates and
+atomic exact specialization provenance are fully specified in
+[family-experiment-axes.md](family-experiment-axes.md). They require container v8;
+report recipes and all other scientific document grammars remain version 1.
 
 ## Common rules and exact references
 

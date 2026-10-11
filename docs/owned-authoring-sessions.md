@@ -67,7 +67,7 @@ The actual experiment form now uses them, with independent local axes/choices,
 literal queues and same-session raw children. Native preview projections omit full split manifests,
 protocols and role-ID arrays, without changing candidate-resolution semantics.
 
-Open accepts only dataset/task/experiment. `reference` selects exact immutable
+Open accepts only dataset/task/experiment/family. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
 template/new-ID checks apply. Headers have `version: 1`,
 `scope: owned-authoring-session`, session/sequence, ordinary draft-envelope fields
@@ -103,7 +103,10 @@ are published. A failed second operation/oversized header rolls back the entire
 batch. Scientific fields/records/ports/axes/transforms/selections are never sorted.
 
 Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID/
-version cannot change, and `revision` cannot be injected. Check/Commit run the
+version cannot change except an explicit experiment v1→v2 upgrade for family
+selections; v2 edits preserve v2, other kinds preserve v1. `revision` cannot be
+injected. See [family-experiment-axes.md](family-experiment-axes.md).
+Check/Commit run the
 existing full grammar, dependency and captured-head checks; failure retains
 bytes/sequence. Successful admission uses the existing history wrapper; unchanged
 current content produces no SQL/dirty/history change. Undo restores heads while

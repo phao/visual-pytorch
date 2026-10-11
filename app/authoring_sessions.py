@@ -174,8 +174,10 @@ class Sessions:
         return self._publish(workspace, token, row, document)
 
     def _publish(self, workspace, token, row, document):
+        versions = (row['draft']['document']['version'],)
+        if row['draft']['kind'] == 'experiment' and versions == (1,): versions = (1, 2)
         _require(isinstance(document, dict) and document.get('id') == row['draft']['id'] and
-                 type(document.get('version')) is int and document['version'] == 1 and 'revision' not in document,
+                 type(document.get('version')) is int and document['version'] in versions and 'revision' not in document,
                  'Draft patches must preserve stable document ID/version and cannot forge a revision.')
         self._admit(workspace, document, excluding=token)
         prospective = dict(row, sequence=row['sequence'] + 1, buffer=None,

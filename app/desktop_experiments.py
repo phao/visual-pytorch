@@ -282,7 +282,8 @@ def dispatch(window, req, source=None):
                         materialize=req.get('materialize', True))
         # Keep the bridge bounded: the full model closure stays native/SQLite.
         value = {k: result[k] for k in ('family', 'model', 'specialization', 'materialized')}
-        value.update(root=result['resolved']['root'], parameters=result['resolved']['contract']['parameters'])
+        value.update(root=result['resolved']['root'], parameters=result['resolved']['contract']['parameters'],
+                     parameters_exact=str(result['resolved']['contract']['parameters']))
         window.broadcast(); window.broadcast('scienceChanged')
         return value
     if action in {'scienceBrowse', 'scienceSummary', 'scienceInspect'}:
@@ -449,7 +450,8 @@ def complete(window, captured_workspace, job, payload):
         from .recovery_views import completion
         from .authoring import workspace_id
         notice = completion(workspace_id(captured_workspace), result['reference'], doc)
-        ref = captured_workspace.put_spec('run', result['record'])
+        from .experiment_objects import admit_run
+        ref = admit_run(captured_workspace, result['record'])
         if ref != result['reference']: raise ValueError('Run evidence identity changed on admission.')
         window.broadcast('scienceComplete', notice)
         window.broadcast(); window.broadcast('scienceChanged')

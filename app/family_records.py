@@ -89,6 +89,21 @@ def _atomic(workspace):
         workspace.db = db
 
 
+def resolution_records(frozen, resolved, *, sid=None, name=None):
+    """Pure canonical records shared by preview and later atomic admission."""
+    from .revisions import frozen_document, model_document
+    family_ref = {'kind': 'family', 'id': frozen['id'], 'revision': frozen['revision']}
+    model = frozen_document('model', model_document(resolved['models'], resolved['root']))
+    model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
+    record = frozen_document('specialization', {
+        'version': 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
+        'name': name if name is not None else frozen['name'] + ' · resolved',
+        'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref})
+    return {'family_ref': family_ref, 'model': model, 'model_ref': model_ref,
+            'specialization': record, 'specialization_ref': {
+                'kind': 'specialization', 'id': record['id'], 'revision': record['revision']}}
+
+
 def retain(workspace, *, family=None, family_ref=None, bindings=None, sid=None, name=None,
            materialize=True):
     """Atomically retain exact provenance + frozen instance; optionally draw it.
@@ -98,7 +113,7 @@ the working database and dirty flag unchanged, including when a later writer
 raises. SQLite's diagnostic total_changes counter is not an undoable row value.
 Family historical selection never moves its browsing head implicitly.
 """
-    from .revisions import frozen_document, model_document
+    from .revisions import frozen_document
     _require((family is None) != (family_ref is None), 'Supply exactly one family definition or exact family reference.')
     _require(type(materialize) is bool, 'Family materialize must be boolean.')
     if family is not None:
@@ -108,14 +123,8 @@ Family historical selection never moves its browsing head implicitly.
         reference(family_ref, 'family')
         frozen = workspace.get_spec('family', family_ref['id'], family_ref['revision'])
     resolved = specialize(definition(frozen), bindings)
-    model = model_document(resolved['models'], resolved['root'])
-    model = frozen_document('model', model)
-    model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
-    record = {'version': 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
-              'name': name if name is not None else frozen['name'] + ' · resolved',
-              'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']),
-              'model': model_ref}
-    validate_specialization(record)
+    records = resolution_records(frozen, resolved, sid=sid, name=name)
+    model, model_ref, record = records['model'], records['model_ref'], records['specialization']
     if materialize:
         _require(not (set(resolved['models']) & set(workspace.models())),
                  'A resolved family architecture ID already exists; no implicit replacement.')

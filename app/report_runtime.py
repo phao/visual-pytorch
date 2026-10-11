@@ -31,12 +31,23 @@ def new_json(path, value):
     new_file(path, json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + '\n')
 
 
-def workspace_for(payload):
+def workspace_for(payload, view=None):
     workspace = Workspace()
     try:
         workspace.set_constrained_mode(payload['execution_policy']['constrained'])
         for entry in payload['documents']:
             workspace.put_spec(entry['kind'], entry['document'])
+        # A rerun's derived instances were absent from its train-free input
+        # closure. Reproduce their exact provenance for later display cells.
+        for run in (view or {}).get('runs', []):
+            resolved = run['resolved']
+            if resolved and 'family' in resolved['references']:
+                from .family_records import retain
+                from .datasets import _require
+                result = retain(workspace, family_ref=resolved['references']['family'],
+                                bindings=run['selection']['coordinates']['model']['bindings'], materialize=False)
+                _require(all(result[k] == resolved['references'][k] for k in ('family', 'model', 'specialization')),
+                         'Report view substituted derived family provenance.')
         return workspace
     except BaseException:
         workspace.db.close()
@@ -86,23 +97,19 @@ def resolve_payload(payload):
             experiment = workspace.get_spec('experiment', recipe['experiment']['id'], recipe['experiment']['revision'])
             # Verify axes/count/page identities without regenerating captured splits.
             # Enumerate the bounded coordinates without regenerating saved splits.
-            axes = (experiment['models'], [d['id'] for d in experiment['data_tasks']], [s['id'] for s in experiment['splits']],
-                    experiment['initialization_seeds'], [p['id'] for p in experiment['protocols']])
+            from .experiment_objects import selection_count, selection_at
             from .datasets import _integer
             _version(preview, 'Captured report preview')
             _require(preview['experiment'] == recipe['experiment'] and
                 _integer(preview['offset']) and _integer(preview['limit'], 1, 1000) and
-                preview['total_combinations'] == math.prod(map(len, axes)) and isinstance(preview['candidates'], list),
+                preview['total_combinations'] == selection_count(experiment) and isinstance(preview['candidates'], list),
                 'Captured selection page is invalid.')
             offset, total = preview['offset'], preview['total_combinations']
             count = max(0, min(total - offset, preview['limit']))
             _require(len(preview['candidates']) == count and preview['next_offset'] == (offset + count if offset + count < total else None)
                 and preview['scope'] == 'bounded-selection-preview; no-fitting-or-training', 'Captured selection coverage is inconsistent.')
             for index, row in enumerate(preview['candidates'], offset):
-                digits = []; value = index
-                for axis in reversed(axes):
-                    value, digit = divmod(value, len(axis)); digits.append(axis[digit])
-                coords = dict(zip(('model', 'data_task', 'split', 'initialization', 'protocol'), reversed(digits)))
+                coords = selection_at(experiment, index)
                 _require(row['coordinates'] == coords, 'Captured candidate coordinates silently changed.')
                 fresh = candidate(experiment, coords, workspace.get_spec, saved_manifest=row['manifest'])
                 _require(digest(fresh) == digest(row), 'Captured candidate/protocol/split disagrees with experiment.')
@@ -154,10 +161,9 @@ def run_report(payload, directory):
         from .core import generate_code
         from .task_execution import generate_task_predictor
         from .experiment_objects import candidate_bundle
-        for entry in payload['documents']:
-            if entry['kind'] == 'model':
-                model = entry['document']
-                new_file(directory / ('architecture-' + model['revision'] + '.py'), generate_code(model['models'], model['root']))
+        for entry in workspace.list_specs('model', True):
+            model = workspace.get_spec('model', entry['id'], entry['revision'])
+            new_file(directory / ('architecture-' + model['revision'] + '.py'), generate_code(model['models'], model['root']))
         for summary in view['runs']:
             record = workspace.get_spec('run', summary['reference']['id'], summary['reference']['revision'])
             evidence = record['attempts'][-1]['result']
@@ -206,7 +212,7 @@ def table(headers, rows):
 
 
 def section_html(section, payload, view):
-    workspace = workspace_for(payload)
+    workspace = workspace_for(payload, view)
     try:
         runs = view['runs']
         if section == 'question':
@@ -220,7 +226,7 @@ def section_html(section, payload, view):
                 [[r['reference']['id'], a['number'], a['status'], a['stage'], (a['error'] or {}).get('message', '')]
                  for r in runs for a in r['attempt_history']])
         if section == 'models':
-            models = [e['document'] for e in payload['documents'] if e['kind'] == 'model']
+            models = [workspace.get_spec('model', m['id'], m['revision']) for m in workspace.list_specs('model', True)]
             return table(('Model', 'Exact revision', 'Parameters', 'Architecture hash'),
                 [[m['name'], m['revision'], validate_model(m['models'], m['root'])['parameters'], m['architecture_hash']] for m in models])
         if section == 'datasets':
@@ -366,7 +372,7 @@ def curve_figure(path):
 
 def curves(payload, view, directory):
     """One SVG per run/head: never mix unlike datasets/losses on one numeric axis."""
-    workspace = workspace_for(payload); paths = []
+    workspace = workspace_for(payload, view); paths = []
     try:
         for summary in view['runs']:
             if view['mode'] == 'result-report' and payload['preview'] is not None:

@@ -156,7 +156,8 @@ current experiments, rendered/inspected and exported without family-runtime code
 
 The family, resolved bindings and frozen model are retained automatically inside
 `.vtw`. Editing the concrete instance does not update any of those immutable
-records. Typed owned GUI editing is now implemented; family sweep axes, deliberate sharing, runtime-spatial
+records. Typed owned GUI editing and [family sweep axes](family-experiment-axes.md)
+are now implemented; deliberate sharing, runtime-spatial
 guards and recurrent state/length/mask contracts are subsequent Stage D work.
 An H/W family specialization currently fixes H/W; testing two specializations
 does not claim one executable instance accepts arbitrary spatial dimensions.

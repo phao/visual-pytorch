@@ -35,5 +35,8 @@
       history:{kind:'latest-window',max_points:200},checkpoint_selection:'last-successful-update',test_evaluation:'final-completed-only'}};
   }
   function comparison(excluded=false){return {model:reference('model'),data_task:'',...(excluded?{reason:''}:{})};}
-  return Object.freeze({methods,number,seeds,ids,reference,pairing,split,protocol,comparison});
+  function family(id){return {id,family:reference('family'),bindings:{},axes:[]};}
+  function modelLabel(value){return value?.kind==='model'?value.id+' @ '+value.revision.slice(0,12):
+    (value?.id||'Incomplete family choice')+' · '+Object.entries(value?.bindings||{}).map(([k,v])=>k+'='+v).join(', ');}
+  return Object.freeze({methods,number,seeds,ids,reference,pairing,split,protocol,comparison,family,modelLabel});
 });

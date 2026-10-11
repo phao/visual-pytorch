@@ -4,6 +4,26 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 06:42 -03:00 — Explicit family experiment axes and terminal recovery
+
+Added lazy ordered fixed/binding-axis family choices to experiment/run version2,
+because experimental design must identify concrete family coordinates without
+eagerly compiling a product or substituting mutable heads. `.vtw` v8 gates these
+semantics; v1 hashes and existing tables remain. Qt typed editing, CLI previews/
+execution and portable24-file reports share exact resolution. Atomic terminal
+admission retains canonical derived provenance; `admit-run` recovers captured
+records without fitting. Saved evidence and exact decimal counts now handle
+family coordinates correctly. Repaired the live editor's hardcoded v1 publish
+gate, preserving ownership and explicitly bounded version upgrades.
+
+Final710 Python215.332s/277 JS1199.230766ms/21 focused0.807s pass, including
+independent gradients/exports, eight bounded fits/retry, actual four-point Jupyter
+rerun and old immutable notebook closures. Actual sandboxed Qt editing/20-point
+preview/worker/evidence/save-reload and prior family regressions pass; capture
+reviewed. Failed probes retained, numerical batches serial/one-threaded. No
+public/user state changes. D remains incomplete/local: richer choices, genuine
+sharing/runtime/recurrent contracts and E are still required.
+
 ## 2026-10-11 05:50 -03:00 — Owned typed architecture family authoring
 
 Added drawing-seeded/historical owned family drafts, bounded template/symbol/

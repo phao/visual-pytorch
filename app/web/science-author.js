@@ -167,7 +167,7 @@
     if(ticket!==generation||draft!==selected||edit!==editGeneration||identity!==api.workspace())return;
     draftPage=result;const page=result.preview,container=$('science-experiment-preview-rows');container.replaceChildren();
     page.candidates.forEach(row=>{const card=el('div');card.className='science-candidate';card.dataset.draftCandidate=row.status;
-      card.append(el('span',row.status+' · model '+row.coordinates.model.id+' @ '+row.coordinates.model.revision.slice(0,12)+' · '+row.coordinates.data_task+' · seed '+row.coordinates.initialization+' · '+row.coordinates.split+' · '+row.coordinates.protocol));
+      card.append(el('span',row.status+' · '+window.LoomExperimentAuthoring.modelLabel(row.coordinates.model)+' · '+row.coordinates.data_task+' · seed '+row.coordinates.initialization+' · '+row.coordinates.split+' · '+row.coordinates.protocol));
       if(row.reason)card.append(el('small',row.reason));container.append(card);});
     $('science-experiment-preview-status').textContent=page.offset+'–'+(page.offset+page.candidates.length)+' of '+result.total_combinations_exact+' · prospective '+page.experiment.revision.slice(0,12)+' · interface/split preview only, no fitting or RAM admission. Retain revision before explicit runs.';
     controls();

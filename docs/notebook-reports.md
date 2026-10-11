@@ -53,7 +53,7 @@ bundle/
   LICENSE
   README.txt
   requirements.txt
-  runtime/app/             complete 23-file numerical source closure
+  runtime/app/             complete 24-file numerical source closure
   executions/<attempt>/   fresh artifacts from each explicit execution
 ```
 
@@ -74,8 +74,13 @@ validates these without regenerating splits. Execution policy records
 `cpu-float32-v1`, constrained mode, RAM percentage and optional worker timeout.
 Generation records Python/platform. There are no absolute private source paths.
 
-New bundles include `activations.py`, `families.py` and `family_records.py` in
-that copied closure. Genuine pre-family 21-file and pre-activation 20-file
+New bundles include `activations.py`, `families.py`, `family_records.py` and
+`family_axes.py` in that copied closure. Prior complete 23-file runtimes are
+supported only when their source does not import family_axes.py; omitting it
+from new source is rejected before launch. [Family experiments](family-experiment-axes.md)
+capture lazy ordered binding coordinates and exact derived run provenance,
+including the generated model sources/predictors/curves in actual reruns.
+Genuine pre-family 21-file and pre-activation 20-file
 version-1 bundles retain their original closures and remain inspectable/executable
 without rewriting inputs. The verifier admits those historical sets only when
 the captured core/dependency sources do not require the absent modules. Removing
