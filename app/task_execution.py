@@ -69,7 +69,8 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
               'dataset': frozen_document('dataset', dataset), 'task': frozen_document('task', task),
               'manifest': copy.deepcopy(manifest), 'protocol': validate_protocol(protocol)}
     if runtime is not None:
-        result.update(version=3 if runtime['specialization'].get('version')==5 else 2,runtime=copy.deepcopy(runtime))
+        sv=runtime['specialization'].get('version')
+        result.update(version=4 if sv==7 else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
     validate_bundle(result)
     return result
 
@@ -77,18 +78,19 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
 def validate_bundle(bundle):
     _require(isinstance(bundle,dict),'TaskBundle must be a closed object.')
     _keys(bundle, ('version', 'model', 'dataset', 'task', 'manifest', 'protocol')+
-          (('runtime',) if bundle.get('version') in (2,3) else ()), context='TaskBundle')
-    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3),'TaskBundle supports integer version1,2 or3.')
+          (('runtime',) if bundle.get('version') in (2,3,4) else ()), context='TaskBundle')
+    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3,4),'TaskBundle supports integer versions1–4.')
     for kind in ('model', 'dataset', 'task'):
         _require('revision' in bundle[kind], 'Execution requires exact frozen ' + kind + ' revision.')
         frozen_document(kind, bundle[kind])
     validate_protocol(bundle['protocol'])
     from .datasets import check_manifest, validate_task
     model = bundle['model']; contract = validate_model(model['models'], model['root'])
-    if bundle['version'] in (2,3):
+    if bundle['version'] in (2,3,4):
         from .runtime_tasks import contract as runtime_contract
         contract=runtime_contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],
-                                  execution='runtime-temporal-v1' if bundle['version']==3 else 'runtime-spatial-v1')
+                                  execution='runtime-temporal-v2' if bundle['version']==4 else
+                                  'runtime-temporal-v1' if bundle['version']==3 else 'runtime-spatial-v1')
     validate_task(bundle['task'], bundle['dataset'], contract)
     check_manifest(bundle['dataset'], bundle['manifest'])
     _require(contract['parameters'] > 0, 'Task training requires trainable parameters.')
@@ -105,6 +107,8 @@ def run_identity(bundle):
         result.update(version=2,compiler='native-runtime-spatial-v1',runtime=digest(bundle['runtime']))
     elif bundle['version']==3:
         result.update(version=3,compiler='native-runtime-temporal-v1',runtime=digest(bundle['runtime']))
+    elif bundle['version']==4:
+        result.update(version=4,compiler='native-runtime-temporal-v2',runtime=digest(bundle['runtime']))
     return result
 
 
@@ -113,8 +117,9 @@ def compile_task_model(bundle, *, constrained=True, memory_limit_percent=10.):
     contract = validate_bundle(bundle)
     from .core import compile_model
     spec=bundle['model'];decl=None
-    if bundle['version'] in (2,3):decl=bundle['runtime']['specialization']['runtime']['inputs']
-    policy={'runtime_temporal':decl} if bundle['version']==3 else {'runtime_inputs':decl}
+    if bundle['version'] in (2,3,4):decl=bundle['runtime']['specialization']['runtime']['inputs']
+    policy=({'runtime_temporal_v2':decl} if bundle['version']==4 else
+            {'runtime_temporal':decl} if bundle['version']==3 else {'runtime_inputs':decl})
     return compile_model(spec['models'],spec['root'],constrained,
                          memory_limit_percent=memory_limit_percent,**policy,
                          initial_shapes={g['id']:g['shape'] for g in contract['input_groups']} if decl is not None else None)
@@ -141,12 +146,21 @@ def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     memory['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (
         8192 + 512 * point_rows * len(bundle['task']['heads']))
-    if bundle['version']==3:
-        from .temporal_shapes import admission as temporal_admission
+    if bundle['version'] in (3,4):
+        if bundle['version']==4:
+            from .temporal_shapes_v2 import admission as temporal_admission
+        else:
+            from .temporal_shapes import admission as temporal_admission
         model=bundle['model']
         extra=temporal_admission(model['models'],model['root'],contract,size,constrained=False,
                                  memory_limit_percent=percentage,gradients=True)
         memory['components']['recurrent_unrolls']=extra['memory']['components']['recurrent_unrolls']
+        if bundle['version']==4:
+            # Whole-tree v2 owners/gates are ADDITIONAL to collation, outputs,
+            # metric history and head supervision, never a replacement for them.
+            memory['components']['parameters_optimizer_evidence']=max(
+                memory['components']['parameters_optimizer_evidence'],extra['memory']['components']['parameters'])
+            memory['components']['lstm_unrolls']=extra['memory']['components']['lstm_unrolls']
     memory['estimated_bytes'] = sum(memory['components'].values())
     memory.update(actual_batch_size=size, limit_percent=percentage, available_bytes=available)
     if constrained:
@@ -197,7 +211,7 @@ def fitted_inputs(bundle, fitted, records):
         actual=None
         if 'runtime_policy' in bundle and binding['port'] in bundle['runtime_policy'].get('runtime_temporal',bundle['runtime_policy'].get('runtime_inputs',{})):
             actual=record_shapes(bundle,records)[binding['port']]
-        if actual is not None and bundle['runtime_policy'].get('kind')=='runtime-temporal-v1' and binding['transforms']:
+        if actual is not None and bundle['runtime_policy'].get('kind') in ('runtime-temporal-v1','runtime-temporal-v2') and binding['transforms']:
             actual=None  # Validate raw field shape; captured transforms supply the fitted execution shape.
         for value in values:
             _value(value,field if actual is None else {**field,'shape':actual})
@@ -225,7 +239,7 @@ def restore_task_predictor(bundle, checkpoint, *, constrained=True, memory_limit
         model = compile_task_model(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     model.load_state_dict({k: torch.tensor(v, dtype=torch.float32, device='cpu') for k, v in checkpoint['weights'].items()}, strict=True)
     model.eval()
-    if bundle['version'] in (2,3):
+    if bundle['version'] in (2,3,4):
         from .runtime_tasks import input_policy
         bundle['runtime_policy']=input_policy(bundle)
     class Predictor:
@@ -301,7 +315,7 @@ def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limi
     fields = {binding['field'] for binding in bundle['task']['inputs']}
     input_spec = {'dataset': {'fields': [f for f in bundle['dataset']['fields'] if f['id'] in fields]},
                   'task': {'inputs': bundle['task']['inputs']}}
-    if bundle['version'] in (2,3):
+    if bundle['version'] in (2,3,4):
         from .runtime_tasks import input_policy
         input_spec['runtime_policy']=input_policy(bundle)
     source.extend([f'_input_spec = {input_spec!r}', f'_fitted = {checkpoint["fitted"]!r}',

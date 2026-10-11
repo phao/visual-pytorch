@@ -71,7 +71,7 @@ class TrainingJob(QThread):
 
 
 class TaskTrainingJob(QThread):
-    """Frozen task worker adapter; draft selection UI is a later Stage C gate."""
+    """Frozen task worker adapter using the bundle's exact admitted version."""
     point = Signal(str)
     completed = Signal(str)
     failed = Signal(str)
@@ -92,8 +92,10 @@ class TaskTrainingJob(QThread):
     def run(self):
         try:
             from .transport import run_json_worker
+            from .task_execution import validate_bundle
+            validate_bundle(self.bundle)
             result = run_json_worker([self.python, '-u', '-m', 'app.worker'],
-                {'kind': 'task-v1', 'bundle': self.bundle, 'constrained': self.constrained,
+                {'kind': 'task-v'+str(self.bundle['version']), 'bundle': self.bundle, 'constrained': self.constrained,
                  'memory_limit_percent': self.memory_limit_percent},
                 on_progress=lambda point: self.point.emit(json.dumps(point, allow_nan=False)),
                 cancel=self.cancel, cwd=str(Path(__file__).resolve().parent.parent),
