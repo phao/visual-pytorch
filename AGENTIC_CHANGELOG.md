@@ -4,6 +4,25 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 05:50 -03:00 — Owned typed architecture family authoring
+
+Added drawing-seeded/historical owned family drafts, bounded template/symbol/
+assignment/repeat cards, train-free exact preview and separate retained-instance
+creation, because retained JSON alone was not an in-app authoring workflow.
+Reused v7 storage and session/history/memory/staging fences with existing CLI
+grammar; no sidecar/schema bump. Raw integer text and invalid text are preserved.
+Matched compact/theme form tokens after inspecting a real capture; repaired a
+self-pending opening guard rather than weakening ownership.21 new backend/11 JS
+cases, complete682 Python/271 JS and real Qt width3/repeat2/21-parameter creation/
+undo/redo/reload pass, without host Torch or pre-retention writes. Full D/E remain
+unfinished and local/unmerged; axes, tied/runtime/recurrent contracts are next.
+No publication, user app restart or config/workspace mutation.
+Selected drawing capture now excludes datasets/unrelated architectures and
+checks source-size admission before parsing each reachable document; the three
+additional scope/admission regressions pass.
+Final685 Python188.553s/271 JS1090.859084ms and both actual Qt family workflows
+pass against the current source; the upper-card capture was visually reviewed.
+
 ## 2026-10-11 05:24 -03:00 — Stage D immutable family/specialization storage
 
 Added `.vtw` v7 family/specialization kinds and exact family/bindings/frozen-model

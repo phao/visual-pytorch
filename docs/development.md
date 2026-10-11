@@ -1,5 +1,55 @@
 # Development state and roadmap
 
+## 2026-10-11 05:50 -03:00 — Stage D: owned typed family authoring
+
+Continued the canonical D task fromefed917. New architecture family seeds from a
+valid drawing's complete concrete reference closure without copying its dataset/
+weights or editing the source. Exact historical family editing uses existing
+owned session/head/origin/sequence/staging/admission safeguards. Bounded typed
+cards cover templates, symbols, field assignments and independent finite repeats.
+Small integer/AST values remain exact raw text; large values use explicit staged
+editing. Preview returns conditional/incompatible/verified summaries without
+numerical allocation or training. Retaining a family is distinct from creating
+an exact stored concrete instance; optional drawings and native undo preserve
+the already-verified v7 provenance. No new schema or parallel persistence.
+
+Current21 pure family-draft tests pass0.113s, including long128-symbol projections,
+atomic failed edits, stale owner/head/working-copy fences and fresh stdlib execution
+without Torch/NumPy/Qt. The complete682-Python suite passes188.880s;271 JS tests
+pass1090.859084ms, including11 new controller cases. Existing fit/checkpoint/
+independent gradients/exports and actual saved/rerun/Stop notebook kernels pass.
+Numerical batches were serial and one-threaded. Actual sandboxed Qt controls build
+a width3 family and independent Linear repeat2 with21 parameters, preserve invalid
+text, avoid SQL writes before retention, create exact specialization, and verify
+undo/redo/save/reload without host Torch or console errors. Matching theme/grid/
+spacing CSS and no-horizontal-overflow are tested; a real capture is reviewed.
+This is default-font/local layout evidence, not all-platform/theme/accessibility
+certification or proof of tied/recurrent semantics.
+Drawing capture was subsequently tightened to read only reachable architecture
+documents, never dataset payloads/unrelated models, with source-size admission
+before each selected document is parsed. Three new regressions prove the scope/
+pre-parse check and nested Module closure. The682-test pass above predates those
+three tests. Final full685 Python regressions pass188.553s,21 focused tests pass
+0.113s,271 JS pass1090.859084ms, and both actual Qt authoring/retained-family
+workflows pass on the final source. Diff/compile checks pass. The styled capture
+shows the upper typed cards, not the off-screen repeat/preview section.
+
+Failed probes are retained: fixture Python quoting failed before app launch;
+the first live check exposed the family form mistaking its own pending request
+for another editor. Corrected that genuine opening guard and covered it in JS.
+Another fixture incorrectly asked for an undone browsing head instead of the
+retained exact revision; corrected the request, not undo retention semantics.
+Reviewing the first capture exposed unstyled labels/textarea overflow; palette/
+spacing/fieldset tokens now match existing forms. Failed card reads lock stale
+typed controls but keep retry/staged repair available. No user app/config/
+workspace or public refs changed; source stays on the local D task branch.
+
+Specification: [typed-family-sessions.md](typed-family-sessions.md).
+Next family experiment axes, better template/operator choice affordances,
+genuine tied-weight identity/count/checkpoint behavior, runtime-shape guards and
+recurrent state/length/mask/reset/mixed composition. E follows actual D acceptance.
+Full goal remains active; this is a checkpoint, not main integration/completion.
+
 ## 2026-10-11 05:24 -03:00 — Stage D: retained family provenance
 
 Continued `task/stage-d-families` from checkpoint91113ac in the sole canonical

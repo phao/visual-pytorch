@@ -6,8 +6,9 @@ existing ordinary executable architecture closure. Neither specialization nor
 preview imports Torch/Qt, allocates tensors, trains, changes global preferences
 or infers bindings from data. Compilation/training still use ordinary constrained
 run admission. Immutable family/specialization records now live in `.vtw` v7;
-the existing Qt scientific browser can inspect/import them. This checkpoint does
-not add a typed family-authoring GUI or an automatic family sweep axis.
+the existing Qt scientific browser can inspect/import them. This checkpoint now
+adds [typed owned family authoring](typed-family-sessions.md), but no automatic
+family sweep axis, tied-weight or recurrent execution semantics.
 
 ## Family document version 1
 
@@ -155,7 +156,7 @@ current experiments, rendered/inspected and exported without family-runtime code
 
 The family, resolved bindings and frozen model are retained automatically inside
 `.vtw`. Editing the concrete instance does not update any of those immutable
-records. Owned typed GUI editing, family sweep axes, deliberate sharing, runtime-spatial
+records. Typed owned GUI editing is now implemented; family sweep axes, deliberate sharing, runtime-spatial
 guards and recurrent state/length/mask contracts are subsequent Stage D work.
 An H/W family specialization currently fixes H/W; testing two specializations
 does not claim one executable instance accepts arbitrary spatial dimensions.
@@ -198,7 +199,9 @@ promised for new v7 files.
 The Qt **Browse** selector includes alphabetically ordered Architecture families
 and Specializations. Metadata pages and summaries remain bounded; full intrinsic
 validation is still native and may be expensive. Raw import/ordinal inspection
-are supported, not typed family editing or a GUI specialization wizard.
+are supported. The [typed family editor](typed-family-sessions.md) also creates
+families from drawings, edits symbols/assignments/repeats, previews bindings and
+creates exact retained concrete instances. This is not full D acceptance.
 
 ## Verification and references
 

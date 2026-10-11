@@ -14,7 +14,9 @@ optionally imports a verified ordinary concrete closure, rejecting ID collisions
 instead of replacing user work. `preview-stored-family ID REVISION` uses an exact
 retained family; the edit accepts `family_ref` instead of a full definition,
 optional `id`/`name`, and boolean `materialize` (default true). Typed GUI family
-authoring is not implied. See [architecture-families.md](architecture-families.md)
+authoring now uses the same persisted grammar; its transient editor transport is
+specified in [typed-family-sessions.md](typed-family-sessions.md).
+See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
 
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic

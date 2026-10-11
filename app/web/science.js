@@ -73,6 +73,7 @@
     $('science-stop').textContent=api.notebookJob()?'Stop notebook work':'Stop run';
     window.LoomScienceCandidates?.stateChanged();
     window.LoomScienceRecoveries?.stateChanged();
+    window.LoomFamilySessionForm?.stateChanged();
     $('science-object-prev').disabled=indexReading!==null||!indexBacks.length;
     $('science-object-next').disabled=indexReading!==null||!indexPage||indexPage.next_offset===null;
   }
@@ -87,6 +88,7 @@
       window.LoomDatasetSessionForm?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       window.LoomTaskSessionForm?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       window.LoomExperimentSessionForm?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
+      window.LoomFamilySessionForm?.mount(document,services,async result=>{$('science-kind').value=result.kind;await refresh(result);});
       window.LoomScienceDocument.mount(document,{...services,editing:()=>window.LoomDraftValueEditor?.active?.()||window.LoomScienceAuthor?.active?.(),editValue:target=>window.LoomDraftValueEditor?.open(target)});
       window.LoomScienceRecoveries?.mount(document,services);
       root.querySelector('[data-panel=science]').addEventListener('click',()=>act(refresh));
@@ -111,6 +113,7 @@
       window.LoomDatasetSessionForm?.event?.(event);
       window.LoomTaskSessionForm?.event?.(event);
       window.LoomExperimentSessionForm?.event?.(event);
+      window.LoomFamilySessionForm?.event?.(event);
       window.LoomScienceAuthor?.event?.(event);
       window.LoomScienceNotebooks.event(event);
       if(event.kind==='externalReload'){

@@ -42,13 +42,13 @@
   }
   function controls(){
     if(!api)return;
-    const datasetActive=window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomExperimentSessionForm?.active?.();
+    const datasetActive=window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomExperimentSessionForm?.active?.()||window.LoomFamilySessionForm?.active?.();
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
     if(!datasetActive)for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
     $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace();
     $('science-author-new-task').disabled=$('science-author-new').disabled;
     $('science-author-new-experiment').disabled=$('science-author-new').disabled;
-    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
+    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace()||!['dataset','task','experiment','family'].includes($('science-kind').value)||!$('science-object').value;
     if(!datasetActive)$('science-author-cancel').disabled=pending;
     window.LoomScienceDocument?.stateChanged?.();
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
@@ -173,8 +173,9 @@
     controls();
   }
   window.LoomScienceAuthor={
-    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.())||Boolean(window.LoomTaskSessionForm?.active?.())||Boolean(window.LoomExperimentSessionForm?.active?.());},
-    ownActive(){return Boolean(draft)||pending;},
+    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.())||Boolean(window.LoomTaskSessionForm?.active?.())||Boolean(window.LoomExperimentSessionForm?.active?.())||Boolean(window.LoomFamilySessionForm?.active?.());},
+    ownActive(){return Boolean(draft)||pending||Boolean(window.LoomFamilySessionForm?.active?.());},
+    legacyActive(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       window.LoomTaskContext?.mount(document,{...services,updateControls:controls,
         blocked:()=>window.LoomTaskSessionForm?.active?.()?window.LoomTaskSessionForm.contextBlocked():

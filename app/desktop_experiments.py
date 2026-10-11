@@ -103,6 +103,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'sciencePreviewPage', 'scienceReport',
+         'scienceDraftFamilyPage', 'scienceDraftFamilyPreview',
          'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview',
          'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility',
          'scienceDraftDatasetPage','scienceDraftDatasetValue',
@@ -113,8 +114,9 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'sciencePreviewPage', 
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskContextPage', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor', 'scienceRunCurve'} | NOTEBOOK_READS
-EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
+EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit', 'scienceFamilyResolve'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftPatch',
+                 'scienceDraftFamilyPage', 'scienceDraftFamilyEdit', 'scienceDraftFamilyPreview',
                  'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview', 'scienceDraftExperimentEdit',
                  'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility', 'scienceDraftTaskEdit',
                  'scienceDraftDatasetPage','scienceDraftDatasetEdit','scienceDraftDatasetValue',
@@ -133,7 +135,10 @@ def dispatch(window, req, source=None):
         from .datasets import _keys
         req = _json(req)  # Limit the entire compact request, not only patch values.
         required, optional = {
-            'scienceDraftOpen': (('action', 'kind'), ('reference', 'id')),
+            'scienceDraftOpen': (('action', 'kind'), ('reference', 'id', 'model')),
+            'scienceDraftFamilyPage': (('action', 'session', 'sequence', 'collection'), ('offset', 'limit')),
+            'scienceDraftFamilyEdit': (('action', 'session', 'sequence', 'operations'), ()),
+            'scienceDraftFamilyPreview': (('action', 'session', 'sequence'), ('bindings',)),
             'scienceDraftDescribe': (('action', 'session'), ()),
             'scienceDraftOrigin': (('action', 'session', 'sequence'), ()),
             'scienceDraftRead': (('action', 'session', 'sequence'), ('path', 'part', 'offset', 'limit')),
@@ -167,12 +172,19 @@ def dispatch(window, req, source=None):
         configuration = getattr(window, 'config', None)
         sessions.memory_limit_percent = configuration.values.get('memory_limit_percent', 10.) if configuration else 10.
         if action == 'scienceDraftOpen':
-            result = sessions.open(workspace, owner, req['kind'], base=req.get('reference'), sid=req.get('id'))
+            result = sessions.open(workspace, owner, req['kind'], base=req.get('reference'), sid=req.get('id'), model=req.get('model'))
             if source is not None and hasattr(source, 'destroyed') and not getattr(source, '_draft_cleanup_connected', False):
                 source.destroyed.connect(lambda: sessions.close_owner(owner))
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftFamilyPage':
+            return sessions.family_page(token, owner, req['sequence'], req['collection'],
+                                        **{k: req[k] for k in ('offset', 'limit') if k in req})
+        if action == 'scienceDraftFamilyEdit':
+            return sessions.family_edit(workspace, token, owner, req['sequence'], req['operations'])
+        if action == 'scienceDraftFamilyPreview':
+            return sessions.family_preview(workspace, token, owner, req['sequence'], req.get('bindings'))
         if action == 'scienceDraftExperimentPage':
             return sessions.experiment_page(token, owner, req['sequence'], req['collection'],
                                             **{k:req[k] for k in ('offset','limit') if k in req})
@@ -257,6 +269,22 @@ def dispatch(window, req, source=None):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action == 'scienceFamilyResolve':
+        from .authoring import workspace_id
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        from .family_records import retain
+        req = _json(req)
+        _keys(req, ('action', 'workspace_id', 'family'), ('bindings', 'materialize'), context='Exact family resolution')
+        if req['workspace_id'] != workspace_id(workspace):
+            raise ValueError('Family selection belongs to another workspace. Select its exact revision again.')
+        result = retain(workspace, family_ref=req['family'], bindings=req.get('bindings'),
+                        materialize=req.get('materialize', True))
+        # Keep the bridge bounded: the full model closure stays native/SQLite.
+        value = {k: result[k] for k in ('family', 'model', 'specialization', 'materialized')}
+        value.update(root=result['resolved']['root'], parameters=result['resolved']['contract']['parameters'])
+        window.broadcast(); window.broadcast('scienceChanged')
+        return value
     if action in {'scienceBrowse', 'scienceSummary', 'scienceInspect'}:
         from . import science_browser
         from .authoring import workspace_id

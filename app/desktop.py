@@ -118,7 +118,7 @@ class Bridge(QObject):
             if len(payload) > 16_000_000:
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
-            if isinstance(req, dict) and req.get('action', '').startswith('scienceDraft'):
+            if isinstance(req, dict) and req.get('action', '').startswith(('scienceDraft', 'scienceFamily')):
                 from .revisions import _parse
                 req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)

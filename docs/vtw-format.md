@@ -9,7 +9,8 @@ The local Stage D [family specialization checkpoint](architecture-families.md)
 retains immutable `family` and `specialization` revisions in the existing registry
 tables, alongside the exact frozen concrete model. Atomic CLI admission can also
 create ordinary editable drawings. These new closed document kinds require a
-version-7 container; they add no SQL table or sidecar. Typed family GUI authoring,
+version-7 container; they add no SQL table or sidecar. The
+[typed family editor](typed-family-sessions.md) uses transient owned sessions;
 tied weights and recurrent execution are not implied by this checkpoint.
 
 ## 1. Container, versioning and compatibility
@@ -125,7 +126,7 @@ recipe schemas are in [experiment-objects.md](experiment-objects.md).
 Their JSON references are checked by the application on admission/load/save;
 only head→revision references are SQL foreign keys. The locally accepted Stage C
 GUI is specified in [experiment-gui.md](experiment-gui.md); the new D family
-grammar has read/import integration but no typed family editor yet.
+grammar has read/import integration and a [typed family editor](typed-family-sessions.md).
 Notebook artifacts are separately specified in
 [notebook-reports.md](notebook-reports.md). Legacy datasets/runs keep their
 original meaning and existing APIs; no automatic typed-data interpretation occurs.

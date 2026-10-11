@@ -6,6 +6,9 @@ without sending complete drafts for Open/Check/Commit. The actual
 [chunked value editor](chunked-draft-values.md) use these sessions.
 The [typed task form](typed-task-sessions.md) and actual
 [experiment form](typed-experiment-sessions.md) also use these sessions.
+The local Stage D [architecture family form](typed-family-sessions.md) now uses
+the same owner/sequence/origin/staging/admission contract. New families may seed
+from a valid drawing; tokens remain transient, not new .vtw rows.
 This is not completion of
 resource convergence or a published feature.
 
