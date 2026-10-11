@@ -263,6 +263,12 @@ the bundle directory without the product checkout; install its requirements.
 See [notebook-reports.md](notebook-reports.md), including trusted-code and replay limits.
 The GUI now offers explicit asynchronous bundle inspection/execution with the
 same notebook/receipt grammar, separate from generation and RunRecord admission.
+`generate-report --report-python /absolute/path/to/python` performs authoring in
+that environment without importing nbformat/Jupyter/Torch in the CLI host.
+The host captures immutable dependencies and runtime bytes; the authoring child
+has a 30-second deadline and launches no kernel. Returned manifest/source/mode/
+hash identities are checked before success. Existing destinations are refused.
+Omitting the option preserves direct authoring in the CLI interpreter.
 Its runner uses the chosen interpreter for the optional Jupyter stack; the CLI
 adapter still requires those optional execution packages in its invoking
 environment. See [notebook-gui-execution.md](notebook-gui-execution.md). No new

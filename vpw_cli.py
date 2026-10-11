@@ -217,6 +217,7 @@ def main(argv=None):
     notebook.add_argument('--offset', type=int, default=0); notebook.add_argument('--limit', type=int, default=100)
     notebook.add_argument('--allow-partial', action='store_true'); notebook.add_argument('--memory-limit-percent', type=float)
     notebook.add_argument('--worker-timeout', type=float)
+    notebook.add_argument('--report-python', help='Author in this report environment; keep optional notebook imports out of the CLI host')
     execution = sub.add_parser('execute-report', help='Explicitly execute a verified notebook bundle using a real Jupyter kernel')
     execution.add_argument('bundle'); execution.add_argument('--kernel-python', default=sys.executable)
     execution.add_argument('--cell-timeout', type=int, default=600)
@@ -306,8 +307,10 @@ def main(argv=None):
                     attempt=args.attempt, head=args.head, offset=args.offset, limit=args.limit,
                     head_offset=args.head_offset, head_limit=args.head_limit)
             elif args.command == 'generate-report':
-                from app.notebooks import create_bundle
-                value = create_bundle(workspace, {'kind': 'report', 'id': args.id, 'revision': args.revision}, args.output,
+                from app.notebooks import create_bundle, create_bundle_isolated
+                writer = create_bundle_isolated if args.report_python else create_bundle
+                extra = (args.report_python,) if args.report_python else ()
+                value = writer(workspace, {'kind': 'report', 'id': args.id, 'revision': args.revision}, args.output, *extra,
                     offset=args.offset, limit=args.limit, allow_partial=args.allow_partial,
                     memory_limit_percent=ram_percentage(args.memory_limit_percent), worker_timeout=args.worker_timeout)
             elif args.command == 'execute-report':

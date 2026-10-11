@@ -1,5 +1,36 @@
 # Development state and roadmap
 
+## 2026-10-11 15:20 -03:00 — A–C publication convergence
+
+The user's priority is verified A–C → GitHub push → only then resume D–E.
+Finalization branches from integrated mainbc85e572, excluding existing unfinished
+D source on task/stage-d-familiesab0502c. No committed D work is deleted.
+[A–C finalization](stage-abc-finalization.md) links the original requirement gates,
+new evidence, known costs and newer-workspace compatibility precautions.
+
+Fresh native notebook checks reproduced a missing GUI-host nbformat dependency
+during generation, although selected-environment execution worked. Generation
+now captures immutable data/runtime bytes in the host and uses the selected
+report Python; recipe/mode/manifest/index/source bytes are rechecked before
+admission. CLI adds optional --report-python, retaining its direct default.
+This is synchronous bounded authoring, never a kernel run, training or detached
+job. Existing destinations refuse; SQLite and report grammars are unchanged.
+
+628 Python tests257.810s/260 JavaScript tests1213.211708ms pass, including15 new
+generation regressions. Actual Qt graph/binding/CNN fit/export, typed authoring,
+candidate/evidence/curve browsing, worker/retry/recovery/save-reload, saved/rerun
+kernel and generation/refusal checks pass. Native14/10 lifecycle cases and60
+window configurations pass; full details and retained-failure distinctions are
+in the gate document. The notebook GUI now imports no Torch/nbformat/nbclient/
+jupyter_client. README adds a real completed saved-notebook receipt capture.
+
+This is a source-publication gate, not a new tag/packaged release or completion
+of D/E. No user app restart or workspace/config edit. The initial alpha tag and
+historical acceptance entries below remain unchanged. After the authorized push,
+merge these corrections into retained D and restore the newer-format checkout
+before continuing D. Public origin status must be checked after the actual push,
+not inferred from this prepared checkpoint.
+
 ## 2026-10-11 04:38 -03:00 — Stage C accepted and integrated locally
 
 Stage C is locally integrated in main0a3bc8cd826eb11a18abc08892faad347f8b274b

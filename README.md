@@ -53,10 +53,21 @@ group/time splits, exact saved predictors/curves and explicit notebook generatio
 and real-kernel execution. These additions are not included in the initial
 `v0.1.0-alpha.1` prerelease. See [Stage C acceptance](docs/stage-c-acceptance.md),
 [experiment GUI](docs/experiment-gui.md) and [notebook setup](docs/notebook-reports.md).
+The [A–C finalization checkpoint](docs/stage-abc-finalization.md) preserves that
+bounded scope and repairs split-environment notebook generation: the Qt host
+does not need to import Torch or Jupyter. Choose a report Python with the report
+dependencies installed; CLI generation also accepts `--report-python`.
 Recurrent/symbolic model families and durable detached/distributed execution
 remain future work. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
+
+![Real application: a completed saved-result notebook, with exact recipe, input index and retained artifact receipts](assets/screenshots/notebook-evidence.png)
+
+This real Qt capture shows a saved-result notebook executed in a fresh kernel:
+it reads retained evidence without retraining. Notebook artifacts stay in the
+bundle rather than silently changing the workspace. Explicit rerun reports can
+train their captured candidate selection instead; generation alone does neither.
 
 ![Compact blocks retain dimensions and bias; bulk layout has independent profiles](assets/screenshots/interface-collapsed.png)
 
