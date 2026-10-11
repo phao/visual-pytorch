@@ -75,6 +75,7 @@ with tempfile.TemporaryDirectory() as folder:
         for sid in ('science-task-fields','science-task-input-ports','science-task-output-ports'):assert js('document.getElementById('+json.dumps(sid)+').children.length')<=25
         assert h.projections[-1]['dataset']==h.old
         js('[...document.querySelectorAll("#science-task-bindings button")].find(n=>n.textContent==="Add input binding").click()')
+        until('Boolean(document.querySelector("[data-task-input]")) && !document.getElementById("science-author-check").disabled')
         js('(()=>{const n=document.querySelector("[data-task-input] input[list=science-task-fields]");n.value="unfinished manual field";n.dispatchEvent(new Event("change"))})()')
         search('fields','Feature 599','f0');assert js('document.getElementById("science-task-fields").children.length')==2
         assert '20000 fixed categories' in js('document.querySelector("#science-task-fields option[value=f0]").title')
@@ -85,6 +86,7 @@ with tempfile.TemporaryDirectory() as folder:
         search('fields','Feature 599','missing-field');assert 'ID unavailable: missing-field' in js(group('fields')+'.querySelector("p").textContent')
         assert js('document.querySelector("[data-task-input] input[list=science-task-fields]").value')=='unfinished manual field'
         js('[...document.querySelectorAll("#science-task-bindings button")].find(n=>n.textContent==="Add loss head").click()')
+        until('Boolean(document.querySelector("[data-task-head]")) && !document.getElementById("science-author-check").disabled')
         js('(()=>{const label=[...document.querySelectorAll("[data-task-head] label")].find(n=>n.firstChild.textContent==="Objective weight"),n=label.querySelector("input");n.value="not-a-number";n.dispatchEvent(new Event("change"))})()')
         search('fields','Feature 599','f0')
         assert js('document.querySelector("[data-task-head] [aria-invalid=true]").value')=='not-a-number'

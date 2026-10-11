@@ -4,7 +4,8 @@
 without sending complete drafts for Open/Check/Commit. The actual
 [typed dataset form](typed-dataset-sessions.md) and standalone
 [chunked value editor](chunked-draft-values.md) use these sessions.
-Task/experiment typed forms have not migrated. This is not completion of
+The [typed task form](typed-task-sessions.md) also uses these sessions;
+experiment authoring has not migrated. This is not completion of
 resource convergence or a published feature.
 
 ## Ownership and identity
@@ -39,6 +40,7 @@ normalized/size-checked. Unknown tokens and stale sequences fail explicitly.
 | --- | --- | --- | --- |
 | `scienceDraftOpen` | `kind` | `reference`, `id` | Header, never `document` |
 | `scienceDraftDescribe` | `session` | none | Current header |
+| `scienceDraftOrigin` | `session`, `sequence` | none | Header after proving original native owner/Workspace/connection/UUID/sequence |
 | `scienceDraftRead` | `session`, `sequence` | `path`, `part`, `offset`, `limit` | Ordinal page |
 | `scienceDraftPatch` | `session`, `sequence`, `operations` | none | New header/sequence |
 | `scienceDraftCheck` | `session`, `sequence` | none | Prospective exact reference |
@@ -51,7 +53,9 @@ the same owner and document sequence, not an additional draft store.
 
 Task-specific binding/transform pages, literal ordered edits and owned exact
 compatibility commands are specified in [typed-task-sessions.md](typed-task-sessions.md).
-These are tested native transport only; the actual task form has not migrated.
+The actual task form now uses these commands. Its named-property edits resolve
+against each current draft rather than stale dictionary ordinals. Origin is a
+read-only current-origin proof, not resumption based only on a returned UUID.
 
 Open accepts only dataset/task/experiment. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
@@ -111,7 +115,7 @@ descriptors, queues stable-ID edits and opens a child value buffer in its existi
 session. Child Finish/Discard return to the parent, never retain/discard its
 whole draft. Do not truncate data/keys/ontology/text to meet the patch limit.
 
-Next: migration of task/experiment typed forms onto
+Next: migration of experiment typed forms onto
 owner/sequence pages, preserving invalid local text and existing typed helpers;
 local selection cards/axes; field/port suggestions now have separate
 [bounded context pages](task-context-pages.md). Then in-app figures,

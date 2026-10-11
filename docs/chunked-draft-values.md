@@ -4,7 +4,8 @@ The actual Qt Experiment/history tab offers **Edit this value…** for a non-roo
 value of an exact dataset/task/experiment revision, but not keys, models, run
 evidence or reports. It uses [owned-authoring-sessions.md](owned-authoring-sessions.md),
 not a parallel persistence store. The [typed dataset form](typed-dataset-sessions.md)
-now shares its owned session with this editor; task/experiment forms have not migrated.
+and [typed task form](typed-task-sessions.md) share their owned sessions with this
+editor; experiment authoring has not migrated.
 
 ## Three distinct states
 
@@ -127,7 +128,7 @@ No full AuthorBegin/Check/Save, scienceShow/scienceIndex, host Torch/Jupyter or
 worker is involved. The private capture was inspected. Existing native dataset
 and owner/session regressions pass.
 
-Next: task/experiment typed-form/context migration onto bounded sessions, local axis/cards,
+Next: experiment typed-form migration onto bounded sessions, local axis/cards,
 recovery/completion costs and integrated C acceptance. A working standalone value
 editor is not proof that the whole authoring UI is resource-converged. CLI
 import/ordered apply still admit complete validated objects without Qt tokens.

@@ -36,8 +36,9 @@ cards are NOT paged by this checkpoint, unlike remote stored revision choices.
 Refreshing suggestions does not rebuild other controls, discard unfinished or
 invalid text, renumber IDs, reorder selections or admit a draft. Existing
 validation, no-op/history, optimistic exact base/current head and explicit Save
-workspace rules are unchanged. Task/experiment complete drafts remain a separate
-owned-session migration; dataset editing now has [typed sessions](typed-dataset-sessions.md).
+workspace rules are unchanged. Experiment complete drafts remain a separate
+owned-session migration; dataset editing has [typed sessions](typed-dataset-sessions.md)
+and the [task form](typed-task-sessions.md) now uses bounded owned cards/literal edits.
 Actual task field/port suggestions have independent [context pages](task-context-pages.md),
 not full field/vocabulary transport. Those are separate bounds from these pickers.
 

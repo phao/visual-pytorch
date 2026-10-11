@@ -45,7 +45,9 @@ and full metadata remain unchanged.
 Owned task binding/transform cards, literal edit batches and compatibility
 commands are also transient native transport, specified in
 [typed-task-sessions.md](typed-task-sessions.md). They add no SQL rows or CLI
-session tokens; the visible task form has not yet migrated to that transport.
+session tokens; the visible task form now uses that transport, including linked
+child staging. Only explicit parent Commit followed by workspace Save persists
+edits. Native transient origin proofs are not additional file identities.
 
 ## 2. Exact relational schema
 

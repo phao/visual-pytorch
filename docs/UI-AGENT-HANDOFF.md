@@ -714,9 +714,20 @@ Task binding/transform cards must retain scientific ordinals, independently page
 pipelines and return complete literal JSON or explicit staged-value markers.
 Send small typed values as native-parsed literal text rather than JavaScript
 Number conversions; larger values use the same parent session's child editor.
-Reload ordinal paths after sequence-changing structure edits. Native primitives
-and tests are specified in [typed-task-sessions.md](typed-task-sessions.md);
-the actual task form has not yet migrated.
+Resolve named properties against the current native document after each ordered
+operation; removing optional keys must not shift a later edit into another key.
+Flush prior queues and reload ordinal paths before structural changes. The actual
+task form implements this pattern; its exact protocol and tests are specified
+in [typed-task-sessions.md](typed-task-sessions.md). Bound visible binding cards
+and each visible pipeline independently. Update Back/Next from current navigation
+history, not cached flags from before history was advanced. Settle parallel reads
+before lifting the pending-command guard even if one fails early. Retry must
+reuse the owner/session and retain invalid text; reject wrong/stale page and
+admission identities before painting. Small properties use compact typed fields;
+explicit incomplete large markers offer a same-session staged-editor button.
+Returning to a UUID alone cannot resume editing: prove actual native owner,
+Workspace, connection and sequence. Notified reload stays stale until explicit
+cancel/reopen. This is not durable recovery or a universal ABA detector.
 Preserve scientific order and invalid local text. A wire limit is not a bound on
 whole-host parsing/copies/history/validation; long values need separate editing
 and resource safeguards rather than truncation. The current tested backend/Qt
@@ -740,7 +751,7 @@ entire multi-batch form transaction. Large markers are not truncated values.
 Reserve readable table ID columns and local horizontal scrolling instead of
 squeezing headings letter-by-letter; test rendered geometry across font settings.
 The exact reusable protocol is in [typed-dataset-sessions.md](typed-dataset-sessions.md).
-Task/experiment draft forms remain unmigrated. Keep notification signals from shadowing
+Experiment draft forms remain unmigrated. Keep notification signals from shadowing
 native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.

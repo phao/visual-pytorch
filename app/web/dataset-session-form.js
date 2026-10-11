@@ -172,7 +172,7 @@
       });
     },
     open(reference=null){return act(async()=>{
-      if(state||window.LoomScienceAuthor?.ownActive?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
+      if(state||window.LoomTaskSessionForm?.active?.()||window.LoomScienceAuthor?.ownActive?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
       if(api.busy())throw Error('Stop the run before opening a draft.');const identity=api.workspace(),ticket=epoch;
       const header=await api.call('scienceDraftOpen',{kind:'dataset',...(reference?{reference}:{})});
       if(header.scope!=='owned-authoring-session'||header.version!==1||header.kind!=='dataset'||header.workspace_id!==identity||header.sequence!==0||

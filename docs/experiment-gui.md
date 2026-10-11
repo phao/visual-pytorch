@@ -38,14 +38,15 @@ Task context defaults once to a returned head; experiment selections remain
 explicit. Field/input-port/output-port suggestions now use independent search/
 pages and exact-ID inspection, preserving manual binding text. Shape/axes previews
 and category counts omit full vocabularies/metadata; browsing retains scientific
-ordinals. Local draft axes/pairing choices and task/experiment full drafts remain
+ordinals. Local draft axes/pairing choices and experiment full drafts remain
 unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md) and
 [task-context-pages.md](task-context-pages.md).
 
 Owned task card/transform pages, literal edits and compatibility commands are
 tested through the actual native bridge; [typed-task-sessions.md](typed-task-sessions.md)
-specifies that transport. The actual task form below has **not** migrated yet.
-Do not confuse bounded native primitives with the complete legacy form path.
+specifies that transport. The actual task form below now uses it, including
+literal queued edits and linked child staging. Experiment authoring remains on
+the complete-draft path; this does not certify all native resource costs.
 
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
@@ -92,7 +93,7 @@ actions. Failed batches preserve invalid text; atomicity is per accepted batch,
 not a multi-batch form transaction. See [typed-dataset-sessions.md](typed-dataset-sessions.md)
 for closed commands, DTOs, edits, preservation and native evidence. Transport,
 small-preview work and DOM bounds are not lazy storage or universal host RAM/
-validation/history bounds. Task/experiment forms still transfer complete drafts;
+validation/history bounds. Experiment forms still transfer complete drafts;
 field/port suggestions now have bounded pages, though native registry decoding
 still has complete costs. External/lazy storage remains open.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
@@ -116,8 +117,8 @@ retains immutable evidence through the normal history wrapper. Pending terminal
 delivery blocks draft admission. In-flight commands disable duplicate submission;
 the existing keyboard typing safeguards apply to all inputs/textarea/selects.
 The pure backend supports dataset/task/experiment drafts under their existing
-closed grammars. Dataset uses owned page/edit commands; task and experiment
-forms remain on the complete-draft AuthorBegin/Check/Save path.
+closed grammars. Dataset/task use owned page/edit commands; experiment
+authoring remains on the complete-draft AuthorBegin/Check/Save path.
 
 ### Typed task authoring
 
@@ -148,6 +149,18 @@ raw logits with the class dimension first, and no target transforms. Selecting C
 does not remove incompatible target transforms. MSE/MAE target transformations
 remain explicit. Objective multipliers and observation/element sample weights are
 different controls; a mask controls participation. Every output needs one head.
+
+The actual form pages input/head cards independently (at most six each), with
+separate six-step pages for visible transform chains. Small fields queue complete
+literal JSON tokens without Number serialization. Invalid text remains visible
+and blocks mutation; batches are atomic individually. Structural edits flush
+queued named properties, reload current paths, then mutate. Initial/return-page
+failures offer Retry without another Open; admission stays disabled when a required
+reload failed. Large descriptions/properties offer a same-session raw child;
+Finish/Discard returns to the parent without retaining/discarding the whole task.
+Exact context refresh does not flush or rebuild binding text. Native origin proof
+is required before resuming a retained draft after returning to its workspace;
+notified reload requires cancel/reopen. See [typed-task-sessions.md](typed-task-sessions.md).
 These are concrete tensor bindings, not recurrent-state or symbolic-family support.
 
 The context dropdowns show exact frozen model/dataset hashes, current-head versus

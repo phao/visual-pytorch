@@ -42,7 +42,7 @@
   }
   function controls(){
     if(!api)return;
-    const datasetActive=window.LoomDatasetSessionForm?.active?.();
+    const datasetActive=window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.();
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
     if(!datasetActive)for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
     $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace();
@@ -146,7 +146,7 @@
     await context();
   }
   async function begin(kind='dataset',reference=null){
-    if(window.LoomDatasetSessionForm?.active?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
+    if(window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
     const ticket=++generation,identity=api.workspace();
     const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
@@ -171,11 +171,12 @@
     controls();
   }
   window.LoomScienceAuthor={
-    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.());},
+    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.())||Boolean(window.LoomTaskSessionForm?.active?.());},
     ownActive(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       window.LoomTaskContext?.mount(document,{...services,updateControls:controls,
-        blocked:()=>pending||!draft||draft.kind!=='task'||draft.workspace_id!==api.workspace()});
+        blocked:()=>window.LoomTaskSessionForm?.active?.()?window.LoomTaskSessionForm.contextBlocked():
+          pending||!draft||draft.kind!=='task'||draft.workspace_id!==api.workspace()});
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));
       $('science-author-new-experiment').onclick=()=>act(()=>command(()=>begin('experiment')));

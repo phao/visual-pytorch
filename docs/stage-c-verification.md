@@ -93,15 +93,18 @@ These concrete gaps are observable in the current code:
   `scienceReport` reads remain available; authoring stored-revision selectors now
   use independent bounded choices without full metadata indexes. Task field/port
   suggestions now have independent bounded exact collection pages, inspected IDs
-  and explicitly labelled shape previews; complete task/experiment drafts remain
+  and explicitly labelled shape previews; complete experiment drafts remain
   full payloads. Session recovery and terminal-completion transports also
   remain unbounded. Main browsing projection bounds are not those other bounds.
-- Task/experiment `scienceAuthorBegin/Check/Save/Preview` still transfer complete drafts.
+- Experiment `scienceAuthorBegin/Check/Save/Preview` still transfer complete drafts.
   New owned-session backend/Qt commands support projected reads, sequence-fenced
   patches and Check/Commit without whole draft transport. Dataset has migrated;
   [typed-dataset-sessions.md](typed-dataset-sessions.md) specifies literal bounded
   descriptors, stable-target edits, failed-read retry and linked staging in the
-  same session. Task/experiment forms have not migrated;
+  same session. The actual task form now also uses owned literal cards/edits and
+  linked child staging; [typed-task-sessions.md](typed-task-sessions.md) specifies
+  independent bounded binding/pipeline pages, current named-property targets,
+  exact acknowledgements and retry/origin fences. Experiment forms have not migrated;
   [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
   tested transport scope. The separate actual chunk editor now stages raw large
   values with explicit acceptance and constrained admission estimates; see
@@ -112,7 +115,8 @@ These concrete gaps are observable in the current code:
   Task contexts now avoid full field/vocabulary/metadata transport; see
   [task-context-pages.md](task-context-pages.md). Host registry decoding still has
   complete costs, and
-  task/experiment forms render all bindings, transforms and selection cards.
+  experiment forms render all axes and selection cards. Task rendering now bounds
+  visible bindings and each visible pipeline, without bounding all native costs.
 - Saved metric/run pages and notebook figure tables bound returned/rendered
   rows, not arbitrary metadata size, full registry validation/inline costs,
   whole-file CSV reading or notebook source/payload size. Do not conflate these
@@ -132,12 +136,13 @@ the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. The next implementation unit is owned
-task/experiment typed-authoring draft migration and admission integration, preserving
+experiment typed-authoring draft migration and admission integration, preserving
 incomplete text and exact identity rather than transferring whole drafts. Hiding
 the full JSON in a collapsed panel is not a fix.
 Native task binding/transform page, literal-edit and owned compatibility primitives
 now exist with actual bridge checks; [typed-task-sessions.md](typed-task-sessions.md)
-records their exact scope. The visible task controller still requires migration.
+records their exact scope. The actual task controller now uses them with bounded
+visible cards and same-session child staging; full Stage C remains incomplete.
 
 After these concrete C convergence items and the integration audit, proceed to
 the unchanged D family/recurrent and E durable batch/distributed requirements.
@@ -190,8 +195,21 @@ The native task-card/transform/literal-edit/owned-compatibility checkpoint passe
 cases and actual sandboxed QWebChannel exercise 80 binding/1000 transform reads,
 literal integer precision, ordinal/sequence/owner/origin/staging/admission,
 atomic rollback/strict retention and unchanged SQL/history. This is native
-transport only: the visible task form still uses the complete legacy draft path.
+transport only: at that historical checkpoint the visible task form still used
+the complete legacy draft path; it migrated in the later checkpoint below.
 The 80-binding fixture does not certify compilation of an 80-port model.
+
+The subsequent actual task controller adds named current-property resolution,
+native origin proof, 20 asynchronous controller tests and three backend cases.
+The actual sandboxed 80-binding/1000-transform form checks bounded controls,
+historical description editing, exact literal integers, injected initial/pipeline/
+child-return read failures, shared staging and one admission/history entry with
+undo/redo/save-reload. Twenty-two projections peak 4124 bytes; font14/18/28 and
+compact typed-field capture are reviewed. Existing native multihead/ragged fits
+remain separately checked; an 80-binding TaskSpec editor is not an 80-port fit.
+Current full-suite and native regression results are in [development.md](development.md).
+This is task-form convergence, not completion of experiment forms, recovery/
+terminal payload costs, universal native memory bounds, C integration or D/E.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

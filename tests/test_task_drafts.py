@@ -213,5 +213,46 @@ class TaskDraftTests(unittest.TestCase):
         self.assertEqual(self.w.get_spec('task',saved['id'])['heads'][0]['weight'],0.5)
         self.assertEqual(self.w.get_spec('task',saved['id'])['name'],self.task['name'])
 
+    def test_named_targets_resolve_after_root_and_binding_key_ordinals_shift(self):
+        h,_=self.begin();sql=self.w.db.serialize()
+        h=self.s.task_edit(self.w,h['session'],self.owner,0,[
+            {'op':'property','target':{'kind':'document'},'key':'description','text':None},
+            {'op':'property','target':{'kind':'binding','collection':'heads','binding':0},'key':'mask','text':None},
+            {'op':'property','target':{'kind':'binding','collection':'heads','binding':0},'key':'sample_weight','text':'"valid"'},
+            {'op':'property','target':{'kind':'transform','collection':'inputs','binding':0,'transform':1},'key':'scale','text':'9007199254740993'},
+            {'op':'property','target':{'kind':'document'},'key':'name','text':'"Shift-safe task"'}])
+        doc=self.document(h);self.assertNotIn('description',doc);self.assertNotIn('mask',doc['heads'][0])
+        self.assertEqual(doc['heads'][0]['sample_weight'],'valid')
+        self.assertEqual(doc['inputs'][0]['transforms'][1]['scale'],9007199254740993)
+        self.assertEqual(doc['inputs'][1],self.task['inputs'][1]);self.assertEqual(self.w.db.serialize(),sql)
+        self.assertEqual(_at(doc,self.page(h)['path']),doc['inputs'])
+        self.assertEqual(_at(doc,self.transforms(h)['path']),doc['inputs'][0]['transforms'])
+
+    def test_named_target_grammar_wrong_kind_index_and_midbatch_failure_are_atomic(self):
+        h,_=self.begin();before=copy.deepcopy(self.document(h))
+        target={'kind':'binding','collection':'inputs','binding':0}
+        for change in [
+            {'target':{**target,'binding':True}}, {'target':{**target,'binding':10}},
+            {'target':{**target,'extra':True}}, {'target':{**target,'collection':'records'}},
+            {'target':{'kind':'document'},'key':'id'}, {'key':'transforms'},
+            {'text':'NaN'}, {'text':'{"x":1,"x":2}'}, {'text':False}, {'extra':'no'},
+            {'target':{'kind':'transform','collection':'inputs','binding':0,'transform':True}},
+        ]:
+            bad={'op':'property','target':target,'key':'field','text':'"x"',**change}
+            with self.assertRaisesRegex(GraphError,'Task edit #1'):
+                self.s.task_edit(self.w,h['session'],self.owner,0,[
+                    {'op':'property','target':{'kind':'document'},'key':'description','text':None},bad])
+            self.assertEqual(self.document(h),before);self.assertEqual(self.s.describe(h['session'],self.owner),h)
+
+    def test_origin_proof_requires_actual_owner_workspace_connection_and_exact_sequence(self):
+        h,_=self.begin();sql=self.w.db.serialize()
+        self.assertEqual(self.s.origin(self.w,h['session'],self.owner,0),h)
+        replacement=Workspace();self.addCleanup(replacement.db.close)
+        replacement.db.execute("UPDATE metadata SET value=? WHERE key='workspace_id'",(h['workspace_id'],))
+        for workspace,owner,sequence in [(replacement,self.owner,0),(self.w,object(),0),(self.w,self.owner,True),(self.w,self.owner,1)]:
+            with self.assertRaises(GraphError):self.s.origin(workspace,h['session'],owner,sequence)
+        self.assertEqual(self.s.origin(self.w,h['session'],self.owner,0),h)
+        self.assertEqual(self.w.db.serialize(),sql)
+
 
 if __name__ == '__main__': unittest.main()

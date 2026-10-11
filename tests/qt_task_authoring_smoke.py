@@ -59,19 +59,27 @@ def set_id(sid,value):
     until('!document.getElementById('+json.dumps(sid)+').disabled')
     assert js('setTaskValue(document.getElementById('+json.dumps(sid)+'),'+json.dumps(value)+')'),errors
 def set_binding(kind,index,label,value):
+    until('Boolean(taskCard('+json.dumps(kind)+','+str(index)+')) && !document.getElementById("science-author-check").disabled')
     assert js('setTaskValue(taskControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+'),'+json.dumps(value)+')'), (kind,index,label,errors)
+    until('!document.getElementById("science-author-check").disabled')
 def button(kind,index,name,transform=None):
     selector='taskCard('+json.dumps(kind)+','+str(index)+')'
     if transform is not None:selector+='.querySelector('+json.dumps("[data-transform-index='"+str(transform)+"']")+')'
     elif name in ('↑','↓','Remove binding'):selector+='.querySelector("[data-binding-order]")'
+    until('Boolean('+selector+') && !document.getElementById("science-author-check").disabled')
     assert js('taskButton('+selector+','+json.dumps(name)+')'),(kind,index,name)
+    until('!document.getElementById("science-author-check").disabled')
 def add_transform(kind,index,step):
+    until('Boolean(taskCard('+json.dumps(kind)+','+str(index)+')) && !document.getElementById("science-author-check").disabled')
+    count=js('taskCard('+json.dumps(kind)+','+str(index)+').querySelectorAll("[data-transform-index]").length')
     assert js('addTaskTransform('+json.dumps(kind)+','+str(index)+','+json.dumps(step)+')')
+    until('taskCard('+json.dumps(kind)+','+str(index)+').querySelectorAll("[data-transform-index]").length==='+str(count+1)+' && !document.getElementById("science-author-check").disabled')
 def fill_task(task):
     set_id('science-author-name',task['name'])
     for kind,items in [('input',task['inputs']),('head',task['heads'])]:
         for index,binding in enumerate(items):
             assert js('taskButton(document.getElementById("science-task-bindings"),'+json.dumps('Add input binding' if kind=='input' else 'Add loss head')+')')
+            until('Boolean(taskCard('+json.dumps(kind)+','+str(index)+')) && !document.getElementById("science-author-check").disabled')
             for key,label in ([('port','Input port ID'),('field','Source field ID')] if kind=='input' else
                     [('id','Head ID'),('port','Output port ID'),('field','Target field ID'),('loss','Loss'),('weight','Objective weight'),('mask','Mask field ID (optional)'),('sample_weight','Sample-weight field ID (optional)')]):
                 if key in binding:set_binding(kind,index,label,str(binding[key]))
@@ -256,11 +264,11 @@ with tempfile.TemporaryDirectory() as directory:
         click('science-author-cancel')
         # Check/Save callbacks have the same identity fence, including a valid
         # Save already admitted to the original DB before callback delivery.
-        for action,sid in [('scienceAuthorCheck','science-author-check'),('scienceAuthorSave','science-author-save')]:
+        for action,sid in [('scienceDraftCheck','science-author-check'),('scienceDraftCommit','science-author-save')]:
             h.workspace=original;h.broadcast()
             until('!document.getElementById("science-author-edit").disabled')
             click('science-author-edit');until('!document.getElementById("science-author-name").disabled')
-            if action=='scienceAuthorSave':set_id('science-author-name','Admitted to origin only')
+            if action=='scienceDraftCommit':set_id('science-author-name','Admitted to origin only')
             dispatch=h.dispatch
             def switch_during_author(request,target):
                 value=dispatch(request,target)
@@ -271,7 +279,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert not js('document.getElementById("science-author").hidden')
             assert js('document.getElementById("science-author-save").disabled')
             assert h.workspace.list_specs('task',True)==[]
-            if action=='scienceAuthorSave':assert original.get_spec('task',ref['id'])['name']=='Admitted to origin only'
+            if action=='scienceDraftCommit':assert original.get_spec('task',ref['id'])['name']=='Admitted to origin only'
             click('science-author-cancel')
         original.save(folder/'tasks.vtw');loaded=Workspace.load(folder/'tasks.vtw')
         try:

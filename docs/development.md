@@ -15,6 +15,66 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 00:55 -03:00 — Actual bounded owned task editor
+
+The actual task form now opens owned headers, independently pages input/head
+cards and visible transform pipelines (at most six each), and queues native-parsed
+literal property edits instead of transferring a complete TaskSpec. Root/binding/
+transform named targets resolve against each current native draft, so optional
+key removals cannot redirect later queued edits. Focused text is captured before
+disabling controls; invalid text and failed batches remain repairable. Structure
+changes flush typed queues and read current paths. Accepted changes followed by
+read failure fence admission until Retry; parallel reads settle before releasing
+pending guards. Linked raw children retain the same session, returning verified
+advanced/unchanged headers without admitting/discarding the parent.
+
+Task validation/compatibility/Commit check exact returned identities. Late pages,
+checks and errors are fenced by actual owner/workspace/generation/sequence. A
+read-only native Origin command proves the original Workspace/connection/owner/
+sequence before resuming after a workspace round trip; UUID equality alone is
+insufficient, and notified reload stays stale. This is transient editor proof,
+not general ABA/crash recovery. Dataset/raw/legacy experiment exclusivity and
+typing controls remain. No SQL grammar or persistent CLI tokens change. Specs,
+file/CLI boundaries and reusable GUI handoff agree.
+
+Thirteen focused stdlib backend tests pass (0.080 s), including three new cases
+for named-property shifts, closed target grammar/atomic rollback and native origin.
+Twenty new actual-controller tests cover focus/precision, 32 distinct queued edits
+split at 25, invalid correction, exact/stale acknowledgements, structural reload
+fences, independent cursor retry, delayed errors and parent/child return. The new
+pager test reproduced a real cached-Back-state defect: controls now compute from
+current navigation history. Earlier rejected fixture edits exceeded the documented
+2000-code-point fragment limit by one; the corrected fixture obeys that limit,
+without widening production admission or hiding the refusal.
+
+Current full suites pass 511 Python tests (173.683 s) and 176 JavaScript tests
+(743 ms). Actual sandboxed Qt loads the typed form with 80 reusable bindings and
+1000 transforms: hidden historical description staging, exact 9007199254740993,
+optional mask removal plus weight edits, initial/pipeline/child-return failures,
+single history entry/undo/redo/save-reload and fonts14/18/28 pass. Twenty-two
+projections peak4124 bytes, no host Torch/Jupyter/console errors. This is editing
+a reusable task, not compilation/fitting of an 80-port model. The captured font18
+compact form was inspected; redundant child-editor buttons for small typed values
+are removed while explicit large markers retain staged editing. Whole-window
+header geometry (including the crowded Panels/Constrained area in this capture)
+remains a separate integration item, not proved by task-card geometry checks.
+
+Current native task regressions pass actual multihead/masked/weighted and ragged
+fits, historical contexts, invalid text, no-op/head/workspace/pending fences and
+save/reload. Exact suggestion regressions pass 600 fields/32 ports/20000 labels,
+16 projections peak8147 bytes, unchanged SQL and fonts14/18/28. Shared typed
+dataset regression passes linked staging/precision/retry/history with 21
+projections peak16385 bytes. Native experiment authoring still passes eight real
+GUI candidate fits and all split methods, historical choices, incompatibilities,
+96-row preview paging, history and save/reload. No user app/workspace/config/
+desktop/publication changes. Earlier notebook/predictor evidence remains retained,
+not newly rerun as a separate Qt notebook fixture here.
+
+Next: actual experiment form/local axes/cards, recovery/completion/full inline/
+registry costs, in-app figures/window geometry and integrated C acceptance,
+then unchanged D/E. Bounded task transport/DOM/preview costs are not universal
+host RAM/validation/history/disk or whole-platform completion.
+
 ### 2026-10-11 00:27 -03:00 — Owned literal task card/transform primitives
 
 Native task sessions now provide bounded ordered binding/transform pages, literal

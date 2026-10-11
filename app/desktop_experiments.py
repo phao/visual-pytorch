@@ -104,13 +104,13 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility',
          'scienceDraftDatasetPage','scienceDraftDatasetValue',
          'scienceDraftValueRead', 'scienceDraftValueDiscard',
-         'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
+         'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskContextPage', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
-DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
+DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftPatch',
                  'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility', 'scienceDraftTaskEdit',
                  'scienceDraftDatasetPage','scienceDraftDatasetEdit','scienceDraftDatasetValue',
                  'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
@@ -130,6 +130,7 @@ def dispatch(window, req, source=None):
         required, optional = {
             'scienceDraftOpen': (('action', 'kind'), ('reference', 'id')),
             'scienceDraftDescribe': (('action', 'session'), ()),
+            'scienceDraftOrigin': (('action', 'session', 'sequence'), ()),
             'scienceDraftRead': (('action', 'session', 'sequence'), ('path', 'part', 'offset', 'limit')),
             'scienceDraftPatch': (('action', 'session', 'sequence', 'operations'), ()),
             'scienceDraftCheck': (('action', 'session', 'sequence'), ()),
@@ -162,6 +163,7 @@ def dispatch(window, req, source=None):
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftOrigin': return sessions.origin(workspace, token, owner, req['sequence'])
         if action == 'scienceDraftTaskPage': return sessions.task_page(token, owner, req['sequence'], req['collection'],
             **{key:req[key] for key in ('offset','limit') if key in req})
         if action == 'scienceDraftTaskTransforms': return sessions.task_transforms(token, owner, req['sequence'],

@@ -154,6 +154,9 @@ class Sessions:
     def describe(self, token, owner):
         return self._header(token, self._get(token, owner))
 
+    def origin(self, workspace, token, owner, sequence):
+        return self._header(token, self._get(token, owner, sequence, workspace))
+
     def read(self, token, owner, sequence, **page):
         row = self._get(token, owner, sequence)
         return science_browser.inspect_value(row['draft']['document'],
@@ -359,4 +362,13 @@ class Sessions:
         row = self._get(token, owner, sequence, workspace)
         _require(row['draft']['kind'] == 'task', 'Typed task edits require a task draft.')
         _require(row['buffer'] is None, 'Finish or discard the staged value before typed edits.')
-        return self.patch(workspace, token, owner, sequence, task_drafts.operations(_json(operations)))
+        operations = _json(operations)
+        _require(isinstance(operations, list) and 1 <= len(operations) <= 25,
+                 'Typed task edit needs 1..25 ordered operations.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        document = row['draft']['document']
+        for index, operation in enumerate(operations):
+            try: document = task_drafts.edit(document, operation)
+            except (GraphError, ValueError) as error:
+                raise GraphError('Task edit #'+str(index)+': '+str(error)) from error
+        return self._publish(workspace, token, row, document)

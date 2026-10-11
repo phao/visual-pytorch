@@ -16,6 +16,7 @@
     $('science-value-discard').textContent=state?.onClosed?'Discard staged value':'Discard draft';
     window.LoomScienceAuthor?.stateChanged?.();
     window.LoomDatasetSessionForm?.stateChanged?.();
+    window.LoomTaskSessionForm?.stateChanged?.();
     window.LoomScienceDocument?.stateChanged?.();
   }
   const valid=owner=>state===owner;
@@ -77,13 +78,13 @@
         $('science-value-status').textContent='Value accepted into the unsaved draft. Validate, then explicitly retain its revision; no training.';
       });
       $('science-value-check').onclick=()=>act(async()=>{const owner=state,workspace=api.workspace();
-        if(owner.onClosed)throw Error('Validate through the parent dataset form, not its child value editor.');
+        if(owner.onClosed)throw Error('Validate through the parent '+owner.header.kind+' form, not its child value editor.');
         const result=await api.call('scienceDraftCheck',{session:owner.header.session,sequence:owner.header.sequence});
         if(!valid(owner)||workspace!==api.workspace()||owner.stale)return;
         $('science-value-status').textContent='Valid draft · prospective '+result.revision+' · not retained, no training';
       });
       $('science-value-save').onclick=()=>act(async()=>{const owner=state,workspace=api.workspace();
-        if(owner.onClosed)throw Error('Retain through the parent dataset form, not its child value editor.');
+        if(owner.onClosed)throw Error('Retain through the parent '+owner.header.kind+' form, not its child value editor.');
         const result=await api.call('scienceDraftCommit',{session:owner.header.session,sequence:owner.header.sequence});
         if(!valid(owner)||workspace!==api.workspace()||owner.stale)return;
         state=null;generation++;$('science-value-editor').hidden=true;await saved(result);
@@ -117,7 +118,7 @@
       if(state||api.busy()||target.header.workspace_id!==api.workspace())throw Error('Finish the current value or reopen the intended workspace first.');
       state={header:{...target.header},path:[...target.path],fromBase:false,value:null,stale:false,onClosed:target.onClosed};
       $('science-value-editor').hidden=false;
-      $('science-value-identity').textContent='Owned dataset draft '+target.header.id+' · '+target.label+' · sequence '+target.header.sequence;
+      $('science-value-identity').textContent='Owned '+target.header.kind+' draft '+target.header.id+' · '+target.label+' · sequence '+target.header.sequence;
       await start(false);
     });},
     active(){return Boolean(state)||pending;},

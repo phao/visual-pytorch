@@ -80,8 +80,9 @@ explicit float32 numerical preparation does not promise exact integer arithmetic
 There are no persistent CLI draft tokens or new SQLite tables.
 Native owned task card/transform pages and literal edits are described in
 [typed-task-sessions.md](typed-task-sessions.md). They do not add CLI commands or
-change the agent-facing TaskSpec grammar. The task GUI controller migration is
-still pending; native transport checks are not a claim that it already uses them.
+change the agent-facing TaskSpec grammar. The actual task form uses them now,
+with named-property targets and a linked value editor. Native origin-proof tokens
+remain transient editor state, not commands for durable agent sessions.
 
 `task-context-page fields|input_ports|output_ports --model ID REVISION --dataset
 ID REVISION [--query TEXT] [--offset N] [--limit 1..25] [--pin STABLE_ID]` shares
