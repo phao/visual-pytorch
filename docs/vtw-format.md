@@ -457,6 +457,13 @@ Use [vpw-cli.md](vpw-cli.md), not raw SQL, for agents: it maintains reference
 indices/results and applies an edit batch with one save. --expect-revision makes
 read/plan/edit explicit. Share saved .vtw snapshots, not unsaved GUI buffers.
 
+Stored candidate browsing has a separate non-document projection, also exposed
+as CLI `preview-experiment-page`: exact retained identity/coordinates/status/
+references/counts, explicit partial reasons and decimal totals, no full manifests
+or resolved protocols. It is not an admitted ExperimentSpec or persisted SQL
+record; the complete `preview-experiment` read remains available. No v6 schema
+change follows. See [candidate-browser.md](candidate-browser.md).
+
 Session undo/redo stores at most 50 edit steps and 128 MiB of combined SQLite
 snapshots in a private temporary directory, NOT extra .vtw tables. Save retains
 history; opening/external reload starts fresh history. Undo marks the workspace

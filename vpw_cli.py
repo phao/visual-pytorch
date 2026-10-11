@@ -190,6 +190,9 @@ def main(argv=None):
     selections = sub.add_parser('preview-experiment', help='Read-only bounded exact-revision selection preview; no fitting/training')
     selections.add_argument('id'); selections.add_argument('revision')
     selections.add_argument('--offset', type=int, default=0); selections.add_argument('--limit', type=int, default=100)
+    page = sub.add_parser('preview-experiment-page', help='Byte-bounded exact candidate projection; no manifests, fitting or training')
+    page.add_argument('id'); page.add_argument('revision')
+    page.add_argument('--offset', type=int, default=0); page.add_argument('--limit', type=int, default=25)
     reporting = sub.add_parser('report-data', help='Read exact saved report recipe/evidence; does not train or execute notebooks')
     reporting.add_argument('id'); reporting.add_argument('revision')
     for command,maximum in (('run-evidence',25),('report-evidence',10)):
@@ -269,6 +272,10 @@ def main(argv=None):
                 from app.experiment_objects import preview_experiment
                 value = preview_experiment(workspace.get_spec('experiment', args.id, args.revision), workspace.get_spec,
                                            offset=args.offset, limit=args.limit)
+            elif args.command == 'preview-experiment-page':
+                from app.candidate_views import stored
+                value = stored(workspace, {'kind':'experiment','id':args.id,'revision':args.revision},
+                               offset=args.offset, limit=args.limit)
             elif args.command == 'report-data':
                 from app.experiment_objects import report_data
                 value = report_data(workspace.get_spec('report', args.id, args.revision), workspace.get_spec)

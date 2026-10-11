@@ -15,6 +15,51 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 02:17 -03:00 — Actual byte-bounded stored candidate browser and CLI parity
+
+The real experiment candidate view now calls `sciencePreviewPage`, not complete
+`sciencePreview`. Shared native projection retains exact historical experiment/
+dependency references, original coordinate/order/status, actual role/exclusion
+counts and decimal Cartesian totals. Full manifests/protocols stay native;
+long reasons are explicit partial descriptors. Successful compact ASCII JSON
+is at most65536 bytes, with byte-shortened actual cursors, never a25-row guess.
+The new read-only CLI `preview-experiment-page` shares this projection; deliberate
+complete `preview-experiment` remains unchanged. No SQL schema/persistent token/
+scientific grammar change. File/CLI/reusable UI specifications align in
+[candidate-browser.md](candidate-browser.md).
+
+The actual controller guards pending navigation/launches, wrong projection
+identity and unsafe offsets; failed Back/Next preserves acknowledged history,
+and Refresh retries the current cursor. Selection/workspace/notified same-UUID
+reload fences late data/errors/navigation and detached row handlers. Explicit
+Run sends exact retained reference/coordinates/workspace identity; native optional
+workspace checking precedes capture/worker replacement. Native capture/admission
+still decides execution. No universal ABA/cost/durable-job claim is introduced.
+
+Full547 Python tests (175.178 s) and229 JS (991.997 ms) pass; the13-case focused
+backend suite (1.744 s) includes one subsequently added production65536-byte/
+maximum-Unicode-identity boundary case, tested independently of that full run.
+Eleven new JS cases include actual `LoomScience` mount/reload integration; the
+25-case controller/tree subset passes (203.008 ms). A missing fixture `select`
+mock was repaired so this integration reaches the real preview controller,
+not masked by an unrelated test-double exception. Production guards were not
+weakened. Real sandboxed Qt96-coordinate browsing exhausts shortened pages in
+original order, retains all three statuses/historical pins/role counts/partial
+reasons and checks failed Back/Refresh, unchanged SQL/history/RNG and fonts14/18/
+28. Its complete preview is2023641 bytes; forced6000-byte projected pages peak
+5647 bytes. Font18 capture inspected, not whole-window certification.
+
+Separate real Qt regressions pass all eight explicit two-model/two-dataset/
+two-seed fits, all split methods and full optimizer/history/invalid-text/save-
+reload guards; actual fit/retry/report/notebook-generation/failed-admission/
+recovery-export workflow also passes. The existing private Qt+nbformat3.13
+environment was used without installs; no host Torch/console errors. Evidence
+is retained privately. Work remains local on `task/stage-c-experiments`, unmerged/
+unpublished; main/public/user app/files/config/desktop are unchanged. Next native
+inline/validation/manifest/retention costs, in-app figures/window geometry and
+integrated C acceptance, then unchanged D/E. Scoped wire bounds do not prove
+lazy storage, crash-safe detached execution or full C completion.
+
 ### 2026-10-11 01:58 -03:00 — Actual bounded recovery browsing and terminal notices
 
 Automatic scientific terminal/state notifications no longer resend the complete

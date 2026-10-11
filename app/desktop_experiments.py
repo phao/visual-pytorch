@@ -102,7 +102,7 @@ def retain_recovery(window, job, result, error):
     return value
 
 
-READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'sciencePreviewPage', 'scienceReport',
          'scienceDraftExperimentPage', 'scienceDraftExperimentValue', 'scienceDraftExperimentChoices', 'scienceDraftExperimentPreview',
          'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility',
          'scienceDraftDatasetPage','scienceDraftDatasetValue',
@@ -327,6 +327,17 @@ def dispatch(window, req, source=None):
         ref = reference(req['reference'], 'experiment')
         return preview_experiment(workspace.get_spec('experiment', ref['id'], ref['revision']),
             workspace.get_spec, offset=req.get('offset', 0), limit=req.get('limit', 25))
+    if action == 'sciencePreviewPage':
+        from . import candidate_views
+        from .authoring import workspace_id
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        req = _json(req)
+        _keys(req, ('action','workspace_id','reference'), ('offset','limit'), context='Stored candidate preview')
+        if req['workspace_id'] != workspace_id(workspace):
+            raise ValueError('Candidate selection belongs to another workspace. Refresh its choices.')
+        return candidate_views.stored(workspace, req['reference'],
+                                      **{key:req[key] for key in ('offset','limit') if key in req})
     if action == 'scienceReport': return experiment_ui.read_report(workspace, req['reference'])
     if action == 'scienceFreeze': result = workspace.freeze_model(req['id'])
     elif action == 'sciencePut': result = workspace.put_spec(req['kind'], req['document'])
@@ -360,6 +371,10 @@ def dispatch(window, req, source=None):
             offset=req.get('offset', 0), limit=req.get('limit', 100), allow_partial=req.get('allow_partial', False),
             memory_limit_percent=window.state()['memory_limit_percent'])
     elif action == 'scienceTrain':
+        if 'workspace_id' in req:
+            from .authoring import workspace_id
+            if req['workspace_id'] != workspace_id(workspace):
+                raise ValueError('Candidate selection belongs to another workspace. Refresh its choices.')
         snapshot = experiment_ui.capture(workspace, req['reference'], req['coordinates'],
             req.get('run_id', uuid.uuid4().hex), req.get('name', 'Selected experiment trial'), retry=req.get('retry', False))
         if window.job: window.job.deleteLater()

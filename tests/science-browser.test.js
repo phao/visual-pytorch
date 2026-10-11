@@ -5,7 +5,7 @@ class Element {
   append(...nodes){this.children.push(...nodes);}
   replaceChildren(...nodes){this.children=[...nodes];this._value='';}
   addEventListener(name,fn){this.listeners[name]=fn;}
-  querySelectorAll(selector){return this.children.flatMap(c=>[...(selector==='button'&&c.tagName==='button'?[c]:[]),...c.querySelectorAll(selector)]);}
+  querySelectorAll(selector){return this.children.flatMap(c=>[...((selector==='button'&&c.tagName==='button'||selector==='[data-science-run]'&&'scienceRun' in c.dataset)?[c]:[]),...c.querySelectorAll(selector)]);}
   get options(){return this.children.filter(c=>c.tagName==='option');}
   get value(){return this.tagName==='select'?(this.options.find(o=>o.value===this._value)?.value||this.options[0]?.value||''):this._value;}
   set value(value){this._value=value;}
@@ -16,12 +16,15 @@ const ref=(id='first')=>({kind:'dataset',id,revision:'a'.repeat(64)});
 function fixture(whole=false){
   const source=fs.readFileSync('app/web/'+(whole?'science.js':'science-document.js'),'utf8');
   const ids=new Set([...source.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]));
+  const candidates=fs.readFileSync('app/web/science-candidates.js','utf8');
+  if(whole)for(const m of candidates.matchAll(/\$\('([^']+)'\)/g))ids.add(m[1]);
   if(whole)for(const id of ['science-selection','science-run','science-report','science-import','science-freeze','science-retry','science-make-report','science-generate','science-recovery-export','science-document','science-details'])ids.add(id);
   const nodes=new Map([...ids].map(id=>[id,new Element(id==='science-object'||id==='science-kind'?'select':'div')]));
   const panel=new Element(),document={getElementById:id=>{assert.ok(nodes.has(id),'missing '+id);return nodes.get(id);},createElement:tag=>new Element(tag),querySelector:()=>panel};
   const requests=[],toasts=[],window={},state={workspace:'workspace-1'};
-  for(const name of ['LoomScienceResults','LoomScienceNotebooks','LoomScienceAuthor','LoomScienceDocument'])window[name]={mount(){},clear(){},stateChanged(){},selectionChanged(){},event(){}};
+  for(const name of ['LoomScienceResults','LoomScienceNotebooks','LoomScienceAuthor','LoomScienceDocument'])window[name]={mount(){},clear(){},select(){},stateChanged(){},selectionChanged(){},event(){}};
   const api={workspace:()=>state.workspace,busy:()=>false,model:()=>null,notebookJob:()=>null,toast:(...args)=>toasts.push(args),call:(action,args)=>new Promise((resolve,reject)=>requests.push({action,args,resolve,reject}))};
+  if(whole)vm.runInNewContext(candidates,{window,Promise,JSON,Array,Error});
   vm.runInNewContext(source,{window,Promise,JSON,Array,Error});
   if(whole){const kind=nodes.get('science-kind'),o=new Element('option');o.value='dataset';o.textContent='Datasets';kind.append(o);window.LoomScience.mount(document,api);}
   else window.LoomScienceDocument.mount(document,api);
@@ -89,6 +92,19 @@ test('an empty search page is not presented as an empty workspace',async()=>{
   const f=fixture(true);f.nodes.get('science-object-query').value='not found';f.nodes.get('science-refresh').onclick();await tick();
   f.requests[0].resolve({offset:0,total:0,next_offset:null,rows:[],pinned:null});await tick();
   assert.match(f.nodes.get('science-status').textContent,/No matching.*Clear the search/);assert.doesNotMatch(f.nodes.get('science-status').textContent,/stored yet/);assert.equal(f.requests.length,1);
+});
+
+test('actual science mount routes experiment preview through bounded controller and reload clears pending candidates',async()=>{
+  const f=fixture(true),r={...ref('experiment'),kind:'experiment'},kind=f.nodes.get('science-kind'),o=new Element('option');o.value='experiment';o.textContent='Experiments';kind.append(o);kind.value='experiment';
+  f.nodes.get('science-refresh').onclick();await tick();f.requests[0].resolve(metadata(r));await tick();
+  f.requests[1].resolve({...summary(r),question:{text:'Compare models',next_offset:null}});await tick();
+  const pending=f.requests[2];assert.equal(pending.action,'sciencePreviewPage');assert.equal(pending.args.workspace_id,'workspace-1');
+  f.window.LoomScience.event({kind:'externalReload'});await tick();pending.reject(Error('old preview'));await tick();
+  assert.equal(f.toasts.length,0);assert.equal(f.nodes.get('science-candidates').children.length,0);assert.equal(f.nodes.get('science-candidate-refresh').disabled,true);
+  const browse=f.requests[3];browse.resolve(metadata(r));await tick();f.requests[4].resolve({...summary(r),question:{text:'Current comparison',next_offset:null}});await tick();
+  const latest=f.requests[5];latest.resolve({version:1,scope:'stored-experiment-preview',workspace_id:'workspace-1',experiment:r,offset:0,limit:25,total_combinations_exact:'0',candidates:[],next_offset:null,execution:'no-fitting-or-training'});await tick();
+  assert.match(f.nodes.get('science-page').textContent,/0–0 of 0/);assert.equal(f.nodes.get('science-candidate-refresh').disabled,false);
+  assert.equal(f.requests.some(r=>r.action==='sciencePreview'),false);
 });
 
 const recovery=(request,changes={})=>({...inspection(request),version:1,scope:'experiment-recovery-inspection',

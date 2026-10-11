@@ -130,12 +130,13 @@ These concrete gaps are observable in the current code:
   rows, not arbitrary metadata size, full registry validation/inline costs,
   whole-file CSV reading or notebook source/payload size. Do not conflate these
   with lazy storage or universal RAM/OOM guarantees.
-- Actual stored-candidate browsing still uses complete `sciencePreview` rows,
-  including manifests/protocols. A row-count limit is not a byte bound for large
-  selections. It needs a projected actual browser path preserving exact candidate
-  identity/order/status/counts and full deliberate CLI preview/export semantics.
-  Owned draft previews already use separate bounded projections; that does not
-  prove stored-candidate transport convergence.
+- Actual stored-candidate browsing now uses `sciencePreviewPage`, a separate
+  byte-bounded projection preserving exact candidate identity/order/status/
+  references/counts and decimal totals; deliberate complete CLI preview remains.
+  [candidate-browser.md](candidate-browser.md) describes actual cursor/failure/
+  stale-selection/run guards and a real96-coordinate Qt fixture with large
+  manifests. Native complete dependency validation/manifest generation costs
+  remain; this is not universal cost or execution convergence.
 - In-app training/report figures and the final integrated large-font/window/
   floating-panel geometry audit remain open. The actual notebook-rendering
   checkpoint fixes its reproduced clipping/description/table defects; it does

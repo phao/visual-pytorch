@@ -772,6 +772,18 @@ the owned header is accepted, before first-page delivery. Preserve failed Back
 history, and await every parallel read before releasing pending guards. Use
 partial projection DTOs only for controls, never as retained scientific specs.
 
+Apply the same principle to stored candidates, not just drafts. The actual read
+controller now uses a byte-bounded exact-revision preview with role counts and
+explicit partial diagnostics; deliberate complete CLI reads remain available.
+Follow returned cursors, commit navigation history only after successful reads,
+and let Refresh retry the acknowledged cursor after a failed Back/Next. Clear
+on selection/workspace/notified reload, fence late data/errors/continuations,
+and disable runs while read/launch/metadata selection is pending. Detached old
+row handlers must not launch. Explicit Run sends exact retained reference and
+coordinates plus workspace identity, never a partial projection as a scientific
+specification. Native capture/training guards remain authoritative. See
+[candidate-browser.md](candidate-browser.md) for the tested concrete contract.
+
 ## Saved evidence and comparison recipes (branch-only domain extension)
 
 Reuse the separation between inspecting immutable facts and explicitly requesting

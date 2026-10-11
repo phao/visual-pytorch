@@ -22,6 +22,7 @@ python vpw_cli.py lab.vtw train-stored --model MODEL_ID MODEL_SHA256 --dataset D
 python vpw_cli.py lab.vtw export-task-trained task-result-value.json
 python vpw_cli.py lab.vtw export-run-trained RUN_ID RUN_SHA256 --attempt 1
 python vpw_cli.py lab.vtw preview-experiment EXPERIMENT_ID EXPERIMENT_SHA256 --offset 0 --limit 100
+python vpw_cli.py lab.vtw preview-experiment-page EXPERIMENT_ID EXPERIMENT_SHA256 --offset 0 --limit 25
 python vpw_cli.py lab.vtw run-candidate --experiment EXPERIMENT_ID EXPERIMENT_SHA256 --coordinates coordinates.json --run-id RUN_ID --name "Trial" --torch-python /path/to/numerical/python --timeout 60
 python vpw_cli.py lab.vtw report-data REPORT_ID REPORT_SHA256
 python vpw_cli.py lab.vtw run-evidence RUN_ID RUN_SHA256 --attempt 1 --offset 0 --limit 25
@@ -152,6 +153,15 @@ head. `--offset` defaults to 0; `--limit` defaults to 100 and is in 1..1000.
 The bounded page lists crossed/paired combinations, including excluded/invalid
 ones with reasons. It neither fits nor trains nor writes. The exact coordinate
 object from a candidate row is the entire contents of coordinates.json.
+
+`preview-experiment-page ID REVISION` is the byte-bounded alternative used by
+the actual Qt candidate browser: offset0/limit25 by default, limit1..25, exact
+decimal total, original candidate order/status/references/counts and visibly
+partial reason descriptors. Full manifests and resolved protocols stay native;
+the complete `preview-experiment` command above is unchanged. Successful compact
+projection JSON is at most65536 bytes, excluding CLI formatting/envelope; follow
+its actual next_offset, not a25-row stride. Neither command fits, trains or saves.
+See [candidate-browser.md](candidate-browser.md) for precise scope and cost limits.
 
 `run-candidate` requires `--experiment ID REVISION`, `--coordinates FILE`,
 `--run-id ID`, `--name DISPLAY_NAME`. Optional `--retry` explicitly appends a

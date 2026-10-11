@@ -183,22 +183,6 @@ def choices(document, header, collection, *, offset=0, limit=25, query='', pin=N
 
 def preview(workspace, draft, header, *, offset=0, limit=25):
     from .authoring import experiment_preview
+    from .candidate_views import project
     source=experiment_preview(workspace,draft,offset=offset,limit=limit)['preview']
-    result=_header(header,'owned-experiment-preview',experiment=source['experiment'],
-                   offset=offset,limit=limit,total_combinations_exact=str(source['total_combinations']),
-                   candidates=[],next_offset=None,execution='no-fitting-or-training')
-    for candidate in source['candidates']:
-        manifest=candidate['manifest']
-        projected={'id':candidate['id'],'coordinates':candidate['coordinates'],'status':candidate['status'],
-                   'reason':None if candidate['reason'] is None else science_browser._text(candidate['reason'],limit=128),
-                   'references':candidate['references'],
-                   'counts':None if manifest is None else {**{r:len(ids) for r,ids in manifest['roles'].items()},
-                                                         'excluded':len(manifest['excluded'])}}
-        end=offset+len(result['candidates'])+1
-        next_offset=end if end<source['total_combinations'] else None
-        proposed={**result,'candidates':[*result['candidates'],projected],'next_offset':next_offset}
-        if len(science_browser.encoded(proposed))>science_browser.MAX_BYTES:break
-        result['candidates'].append(projected);result['next_offset']=next_offset
-    _require(result['candidates'] or offset>=source['total_combinations'],
-             'One preview candidate cannot fit its projection. Inspect the exact experiment explicitly.')
-    return science_browser._bounded(result)
+    return project(source,_header(header,'owned-experiment-preview'))

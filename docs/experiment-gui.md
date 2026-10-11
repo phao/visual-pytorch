@@ -271,11 +271,17 @@ other draft forms; no new SQL tables or parallel experiment store are introduced
 
 ### Stored candidates, run evidence and reports
 
-Experiment browsing displays its question and pages of 25 coordinates. All
+Experiment browsing displays its question and byte-bounded pages of at most25
+coordinates, actual role counts and explicitly partial reason descriptors. All
 compatible, excluded and incompatible rows remain visible with reasons. Only
 compatible rows enable Run this candidate; it explicitly launches one fit, not
 a silent sweep. Active work disables competing actions and scientific edits;
 reads remain available. Stop invokes the existing worker cancellation event.
+Previous/Next use acknowledged cursor history, not an assumed25-row stride.
+Failed navigation retains history; Refresh candidates reads the current cursor.
+Selection/workspace/notified external reload fences late pages and row handlers.
+Full manifests/protocols are not automatic UI payloads; deliberate complete CLI
+preview remains available. See [candidate-browser.md](candidate-browser.md).
 
 Independent run history is not the drawing's latest-result pointer. It shows the
 selected immutable RunRecord, attempts/status/errors and resolved evidence.
@@ -331,7 +337,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | --- | --- | --- |
 | scienceIndex | none | All exact revision metadata, current-head flags |
 | scienceShow | reference | Exact stored document, no execution |
-| sciencePreview | experiment reference, offset/limit | Existing bounded compatibility preview |
+| sciencePreview | experiment reference, offset/limit | Deliberate complete compatibility preview; row bound, not byte bound |
+| sciencePreviewPage | workspace_id, exact experiment reference, optional offset/limit (0/25, limit1..25) | Actual byte-bounded stored candidate UI projection; no full manifests/protocols/fitting |
 | scienceReport | report reference | Read saved evidence or labelled rerun recipe |
 | scienceRunEvidence | exact run reference, optional attempt, offset/limit (default 0/25, limit 1..25) | Read-only saved-attempt projection; never execute |
 | scienceReportEvidence | exact report reference, offset/limit (default 0/5, limit 1..10) | Read-only exact saved-run projections; never execute |
