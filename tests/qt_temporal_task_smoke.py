@@ -15,9 +15,13 @@ from app.config import Config
 from app.core import Workspace, VERSION, default_model
 from app.revisions import validate_all
 from test_temporal_tasks import temporal_experiment
+from runtime_v2_experiment_fixture import experiment as temporal_v2_experiment
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS','')
+RUNTIME_V2=os.environ.get('VTW_TEMPORAL_TASK_VARIANT')=='runtime-v2'
+POLICY='runtime-temporal-v2' if RUNTIME_V2 else 'runtime-temporal-v1'
+GRAMMAR=6 if RUNTIME_V2 else 5
 app=QApplication(['temporal-task-smoke']);view=QWebEngineView();view.resize(1440,1000)
 profile=QWebEngineProfile(view);errors=[]
 class Page(QWebEnginePage):
@@ -28,7 +32,8 @@ class Harness(QObject):
     def __init__(self,folder):
         from app.desktop import Bridge, Window
         super().__init__();self.config=Config(folder/'config.json')
-        self.workspace,self.e,self.ref=temporal_experiment(times=(7,),version=3,execution=None,updates=3)
+        factory=temporal_v2_experiment if RUNTIME_V2 else temporal_experiment
+        self.workspace,self.e,self.ref=factory(times=(7,),version=3,execution=None,updates=3)
         self.workspace.put(default_model());self.workspace.save(folder/'original.vtw')
         self.job=None;self.torch_python='/home/pedro/miniforge3/bin/python3.12'
         self.rendering={};self.requests=[];self.bridge=Bridge(self,view)
@@ -68,32 +73,36 @@ with tempfile.TemporaryDirectory() as td:
         before=h.workspace.db.serialize();click('science-author-edit')
         until('!document.getElementById("science-author-check").disabled')
         field='([...document.querySelectorAll(\'[data-experiment-axis="model"] label\')].find(n=>n.firstChild.textContent==="Family execution").querySelector("select"))'
-        assert js(field+'.value')=='concrete-v1';change(field,'runtime-temporal-v1');click('science-experiment-preview')
+        assert js(field+'.value')=='concrete-v1';change(field,POLICY);click('science-experiment-preview')
         until('document.querySelector("#science-experiment-preview-rows .science-candidate")?.textContent.includes("compatible")')
         assert h.workspace.db.serialize()==before
         request=next(r for r in h.requests if r['action']=='scienceDraftExperimentEdit')
-        assert request['operations'][0]['key']=='version' and request['operations'][0]['text']=='5'
-        assert request['operations'][1]['text']=='"runtime-temporal-v1"'
-        version='([...document.querySelectorAll("#science-experiment-bindings label")].find(n=>n.firstChild.textContent==="Selection version · 4 enables spatial, 5 temporal runtime").querySelector("input"))'
-        assert js(version+'.value')=='5'
+        assert request['operations'][0]['key']=='version' and request['operations'][0]['text']==str(GRAMMAR)
+        assert request['operations'][1]['text']==json.dumps(POLICY)
+        version='([...document.querySelectorAll("#science-experiment-bindings label")].find(n=>n.firstChild.textContent==="Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2").querySelector("input"))'
+        assert js(version+'.value')==str(GRAMMAR)
         if os.environ.get('VTW_TEMPORAL_TASK_CAPTURE'):
             loop=QEventLoop();QTimer.singleShot(150,loop.quit);loop.exec();assert view.grab().save(os.environ['VTW_TEMPORAL_TASK_CAPTURE'])
-        click('science-author-save');until('document.getElementById("science-author").hidden && !document.querySelector("#science-candidates [data-science-run]").disabled')
-        saved=h.workspace.get_spec('experiment',h.e['id']);assert saved['version']==5
-        assert saved['models'][0]['execution']=='runtime-temporal-v1'
+        click('science-author-save');until('document.getElementById("science-author").hidden && document.querySelector("#science-candidates [data-science-run]")?.disabled===false')
+        saved=h.workspace.get_spec('experiment',h.e['id']);assert saved['version']==GRAMMAR
+        assert saved['models'][0]['execution']==POLICY
         js('document.querySelector("#science-candidates [data-science-run]").click()')
         until('Boolean(window.loom.state.experiment_job)')
         until('!window.loom.state.experiment_job && document.getElementById("toast-message").textContent.includes("completed")',40)
         run=h.workspace.get_spec('run',h.workspace.list_specs('run')[0]['id']);attempt=run['attempts'][0]
-        assert run['version']==5 and attempt['status']=='completed'
+        assert run['version']==GRAMMAR and attempt['status']=='completed'
         assert attempt['result']['counts']['completed_updates']==3
-        assert attempt['result']['identity']['compiler']=='native-runtime-temporal-v1'
+        assert attempt['result']['identity']['compiler']=='native-'+POLICY
+        if RUNTIME_V2:
+            ref=run['resolved']['references']['specialization'];s=h.workspace.get_spec('specialization',ref['id'],ref['revision'])
+            assert s['version']==7 and s['runtime']['kind']==POLICY
+            assert attempt['result']['memory_admission']['components']['lstm_unrolls']>0
         validate_all(h.workspace.db);h.workspace.save(folder/'final.vtw');loaded=Workspace.load(folder/'final.vtw')
         try:assert loaded.get_spec('run',run['id'],run['revision'])==run
         finally:loaded.db.close()
         assert not errors,errors;assert 'torch' not in sys.modules
-        print(json.dumps({'ok':True,'explicit_execution_upgrade':5,'no_preview_sql_writes':True,
-            'runtime_T':7,'constructor_baseline_T':4,'worker_updates':3,
+        print(json.dumps({'ok':True,'explicit_execution_upgrade':GRAMMAR,'execution':POLICY,'no_preview_sql_writes':True,
+            'runtime_T':7,'constructor_baseline_T':5 if RUNTIME_V2 else 4,'worker_updates':3,
             'save_reload_version':VERSION,'host_torch':False,'console_errors':errors}))
     finally:
         if h.job:assert h.job.wait(15000)

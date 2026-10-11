@@ -2,9 +2,9 @@
 
 TaskBundle4 explicitly executes a frozen Family8/Specialization7 runtime-v2
 contract. This is a retained Stage D checkpoint, not full D/E completion.
-ExperimentSpec/RunRecord still admit only versions1–5: the planned version6,
-later container fence, owned experiment authoring and v2 notebook routes are
-**not implemented by this checkpoint**. No workspace tables or header change.
+[ExperimentSpec/RunRecord6](runtime-temporal-v2-experiments.md) now explicitly
+retains this route in container20, through owned authoring and real worker/kernel
+paths. TaskBundle4 itself adds no workspace table. Older contracts stay closed.
 
 ## Closed provenance and identity
 
@@ -62,7 +62,8 @@ Worker request kind is exactly `task-v4` and must match integer bundle version4.
 Malformed old/new combinations fail before importing Torch. The native
 `TaskTrainingJob` validates the frozen bundle and selects its exact admitted
 kind; QThread progress/terminal signals carry unchanged task evidence. This
-does not expose a new retained experiment choice in the editor.
+does not itself infer a retained experiment choice; that requires explicit
+ExperimentSpec6/runtime-temporal-v2 selection in the existing editor.
 
 `restore_task_predictor` and `generate_task_predictor` check exact checkpoint
 identity, fitted transform and parameter keys/shapes. Plain rectangular inputs

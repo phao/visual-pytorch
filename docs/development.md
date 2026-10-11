@@ -1,5 +1,37 @@
 # Development state and roadmap
 
+## 2026-10-11 19:18 -03:00 — Retained runtime-v2 experiment implementation checkpoint
+
+Implemented explicit ExperimentSpec/RunRecord6/runtime-temporal-v2 selection,
+container20 fences (even unmaterialized6), owned experiment upgrades through6
+and visible exact choice/version control. The existing TaskBundle4 compiler,
+worker, result admission, atomic derived-row retention and saved exporter serve
+this route; no parallel trainer or new SQL table. Old1–5 policies remain closed.
+File/CLI/owned editor/reusable GUI specs are synchronized in
+[runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+
+10 new pure cases2.477s and9 numerical cases46.564s pass: actual worker/local
+checkpoints/metrics, two explicit data times sharing one constructor, real CLI
+run/reload/export/fresh prediction, historical references/retries, unavailable
+and admission failures, forgery and late atomic rollback, file20 fences, owned
+3→6 editing, real stdlib CLI preview/stdin atomic admission and missing source
+refusal before Jupyter/publishing. Genuine saved/rerun kernels reproduce exact
+checkpoint/metric/predictor outputs. Actual sandboxed Qt v1 and v2 editing,
+preview without writes, retention, real worker and reload pass with no host Torch
+or console errors.74 native/pure4.405s covers skipped native dispatch separately;
+30 focused JS568.158789ms passes.55 old1–5 selection/preview/bundle identities
+match committed pre-v2 modules exactly without heavy imports.
+
+First kernel gate exposed a real missing TaskBundle4 branch in runtime-architecture
+companion export; repaired and rerun. First old-v1 Qt smoke failed because its
+test poll dereferenced a transient missing candidate button, not an app callback;
+guarded the harness lookup and reran both variants. Raw failures remain evidence.
+No full-suite acceptance/integration yet. Freeze this complete executable/test
+checkpoint before full1260 Python/359 JS regression and persistent kernel probe.
+Then original D convergence, including grouped-temporal/CNN–RNN gates, before E.
+Reports remain deferred, full goal active, no public/main or user-state mutation.
+
+
 ## 2026-10-11 18:57 -03:00 — Direct runtime-v2 task acceptance
 
 Fresh frozen ea358bb53f25480c34540380b87cd6a28f2770e2 full suite passes1241

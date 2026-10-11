@@ -4,8 +4,9 @@ Status: native/backend and concrete standalone-export implementation on retained
 [Family8/Specialization7](runtime-temporal-v2-families.md) explicitly retain v2
 through CLI/owned Qt family services and checked family exports in container19.
 [TaskBundle4](runtime-temporal-v2-tasks.md) admits exact typed training, worker
-and standalone predictor routes. **Not yet admitted by ExperimentSpecs.** Their
-retained execution/authoring/notebook routes remain the next versioned work.
+and standalone predictor routes. [ExperimentSpec/RunRecord6](runtime-temporal-v2-experiments.md)
+explicitly retains this choice in container20 through owned editor/CLI/worker
+and actual saved/rerun notebook routes.
 This is not full Stage D or E completion.
 
 ## Selection and backward compatibility
@@ -102,7 +103,7 @@ contract, not implicit admission from the presence of this source helper.
 
 Concrete source alone is not a checked-family source, typed scientific experiment
 export or notebook rerun. Checked-family and direct typed task routes have their
-own explicit contracts; retained v2 experiment/notebook routes remain unfinished.
+own explicit contracts, as do retained v2 experiment6/run6 and notebook routes.
 Existing fixed-T families and temporal-v1 exports remain usable.
 
 ## Verification and research

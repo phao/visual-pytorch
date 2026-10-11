@@ -4,6 +4,20 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 19:18 -03:00 — Retained runtime-v2 experiments and actual kernels
+
+Added explicit experiment/run6/runtime-temporal-v2, .vtw20 compatibility fences,
+owned upgrade ceiling6 and the exact editor choice to carry already verified
+TaskBundle4 through retained scientific workflows. Reused shared worker/atomic
+result/predictor services rather than introduce another trainer. A genuine
+kernel check found a missed runtime-architecture companion version branch;
+fixed and reran actual saved/rerun kernels with exact checkpoint/metrics/predictors.
+19 new pure/numerical cases, actual Qt v1/v2 editor/worker/reload,74 native/pure,
+30 focused JS and55 exact old experiment points pass. Raw first kernel and unsafe
+test-poll failures retained. Full frozen regression/persistent receipts remain
+next; original D/E incomplete, reports deferred, public and user state unchanged.
+
+
 ## 2026-10-11 18:57 -03:00 — Direct runtime-v2 task acceptance verified
 
 Fresh frozen ea358bb full1241 Python472.501s passes (1238 executed/3 native-

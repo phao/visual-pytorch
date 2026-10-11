@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 19
+# Visual Torch Workspace (.vtw): format specification, version 20
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -27,17 +27,18 @@ version or SQL table; it writes the same concrete operator and stable sockets.
 concrete standalone source. [Family8/Specialization7](runtime-temporal-v2-families.md)
 retain this policy in container19, through shared CLI/owned Qt services and checked
 family exports. Direct [TaskBundle4](runtime-temporal-v2-tasks.md) execution is
-admitted without a new SQL/container grammar. Retained experiment/run choices
-still refuse v2; their next versioned route extension is unfinished.
+admitted without a new SQL/container grammar. [ExperimentSpec/RunRecord6](runtime-temporal-v2-experiments.md)
+explicitly retain v2 execution in container20, with actual worker/report/kernel
+routes through that same TaskBundle4 compiler.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 19. The current reader accepts versions 1–19; opening
-an older file copies it into memory and upgrades the working version to 19.
-Opening alone never rewrites the source; explicit Save writes version 19.
+PRAGMA user_version = 20. The current reader accepts versions 1–20; opening
+an older file copies it into memory and upgrades the working version to 20.
+Opening alone never rewrites the source; explicit Save writes version 20.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -122,7 +123,14 @@ Earlier headers carrying Family8/Specialization7 refuse even without materialize
 graphs. No SQL table, TaskBundle/TaskSpec/DatasetSpec/ExperimentSpec/RunRecord,
 operator version or report recipe change. Old family1–7 and temporal-v1 semantics
 remain unchanged. See [runtime-v2 families](runtime-temporal-v2-families.md).
-Older binaries are not expected to open version 19;
+Version20 admits ExperimentSpec/RunRecord6's explicit runtime-temporal-v2
+execution choice and exact TaskBundle4/RunIdentity4 family provenance. Even
+unmaterialized or concrete-policy experiment/run6 requires this container fence.
+The same owned editor/CLI/worker and captured notebook routes use the shared
+compiler and exact proof; no SQL tables, model/data/task/protocol/report recipe
+or operator version change. Old1–5 experiment/run identities and source archives
+remain unchanged. See [runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+Older binaries are not expected to open version 20;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -215,7 +223,11 @@ model additionally supports integer version3 in a version-14 container;
 family additionally supports integer version6 and specialization integer version5
 in a version-15 container; experiment/run additionally support integer version5
 in a version-16 container; model additionally supports integer version4
-in a version-17 container);
+in a version-17 container; family additionally supports integer version7 and
+specialization integer version6 in a version-18 container; family additionally
+supports integer version8 and specialization integer version7 in a version-19
+container; experiment/run additionally support integer version6 in a version-20
+container);
 other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to

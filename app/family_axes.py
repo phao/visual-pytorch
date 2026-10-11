@@ -22,8 +22,8 @@ def validate_choice(value, *, version=2):
         return
     _keys(value, ('id', 'family', 'bindings', 'axes'),('execution',) if version>=4 else (),context='Family model choice')
     if 'execution' in value:
-        policies=('concrete-v1','runtime-spatial-v1')+(('runtime-temporal-v1',) if version>=5 else ())
-        _require(value['execution'] in policies,'Choose an explicit execution policy supported by this experiment version; temporal execution requires version5.')
+        policies=('concrete-v1','runtime-spatial-v1')+(('runtime-temporal-v1',) if version>=5 else ())+(('runtime-temporal-v2',) if version>=6 else ())
+        _require(value['execution'] in policies,'Choose an explicit execution policy supported by this experiment version; temporal-v1 requires version5, temporal-v2 version6.')
     _require(_identifier(value['id']), 'Family choice needs a stable selection ID.')
     reference(value['family'], 'family')
     _require(isinstance(value['bindings'], dict) and len(value['bindings']) <= 128,
@@ -128,7 +128,7 @@ def resolve_model(choices, coordinate, resolve, *, version=2):
         return {k: v for k, v in result.items() if k != 'missing'} | {'references': {'family': copy.deepcopy(ref)}}
     records = resolution_records(source, result['resolved'])
     runtime=None
-    if choice.get('execution') in ('runtime-spatial-v1','runtime-temporal-v1'):
+    if choice.get('execution') in ('runtime-spatial-v1','runtime-temporal-v1','runtime-temporal-v2'):
         from .runtime_tasks import proof
         try:runtime=proof(source,records['specialization'],records['model'],execution=choice['execution'])
         except ValueError as error:

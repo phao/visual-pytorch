@@ -69,7 +69,7 @@ def split_protocol(protocol):
 
 
 def validate_experiment(doc):
-    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4, 5))
+    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4, 5, 6))
     _require(_text(doc['question']), 'Experiment needs an explicit question.')
     for key in ('models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols'):
         _require(isinstance(doc[key], list) and doc[key], 'Experiment selection axes must be nonempty arrays.')
@@ -146,7 +146,7 @@ def _utc(value):
 
 
 def validate_run(doc):
-    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4, 5))
+    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4, 5, 6))
     _keys(doc['selection'], ('experiment', 'coordinates', 'candidate_id'), context='Run selection')
     reference(doc['selection']['experiment'], 'experiment')
     coords = doc['selection']['coordinates']
