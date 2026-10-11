@@ -90,3 +90,45 @@ test('an empty search page is not presented as an empty workspace',async()=>{
   f.requests[0].resolve({offset:0,total:0,next_offset:null,rows:[],pinned:null});await tick();
   assert.match(f.nodes.get('science-status').textContent,/No matching.*Clear the search/);assert.doesNotMatch(f.nodes.get('science-status').textContent,/stored yet/);assert.equal(f.requests.length,1);
 });
+
+const recovery=(request,changes={})=>({...inspection(request),version:1,scope:'experiment-recovery-inspection',
+  scope_id:request.args.scope_id,sequence:request.args.sequence,id:request.args.id,limit:25,...changes});
+const recoveryIdentity=()=>({scope_id:'a'.repeat(32),sequence:1,id:'b'.repeat(32)});
+test('recovery tree uses exact window identity and cannot edit captured values',async()=>{
+  const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+  assert.equal(f.requests[0].action,'scienceRecoveryInspect');assert.equal('reference' in f.requests[0].args,false);
+  f.requests[0].resolve(recovery(f.requests[0]));await tick();assert.match(f.nodes.get('science-tree-status').textContent,/session recovery evidence/);
+  assert.equal(f.nodes.get('science-tree-edit').disabled,true);f.nodes.get('science-tree-rows').querySelectorAll('button')[0].onclick();await tick();
+  assert.equal(JSON.stringify(f.requests[1].args.path),'[0]');assert.equal(f.requests[1].action,'scienceRecoveryInspect');
+  assert.equal(f.nodes.get('science-tree-edit').disabled,true);
+});
+test('recovery inspection rejects foreign identity/sequence and preserves exact literal scalar text',async()=>{
+  for(const changes of [{scope:'exact-spec-inspection-page'},{scope_id:'foreign'},{sequence:2},{id:'foreign'},{limit:99}]){
+    const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+    f.requests[0].resolve(recovery(f.requests[0],changes));await tick();assert.equal(f.toasts.length,1);assert.equal(f.nodes.get('science-tree-rows').children.length,0);
+  }
+  const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+  f.requests[0].resolve(recovery(f.requests[0],{type:'number',entries:[],scalar:{text:'9007199254740993'},total:16,next_offset:null}));await tick();
+  assert.equal(f.nodes.get('science-tree-rows').children[0].textContent,'9007199254740993');
+});
+test('failed tree Back keeps history, Retry restores current cursor and Back can be retried',async()=>{
+  const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+  f.requests[0].resolve(recovery(f.requests[0]));await tick();f.nodes.get('science-tree-next').onclick();await tick();
+  f.requests[1].resolve(recovery(f.requests[1],{next_offset:null}));await tick();f.nodes.get('science-tree-prev').onclick();await tick();
+  f.requests[2].reject(Error('failed Back'));await tick();assert.equal(f.nodes.get('science-tree-prev').disabled,false);
+  f.nodes.get('science-tree-retry').onclick();await tick();assert.equal(f.requests[3].args.offset,7);
+  f.requests[3].resolve(recovery(f.requests[3],{next_offset:null}));await tick();f.nodes.get('science-tree-prev').onclick();await tick();assert.equal(f.requests[4].args.offset,0);
+});
+test('stale navigation completion cannot change a newer selection cursor or history',async()=>{
+  const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+  f.requests[0].resolve(recovery(f.requests[0]));await tick();f.nodes.get('science-tree-next').onclick();await tick();const old=f.requests[1];
+  f.window.LoomScienceDocument.select(ref('new'));await tick();f.requests[2].resolve(inspection(f.requests[2]));await tick();
+  old.reject(Error('obsolete Back'));await tick();assert.equal(f.toasts.length,0);
+  assert.equal(f.nodes.get('science-tree-prev').disabled,true);f.nodes.get('science-tree-next').onclick();await tick();assert.equal(f.requests[3].args.offset,7);
+});
+test('recovery invalidation clears only recovery views and fences late errors',async()=>{
+  const f=fixture();f.nodes.get('science-details').open=true;f.window.LoomScienceDocument.selectRecovery(recoveryIdentity());await tick();
+  f.window.LoomScienceDocument.clearRecovery();f.requests[0].reject(Error('old recovery'));await tick();assert.equal(f.toasts.length,0);
+  f.window.LoomScienceDocument.select(ref());await tick();f.window.LoomScienceDocument.clearRecovery();f.requests[1].resolve(inspection(f.requests[1]));await tick();
+  assert.ok(f.nodes.get('science-tree-rows').children.length);
+});

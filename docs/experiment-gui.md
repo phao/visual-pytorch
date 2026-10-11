@@ -341,6 +341,8 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |
 | scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
+| scienceRecoveryPage | scope_id, sequence; optional offset/limit/query/pin | Actual bounded recovery choices, exact outside pins |
+| scienceRecoveryInspect | scope_id, sequence, id; optional path/part/offset/limit | Actual read-only literal recovery tree; no complete payload |
 | scienceDraftOpen | kind, optional exact reference/id | Actual editor owned header; no complete draft response |
 | scienceDraftExperimentPage/Value/Choices | session, sequence, closed card/value/choice arguments | Actual experiment ordered cards, current descriptors and independently pinned local choices |
 | scienceDraftExperimentEdit | session, sequence, operations | Atomic literal/structural batch; advanced header, no SQL admission |
@@ -397,9 +399,10 @@ manifest and longest prior history for retry, not unrelated registry datasets.
 ExperimentJob builds its own Workspace on the Qt thread and runs the existing
 validated numerical executor; it never mutates the GUI SQLite connection there.
 Terminal records are admitted on the GUI thread. Progress is run_id/point;
-scienceComplete is exact reference/record; scienceChanged refreshes browsing.
-scienceRecovery exposes the full result plus admission error. Window-owned
-recovery retains it even after deleting a completed job. This is not durable
+scienceComplete now carries an exact reference/terminal attempt projection;
+scienceChanged refreshes browsing. scienceRecovery carries one small metadata
+notification, not the full result/snapshot. Window-owned
+recovery retains complete evidence even after deleting a completed job. This is not durable
 crash recovery or a detached job receipt.
 
 ### Terminal delivery and recovery
@@ -412,9 +415,14 @@ its reference/hash is checked before SQL insertion. Changed workspace/job or
 failed admission retains the complete captured closure and result in a
 window-owned recovery collection, never in the new drawing.
 
-Read `scienceRecoveries` for summaries and `scienceRecoveryShow {id}` for a copied
-envelope. Export explicitly using `scienceExportRecovery {id}` (optional `output`
-for agents/tests). The GUI has Show recovery and Export controls. Export refuses
+Legacy `scienceRecoveries` and `scienceRecoveryShow {id}` remain explicit complete
+compatibility reads. Actual UI uses `scienceRecoveryPage` and
+`scienceRecoveryInspect` with exact window scope/sequence, outside pins, bounded
+literal projections and retryable navigation. State repeats only a recovery
+header, not the full list. See [recovery-browser.md](recovery-browser.md).
+Export explicitly using `scienceExportRecovery {id}` (optional `output`
+for agents/tests); actual UI also supplies scope_id/sequence, rechecked after
+the chooser returns. The GUI has Inspect recovery and Export controls. Export refuses
 existing paths and never trains, admits a run or saves a workspace. Version-1 JSON
 has format `visual-pytorch-experiment-recovery`, ID, snapshot, result, error and
 exported_to. Snapshot includes origin workspace ID/path/disk revision, exact

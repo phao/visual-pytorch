@@ -15,6 +15,56 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 01:58 -03:00 — Actual bounded recovery browsing and terminal notices
+
+Automatic scientific terminal/state notifications no longer resend the complete
+RunRecord, captured datasets/results or recovery list. A window-lifetime scope/
+sequence header identifies its native recovery collection; retention and successful
+export markers advance the sequence. Actual metadata/search pages preserve exact
+outside/missing pins. The existing read-only literal tree now inspects recovery
+values/keys/scalars in bounded pages, with no editing or fabricated scientific
+revision. Complete evidence remains native across workspace changes and worker
+deletion, available through explicit full JSON export. Export rechecks scope/
+sequence/busy state after the native chooser; no-overwrite and close warnings
+remain. Native complete reads remain deliberate compatibility actions.
+
+Failed Back preserves history; Retry reads the current cursor. Old navigation/
+search continuations cannot restore a previous session's offset/history.
+Generation/scope/sequence and current tree selection/workspace fence late data/
+errors. Notifications are small non-document DTOs; native thread-internal full
+terminal payloads, progress/whole-state messages, recovery retention/copy/search,
+validation/admission/history/storage costs are not universally bounded.
+No SQLite schema, persistent CLI token or durable-job claim is added.
+Exact file/CLI/reusable UI contracts align in [recovery-browser.md](recovery-browser.md).
+
+Nine new stdlib cases pass (0.037 s), and fourteen new JS cases cover the actual
+recovery controller/tree. Full535 Python tests (171.967 s)/218 JS (1047.393 ms)
+pass. Fourteen actual Qt lifecycle cases (3.228 s) cover queued admission,
+cancellation, duplicate delivery, changed-workspace retention, bounded notices/
+state and modal export sequence changes/no overwrite. Real sandboxed80-recovery
+fixture checks large hidden tensors/diagnostics, literal9007199254740993,
+outside pins, injected list/tree Back failures, unchanged SQL/history and exact
+full export. Its24 projections peak33406 bytes; font14/18/28 checks pass and the
+font18 capture is inspected. These are scoped form checks, not certification of
+all whole-window geometry, metadata sizes or assistive technologies.
+
+The separate real GUI fit/retry/history/report/notebook-generation/save-reload/
+failed-admission-inspection/export regression passes with no host Torch/console
+errors. Bare system Qt Python lacks optional nbformat; a verified already-existing
+private Python3.13 Qt+nbformat environment passes without installing packages.
+An attempted3.12 site-package fallback was incompatible with3.13 native modules
+and was not used. Earlier fixture syntax/config-helper mistakes were corrected
+without changing production limits. Full test and negative logs remain private.
+
+The separate actual experiment regression also passes all eight candidate GUI
+fits, all split methods, full optimizer/seed controls, 96-coordinate preview,
+comparison/exclusion/invalid-text/history/stale-workspace/pending/save-reload
+gates with no host Torch/console errors. The work remains on
+`task/stage-c-experiments`, unmerged/unpublished; user app/workspace/config/
+desktop are unchanged. Next remaining native inline/retention costs, in-app
+figures/window geometry and C integration, then unchanged D/E. No complete C or
+durable crash/detached safety claim follows from paged recovery inspection.
+
 ### 2026-10-11 01:42 -03:00 — Actual bounded owned experiment editor
 
 The visible experiment form now uses owned Open/card/value/local-choice/edit/

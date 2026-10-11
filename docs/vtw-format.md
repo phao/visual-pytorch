@@ -54,6 +54,11 @@ specifies their transient grammar and actual form. Experiment cards/raw-child
 buffers now share one transient session; only explicit parent Commit and file
 Save persist an ordinary complete ExperimentSpec. No parallel SQLite store is added.
 
+Window-owned recovery scope/sequence and browser pages are also transient;
+[recovery-browser.md](recovery-browser.md) specifies their exact boundary. They
+add no .vtw tables or durable jobs. Only explicit full recovery JSON export
+creates external evidence; no browser projection is a persisted scientific spec.
+
 ## 2. Exact relational schema
 
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:

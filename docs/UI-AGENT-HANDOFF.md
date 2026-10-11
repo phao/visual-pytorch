@@ -807,6 +807,21 @@ domains when adapting them; another application must define its own identities,
 evidence grammar, units, history and statistical interpretation. See
 [saved-evidence-views.md](saved-evidence-views.md) for the executable contract.
 
+### Session recovery evidence and small terminal notifications
+
+Do not automatically transfer full results/captured datasets after terminal
+delivery, or repeat a complete recovery list on every state update. Keep full
+evidence native and offer explicit read-only choice/tree pages and full export.
+Recovery belongs to the window, not the active workspace or deleted worker.
+Use a lifetime scope ID plus exact sequence for retained/exported marker changes;
+label it session evidence, not a durable execution receipt. Preserve outside
+pins, scientific value order, literal integer tokens and visibly partial previews.
+Disable editing captured recovery values. Retry failed reads without losing Back
+history; fence stale navigation/search continuations as well as their data replies.
+Recheck scope/sequence/busy state after a file chooser returns, and refuse overwrite.
+New browser projections do not change domain/SQLite/agent-import contracts.
+Visual PyTorch's exact implementation is in [recovery-browser.md](recovery-browser.md).
+
 ### Exact retained artifact preview/export
 
 An artifact action uses the displayed verified object/attempt, not unread input

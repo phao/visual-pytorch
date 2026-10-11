@@ -126,7 +126,8 @@ The actual dataset, task and experiment forms now use owner/sequence pages,
 preserving invalid local text and their supported typed controls. Experiment
 axes and local selected-model/pairing choices have independent bounded pages;
 field/port suggestions use separate [bounded context pages](task-context-pages.md).
-Recovery/completion payloads, remaining native inline costs, in-app figures,
+Actual recovery/completion webview payloads have separate bounds in
+[recovery-browser.md](recovery-browser.md). Remaining native inline/retention costs, in-app figures,
 window geometry and integrated C acceptance remain open before unchanged D/E.
 Stateless CLI specification/import
 commands continue to use the same registry: transient tab tokens are not `.vtw`

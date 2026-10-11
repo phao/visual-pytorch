@@ -193,5 +193,54 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(result['history'][-1]['update'],result['counts']['completed_updates'])
         self.assertNotIn('torch',sys.modules)
 
+    def test_actual_state_and_recovery_events_are_bounded_without_discarding_full_evidence(self):
+        from app.recovery_views import header
+        job=self.fake();job.snapshot['documents'].append({'hidden':'λ😀'*100000})
+        Delivery(self.h,self.h.workspace,job).failed('λ😀'*10000)
+        state=self.h.state()['experiment_recoveries']
+        self.assertEqual(state['scope'],'experiment-recovery-header')
+        self.assertEqual(state['total'],1);self.assertLess(len(json.dumps(state)),400)
+        notice=[v for k,v in self.h.events if k=='scienceRecovery'][-1]
+        self.assertEqual(notice['scope'],'experiment-recovery-notification')
+        self.assertLess(len(json.dumps(notice)),4000);self.assertNotIn('snapshot',notice)
+        sid=notice['recovery']['id']
+        self.assertEqual(self.h.experiment_recoveries[sid]['snapshot'],job.snapshot)
+        request={'action':'scienceRecoveryPage','scope_id':state['scope_id'],'sequence':state['sequence']}
+        page=dispatch(self.h,request);self.assertEqual(page['rows'][0]['id'],sid)
+        old=self.h.workspace;self.h.workspace=Workspace();self.workspaces.append(self.h.workspace)
+        self.assertEqual(dispatch(self.h,request),page)
+        for changes in ({'extra':True},{'sequence':True},{'scope_id':'foreign'},{'limit':26}):
+            with self.subTest(changes=changes),self.assertRaises(ValueError):
+                dispatch(self.h,{**request,**changes})
+        self.assertEqual(header(self.h),state);self.assertIsNot(self.h.workspace,old)
+
+    def test_guarded_export_rechecks_sequence_after_modal_and_failed_export_preserves_scope(self):
+        from app.recovery_views import header,changed
+        job=self.fake();Delivery(self.h,self.h.workspace,job).failed('retained')
+        h=header(self.h);sid=recovery_rows(self.h)[0]['id']
+        output=self.folder/'guarded.json'
+        def choose(*args):
+            changed(self.h);return str(output),''
+        with patch('app.desktop_experiments.QFileDialog.getSaveFileName',side_effect=choose):
+            with self.assertRaisesRegex(ValueError,'Refresh'):
+                dispatch(self.h,{'action':'scienceExportRecovery','id':sid,'scope_id':h['scope_id'],'sequence':h['sequence']})
+        self.assertFalse(output.exists());self.assertIsNone(recovery_rows(self.h)[0]['exported_to'])
+        h=header(self.h)
+        request={'action':'scienceExportRecovery','id':sid,'scope_id':h['scope_id'],'sequence':h['sequence'],'output':str(output)}
+        dispatch(self.h,request);self.assertEqual(header(self.h)['sequence'],h['sequence']+1)
+        before=output.read_bytes();current=header(self.h)
+        with self.assertRaises(FileExistsError):
+            dispatch(self.h,{**request,'sequence':current['sequence']})
+        self.assertEqual(output.read_bytes(),before);self.assertEqual(header(self.h),current)
+
+    def test_terminal_notice_has_exact_identity_and_duplicate_delivery_keeps_one_notice(self):
+        job=self.fake();result=self.result()
+        complete(self.h,self.h.workspace,job,json.dumps(result));complete(self.h,self.h.workspace,job,json.dumps(result))
+        notices=[v for k,v in self.h.events if k=='scienceComplete'];self.assertEqual(len(notices),1)
+        notice=notices[0]
+        self.assertEqual(notice['reference'],result['reference'])
+        self.assertEqual(notice['attempt'],{k:result['record']['attempts'][-1][k] for k in ('number','status','stage')})
+        self.assertNotIn('record',notice);self.assertEqual(notice['workspace_id'],self.h.state()['workspace_id'])
+
 
 if __name__=='__main__':unittest.main(verbosity=2)

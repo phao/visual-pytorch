@@ -422,7 +422,7 @@ class Window(QMainWindow):
         self.settings_store.setValue("recentFiles", json.dumps(recent[:12]))
 
     def state(self):
-        from .desktop_experiments import recovery_rows
+        from .recovery_views import header as recovery_header
         models = self.workspace.models() if self.workspace else {}
         app=QApplication.instance()
         system='light' if isinstance(app,QApplication) and app.styleHints().colorScheme()==Qt.ColorScheme.Light else 'dark'
@@ -441,7 +441,7 @@ class Window(QMainWindow):
             "notebook_job": {**{k: self.job.snapshot[k] for k in ('id', 'workspace_id', 'selection')},
                              'operation': self.job.snapshot.get('operation', 'execute')} if job_busy(self.job)
                 and hasattr(self.job, 'snapshot') and 'selection' in self.job.snapshot and 'timeout' in self.job.snapshot else None,
-            "experiment_recoveries": recovery_rows(self),
+            "experiment_recoveries": recovery_header(self),
             "torch_python": self.torch_python,
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,

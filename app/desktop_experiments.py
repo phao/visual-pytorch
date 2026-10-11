@@ -96,7 +96,9 @@ def retain_recovery(window, job, result, error):
              'id': sid, 'snapshot': copy.deepcopy(job.snapshot),
              'result': copy.deepcopy(result), 'error': str(error), 'exported_to': None}
     window.experiment_recoveries[sid] = value
-    window.broadcast('scienceRecovery', value)
+    from .recovery_views import changed, notification
+    changed(window)
+    window.broadcast('scienceRecovery', notification(window, sid))
     return value
 
 
@@ -107,6 +109,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceDraftValueRead', 'scienceDraftValueDiscard',
          'scienceDraftDescribe', 'scienceDraftOrigin', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
+         'scienceRecoveryPage', 'scienceRecoveryInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskContextPage', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
@@ -214,22 +217,43 @@ def dispatch(window, req, source=None):
     if action in NOTEBOOK_ACTIONS:
         from .desktop_notebooks import dispatch as notebook_dispatch
         return notebook_dispatch(window, req)
+    if action in {'scienceRecoveryPage', 'scienceRecoveryInspect'}:
+        from . import recovery_views
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        req = _json(req)
+        required = ('action', 'scope_id', 'sequence')
+        if action == 'scienceRecoveryPage':
+            _keys(req, required, ('offset', 'limit', 'query', 'pin'), context='Recovery page')
+            return recovery_views.page(window, req['scope_id'], req['sequence'],
+                                       **{k:req[k] for k in ('offset', 'limit', 'query', 'pin') if k in req})
+        _keys(req, (*required, 'id'), ('path', 'part', 'offset', 'limit'), context='Recovery inspection')
+        return recovery_views.inspect(window, req['scope_id'], req['sequence'], req['id'],
+                                      **{k:req[k] for k in ('path', 'part', 'offset', 'limit') if k in req})
     if action == 'scienceRecoveries': return recovery_rows(window)
     if action in {'scienceRecoveryShow', 'scienceExportRecovery'}:
         value = getattr(window, 'experiment_recoveries', {}).get(req.get('id'))
         if value is None: raise ValueError('Unknown recovery evidence ID.')
         if action == 'scienceRecoveryShow': return copy.deepcopy(value)
+        guarded = 'scope_id' in req or 'sequence' in req
+        if guarded:
+            from .recovery_views import _identity
+            _identity(window, req.get('scope_id'), req.get('sequence'))
         path = req.get('output')
         if not path:
             path, _ = QFileDialog.getSaveFileName(window, 'Export experiment recovery evidence',
                 'experiment-recovery.json', 'JSON evidence (*.json)')
         if not path: return None
         if job_busy(window.job): raise ValueError('Stop the current run before exporting recovery evidence.')
+        if guarded:
+            _identity(window, req.get('scope_id'), req.get('sequence'))
         # Explicit local export, no overwrite; never a completed/running receipt.
         payload = json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
         with Path(path).open('x', encoding='utf-8') as stream:
             stream.write(payload); stream.flush(); os.fsync(stream.fileno())
         value['exported_to'] = str(Path(path).resolve())
+        from .recovery_views import changed
+        changed(window)
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
@@ -367,9 +391,12 @@ def complete(window, captured_workspace, job, payload):
         if result['reference'] != {k: v for k, v in
                 (('kind', 'run'), ('id', doc['id']), ('revision', doc['revision']))}:
             raise ValueError('Run evidence identity changed before admission.')
+        from .recovery_views import completion
+        from .authoring import workspace_id
+        notice = completion(workspace_id(captured_workspace), result['reference'], doc)
         ref = captured_workspace.put_spec('run', result['record'])
         if ref != result['reference']: raise ValueError('Run evidence identity changed on admission.')
-        window.broadcast('scienceComplete', result)
+        window.broadcast('scienceComplete', notice)
         window.broadcast(); window.broadcast('scienceChanged')
     except Exception as error:
         retain_recovery(window, job, result, error)

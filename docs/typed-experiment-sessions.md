@@ -238,6 +238,8 @@ separately checks eight candidate fits, all split methods, full optimizer/seeds,
 historical choices, exclusions/incompatibilities, 96-coordinate preview, invalid
 text, no-op/history/head/workspace/pending guards and reload.
 
-Remaining C recovery/completion/native inline costs, figures/window geometry and
+Actual recovery/completion webview projections now have separate bounds in
+[recovery-browser.md](recovery-browser.md). Remaining C native inline/retention
+costs, figures/window geometry and
 integration work still precede unchanged D/E. No full Stage C or universal RAM/
 crash/detached-safety claim follows here.

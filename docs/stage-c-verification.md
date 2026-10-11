@@ -94,8 +94,11 @@ These concrete gaps are observable in the current code:
   use independent bounded choices without full metadata indexes. Task field/port
   suggestions now have independent bounded exact collection pages, inspected IDs
   and explicitly labelled shape previews; actual experiment editing now uses
-  owned card/value/local-choice/edit/preview projections. Session recovery and terminal-completion transports
-  remain unbounded. Main browsing projection bounds are not those other bounds.
+  owned card/value/local-choice/edit/preview projections. Actual recovery choices/
+  inspection and terminal notices now have separate bounded projections, specified
+  in [recovery-browser.md](recovery-browser.md). Thread-internal full terminal
+  payloads/native retention/admission costs remain. Main browser bounds are not
+  universal resource bounds.
 - Legacy `scienceAuthorBegin/Check/Save/Preview` deliberately remain complete-draft
   compatibility APIs. The actual dataset/task/experiment forms use owned-session
   projected reads, sequence-fenced edits and Check/Commit without whole draft
@@ -127,6 +130,12 @@ These concrete gaps are observable in the current code:
   rows, not arbitrary metadata size, full registry validation/inline costs,
   whole-file CSV reading or notebook source/payload size. Do not conflate these
   with lazy storage or universal RAM/OOM guarantees.
+- Actual stored-candidate browsing still uses complete `sciencePreview` rows,
+  including manifests/protocols. A row-count limit is not a byte bound for large
+  selections. It needs a projected actual browser path preserving exact candidate
+  identity/order/status/counts and full deliberate CLI preview/export semantics.
+  Owned draft previews already use separate bounded projections; that does not
+  prove stored-candidate transport convergence.
 - In-app training/report figures and the final integrated large-font/window/
   floating-panel geometry audit remain open. The actual notebook-rendering
   checkpoint fixes its reproduced clipping/description/table defects; it does
@@ -142,7 +151,8 @@ the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. Actual experiment typed-authoring
-migration is now tested; remaining recovery/completion/native inline costs,
+migration is now tested; recovery/completion webview transport now uses small
+notifications and paged inspection. Remaining native inline/retention costs,
 in-app figures/window geometry and integrated acceptance are next. Hiding
 full JSON in a collapsed panel is not a cost bound.
 Native task binding/transform page, literal-edit and owned compatibility primitives
@@ -243,7 +253,20 @@ billion-run execution; the fixture forbids fit dispatch. Separately, the
 existing actual GUI regression passes eight candidate fits and all split
 methods on the new controller. Full suites pass 526 Python tests (171.889 s)
 and 204 JavaScript tests (1000.658 ms). These establish actual form migration,
-not recovery/terminal payload convergence, lazy storage, full C integration or D/E.
+not lazy storage, full C integration or D/E.
+
+The later actual recovery browser replaces full automatic state/recovery/result
+transfers with a window scope/sequence header and small terminal notifications.
+Independent choice pages and read-only literal tree preserve complete native
+evidence for explicit export, with exact outside pins and failed-read retry.
+Nine backend and fourteen new JS cases cover byte/cursor/identity/precision and
+late-navigation guards. Fourteen native lifecycle cases include real queued
+delivery/cancellation and chooser sequence races/no overwrite. Real sandboxed
+Qt80-recovery fixture checks large hidden tensors/diagnostics, exact integers,
+outside pins, failed list/tree Back retry, unchanged SQL/history and exact export;
+24 projections peak33406 bytes. Full535 Python/218 JS pass. These are webview
+projection/lifecycle bounds, not bounded native retention/admission/storage,
+durable execution, whole-window geometry, complete C or D/E.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

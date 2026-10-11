@@ -1063,7 +1063,7 @@
       host.event.connect(onEvent);
       state = await call("state");
       window.LoomScience.mount(document, {call, toast, busy, model:()=>doc?.id, workspace:()=>state.workspace_id,
-        python:()=>state.torch_python,notebookJob:()=>state.notebook_job});
+        python:()=>state.torch_python,notebookJob:()=>state.notebook_job,recoveryHeader:()=>state.experiment_recoveries});
       window.loom = {call, get document() { return clone(doc); }, get state() { return clone(state); }, fit,
         selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));},
         contextAt(x,y){

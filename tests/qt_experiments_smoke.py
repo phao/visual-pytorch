@@ -112,8 +112,13 @@ with tempfile.TemporaryDirectory() as directory:
         assert len(h.experiment_recoveries)==1
         job=h.job;assert job.wait(15000);h.job=None;job.deleteLater();h.broadcast()
         js('document.getElementById("science-recovery-show").click()')
-        until('document.getElementById("science-document").textContent.includes("visual-pytorch-experiment-recovery")')
-        evidence=json.loads(js('document.getElementById("science-document").textContent'))
+        until('document.getElementById("science-tree-status").textContent.includes("session recovery evidence")')
+        selected=json.loads(js('document.getElementById("science-document").textContent'))
+        assert selected['scope']=='session-recovery-summary'
+        assert js('document.getElementById("science-tree-edit").disabled')
+        # The real view projects the native evidence instead of copying it all.
+        evidence=h.experiment_recoveries[selected['id']]
+        assert js('[...document.querySelectorAll("#science-tree-rows tr")].some(r=>r.textContent.includes("visual-pytorch-experiment-recovery"))')
         assert evidence['snapshot']['origin']['workspace_id']==h.state()['workspace_id']
         assert evidence['result']['record']['attempts'][-1]['status']=='completed'
         assert evidence['snapshot']['documents']
@@ -124,6 +129,9 @@ with tempfile.TemporaryDirectory() as directory:
         assert json.loads(destination.read_text())['result']==evidence['result']
         assert len(h.workspace.list_specs('run',True))==before
         assert not errors,errors;assert 'torch' not in sys.modules
+        notices=[payload for kind,payload in h.events if kind in ('scienceComplete','scienceRecovery')]
+        assert notices and all(len(json.dumps(value,ensure_ascii=True,separators=(',',':')).encode('ascii'))<=65536 for value in notices)
+        assert all('record' not in value and 'snapshot' not in value and 'result' not in value for value in notices)
         if os.environ.get('VTW_SMOKE_SCREENSHOT'):
             js('document.getElementById("science-kind").value="run";document.getElementById("science-kind").dispatchEvent(new Event("change"));')
             until('!document.getElementById("science-run").hidden')

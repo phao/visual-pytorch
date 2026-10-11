@@ -35,7 +35,9 @@ admission. Summary/tree reads still validate the entire immutable document and
 its dependency closure. Registry loading, inline JSON, SQLite count/sort/offset,
 and visiting a deep dictionary member can have substantial memory/time cost.
 No time deadline, external dataset adapter, detached job or OS isolation claim
-is implied. Authoring/recovery/completion transports still need separate bounds.
+is implied. Actual owned authoring and recovery/completion have separate scoped
+bounds; see [recovery-browser.md](recovery-browser.md). These do not bound
+native full validation/admission/history/storage costs.
 
 ## Metadata pages
 

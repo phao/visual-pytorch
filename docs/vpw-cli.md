@@ -90,6 +90,12 @@ The actual experiment form now uses those commands, including same-session
 staged raw values and exact local choices. Agent import/apply still operates on
 complete scientific specifications, not browser projection DTOs or session tokens.
 
+Recovery browsing likewise uses transient window scope/sequence, not CLI tokens
+or a persisted job table; see [recovery-browser.md](recovery-browser.md).
+Agents can explicitly export complete recovery JSON, inspect its origin/contents,
+then use validated dependency-first existing specification edits. A small
+notification/tree page or the outer recovery envelope is not a put-spec document.
+
 `task-context-page fields|input_ports|output_ports --model ID REVISION --dataset
 ID REVISION [--query TEXT] [--offset N] [--limit 1..25] [--pin STABLE_ID]` shares
 the actual task GUI's exact bounded field/port suggestion backend. It preserves
