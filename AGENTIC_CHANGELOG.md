@@ -4,6 +4,22 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 15:18 -03:00 — A–C finalization: split-environment notebook generation
+
+Implemented notebook generation through the explicitly selected report Python,
+with an immutable source/data capture and local returned-byte/index/recipe/mode
+validation. This repairs a reproduced actual Qt failure: execution could use the
+numerical/Jupyter environment, but generation still required nbformat in the
+lightweight GUI environment. Added optional CLI `--report-python`; retained the
+direct API/CLI default. Generation never executes cells or launches a kernel,
+refuses overwrite, and leaves `.vtw` and report-bundle grammars unchanged.
+
+Fifteen focused regressions and actual Qt generation/inspection/kernel execution,
+failure/timeout/Stop and dependency-free-host checks passed. Final whole-suite
+and native acceptance results are recorded in docs/stage-abc-finalization.md.
+No user application, files or preferences were changed. Unfinished D is retained
+on its existing branch, excluded from the requested A–C publication checkpoint.
+
 ## 2026-10-11 14:35 -03:00 — Guarded existing recurrent interface editor
 
 Added Inspector's advanced in-place JSON interface modal and matching CLI

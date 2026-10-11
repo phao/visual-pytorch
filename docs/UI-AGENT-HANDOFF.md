@@ -971,6 +971,16 @@ real work retains actual partial evidence when cleanup succeeds, not a fabricate
 success. Display replied/started steps separately from completed work. Reads stay
 available, while edits and competing work have native admission guards.
 
+Keep the lightweight GUI interpreter separate from the selected report Python.
+Generation captures the exact dependency/data/runtime bytes before passing them
+to that interpreter, then checks its returned recipe, mode, byte index and source
+bytes before accepting the bundle. It creates a new directory without running
+cells, launching a kernel or changing the workspace; it refuses overwrite.
+Visual PyTorch's generation is synchronous with a 30-second process deadline,
+not cancellable detached work. Inspection/execution use their existing threaded
+adapters. Do not infer that generating a notebook needs Jupyter or Torch imports
+in the GUI host, or that this separation makes trusted Python a security sandbox.
+
 Readable receipt cards use theme tokens, base fonts, wrapping local paths/hashes
 and a collapsed byte/hash ledger. Use literal DOM text, not trusted-looking HTML
 from artifacts. Clear a previous verified card before a read that may fail due to

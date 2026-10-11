@@ -28,9 +28,16 @@ Install `requirements-report.txt` into the authoring/execution environment.
 The ordinary application/CLI does not eagerly import Jupyter, Torch or Qt for
 these commands. Authoring requires nbformat; real automated execution also needs
 nbclient, jupyter_client and ipykernel. The numerical interpreter needs PyTorch.
+The desktop uses its selected report interpreter for generation as well as
+inspection/execution. A stdlib-only CLI can select an authoring environment with
+`generate-report --report-python`; omitting that option preserves direct authoring
+in the CLI interpreter. Captured source/data bytes are checked before admission;
+generation never launches a kernel or fits a model. This is bounded synchronous
+authoring (30-second child deadline), not detached execution or lazy storage.
 
 ```sh
 python vpw_cli.py example.vtw generate-report REPORT_ID EXACT_REVISION --output NEW_DIRECTORY
+python vpw_cli.py example.vtw generate-report REPORT_ID EXACT_REVISION --output OTHER_NEW_DIRECTORY --report-python /absolute/path/to/report-python
 python vpw_cli.py example.vtw execute-report NEW_DIRECTORY --kernel-python /absolute/path/to/python --cell-timeout 600
 ```
 
