@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 15:30 -03:00 — Verified A–C push and retained D convergence
+
+Pushed verified A–C main d2fcecbb010a3c690d8c66ce47e3223e730ed59b to GitHub,
+then confirmed the exact remote SHA before resuming D. Merged those fixes into
+retained D atcc785c8, preserving both histories and .vtw16 support without user
+file changes or app restart. D remains local, not included in that publication.
+Combined unchanged-source1069 Python403.353s (1066 PASS/3 Qt-only skips covered
+by3 native cases0.115s),324 JS1476.20234ms and actual Qt recurrent editing,
+temporal family/task/worker, experiment/recovery and fresh notebook kernels pass.
+This verifies the merged checkpoint, not remaining D acceptance or E completion.
+
 ## 2026-10-11 15:18 -03:00 — A–C finalization: split-environment notebook generation
 
 Implemented notebook generation through the explicitly selected report Python,

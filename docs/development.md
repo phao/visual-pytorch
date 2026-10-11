@@ -1,5 +1,27 @@
 # Development state and roadmap
 
+## 2026-10-11 15:30 -03:00 — A–C published; retained D restored and verified
+
+GitHub push succeeded; remote main matches
+d2fcecbb010a3c690d8c66ce47e3223e730ed59b. Only after that confirmation, merged
+published A–C into retained task/stage-d-families atcc785c8, preserving all D work,
+both additive documentation histories and .vtw16 support. The daily checkout is
+back on D; main/public remains the independently verified version-6 A–C checkpoint.
+No user file downgrade, configuration edit or application restart.
+
+Fresh combined1069 Python403.353s pass (1066 executed/3 Qt-only skips explicitly
+covered by3 native export cases0.115s). All324 JS1476.20234ms pass. Actual native
+and sandboxed Qt recurrent-interface editing, temporal family/task real-worker
+execution/save-reload, experiment fit/retry/recovery/report generation and
+saved/eight-fit-rerun notebook kernels/failure/timeout/Stop pass. Source stayed
+fixed during those captured-runtime tests. Private campaign evidence records the
+initial failures and exact publication/merge/test distinctions.
+
+No new D feature is claimed by merging A–C. Remaining D includes the original
+projected/bidirectional state gate; the deferred LSTM draft is not supported code.
+E durable/distributed execution remains unstarted. The full A–E goal stays active.
+The initial prerelease/tag is unchanged; this source push is not a new installer.
+
 ## 2026-10-11 15:20 -03:00 — A–C publication convergence
 
 The user's priority is verified A–C → GitHub push → only then resume D–E.
