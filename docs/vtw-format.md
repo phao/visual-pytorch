@@ -50,7 +50,9 @@ child staging. Only explicit parent Commit followed by workspace Save persists
 edits. Native transient origin proofs are not additional file identities.
 Native experiment card/local-choice/value/edit/preview commands likewise add no
 persisted rows or parallel format; [typed-experiment-sessions.md](typed-experiment-sessions.md)
-specifies their transient grammar. Actual experiment-form migration is still open.
+specifies their transient grammar and actual form. Experiment cards/raw-child
+buffers now share one transient session; only explicit parent Commit and file
+Save persist an ordinary complete ExperimentSpec. No parallel SQLite store is added.
 
 ## 2. Exact relational schema
 

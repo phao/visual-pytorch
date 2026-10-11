@@ -50,7 +50,7 @@ def until(script,timeout=30):
     while time.monotonic()<deadline:
         if js(script):return
         loop=QEventLoop();QTimer.singleShot(20,loop.quit);loop.exec()
-    raise AssertionError(f'UI timeout: {script}; console: {errors[:5]}')
+    raise AssertionError(f'UI timeout: {script}; status: {js("document.getElementById('science-author-status').textContent")}; console: {errors[:5]}')
 def click(sid):
     until('!document.getElementById('+json.dumps(sid)+').disabled')
     js('document.getElementById('+json.dumps(sid)+').click()')
@@ -58,11 +58,24 @@ def set_id(sid,value):
     until('!document.getElementById('+json.dumps(sid)+').disabled')
     assert js('setExperimentValue(document.getElementById('+json.dumps(sid)+'),'+json.dumps(value)+')'),errors
 def control(kind,index,label,value):
-    until('!experimentControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+').disabled')
+    until('Boolean(experimentCard('+json.dumps(kind)+','+str(index)+')) && !experimentControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+').disabled')
     assert js('setExperimentValue(experimentControl('+json.dumps(kind)+','+str(index)+','+json.dumps(label)+'),'+json.dumps(value)+')'),(kind,index,label,errors)
-def top(label,value):assert js('setExperimentValue(experimentTop('+json.dumps(label)+'),'+json.dumps(value)+')'),(label,errors)
-def add(name):assert js('experimentButton(document.getElementById("science-experiment-bindings"),'+json.dumps(name)+')'),(name,errors)
-def entry_button(kind,index,name):assert js('experimentButton(experimentCard('+json.dumps(kind)+','+str(index)+').querySelector("[data-axis-order]"),'+json.dumps(name)+')'),(kind,index,name,errors)
+def top(label,value):
+    until('!experimentTop('+json.dumps(label)+').disabled')
+    assert js('setExperimentValue(experimentTop('+json.dumps(label)+'),'+json.dumps(value)+')'),(label,errors)
+def add(name):
+    until('![...document.querySelectorAll("#science-experiment-bindings button")].find(b=>b.textContent==='+json.dumps(name)+').disabled')
+    count=js('document.querySelectorAll("[data-experiment-axis]").length')
+    assert js('experimentButton(document.getElementById("science-experiment-bindings"),'+json.dumps(name)+')'),(name,errors)
+    until('document.querySelectorAll("[data-experiment-axis]").length==='+str(count+1)+' && !document.getElementById("science-author-check").disabled')
+def entry_button(kind,index,name):
+    until('![...experimentCard('+json.dumps(kind)+','+str(index)+').querySelector("[data-axis-order]").querySelectorAll("button")].find(b=>b.textContent==='+json.dumps(name)+').disabled')
+    assert js('experimentButton(experimentCard('+json.dumps(kind)+','+str(index)+').querySelector("[data-axis-order]"),'+json.dumps(name)+')'),(kind,index,name,errors)
+    until('!document.getElementById("science-author-check").disabled')
+def initialization_seeds(values,create=False):
+    for index,value in enumerate(values):
+        if create:add('Add initialization seed')
+        control('seed',index,'Initialization seed',str(value))
 def ref_value(ref):return json.dumps({k:ref[k] for k in ('kind','id','revision')},separators=(',',':'))
 def add_split(entry):
     js('[...document.querySelectorAll("select")].find(s=>s.getAttribute("aria-label")==="Split method to add").value='+json.dumps(entry['protocol']['method']))
@@ -114,7 +127,7 @@ with tempfile.TemporaryDirectory() as directory:
         for index,pair in enumerate(e['data_tasks']):
             add('Add dataset/task pairing');control('data-task',index,'Pairing ID',pair['id'])
             control('data-task',index,'Exact dataset',ref_value(pair['dataset']));control('data-task',index,'Exact task',ref_value(pair['task']))
-        add_split(e['splits'][0]);top('Initialization seeds','7, 13');add_protocol(e['protocols'][0])
+        add_split(e['splits'][0]);initialization_seeds([7,13],create=True);add_protocol(e['protocols'][0])
         # Semantic axes reorder explicitly, then restore without rebinding.
         entry_button('model',0,'↓');entry_button('model',1,'↑')
         before=h.workspace.db.serialize();rng=random.getstate()
@@ -203,7 +216,7 @@ with tempfile.TemporaryDirectory() as directory:
             {'id':'external','protocol':{'method':'external','roles':{'train':['row3','row1','row2','row0'],'validation':['row4','row5'],'test':['row6']},'excluded':['row7']}}]
         for split in extras:add_split(split)
         second=copy.deepcopy(e['protocols'][0]);second['id']='another-adam';second['protocol']['budget']['updates']=4;second['protocol']['shuffle']=True;second['protocol']['seeds']['shuffle']=35
-        add_protocol(second);top('Initialization seeds','13, 7')
+        add_protocol(second);initialization_seeds([13,7])
         add('Add exclusion');control('exclusions',0,'Selected exact architecture',ref_value(e['models'][0]));control('exclusions',0,'Dataset/task pairing ID','pair-1');control('exclusions',0,'Exclusion reason','Planned comparison exclusion')
         before=h.workspace.db.serialize();click('science-experiment-preview')
         until('document.getElementById("science-experiment-preview-status").textContent.includes("of 96")')
@@ -247,7 +260,7 @@ with tempfile.TemporaryDirectory() as directory:
         replacement.put(original.models()[e['models'][0]['id']]);dispatch=h.dispatch
         def switch_during_preview(request,target):
             value=dispatch(request,target)
-            if request['action']=='scienceAuthorPreview':h.workspace=replacement;h.broadcast()
+            if request['action']=='scienceDraftExperimentPreview':h.workspace=replacement;h.broadcast()
             return value
         with patch.object(h,'dispatch',side_effect=switch_during_preview):
             click('science-experiment-preview');until('document.getElementById("science-author-status").textContent.includes("Workspace changed") && !document.getElementById("science-author-cancel").disabled')
@@ -263,7 +276,7 @@ with tempfile.TemporaryDirectory() as directory:
         completed=h.job;assert completed.wait(15000);completed.deleteLater()
         h.job=SimpleNamespace(isRunning=lambda:False,awaiting_terminal=True,mid=None,snapshot={'run_id':'busy'});h.broadcast()
         until('document.getElementById("science-author-save").disabled')
-        try:h.dispatch({'action':'scienceAuthorSave'},None)
+        try:h.dispatch({'action':'scienceDraftCommit'},None)
         except ValueError as error:assert 'Stop' in str(error)
         else:raise AssertionError('Pending terminal allowed experiment admission')
         h.job=None;h.broadcast();click('science-author-cancel')

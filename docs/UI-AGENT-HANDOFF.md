@@ -751,7 +751,8 @@ entire multi-batch form transaction. Large markers are not truncated values.
 Reserve readable table ID columns and local horizontal scrolling instead of
 squeezing headings letter-by-letter; test rendered geometry across font settings.
 The exact reusable protocol is in [typed-dataset-sessions.md](typed-dataset-sessions.md).
-Experiment draft forms remain unmigrated. Keep notification signals from shadowing
+Actual experiment forms now also use owned literal cards/edits and staged children.
+Keep notification signals from shadowing
 native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
@@ -764,9 +765,12 @@ Projected prospective candidates should expose identities/status/explicit partia
 diagnostics/counts without repeatedly transferring full split manifests, role IDs
 or training protocols. No-fit preview still has native validation/manifest costs.
 The tested native primitives and closed contracts are in
-[typed-experiment-sessions.md](typed-experiment-sessions.md); actual experiment
-form/controller adoption remains open. Do not infer visible behavior from service
-availability or use a partial projection as a retained scientific specification.
+[typed-experiment-sessions.md](typed-experiment-sessions.md); the actual experiment
+controller now adopts them. Reference dropdown identity must ignore JSON key order;
+pairing values remain literal IDs, not JSON strings. Disable controls as soon as
+the owned header is accepted, before first-page delivery. Preserve failed Back
+history, and await every parallel read before releasing pending guards. Use
+partial projection DTOs only for controls, never as retained scientific specs.
 
 ## Saved evidence and comparison recipes (branch-only domain extension)
 

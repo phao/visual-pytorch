@@ -17,6 +17,7 @@
     window.LoomScienceAuthor?.stateChanged?.();
     window.LoomDatasetSessionForm?.stateChanged?.();
     window.LoomTaskSessionForm?.stateChanged?.();
+    window.LoomExperimentSessionForm?.stateChanged?.();
     window.LoomScienceDocument?.stateChanged?.();
   }
   const valid=owner=>state===owner;

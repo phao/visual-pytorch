@@ -93,22 +93,24 @@ These concrete gaps are observable in the current code:
   `scienceReport` reads remain available; authoring stored-revision selectors now
   use independent bounded choices without full metadata indexes. Task field/port
   suggestions now have independent bounded exact collection pages, inspected IDs
-  and explicitly labelled shape previews; complete experiment drafts remain
-  full payloads. Session recovery and terminal-completion transports also
+  and explicitly labelled shape previews; actual experiment editing now uses
+  owned card/value/local-choice/edit/preview projections. Session recovery and terminal-completion transports
   remain unbounded. Main browsing projection bounds are not those other bounds.
-- Experiment `scienceAuthorBegin/Check/Save/Preview` still transfer complete drafts.
-  New owned-session backend/Qt commands support projected reads, sequence-fenced
-  patches and Check/Commit without whole draft transport. Dataset has migrated;
+- Legacy `scienceAuthorBegin/Check/Save/Preview` deliberately remain complete-draft
+  compatibility APIs. The actual dataset/task/experiment forms use owned-session
+  projected reads, sequence-fenced edits and Check/Commit without whole draft
+  transport. Dataset has migrated;
   [typed-dataset-sessions.md](typed-dataset-sessions.md) specifies literal bounded
   descriptors, stable-target edits, failed-read retry and linked staging in the
   same session. The actual task form now also uses owned literal cards/edits and
   linked child staging; [typed-task-sessions.md](typed-task-sessions.md) specifies
   independent bounded binding/pipeline pages, current named-property targets,
-  exact acknowledgements and retry/origin fences. Experiment forms have not migrated;
-  [typed-experiment-sessions.md](typed-experiment-sessions.md) specifies newly
-  tested native ordered cards, local pinned choices, named literal edits and
-  manifest-free prospective projections. Backend availability is not visible
-  form adoption; current native full validation/manifest costs also remain.
+  exact acknowledgements and retry/origin fences. The actual experiment form
+  now also uses independent six-card axes, exact local choices, named literal
+  queues, linked raw children and projected previews;
+  [typed-experiment-sessions.md](typed-experiment-sessions.md) distinguishes its
+  real-controller evidence from earlier native-only tests. Current native full
+  validation/manifest costs remain.
   [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
   tested transport scope. The separate actual chunk editor now stages raw large
   values with explicit acceptance and constrained admission estimates; see
@@ -118,9 +120,9 @@ These concrete gaps are observable in the current code:
   count. This does not bound all host/storage/dependency/history costs.
   Task contexts now avoid full field/vocabulary/metadata transport; see
   [task-context-pages.md](task-context-pages.md). Host registry decoding still has
-  complete costs, and
-  experiment forms render all axes and selection cards. Task rendering now bounds
-  visible bindings and each visible pipeline, without bounding all native costs.
+  complete costs. Experiment rendering now bounds visible axes/selection cards
+  and independently searched local choices; task rendering bounds visible
+  bindings and each visible pipeline, without bounding all native costs.
 - Saved metric/run pages and notebook figure tables bound returned/rendered
   rows, not arbitrary metadata size, full registry validation/inline costs,
   whole-file CSV reading or notebook source/payload size. Do not conflate these
@@ -139,10 +141,10 @@ on the retained branch; [scientific-browser.md](scientific-browser.md) specifies
 the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
-reads/explicit exports remain available. The next implementation unit is owned
-experiment typed-authoring draft migration and admission integration, preserving
-incomplete text and exact identity rather than transferring whole drafts. Hiding
-the full JSON in a collapsed panel is not a fix.
+reads/explicit exports remain available. Actual experiment typed-authoring
+migration is now tested; remaining recovery/completion/native inline costs,
+in-app figures/window geometry and integrated acceptance are next. Hiding
+full JSON in a collapsed panel is not a cost bound.
 Native task binding/transform page, literal-edit and owned compatibility primitives
 now exist with actual bridge checks; [typed-task-sessions.md](typed-task-sessions.md)
 records their exact scope. The actual task controller now uses them with bounded
@@ -225,8 +227,23 @@ and current sequence/origin/staging/admission guards. Extended real sandboxed
 QWebChannel checks a 160000-coordinate preview and all five new commands, exact
 literal integers, closed requests, pending-terminal fences, no pre-Commit SQL/
 history change and actual owner cleanup. This is not actual experiment-form
-migration or a 160000-fit claim. The next controller must preserve all supported
-split/protocol/selection controls and the existing native eight-fit gates.
+migration or a 160000-fit claim; that historical checkpoint preceded the actual
+controller below.
+
+The actual experiment controller adds 28 asynchronous form/choice tests. They
+cover literal focus/precision/invalid text, 25-operation batch splitting,
+current structural paths, settled parallel reads, failed Back/return retry,
+linked child adoption, exact decimal previews, owner/sequence/origin/job guards
+and independent exact local pins. Native Qt exercises 80-entry axes/1000 seeds,
+historical 20000-code-point question staging, local outside pins, injected
+failures, exact Commit, one undo/redo/history entry and save/reload. Its 163
+projections peak39205 bytes; fonts14/18/28 and the compact font18 capture are
+checked. The 1024000000-coordinate preview is a declared product space, not
+billion-run execution; the fixture forbids fit dispatch. Separately, the
+existing actual GUI regression passes eight candidate fits and all split
+methods on the new controller. Full suites pass 526 Python tests (171.889 s)
+and 204 JavaScript tests (1000.658 ms). These establish actual form migration,
+not recovery/terminal payload convergence, lazy storage, full C integration or D/E.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

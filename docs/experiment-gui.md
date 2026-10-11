@@ -38,21 +38,24 @@ Task context defaults once to a returned head; experiment selections remain
 explicit. Field/input-port/output-port suggestions now use independent search/
 pages and exact-ID inspection, preserving manual binding text. Shape/axes previews
 and category counts omit full vocabularies/metadata; browsing retains scientific
-ordinals. Local draft axes/pairing choices and experiment full drafts remain
-unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md) and
+ordinals. Experiment local draft axes/pairing choices now have independent
+bounded pages; the actual form no longer sends complete drafts. See
+[typed-experiment-sessions.md](typed-experiment-sessions.md),
+[authoring-revision-choices.md](authoring-revision-choices.md) and
 [task-context-pages.md](task-context-pages.md).
 
 Owned task card/transform pages, literal edits and compatibility commands are
 tested through the actual native bridge; [typed-task-sessions.md](typed-task-sessions.md)
 specifies that transport. The actual task form below now uses it, including
-literal queued edits and linked child staging. Experiment authoring remains on
-the complete-draft path; this does not certify all native resource costs.
+literal queued edits and linked child staging. Experiment authoring now also
+uses owned bounded sessions; this does not certify all native resource costs.
 
 Native bounded experiment cards, named literal edits, current-value lookup,
 local selection choices and manifest-free previews now exist and are tested
 through the bridge. [typed-experiment-sessions.md](typed-experiment-sessions.md)
-defines their exact grammar and limits. The actual experiment form still uses
-the legacy path; primitive availability is not visible editor acceptance.
+defines their exact grammar/limits and actual visible form. Its independent
+six-card axes, exact local choices, literal queues, shared raw children and
+projected previews are separately tested through real controls and fits.
 
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
@@ -99,8 +102,8 @@ actions. Failed batches preserve invalid text; atomicity is per accepted batch,
 not a multi-batch form transaction. See [typed-dataset-sessions.md](typed-dataset-sessions.md)
 for closed commands, DTOs, edits, preservation and native evidence. Transport,
 small-preview work and DOM bounds are not lazy storage or universal host RAM/
-validation/history bounds. Experiment forms still transfer complete drafts;
-field/port suggestions now have bounded pages, though native registry decoding
+validation/history bounds. Experiment forms now use owned bounded pages;
+field/port suggestions also have bounded pages, though native registry decoding
 still has complete costs. External/lazy storage remains open.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
@@ -123,8 +126,9 @@ retains immutable evidence through the normal history wrapper. Pending terminal
 delivery blocks draft admission. In-flight commands disable duplicate submission;
 the existing keyboard typing safeguards apply to all inputs/textarea/selects.
 The pure backend supports dataset/task/experiment drafts under their existing
-closed grammars. Dataset/task use owned page/edit commands; experiment
-authoring remains on the complete-draft AuthorBegin/Check/Save path.
+closed grammars. All three forms use owned page/edit/Check/Commit commands.
+Complete-draft AuthorBegin/Check/Save remains a compatibility API, not the actual
+form transport.
 
 ### Typed task authoring
 
@@ -196,11 +200,11 @@ result and old prospective-validation text immediately. A different workspace
 UUID clears suggestions and disables the
 retained draft, including compatibility actions, until explicit Cancel/reopen.
 
-All bindings/transforms are currently rendered; their size is not bounded or
-virtualized. Context returns field/interface metadata, not observation values,
-but its backend still validates/loads the full inline dataset. Full data transport
-and metadata/rendering bounds remain unfinished, not proven by the dataset grid's
-paging. Task revisions use the existing v6 registry, history and explicit file
+Binding cards and each visible transform pipeline now page independently at
+most six entries. Context returns bounded field/interface projections, not
+observation values, but its backend still validates/loads the full inline dataset.
+These transport/rendering bounds do not bound complete native dependency costs.
+Task revisions use the existing v6 registry, history and explicit file
 Save, without new tables or an alternative task store.
 
 ### Typed experiment authoring
@@ -230,7 +234,9 @@ and commas inside IDs are preserved, and neither sorting nor deduplication occur
 Each existing entry has a fixed method: changing it requires explicit remove/add
 and the desired ID, not a coercion that discards method-specific settings.
 
-Initialization seeds form an explicit ordered axis. The CPU float32/Adam version-1
+Each axis independently renders at most six cards, using actual returned cursors.
+Initialization seeds form explicit integer cards with append/remove/reorder,
+not a complete-array textarea. The CPU float32/Adam version-1
 configuration exposes batch size, epochs/updates/examples/seconds bounds, evaluation
 interval, retained history points, learning rate, both betas, epsilon, weight decay,
 base initialization seed and independent shuffle seed/flag. Blank budget fields
@@ -255,9 +261,11 @@ Typing/reordering/changing choices clears an old preview immediately. Late previ
 or metadata replies cannot repopulate another workspace UUID/draft. These optimistic
 checks do not prove same-UUID database replacement, ABA/event or crash safety.
 
-Candidate pages bound returned/rendered rows, not full inline dependency transport,
-manifest bytes, metadata lists or the number of authoring controls. All experiment
-axis cards currently render. Preview is not a lazy-data implementation or execution
+Candidate pages bound returned/rendered rows; actual authoring independently
+bounds axis cards and stored/local choice pages. Large values use explicit
+same-session staging, not truncated editable fragments. These bounds do not
+bound full native inline dependency validation, manifest generation, registry
+decoding or history copies. Preview is not a lazy-data implementation or execution
 resource admission. Retain/check/no-op/undo/Save-reload use the same v6 rules as the
 other draft forms; no new SQL tables or parallel experiment store are introduced.
 
@@ -333,6 +341,11 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceAuthorCheck | draft | Strict read-only intrinsic/dependency validation, prospective hash |
 | scienceAuthorPreview | experiment draft, offset/limit (default 0/25, limit 1..25) | Read-only prospective compatibility page; never retain or fit |
 | scienceAuthorSave | draft | Optimistic checks then undoable immutable admission; exact no-op is read-only |
+| scienceDraftOpen | kind, optional exact reference/id | Actual editor owned header; no complete draft response |
+| scienceDraftExperimentPage/Value/Choices | session, sequence, closed card/value/choice arguments | Actual experiment ordered cards, current descriptors and independently pinned local choices |
+| scienceDraftExperimentEdit | session, sequence, operations | Atomic literal/structural batch; advanced header, no SQL admission |
+| scienceDraftExperimentPreview | session, sequence, optional offset/limit | Actual prospective candidate projection; no complete manifests/protocols or fitting |
+| scienceDraftCheck/Commit | session, sequence | Actual editor validation/admission; exact prospective/retained reference |
 | scienceTaskContext | exact model, dataset references | Legacy complete port/field suggestions; no records/fitted state |
 | scienceTaskContextPage | workspace_id, exact model/dataset, collection; optional query/offset/limit/pin | Actual bounded field/port suggestions; task-context-pages.md specifies DTO |
 | scienceTaskCompatibility | task draft, exact model/dataset references | Intrinsic draft check plus interface-only compatible/incompatible result |
@@ -371,6 +384,9 @@ Both actions are reads, including while a numerical job is active. GUI authoring
 controls are disabled while busy; native draft admission still uses the central
 pending-terminal guard before attempting to parse an edit.
 
+The Author actions above are complete-draft compatibility APIs. The actual owned
+experiment controller and its closed DTOs/limits are specified in
+[typed-experiment-sessions.md](typed-experiment-sessions.md). Legacy
 scienceAuthorPreview returns version 1, preview (the existing candidate-page
 schema with prospective experiment reference) and total_combinations_exact (decimal
 string). Invalid intrinsic drafts/dependencies/head/UUID, offsets or limits raise
@@ -489,7 +505,13 @@ the form capture was inspected. No console errors or GUI-host Torch import.
 These are bounded correctness/authoring checks, not training-quality evidence,
 an implicit sweep or the remaining C/D/E gates.
 
-Current checkpoint: 394 Python tests (134.602 s), 83 JS tests, all three real
-authoring forms, the existing fit/retry/report/notebook-generation/recovery flow,
-11 native Qt lifecycle tests and inherited sandboxed editor pass. Compile/syntax/
-diff checks pass. Partial Stage C remains branch-only and unpublished.
+That historical authoring checkpoint passed 394 Python tests (134.602 s), 83 JS
+tests, all three real authoring forms, the existing fit/retry/report/notebook-
+generation/recovery flow, 11 native Qt lifecycle tests and the inherited
+sandboxed editor checks. Compile/syntax/diff checks also passed.
+The later actual owned experiment editor adds 28 controller/choice
+tests and a real large-selection Qt fixture: 80-entry axes, 1000 seeds, exact
+historical long-value staging, independent pages/pins, failure retry and one
+undoable Commit/save-reload. The existing eight-fit/all-split regression also
+passes on the new controller. Current results are in [development.md](development.md).
+Partial Stage C remains branch-only and unpublished.

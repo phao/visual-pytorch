@@ -86,7 +86,9 @@ remain transient editor state, not commands for durable agent sessions.
 Native experiment projections/edits have the same boundary; see
 [typed-experiment-sessions.md](typed-experiment-sessions.md). They do not change
 ExperimentSpec/CLI import/apply or replace deliberate full CLI preview/export.
-The actual experiment form has not migrated to those commands yet.
+The actual experiment form now uses those commands, including same-session
+staged raw values and exact local choices. Agent import/apply still operates on
+complete scientific specifications, not browser projection DTOs or session tokens.
 
 `task-context-page fields|input_ports|output_ports --model ID REVISION --dataset
 ID REVISION [--query TEXT] [--offset N] [--limit 1..25] [--pin STABLE_ID]` shares

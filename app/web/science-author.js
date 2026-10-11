@@ -42,7 +42,7 @@
   }
   function controls(){
     if(!api)return;
-    const datasetActive=window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.();
+    const datasetActive=window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomExperimentSessionForm?.active?.();
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
     if(!datasetActive)for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
     $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||datasetActive||window.LoomDraftValueEditor?.active?.()||!api.workspace();
@@ -52,8 +52,10 @@
     if(!datasetActive)$('science-author-cancel').disabled=pending;
     window.LoomScienceDocument?.stateChanged?.();
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
-    $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
-    $('science-experiment-next').disabled=blocked||!draftPage||draftPage.preview.next_offset===null||!Number.isSafeInteger(draftPage.preview.next_offset);
+    if(!window.LoomExperimentSessionForm?.active?.()){
+      $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
+      $('science-experiment-next').disabled=blocked||!draftPage||draftPage.preview.next_offset===null||!Number.isSafeInteger(draftPage.preview.next_offset);
+    }
     window.LoomTaskContext?.controls();
   }
   function fields(){
@@ -146,7 +148,7 @@
     await context();
   }
   async function begin(kind='dataset',reference=null){
-    if(window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
+    if(window.LoomDatasetSessionForm?.active?.()||window.LoomTaskSessionForm?.active?.()||window.LoomExperimentSessionForm?.active?.()||window.LoomDraftValueEditor?.active?.())throw Error('Finish or discard the current draft before opening another.');
     const ticket=++generation,identity=api.workspace();
     const result=await api.call('scienceAuthorBegin',{kind,...(reference?{reference}:{})});
     if(ticket!==generation||identity!==api.workspace())return;
@@ -171,7 +173,7 @@
     controls();
   }
   window.LoomScienceAuthor={
-    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.())||Boolean(window.LoomTaskSessionForm?.active?.());},
+    active(){return Boolean(draft)||pending||Boolean(window.LoomDatasetSessionForm?.active?.())||Boolean(window.LoomTaskSessionForm?.active?.())||Boolean(window.LoomExperimentSessionForm?.active?.());},
     ownActive(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       window.LoomTaskContext?.mount(document,{...services,updateControls:controls,

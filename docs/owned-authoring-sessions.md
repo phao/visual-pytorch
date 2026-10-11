@@ -4,8 +4,9 @@
 without sending complete drafts for Open/Check/Commit. The actual
 [typed dataset form](typed-dataset-sessions.md) and standalone
 [chunked value editor](chunked-draft-values.md) use these sessions.
-The [typed task form](typed-task-sessions.md) also uses these sessions;
-experiment authoring has not migrated. This is not completion of
+The [typed task form](typed-task-sessions.md) and actual
+[experiment form](typed-experiment-sessions.md) also use these sessions.
+This is not completion of
 resource convergence or a published feature.
 
 ## Ownership and identity
@@ -59,8 +60,8 @@ read-only current-origin proof, not resumption based only on a returned UUID.
 
 Native experiment card/value/local-choice/literal-edit/projected-preview
 commands are specified in [typed-experiment-sessions.md](typed-experiment-sessions.md).
-These are infrastructure tested through the real bridge; the actual experiment
-form has not migrated yet. Native preview projections omit full split manifests,
+The actual experiment form now uses them, with independent local axes/choices,
+literal queues and same-session raw children. Native preview projections omit full split manifests,
 protocols and role-ID arrays, without changing candidate-resolution semantics.
 
 Open accepts only dataset/task/experiment. `reference` selects exact immutable
@@ -121,11 +122,13 @@ descriptors, queues stable-ID edits and opens a child value buffer in its existi
 session. Child Finish/Discard return to the parent, never retain/discard its
 whole draft. Do not truncate data/keys/ontology/text to meet the patch limit.
 
-Next: migration of experiment typed forms onto
-owner/sequence pages, preserving invalid local text and existing typed helpers;
-local selection cards/axes; field/port suggestions now have separate
-[bounded context pages](task-context-pages.md). Then in-app figures,
-integrated C acceptance and unchanged D/E. Stateless CLI specification/import
+The actual dataset, task and experiment forms now use owner/sequence pages,
+preserving invalid local text and their supported typed controls. Experiment
+axes and local selected-model/pairing choices have independent bounded pages;
+field/port suggestions use separate [bounded context pages](task-context-pages.md).
+Recovery/completion payloads, remaining native inline costs, in-app figures,
+window geometry and integrated C acceptance remain open before unchanged D/E.
+Stateless CLI specification/import
 commands continue to use the same registry: transient tab tokens are not `.vtw`
 or CLI persistence features.
 

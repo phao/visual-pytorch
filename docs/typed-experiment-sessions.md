@@ -1,11 +1,67 @@
-# Owned experiment transport — local Stage C backend checkpoint
+# Owned experiment editor — retained local Stage C checkpoint
 
 The native owned-session service now provides experiment selection cards, named
 literal edits, current-property lookup, local selection choices and a projected
-prospective preview. **The actual experiment form has not migrated yet.** It
-still uses the complete legacy draft path. Native tests are not visible-form
-acceptance or Stage C completion. Dataset/task forms already have separate
-owned-session implementations.
+prospective preview. The actual experiment form now uses this service for Open,
+ordered editing, preview, Check and Commit; it no longer transfers a complete
+ExperimentSpec in those requests. The legacy complete CLI/bridge authoring APIs
+remain deliberate compatibility paths. This is not full Stage C completion or
+universal native resource convergence. Dataset/task forms use the same ownership
+and staged-child machinery.
+
+## Actual typed form
+
+`app/web/experiment-session-form.js` is mounted after dataset/task forms in the
+real scientific panel. Only one editor owns a session at a time. It has independent
+six-card pages for models, dataset/task pairings, splits, initialization seeds,
+training configurations, whitelist pairs and exclusions. Back history follows
+returned byte-shortened cursors, not a guessed stride. Structure actions flush
+queued literal edits, read current paths, mutate and reload cards. Failed initial
+or post-acceptance reads retain the session and fence admission until Retry.
+Parallel reads settle before releasing pending guards; failed Back retains its
+navigation history. No automatic axis sorting or omitted-entry deletion occurs.
+
+The complete supported CPU/Adam controls remain: optimizer constants, batch size,
+evaluation cadence, retained history, all four independent budget bounds, shuffle
+and its seed, protocol initialization seed and the overriding initialization
+axis. Seed cards preserve explicit integer order; append/remove/reorder replace
+the former complete-array text control. Blank budget fields set JSON null, not
+the string "null" or omitted/moved properties. Integer controls retain native
+literal tokens beyond JavaScript Number's exact range. Decimal integers are
+explicit, without floating exponent conversion; seeds keep their declared range.
+Row/group/temporal/external split fields, actual role IDs, comparison modes,
+pair whitelists and exclusion reasons remain editable. Mode changes never erase
+existing conflicting entries. IDs retain literal spaces/commas and duplicate IDs
+remain available to the authoritative validator, not silently deduplicated.
+
+Focused dirty text is captured before disabling controls. Invalid fields and
+failed native batches retain their text; only correction replaces that property's
+queued operation. Batches have at most 25 operations/65536 compact ASCII bytes.
+Atomicity is per batch, not a multi-batch form transaction. Questions/reasons/
+role arrays too large for typed descriptors have labelled partial previews and
+explicit same-session raw children. Current Value/path lookup follows a flush;
+child Finish/Discard adopts only the same parent's advanced/unchanged header,
+then reloads pages without retaining/discarding the entire experiment. Entry and
+complete-experiment JSON repair are also explicit staged actions. Values, staged
+files and session tokens do not add a second persisted format.
+
+Stored revision choices keep exact immutable pins, without defaulting an experiment
+to a browsing head. `experiment-local-choice.js` independently pages/searches
+selected models and pairing IDs. Reference key order is normalized for dropdown
+identity only; retained reference bytes are not rewritten on refresh. Pairing
+dropdown values are literal IDs, not JSON-quoted strings. Missing/duplicate/
+incomplete choices remain visible; refresh never coerces them. Queries, cursors,
+session/sequence/workspace/selection and controller generation fence late results
+and errors. Tool groups live outside their select's label and have accessible
+search/navigation labels. Invalid non-model selections are not sent as model pins.
+
+Preview uses the exact projections below, displaying explicit partial reasons,
+available role counts and decimal-string totals without run buttons. Edits invalidate
+previous previews. Paging follows actual cursors and retained Back history.
+Wrong/stale page/edit/check/preview/Commit results cannot replace current controls
+or select a foreign identity. Returning UUID alone does not resume editing: native
+Origin must prove the original actual owner/Workspace/connection/sequence. Notified
+reload stays stale. These are transient fences, not durable recovery/general ABA.
 
 ## Closed native commands
 
@@ -160,12 +216,28 @@ Extended real sandboxed QWebChannel exercises all five commands with 80 pairings
 literal9007199254740993, failed atomic batches/stale sequences, staged-value and
 pending-terminal guards, unchanged SQL/history before explicit admission, exact
 old evidence retention and owner teardown. No host Torch/console errors.
-These are native transport tests, not actual experiment-form migration.
+These are native transport tests; separate actual-form evidence follows.
 Current full checks are recorded in [development.md](development.md).
 
-Next connect the actual form: bounded local axes/cards, independent local and
-stored exact-choice controllers, literal queues/focus/invalid text preservation,
-flush/current lookup/linked staging, actual preview projection consumption,
-owner/generation/sequence/retry fences and existing eight-fit/all-split/history
-gates. Then remaining C resource/figure/window/integration work and unchanged
-D/E. No full Stage C or universal RAM/crash/detached-safety claim follows here.
+Twenty-eight controller/choice cases verify the actual implementation's ordered
+pages, focus/precision/invalid text, batch splitting, fresh structural paths,
+failed-read retry/settlement, linked child adoption, exact decimal previews,
+comparison conflicts, wrong/stale responses, independent pins/key normalization,
+owner/origin/job/editor exclusivity and late-error suppression.
+
+`qt_experiment_sessions_smoke.py` opens a historical exact experiment with 80-entry
+axes, 1000 seeds, 20000-code-point question and large reasons. Actual sandboxed
+controls exercise independent pages/search/outside pins, literal precision,
+same-session child Finish/Discard, injected initial/Back/child-return failures,
+exact retained bytes, one history entry/undo/redo/save-reload and fonts14/18/28.
+Its 163 projections peak39205 bytes; capture inspected. Preview shows 1024000000
+declared coordinates while resolving only its current page, with fitting/dispatch
+forbidden. This is a large reusable selection editor, not billion-run execution,
+full-window wire bounds or universal host-memory proof. The actual fit regression
+separately checks eight candidate fits, all split methods, full optimizer/seeds,
+historical choices, exclusions/incompatibilities, 96-coordinate preview, invalid
+text, no-op/history/head/workspace/pending guards and reload.
+
+Remaining C recovery/completion/native inline costs, figures/window geometry and
+integration work still precede unchanged D/E. No full Stage C or universal RAM/
+crash/detached-safety claim follows here.

@@ -15,6 +15,64 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 01:42 -03:00 — Actual bounded owned experiment editor
+
+The visible experiment form now uses owned Open/card/value/local-choice/edit/
+preview/Check/Commit actions, not complete ExperimentSpec transport. Seven
+independent axes render at most six scientific-order cards; initialization
+seeds are explicit ordered integer cards. Stored and local choices independently
+search/page with exact outside/missing/duplicate pins. All existing split,
+selection, CPU/Adam/budget/shuffle controls remain. Blank optional bounds set
+JSON null; integers retain native literal precision. Focused/invalid text and
+failed batches survive, with at most 25 operations per bounded atomic batch.
+Structural actions flush queues and read current paths. Large values/explicit
+JSON repair use the same parent session's staged child, not a second store.
+
+Initial and post-acceptance read failures fence admission until Retry. Parallel
+reads settle before releasing pending guards; Back history survives failed reads.
+Wrong/stale pages, choices, Check/preview/Commit replies and errors cannot replace
+the current owner/sequence/workspace. Native Origin proof, not UUID equality,
+allows returning to the actual original Workspace/connection; notified reload
+stays stale. These are transient guards, not general ABA/crash/detached recovery.
+Preview projects current candidates without full role manifests/protocols,
+retaining exact decimal Cartesian totals, available counts and explicit partial
+reasons. No run occurs until explicit retained-candidate execution.
+
+Twenty-eight new actual-controller/choice cases pass. Full suites pass 526
+Python tests (171.889 s) and 204 JavaScript tests (1000.658 ms). Actual sandboxed
+Qt checks 80-entry axes, 1000 seeds, a historical 20000-code-point question and
+large reasons: independent pages/local outside pins, literal9007199254740993,
+staged Finish/Discard, injected initial/Back/return failures, exact retained
+bytes, one undoable admission/history entry and save/reload. Its 163 projections
+peak39205 bytes; font14/18/28 checks pass and the compact font18 capture is
+inspected. The 1024000000-coordinate preview resolves only its current page;
+dispatch is forbidden. This is editor-scale evidence, not a billion-fit claim.
+
+The actual experiment regression passes eight two-model/two-dataset/two-seed
+GUI fits, all split methods, complete optimizer controls, paired/excluded/
+incompatible cases, 96-coordinate paging, invalid text/refresh, historical/
+missing choices, no-op/history/head/workspace/pending guards and save/reload.
+Actual dataset and large task editor regressions also pass (dataset21
+projections/16385 peak bytes; task22/4124). No host Torch or console errors.
+The suites use temporary workspaces/profiles and conservative sequential CPU
+fits; the user's application/files/config/desktop and public release are unchanged.
+
+Negative evidence led to production fixes: pairing choice option values were
+JSON-quoted IDs, and equivalent exact references had different dropdown keys
+because JSON member order differed. Values now use literal pairing IDs and
+normalized exact-reference keys solely for dropdown identity, without rewriting
+persisted references. Initial-load controls are disabled immediately; late
+choice errors also check the captured workspace/sequence/selection. The large
+fixture's first question accidentally exceeded the documented 20000-code-point
+limit and was corrected, not admitted by widening the production limit.
+
+The exact file/CLI/reusable UI contracts align; no SQLite grammar or persistent
+CLI session token changes. Complete authoring APIs remain compatibility paths,
+not actual form calls. Next are recovery/completion transports, remaining native
+inline costs, in-app figures/window geometry and integrated C acceptance,
+followed by unchanged D/E. This checkpoint remains local on
+`task/stage-c-experiments`, not integrated or published. Full A–E stays active.
+
 ### 2026-10-11 01:14 -03:00 — Native bounded experiment authoring primitives
 
 Owned experiment sessions now expose at most six ordered selection cards per
