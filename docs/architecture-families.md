@@ -13,8 +13,10 @@ adds [typed owned family authoring](typed-family-sessions.md),
 [explicit boolean/enum constructor choices](constructor-choices.md), their
 typed retained bindings and experiment axes. Version4 supports per-Module
 [scoped constructor bindings](scoped-constructors.md) and required child arguments
-without global defaults. Runtime recurrence remains separate.
-All four family grammars now support [checked standalone class export](checked-family-export.md),
+without global defaults. Version5 explicitly retains runtime H/W; version6 permits
+Recurrent transitions and explicitly selects a nullable temporal policy. See
+[temporal families](temporal-families.md); earlier grammars do not acquire recurrence.
+All six family grammars support [checked standalone class export](checked-family-export.md),
 with exact constructor guards/provenance and semantic shape-aware warm starts.
 
 ## Family document version 1
@@ -90,8 +92,10 @@ divisibility and reshape element preservation after binding.
 A repeat has exactly `id`, `model`, `nodes`, `count`, `mode`. `nodes` is an ordered
 nonempty unary-operation chain, with one ingress and one egress and no branch
 crossings. Input, Output, Concat, Splitter and Replicator are not repeat bodies.
-An ingress from a router retains its explicit `from_port`. A downstream Concat
-source is rewritten in place, preserving feature packing. Bodies cannot overlap
+Recurrent is not a unary repeat body, even in family6. An ingress from a router
+retains its explicit `from_port`. Downstream Concat sources and Recurrent
+sequence/state/control bindings are rewritten in place, preserving explicit
+wire identities and feature packing. Bodies cannot overlap
 or nest in version 1. Consecutive repeat bodies are supported.
 
 Version1 supports only `mode: "independent"`. Version2 and3 additionally accept

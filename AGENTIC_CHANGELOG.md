@@ -4,6 +4,30 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 13:36 -03:00 — Retained temporal family provenance and actual Qt workflow
+
+Added closed family6/specialization5 in container15, because variable-time models
+need an explicit retained policy and reproducible proof rather than a transient
+compiler option. Scoped Recurrent constructors, null fixed policy, exact historical
+native construction and checked export retain stable semantic parameter IDs across
+baseline-T choices. Existing family1–5 receipts/records match pinned492a217 on10
+public example cases. Materialization inserts the complete recurrent closure in
+one atomic operation. Owned Qt policy editing keeps explicit upgrades, required
+null and invalid text; CLI uses the same grammar. No new SQL tables or implicit
+temporal experiment selection.
+
+Added25 unittest cases and4 JS cases, real Qt/WebChannel smoke, a legacy parity
+probe and a disposable retained-family example. Final1013 Python322.005s passes
+(1010 PASS/3 Qt-only skips covered in101 native/pure2.248s);320 JS1437.348942ms
+pass. Independent row/CNN outputs/all gradients,80-update variable-T fitting,
+warm starts, current RAM and fresh app-free predictions pass. Actual Qt editing/
+preview/save/export/materialization/.vtw15 reload passes without host Torch or
+console errors. The Qt check caught a missing recurrent-body materialization bug
+after the first1011-test pass; fixed it, added closure/late-rollback regressions,
+and reran the full suite with source fixed. Initial failures remain private evidence.
+Specs and CLI contract are aligned. D temporal experiment/task/worker/notebook
+selection and E remain pending; no main/public integration or live user state changes.
+
 ## 2026-10-11 13:00 -03:00 — Explicit temporal runtime graph proof and execution
 
 Added a separate opt-in runtime-temporal-v1 API: explicit semantic root T axes

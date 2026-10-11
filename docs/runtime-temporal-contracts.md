@@ -2,10 +2,11 @@
 
 `app/temporal_shapes.py` defines the separate, explicit `runtime-temporal-v1`
 policy. It is not an upgrade of `runtime-spatial-v1`, a constructor repeat,
-hidden between-call state, or a retained architecture-family grammar. The
-ordinary graph remains concrete unless a caller selects this policy. This
-checkpoint does **not** add temporal family/experiment selection to the GUI or
-CLI. Family1–5 continue to reject Recurrent, and spatial runtime declarations
+hidden between-call state, or finite copying. The ordinary graph remains concrete
+unless a caller selects this policy. [Family6](temporal-families.md) now retains
+this policy and its exact specialization5 witness, with owned Qt editing and
+CLI preview/retention/export. Temporal experiment execution selection remains
+unimplemented. Family1–5 continue to reject Recurrent, and spatial runtime declarations
 continue to reject recurrence anywhere in the reachable closure.
 
 ## Declaration and pure proof

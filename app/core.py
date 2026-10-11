@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 14
+VERSION = 15
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -627,6 +627,11 @@ class Workspace:
                 for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
                     if _parse(text)['version'] >= 3:
                         raise GraphError('Recurrent ModelRevisions require a version-14 container.')
+            if version < 15:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (6 if kind == 'family' else 5):
+                        raise GraphError('Temporal recurrent family contracts require a version-15 container.')
             if version < 13:
                 from .revisions import _parse
                 for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):

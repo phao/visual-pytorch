@@ -18,7 +18,7 @@ PROPERTIES = {
     'constructors': ('model', 'node', 'symbol', 'value'),
     'templates': ('id', 'name', 'graph'),
 }
-ROOTS = ('name', 'root', 'version', 'runtime_inputs')
+ROOTS = ('name', 'root', 'version', 'runtime_inputs', 'runtime_policy')
 MAX_TEXT = 2000
 
 

@@ -30,7 +30,8 @@ CHOICE_FIELDS = {
 TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
     Output={'shape'}, Linear={'features', 'bias'}, Reshape={'shape'},
     Activation={'activation', 'dim'}, Module={'ref'}, Concat={'sources', 'flatten'},
-    Splitter={'parts'}, Replicator={'outputs'})
+    Splitter={'parts'}, Replicator={'outputs'},
+    Recurrent={'ref', 'sequence_inputs', 'states', 'sequence_outputs', 'controls'})
 
 
 def require(condition, message):
@@ -154,7 +155,7 @@ def _chain(model, repeat):
     require(isinstance(chain, list) and 1 <= len(chain) <= 62 and
             all(isinstance(n, str) for n in chain) and len(set(chain)) == len(chain),
             where + ': nodes must be an ordered nonempty unique chain.')
-    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES for n in chain),
+    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES - {'Recurrent'} for n in chain),
             where + ': repeat only unary operation blocks, not graph boundaries/routers.')
     selected = set(chain)
     internal = [e for e in edges if e['from'] in selected and e['to'] in selected]
@@ -172,10 +173,11 @@ def _chain(model, repeat):
 
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
-    keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'),
+    keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
+         (('runtime_policy',) if doc.get('version') == 6 else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5), 'Family supports integer version 1, 2, 3, 4 or 5.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6), 'Family supports integer version 1 through 6.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -188,7 +190,7 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
-                require(node['type'] != 'Recurrent',
+                require(node['type'] != 'Recurrent' or doc['version'] == 6,
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
@@ -212,13 +214,20 @@ def validate_family(doc):
             return
         reached.add(mid)
         for node in models[mid]['graph']['nodes']:
-            if node['type'] == 'Module':
+            if node['type'] in {'Module', 'Recurrent'}:
                 visit(node['ref'])
     visit(doc['root'])
     require(reached == set(models), 'Family closure contains unrelated models.')
     if 'runtime_inputs' in doc:
         from .runtime_shapes import declaration
         declaration(models, doc['root'], doc['runtime_inputs'])
+    if doc['version'] == 6 and doc['runtime_policy'] is not None:
+        value = doc['runtime_policy']
+        keys(value, ('version', 'kind', 'inputs'), where='Family temporal policy')
+        require(type(value['version']) is int and value['version'] == 1 and value['kind'] == 'runtime-temporal-v1',
+                'Family6 temporal policy requires integer version1 and kind runtime-temporal-v1.')
+        from .temporal_shapes import declaration
+        declaration(models, doc['root'], value['inputs'])
     require(isinstance(doc['symbols'], list) and len(doc['symbols']) <= 128, 'Family allows at most 128 symbols.')
     symbols, names = {}, set()
     for symbol in doc['symbols']:
@@ -299,8 +308,8 @@ def validate_family(doc):
                 isinstance(sid, str) and sid in symbols, 'Constructor needs existing model/node/symbol identities.')
         node = next((n for n in models[mid]['graph']['nodes'] if n['id'] == nid), None)
         where = mid + '/' + nid + ' constructor ' + sid
-        require(node is not None and node['type'] == 'Module' and symbols[sid]['scope'] == node['ref'],
-                where + ': target must belong to this Module\u2019s direct child scope.')
+        require(node is not None and node['type'] in {'Module', 'Recurrent'} and symbols[sid]['scope'] == node['ref'],
+                where + ': target must belong to this reference\u2019s direct child scope.')
         target = (mid, nid, sid)
         require(target not in constructor_targets, where + ': duplicate constructor target.')
         constructor_targets.add(target)
@@ -350,6 +359,10 @@ def _expanded(models, repeats, bindings):
         dest = lookup[outgoing['to']]
         if dest['type'] == 'Concat':
             dest['sources'] = [new_source if s == old_source else s for s in dest['sources']]
+        elif dest['type'] == 'Recurrent':
+            rows = dest['sequence_inputs'] + dest['states'] + list(dest.get('controls', {}).values())
+            for row in rows:
+                if row['source'] == old_source: row['source'] = new_source
         ingress, egress = dict(incoming, to=first), dict(outgoing, **{'from': last})
         model['graph']['edges'] = [e for e in model['graph']['edges'] if e['from'] not in body and e['to'] not in body] + [ingress] + wires + [egress]
         insertion = min(i for i, n in enumerate(model['graph']['nodes']) if n['id'] in body)
@@ -426,7 +439,7 @@ def _scoped_specialize(doc, symbols, supplied):
         expanded = _expanded({mid: model}, repeats, local)
         origins = {o['node']: o['template_node'] for o in expanded}
         for node in model['graph']['nodes']:
-            if node['type'] != 'Module': continue
+            if node['type'] not in {'Module', 'Recurrent'}: continue
             origin = origins.get(node['id'], node['id'])
             child_path = path + '/' + node['id']
             overrides = {}
@@ -471,6 +484,13 @@ def specialize(doc, supplied=None):
             result.update(version=3, runtime=None if spec is None else {
                 'version':1,'inputs':copy.deepcopy(spec['runtime_inputs']),'specification_sha256':digest(spec)},
                 runtime_specification=spec)
+        elif doc['version'] == 6:
+            from .temporal_shapes import specification
+            policy = doc['runtime_policy']
+            spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None
+            result.update(version=4, runtime=None if spec is None else {
+                'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
+                'specification_sha256':digest(spec)}, runtime_specification=spec)
         return result
     bindings = {}
     for sid, symbol in symbols.items():

@@ -1,5 +1,47 @@
 # Development state and roadmap
 
+## 2026-10-11 13:36 -03:00 — Retained temporal family and exact construction
+
+Family6 requires nullable runtime_policy (only nonnull runtime-temporal-v1) and
+permits closed Recurrent references/scoped child constructors. Specialization5
+retains the exact nullable witness and constructor contexts; container15 gates the
+new grammar without SQL tables. Admission/load/save re-prove frozen model and
+policy provenance. Exact historical `compile_specialization` explicitly constructs
+native models without drawing/head writes. Checked family export captures the
+selected policy and stable semantic Recurrent owner identities across baseline T;
+compatible warm starts transfer weights, not optimizer/hidden state.
+
+The owned Qt form explicitly upgrades policy edits to6, preserves required null
+and malformed text, and never converts spatial axes silently. Drawing capture with
+Recurrent seeds a fixed family6. Existing CLI preview/atomic specialization/export
+share the closed contract. Materialization copies the complete Module/Recurrent
+closure children-first with late-write rollback. The real Qt check found omission
+of recurrent bodies after an initial green unit suite; fixed it and added two
+focused closure/rollback regressions before final full verification.
+
+Final unchanged-source1013 Python322.005s pass (1010 PASS/3 Qt-only skips covered
+in101 native/pure2.248s),320 JS1437.348942ms, actual sandboxed Qt editing/preview/
+retention/export/materialization/reload and10 pinned family1–5 receipt/record
+comparisons pass. Added25 unittest cases and4 JS cases. Independent row/CNN
+outputs/all gradients, exact historical/null witness, forgery refusal, current RAM,
+80-update mixed-T fit with unchanged owner/optimizer IDs, cross-baseline warm starts
+and fresh app-free loaded-weight predictions pass. The disposable public
+`examples/temporal_family.py` reloads .vtw15 and matches native/export outputs
+at T=3/7/11. Actual Qt capture was inspected, not used as numerical evidence.
+
+Private evidence retains failed commands/fixtures, owned-version publication bug,
+first1011-test pass, failing Qt materialization and final corrected-source run.
+Production Python/discovered tests were fixed during both full numerical/kernel
+runs. Canonical sole source remains this checkout; campaign stores evidence only.
+Exact specification: [temporal-families.md](temporal-families.md).
+
+Next implement explicit temporal execution selection through Experiment/Run/
+TaskBundle, typed data/task bindings, workers, predictors and actual notebook/report
+paths. The existing runtime task service still requires spatial family5/
+specialization4; helper capture and ordinary materialization are not selection.
+Existing recurrent interface reconfiguration remains explicit CLI edits. D/E/full
+goal remain incomplete/local; no main/public or live user state changes.
+
 ## 2026-10-11 13:00 -03:00 — Temporal graph runtime foundation
 
 Explicit `compile_model(..., runtime_temporal={root_input_id:[0]})` now permits

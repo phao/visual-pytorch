@@ -2,7 +2,7 @@
 (() => {
   let root,api,saved,state=null,pending=false,epoch=0,controlling=false,flushing=false;
   const $=id=>root.getElementById(id),el=(tag,text)=>{const n=root.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  const collections={templates:'Concrete templates',symbols:'Scoped constructor symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied',constructors:'Scoped Module constructor bindings'};
+  const collections={templates:'Concrete templates',symbols:'Scoped constructor symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied',constructors:'Scoped reference constructor bindings'};
   const args=()=>({session:state.header.session,sequence:state.header.sequence});
   const live=(owner,ticket)=>state===owner&&!owner.stale&&ticket===epoch&&owner.header.workspace_id===api.workspace();
   const issue=e=>{$(state?'science-family-status':'science-family-instance-status').textContent=e.message;api.toast(e.message,true);};
@@ -72,7 +72,7 @@
     }});
   }
   function control(d,target,readOnly=false,symbolType='integer'){
-    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph','values','default','runtime_inputs'].includes(key),
+    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph','values','default','runtime_inputs','runtime_policy'].includes(key),
       numeric=['minimum','maximum','version'].includes(key),
       selector=['mode','type'].includes(key),n=el(selector?'select':json&&key!=='default'?'textarea':'input');
     if(selector){
@@ -89,17 +89,23 @@
       n.placeholder='{"input": [1, 2]} · blank = fixed shapes';
       n.title='Optional H/W sample axes by stable root Input ID. 1=H, 2=W; B/C stay fixed. Explicit family version 5. Weights must be independent of runtime axes; actual shapes/RAM are checked before each call.';
     }
+    if(key==='runtime_policy'){
+      n.placeholder='{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0]}} · null = fixed';
+      n.title='Explicit family6 temporal policy. Stable root Input IDs with semantic T sample axis [0]. Frames/states/learned dimensions remain fixed; mask/reset T must be declared separately. Null means concrete shapes. Older spatial runtime_inputs must be removed explicitly, not silently converted.';
+    }
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
     else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):'';
     n.oninput=()=>{n.dataset.dirty='';invalidate();};
     n.onchange=()=>{try{
-      let text;if((numeric||['default','values','runtime_inputs'].includes(key))&&n.value.trim()==='')text=null;
+      let text;if(key==='runtime_policy'&&n.value.trim()==='')text='null';
+      else if((numeric||['default','values','runtime_inputs'].includes(key))&&n.value.trim()==='')text=null;
       else if(json||numeric){text=n.value;const parsed=JSON.parse(text);
         if((numeric||key==='default'&&typeof parsed==='number')&&!/^-?(0|[1-9][0-9]*)$/.test(text))throw Error('Enter an exact decimal integer, or blank for an absent default/bound.');
       }else text=JSON.stringify(n.value);
       if(key==='mode'&&n.value==='tied')upgrade(2,n);
       if(['type','values'].includes(key))upgrade(3,n);
       if(key==='runtime_inputs'&&text!==null)upgrade(5,n);
+      if(key==='runtime_policy'&&text!==null)upgrade(6,n);
       enqueue(target,key,text,n);
     }catch(e){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(e);}};
     wrapper.append(n);if(!readOnly&&d.path&&(large||json))wrapper.append(button('Edit staged JSON…',()=>raw(d.path,key)));

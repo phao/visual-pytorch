@@ -40,6 +40,40 @@ async function runtimeOpened(version=4){
   return opened(fixture(),{templates:{roots}});
 }
 const runtimeField=f=>f.get('science-family-roots').querySelectorAll('[data-key]').find(n=>n.dataset.key==='runtime_inputs');
+async function temporalOpened(version=4){
+  return opened(fixture(),{templates:{roots:[descriptor('version',version,[0]),
+    descriptor('runtime_policy',null,[1]),{key:'runtime_inputs',present:false,text:null,path:null,summary:null}]}});
+}
+const temporalField=f=>f.get('science-family-roots').querySelectorAll('[data-key]').find(n=>n.dataset.key==='runtime_policy');
+test('temporal JSON queues explicit version-six acknowledgement before policy and keeps stable IDs',async()=>{
+  const f=await temporalOpened(),n=temporalField(f);assert.equal(n.tagName,'textarea');
+  const text='{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0],"mask":[0]}}';edit(n,text);
+  const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'6'},
+    {op:'property',target:{kind:'document'},key:'runtime_policy',text}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+  assert.equal(f.get('science-family-roots').querySelector('[data-key="version"]').value,'6');
+});
+test('blank temporal policy retains required explicit null rather than removing grammar field',async()=>{
+  const f=await temporalOpened(6);edit(temporalField(f),'');const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[6].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'runtime_policy',text:'null'}]);
+  f.requests[6].resolve(h(1));await tick();f.requests[7].resolve(ref);await done;
+});
+test('invalid temporal text stays editable and blocks preview or retention',async()=>{
+  const f=await temporalOpened(6),n=temporalField(f);edit(n,'{not json');
+  await f.click('science-family-preview');await f.click('science-family-save');
+  assert.equal(f.requests.length,6);assert.equal(n.value,'{not json');assert.ok('invalid' in n.dataset);
+});
+test('temporal editing never silently removes an older spatial declaration',async()=>{
+  const f=await temporalOpened(5);edit(temporalField(f),'{"version":1,"kind":"runtime-temporal-v1","inputs":{"sequence":[0]}}');
+  const done=f.click('science-family-preview');await tick();
+  assert.equal(f.requests[6].args.operations.length,2);
+  assert.ok(f.requests[6].args.operations.every(o=>o.key!=='runtime_inputs'));
+  f.requests[6].resolve(h(1));await tick();f.requests[7].reject(Error('Remove old spatial declaration explicitly'));await done;
+  assert.ok(f.toasts.some(t=>String(t[0]).includes('explicitly')));
+});
 test('runtime declaration queues explicit grammar upgrade before stable Input ID JSON',async()=>{
   const f=await runtimeOpened(),n=runtimeField(f);assert.equal(n.tagName,'textarea');
   edit(n,'{"input":[1,2]}','input');f.root.activeElement=n;

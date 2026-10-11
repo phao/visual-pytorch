@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 14
+# Visual Torch Workspace (.vtw): format specification, version 15
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -16,16 +16,17 @@ version-7 container; they add no SQL table or sidecar. The
 [scoped Module constructors](scoped-constructors.md) require version11;
 [retained runtime H/W contracts](runtime-spatial-contracts.md) require version12;
 [explicit runtime task execution](runtime-task-execution.md) requires version13;
-[recurrent graph references](recurrent-graph-contract.md) require version14.
+[recurrent graph references](recurrent-graph-contract.md) require version14;
+[retained temporal families](temporal-families.md) require version15.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 14. The current reader accepts versions 1–14; opening
-an older file copies it into memory and upgrades the working version to 14.
-Opening alone never rewrites the source; explicit Save writes version 14.
+PRAGMA user_version = 15. The current reader accepts versions 1–15; opening
+an older file copies it into memory and upgrades the working version to 15.
+Opening alone never rewrites the source; explicit Save writes version 15.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -76,7 +77,15 @@ reachable transition closure. Earlier headers containing either new semantic
 feature fail. No SQL tables, family1–5 grammar, TaskBundle1, experiment/run or
 report recipe grammar changes. Existing concrete task execution can capture the
 new model revision. See [recurrent-graph-contract.md](recurrent-graph-contract.md).
-Older binaries are not expected to open version 14;
+Version15 adds family v6's required nullable `runtime_policy` and specialization
+v5's required nullable temporal witness. Family6 permits explicit Recurrent
+references and scoped transition constructor bindings; a nonnull policy selects
+only `runtime-temporal-v1`. Load/save re-prove the exact witness against the
+retained family, bindings, constructor contexts and frozen model. Earlier headers
+containing family6 or specialization5 fail. No new SQL tables, experiment/run
+grammar or variable-T experiment execution are added by this version. See
+[temporal-families.md](temporal-families.md).
+Older binaries are not expected to open version 15;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -117,7 +126,7 @@ creates external evidence; no browser projection is a persisted scientific spec.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 13;
+PRAGMA user_version = 15;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -163,7 +172,11 @@ specialization and task
 integer version3 and specialization supports integer version2 in a version-10
 container; family additionally supports integer version4 and specialization
 integer version3 in a version-11 container; family additionally supports integer
-version5 and specialization integer version4 in a version-12 container);
+version5 and specialization integer version4 in a version-12 container;
+experiment/run additionally support integer version4 in a version-13 container;
+model additionally supports integer version3 in a version-14 container;
+family additionally supports integer version6 and specialization integer version5
+in a version-15 container);
 other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to

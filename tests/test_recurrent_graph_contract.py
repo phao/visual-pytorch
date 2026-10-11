@@ -135,7 +135,7 @@ class RecurrentGraphContractTests(unittest.TestCase):
         with self.assertRaises(GraphError): w.delete('transition')
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'sequence.vtw'; w.save(path)
-            with sqlite3.connect(path) as db: self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 14)
+            with sqlite3.connect(path) as db: self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], VERSION)
             opened = Workspace.load(path); self.addCleanup(opened.db.close)
             self.assertEqual(validate_model(opened.models(), mid)['parameters'], 10)
             with sqlite3.connect(path) as db: db.execute('PRAGMA user_version=13')

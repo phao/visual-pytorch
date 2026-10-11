@@ -53,7 +53,7 @@ Constructor signature:
 
 ```python
 ArchitectureFamily(*, bindings=None, constrained=None, memory_limit_percent=None,
-                   runtime_inputs=None)
+                   runtime_inputs=None, initial_shapes=None, runtime_temporal=None)
 ```
 
 `bindings` maps stable symbol IDs to exact integers, booleans or enum strings.
@@ -95,6 +95,18 @@ Persisted declarations/typed GUI authoring are implemented in `.vtw`12. Task
 datasets and worker/notebook fits remain concrete fixed-shape; merely capturing
 the runtime module does not change their data contract. Warm starts transfer compatible weights, not a promised
 runtime-domain continuation.
+
+Family6 instead has required nullable `runtime_policy`. A nonnull policy defaults
+the constructor's `runtime_temporal` to its exact retained semantic-T declaration.
+An explicit map supplies a separately checked instance override; null policy is
+fixed unless the caller explicitly opts in. Nonnull runtime_temporal on family1–5
+is rejected. Spatial and temporal overrides cannot be selected together.
+`initial_shapes` supplies an admitted first actual case, not new learned dimensions.
+Recurrent transition parameter IDs use stable family/template/recurrent/node
+identities, independent of baseline T and generated scoped model IDs. Compatible
+strict warm starts transfer weights across those constructor points, not optimizer
+state or hidden recurrent state. [Temporal families](temporal-families.md) gives
+the complete retained grammar and native exact-specialization construction API.
 
 ## Captured runnable closure and provenance
 

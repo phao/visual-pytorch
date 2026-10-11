@@ -1,6 +1,6 @@
 # Agent and user CLI contract
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw. It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container15). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
@@ -16,6 +16,12 @@ retained family; the edit accepts `family_ref` instead of a full definition,
 optional `id`/`name`, and boolean `materialize` (default true). Typed GUI family
 authoring now uses the same persisted grammar; its transient editor transport is
 specified in [typed-family-sessions.md](typed-family-sessions.md).
+Family6 and specialization5 use these same commands, with required nullable
+runtime_policy and an exact nullable runtime-temporal-v1 witness. Materialization
+inserts the complete Module/Recurrent closure children-first in one atomic edit.
+Preview/export do not rewrite the workspace or allocate PyTorch. CLI constructor
+bindings do not select temporal experiment execution. See
+[temporal-families.md](temporal-families.md).
 Family v4 scoped Module call bindings and specialization v3 local contexts use
 these same CLI operations, with no agent-only schema shortcuts. See
 [scoped-constructors.md](scoped-constructors.md) and

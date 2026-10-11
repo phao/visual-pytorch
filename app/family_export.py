@@ -59,6 +59,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
                   'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
+                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] == 6 else {}),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -147,6 +148,8 @@ def _semantic_schema(runtime, resolved, family):
             path = prefix + 'layer_' + str(index)
             if node['type'] == 'Module':
                 visit(node['ref'], path + '.', components + ['call', node['id']])
+            elif node['type'] == 'Recurrent':
+                visit(node['ref'], path + '.transition.', components + ['recurrent', node['id']])
             elif node['type'] in {'Linear', 'Conv2d'}:
                 for kind in ('weight', 'bias'):
                     key = path + '.' + kind
@@ -164,7 +167,7 @@ class ArchitectureFamily(nn.Module):
     Invalid grammar/types/shapes/sharing/budgets fail BEFORE parameter allocation.
     None policy values use the explicitly captured workspace export policy.
     """
-    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None, runtime_inputs=None, initial_shapes=None):
+    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None, runtime_inputs=None, initial_shapes=None, runtime_temporal=None):
         super().__init__()
         runtime = _runtime(); source = family_definition()
         resolved = runtime.families.specialize(source, bindings)
@@ -172,9 +175,14 @@ class ArchitectureFamily(nn.Module):
         constrained = policy['constrained'] if constrained is None else constrained
         percentage = policy['memory_limit_percent'] if memory_limit_percent is None else memory_limit_percent
         runtime_inputs = source.get('runtime_inputs') if runtime_inputs is None else runtime_inputs
+        if runtime_temporal is not None and source['version'] != 6:
+            raise ValueError('Temporal family construction requires an explicit family6 grammar.')
+        if source['version'] == 6 and runtime_temporal is None and source['runtime_policy'] is not None:
+            runtime_temporal = source['runtime_policy']['inputs']
         # compile_model performs the whole-model preflight before any nn layer.
         self.network = runtime.core.compile_model(resolved['models'], resolved['root'], constrained,
-                                                   memory_limit_percent=percentage, runtime_inputs=runtime_inputs, initial_shapes=initial_shapes)
+                                                   memory_limit_percent=percentage, runtime_inputs=runtime_inputs,
+                                                   initial_shapes=initial_shapes, runtime_temporal=runtime_temporal)
         self._resolved = copy.deepcopy(resolved)
         self._semantic = _semantic_schema(runtime, resolved, source)
         self._provenance = export_metadata()
@@ -183,12 +191,15 @@ class ArchitectureFamily(nn.Module):
                                 architecture_hash=resolved['architecture_hash'],
                                 runtime_inputs=copy.deepcopy(runtime_inputs),
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
+        if source['version'] == 6:
+            self._provenance['runtime_temporal'] = copy.deepcopy(runtime_temporal)
 
     @classmethod
     def constructor_specification(cls):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
                 'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
+                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] == 6 else {}),
                 'policy': export_metadata()['policy']}
 
     @property
@@ -202,12 +213,12 @@ class ArchitectureFamily(nn.Module):
         return copy.deepcopy(self._semantic)
 
     def runtime_specification(self):
-        if self._provenance['runtime_inputs'] is None:
+        if self._provenance['runtime_inputs'] is None and self._provenance.get('runtime_temporal') is None:
             return None
         return self.network.runtime_specification()
 
     def preview_shapes(self, shapes, *, batch_size=1, gradients=True, dtype_bytes=4):
-        if self._provenance['runtime_inputs'] is None:
+        if self._provenance['runtime_inputs'] is None and self._provenance.get('runtime_temporal') is None:
             raise ValueError('Construct with explicit runtime_inputs before previewing runtime shapes.')
         return self.network.preview_shapes(shapes, batch_size=batch_size, gradients=gradients, dtype_bytes=dtype_bytes)
 
