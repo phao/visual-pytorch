@@ -1,5 +1,27 @@
 # Development state and roadmap
 
+## 2026-10-11 18:57 -03:00 — Direct runtime-v2 task acceptance
+
+Fresh frozen ea358bb53f25480c34540380b87cd6a28f2770e2 full suite passes1241
+Python472.501s:1238 executed/3 Qt-only skips independently covered by76 actual
+native/pure3.893s.356 JS1619.059405ms and20 final focused23.223s pass. Real
+native Qt three data adapters/malformed-before-worker refusal and existing
+task-v1 240-update regression pass. Sandboxed family7→8 editor/exact export/
+history/reload regression passes, with an actual visually inspected capture.
+Three old spatial bundle/identity/six shape and four old temporal bundle/
+identity/preparation/RAM/12 shape points agree exactly with committed pins.
+
+Initial1241 full473.506s passes but overlaps source updates; it is not final
+acceptance. No executable/test/example change occurred after ea358bb; this
+acceptance entry is documentation only. Campaign evidence retains both full
+runs, initial fixture failures, native/raw numerical logs and exact source.
+Local child integration/post-merge state is recorded in Git/campaign handoff.
+This accepts only direct TaskBundle4/RunIdentity4/worker/predictor routes, not
+retained ExperimentSpec6, new notebook-v2 routes or original D/E completion.
+Next: exact experiment6/run6/container20 authoring and real retained worker/
+saved/rerun kernel gates. Public main, user workspace/config/process unchanged.
+
+
 ## 2026-10-11 18:48 -03:00 — Direct runtime-v2 task implementation checkpoint
 
 TaskBundle4 now admits exact frozen Family8/Specialization7/proof2 provenance,

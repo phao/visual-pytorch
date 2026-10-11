@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 18:57 -03:00 — Direct runtime-v2 task acceptance verified
+
+Fresh frozen ea358bb full1241 Python472.501s passes (1238 executed/3 native-
+covered skips),76 actual native/pure3.893s,356 JS1619.059405ms,20 final focused
+23.223s and actual Qt task/editor/export/history routes pass. Old task identities,
+preparation, memory components and shapes match pinned modules exactly. First
+1241 run473.506s overlaps source edits and is preserved, not final acceptance.
+No executable changes after ea358bb; final changes are documentation only.
+Accepted for direct v2 tasks, not retained experiment6/notebook routes or D/E
+completion. Local Git/campaign records identify the following integration;
+no public push or user-state change. Reports remain deferred.
+
+
 ## 2026-10-11 18:48 -03:00 — Explicit direct runtime-v2 typed task checkpoint
 
 Implemented TaskBundle4/RunIdentity4 with exact retained v2 family provenance,
