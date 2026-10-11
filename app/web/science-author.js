@@ -44,11 +44,12 @@
     if(!api)return;
     const blocked=pending||!draft||api.busy()||draft.workspace_id!==api.workspace();
     for(const id of ['science-author-save','science-author-check','science-author-add-field','science-author-add-record'])$(id).disabled=blocked;
-    $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||!api.workspace();
+    $('science-author-new').disabled=pending||api.busy()||Boolean(draft)||window.LoomDraftValueEditor?.active?.()||!api.workspace();
     $('science-author-new-task').disabled=$('science-author-new').disabled;
     $('science-author-new-experiment').disabled=$('science-author-new').disabled;
-    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
+    $('science-author-edit').disabled=pending||api.busy()||Boolean(draft)||window.LoomDraftValueEditor?.active?.()||!api.workspace()||!['dataset','task','experiment'].includes($('science-kind').value)||!$('science-object').value;
     $('science-author-cancel').disabled=pending;
+    window.LoomScienceDocument?.stateChanged?.();
     if(draft)$('science-author').querySelectorAll('[data-author-control]').forEach(control=>control.disabled=blocked||control.dataset.orderDisabled==='true');
     $('science-experiment-prev').disabled=blocked||!draftPage||draftPage.preview.offset===0;
     $('science-experiment-next').disabled=blocked||!draftPage||draftPage.preview.next_offset===null||!Number.isSafeInteger(draftPage.preview.next_offset);
@@ -168,6 +169,7 @@
     controls();
   }
   window.LoomScienceAuthor={
+    active(){return Boolean(draft)||pending;},
     mount(document,services,onSaved){root=document;api=services;saved=onSaved;
       $('science-author-new').onclick=()=>act(()=>command(()=>begin()));
       $('science-author-new-task').onclick=()=>act(()=>command(()=>begin('task')));

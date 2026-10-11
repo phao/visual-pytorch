@@ -706,8 +706,14 @@ Close explicitly or on owner teardown; failed checks must preserve bytes.
 Preserve scientific order and invalid local text. A wire limit is not a bound on
 whole-host parsing/copies/history/validation; long values need separate editing
 and resource safeguards rather than truncation. The current tested backend/Qt
-service is in [owned-authoring-sessions.md](owned-authoring-sessions.md); existing
-typed forms are not migrated yet. Keep notification signals from shadowing
+service is in [owned-authoring-sessions.md](owned-authoring-sessions.md). The actual
+Qt value editor stages raw JSON in one owned temporary buffer, separates buffer
+revision from document sequence, uses UTF-8 byte cursors and explicit whole-value
+acceptance, and preserves malformed text/original values. RAM admission estimates
+precede full parsing/undo capture, not universal allocator bounds. Dirty navigation,
+exact identities, pending commands and reload-fenced replies need independent
+tests. Reuse the precise protocol in [chunked-draft-values.md](chunked-draft-values.md);
+existing typed forms are not migrated yet. Keep notification signals from shadowing
 native QObject event methods while preserving the advertised channel name.
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.

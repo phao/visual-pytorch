@@ -15,6 +15,41 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-10 23:21 -03:00 — Actual chunked value editor and draft admission
+
+Exact-revision browsing now offers Edit this value… for non-root dataset/task/
+experiment values. Owned temporary UTF-8 buffers retain incomplete JSON separately
+from original document values. Bounded fragments, byte-aligned splices, separate
+buffer revisions and explicit whole-value acceptance preserve int64 tokens and
+scientific order. Failed parsing, budget and identity checks retain staged text;
+Check/Commit remain strict and explicit. No new SQL kind/schema or CLI tokens.
+Constrained draft admission estimates use the current user RAM percentage and
+aggregate live sessions, before exact-base parsing/full value acceptance and,
+in the native shell, before undo capture. They are heuristics, not OOM guarantees
+or bounds on all dependencies/registry/host/disk costs. Typed forms remain on the
+old full-draft path; actual session/context migration is next. Protocol/limits:
+[chunked-draft-values.md](chunked-draft-values.md).
+
+Full 479 Python tests (173.382 s) and 129 JS tests (567 ms) pass. Eleven new backend
+and sixteen async client tests cover malformed/duplicate/nonfinite/UTF-8/precision,
+owner/sequence/source paths, admission, pending/retry/dirty navigation and stale
+deliveries. Actual app HTML/sandboxed Qt edits 20000 values, refuses budgets before
+full parsing/undo capture, preserves historical bytes, creates one undo entry and
+round-trips .vtw. Fonts14/18/28 and dark/GitHub/Math pass; private capture inspected.
+Existing native dataset/session/browser, multihead/ragged task fits and actual
+eight-candidate/all-split experiment fits pass. Typed Begin now advertises pending
+ownership immediately, preventing concurrent raw-value editing before its reply.
+No user files/config/app changes, integration or publication; full C/D/E remain open.
+
+The async audit reproduced a late splice/Finish acknowledgement overwriting a
+same-UUID reload notice and a failed backward read consuming its retry cursor;
+both are fixed and explicitly tested. Initial Qt probe patched the shared parser
+too broadly, blocking small incoming commands before the target large-value parse;
+the guard now allows command parsing and independently prohibits large parsing.
+Other fixture-only syntax/history-count mistakes were corrected without weakening
+preservation/admission assertions. Primary tempfile/codecs references are recorded
+in the value spec; current installed-runtime behavior is tested separately.
+
 ### 2026-10-10 23:01 -03:00 — Owned draft transport and Qt lifecycle repair
 
 The new transient `Sessions` backend/Qt commands open a projected header, read

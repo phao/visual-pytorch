@@ -68,6 +68,12 @@ legacy reads remain available, not silently truncated. See
 [scientific-browser.md](scientific-browser.md) for scope/identity/order, byte
 encoding, CLI-envelope and backend-cost limits. All three commands are read-only.
 
+The Qt [chunked draft value editor](chunked-draft-values.md) uses transient owned
+session/buffer tokens, not another `.vtw` grammar or persistent CLI session.
+Agents still use complete specification import/ordered apply with normal atomic
+admission and disk conflict checks. Large integer tokens remain literal JSON;
+the raw Qt path does not require rounding them through JavaScript Number.
+
 `spec-page --pin ID REVISION` resolves a selected exact reference independently
 of search/page/head filtering. A nonexistent pin fails by default; adding
 `--allow-missing-pin` returns that exact unavailable reference as `missing_pin`

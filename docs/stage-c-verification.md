@@ -98,7 +98,10 @@ These concrete gaps are observable in the current code:
   New owned-session backend/Qt commands support projected reads, sequence-fenced
   patches and Check/Commit without whole draft transport. Forms have not migrated
   yet; [owned-authoring-sessions.md](owned-authoring-sessions.md) records the
-  tested transport scope and remaining large-value/resource work.
+  tested transport scope. The separate actual chunk editor now stages raw large
+  values with explicit acceptance and constrained admission estimates; see
+  [chunked-draft-values.md](chunked-draft-values.md). This does not migrate typed
+  forms or bound all host/storage/dependency/history costs.
   Dataset authoring displays six fields × twenty observations but can stringify
   a huge tensor cell/metadata/vocabulary. This is a control-count limit, not a
   byte-size or whole-data-cost bound. Task contexts still transfer every field;
@@ -122,7 +125,7 @@ the byte encoding, ordinal/cursor/selection contracts and their cost limits.
 It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
 reads/explicit exports remain available. The next implementation unit is owned
-authoring draft/context paging/admission and long-cell editing, preserving
+actual typed-authoring draft/context migration and admission integration, preserving
 incomplete text and exact identity rather than transferring whole drafts. Hiding
 the full JSON in a collapsed panel is not a fix.
 

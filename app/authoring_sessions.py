@@ -6,10 +6,13 @@ the existing authoring contract. This service bounds wire projections/patches,
 not whole-document parsing, copies, validation or universal memory usage.
 """
 import copy
+import codecs
 import itertools
+import json
+import tempfile
 import uuid
 
-from . import authoring, science_browser
+from . import authoring, science_browser, authoring_memory
 from .core import GraphError
 from .datasets import _integer, _keys, _require
 from .revisions import _parse
@@ -97,16 +100,34 @@ class Sessions:
     Explicit close/owner teardown discards drafts; failed checks retain bytes.
     It is not a durable detached/crash recovery mechanism.
     """
-    def __init__(self):
+    def __init__(self, *, memory_limit_percent=10., available_fn=None):
         self._sessions = {}
+        self.memory_limit_percent = memory_limit_percent
+        self.available_fn = available_fn
+
+    def _admit(self, workspace, document=None, *, excluding=None, source_bytes=0, staging_bytes=0):
+        estimated = authoring_memory.estimate(document, source_bytes=source_bytes, staging_bytes=staging_bytes)
+        estimated += sum(row['estimate'] for token, row in self._sessions.items() if token != excluding)
+        return authoring_memory.admit(workspace, estimated, self.memory_limit_percent, available_fn=self.available_fn)
 
     def open(self, workspace, owner, kind, *, base=None, sid=None):
         _require(not any(row['owner'] is owner for row in self._sessions.values()),
                  'Close the owner\'s existing unsaved draft explicitly before opening another.')
+        _require(kind in authoring.KINDS, 'Only datasets, tasks and experiments have authoring drafts.')
+        source_bytes = 0
+        if base is not None:
+            authoring.reference(base, kind)
+            size = workspace.db.execute('SELECT length(CAST(document AS BLOB)) FROM spec_revisions WHERE kind=? AND id=? AND revision=?',
+                (kind, base['id'], base['revision'])).fetchone()
+            _require(size is not None, 'Requested immutable revision does not exist.')
+            source_bytes = size[0]
+        self._admit(workspace, source_bytes=source_bytes)  # Before full base parsing/copy.
         draft = authoring.begin(workspace, kind, base=base, sid=sid)
+        self._admit(workspace, draft['document'])
         token = uuid.uuid4().hex
         row = {'owner': owner, 'workspace': workspace, 'connection': workspace.db,
-               'draft': draft, 'sequence': 0}
+               'draft': draft, 'sequence': 0, 'buffer':None,
+               'estimate':authoring_memory.estimate(draft['document'])}
         result = self._header(token, row)  # Check projection before retaining it.
         self._sessions[token] = row
         return result
@@ -140,15 +161,21 @@ class Sessions:
 
     def patch(self, workspace, token, owner, sequence, operations):
         row = self._get(token, owner, sequence, workspace)
+        _require(row['buffer'] is None, 'Finish or discard the staged value before other draft edits.')
         operations = _json(operations)
         _require(isinstance(operations, list) and 1 <= len(operations) <= 25, 'Draft patch needs 1..25 ordered operations.')
         document = row['draft']['document']
         for operation in operations:
             document = _operation(document, operation)
+        return self._publish(workspace, token, row, document)
+
+    def _publish(self, workspace, token, row, document):
         _require(isinstance(document, dict) and document.get('id') == row['draft']['id'] and
                  type(document.get('version')) is int and document['version'] == 1 and 'revision' not in document,
                  'Draft patches must preserve stable document ID/version and cannot forge a revision.')
-        prospective = dict(row, sequence=row['sequence'] + 1,
+        self._admit(workspace, document, excluding=token)
+        prospective = dict(row, sequence=row['sequence'] + 1, buffer=None,
+                           estimate=authoring_memory.estimate(document),
                            draft=dict(row['draft'], document=document))
         result = self._header(token, prospective)
         self._sessions[token] = prospective  # Publish only after every operation/projection check.
@@ -156,19 +183,127 @@ class Sessions:
 
     def check(self, workspace, token, owner, sequence):
         row = self._get(token, owner, sequence, workspace)
+        _require(row['buffer'] is None, 'Finish or discard the staged value before validating the draft.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
         return authoring.check(workspace, row['draft'])
 
     def commit(self, workspace, token, owner, sequence):
         row = self._get(token, owner, sequence, workspace)
+        _require(row['buffer'] is None, 'Finish or discard the staged value before retaining the draft.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
         result = authoring.save(workspace, row['draft'])
         del self._sessions[token]  # Successful admission ends this editor session.
         return result
 
     def close(self, token, owner):
-        self._get(token, owner)
+        row = self._get(token, owner)
+        if row['buffer'] is not None: row['buffer']['file'].close()
         del self._sessions[token]
         return {'session': token, 'status': 'discarded-unsaved-draft'}
 
     def close_owner(self, owner):
         for token in [token for token, row in self._sessions.items() if row['owner'] is owner]:
-            del self._sessions[token]
+            self.close(token, owner)
+
+    def _buffer(self, token, owner, sequence, value, revision, workspace=None):
+        row = self._get(token, owner, sequence, workspace); buffer = row['buffer']
+        _require(buffer is not None and buffer['id'] == value and _integer(revision) and
+                 revision == buffer['revision'], 'Staged value identity/revision changed. Read its current fragment.')
+        return row, buffer
+
+    def _value_header(self, token, row, buffer):
+        return science_browser._bounded({'version':1, 'scope':'staged-draft-value', 'session':token,
+            'sequence':row['sequence'], 'value':buffer['id'], 'value_revision':buffer['revision'],
+            'path':list(buffer['path']), 'total_bytes':buffer['size'], 'offset_units':'utf8-bytes',
+            'source_path':list(buffer['source_path']), 'from_base':buffer['from_base'],
+            'byte_limit':science_browser.MAX_BYTES})
+
+    def start_value(self, workspace, token, owner, sequence, path, *, from_base=False):
+        row = self._get(token, owner, sequence, workspace); _path(path)
+        source_path = list(path)
+        _require(type(from_base) is bool, 'from_base must be boolean.')
+        if from_base:
+            _require(row['draft']['base'] is not None and sequence == 0 and path,
+                     'Base paths require an untouched exact-base draft and a non-root value.')
+            # frozen_document returns canonical alphabetic dictionary keys; Begin
+            # removes only its root revision hash. Descendant order is unchanged.
+            ordinal = sorted([*row['draft']['document'], 'revision']).index('revision')
+            _require(path[0] != ordinal, 'Cannot edit the retained content revision identity.')
+            path = [path[0] - (1 if path[0] > ordinal else 0), *path[1:]]
+        _require(row['buffer'] is None, 'A staged value is already open. Finish or discard it explicitly.')
+        value = _at(row['draft']['document'], path)
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        stream = tempfile.TemporaryFile('w+b')
+        try:
+            # JSON tokens retain large int64 values without JavaScript-number
+            # conversion. Encoding/parsing is a host cost, not a wire-bound claim.
+            encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+            for chunk in encoder.iterencode(value): stream.write(chunk.encode('utf-8'))
+            stream.flush()
+            buffer = {'id':uuid.uuid4().hex, 'revision':0, 'path':list(path), 'source_path':source_path,
+                      'from_base':from_base, 'size':stream.tell(), 'file':stream}
+            result = self._value_header(token, row, buffer)
+            row['buffer'] = buffer
+            return result
+        except Exception:
+            stream.close(); raise
+
+    @staticmethod
+    def _boundary(buffer, offset):
+        _require(_integer(offset, 0, buffer['size']), 'Fragment offset must be within its UTF-8 byte range.')
+        if offset == buffer['size']: return
+        buffer['file'].seek(offset); first = buffer['file'].read(1)
+        _require(not first or not 0x80 <= first[0] <= 0xbf, 'Fragment offset splits a UTF-8 character.')
+
+    def read_value(self, token, owner, sequence, value, revision, *, offset=0):
+        row, buffer = self._buffer(token, owner, sequence, value, revision)
+        self._boundary(buffer, offset); buffer['file'].seek(offset)
+        text = codecs.getincrementaldecoder('utf-8')().decode(buffer['file'].read(8192), final=False)[:2000]
+        end = offset + len(text.encode('utf-8'))
+        return science_browser._bounded({**self._value_header(token,row,buffer), 'offset':offset,
+            'text':text, 'next_offset':end if end < buffer['size'] else None})
+
+    def splice_value(self, workspace, token, owner, sequence, value, revision, *, offset, delete_bytes, text):
+        row, buffer = self._buffer(token, owner, sequence, value, revision, workspace)
+        _require(isinstance(text,str) and len(text) <= 2000 and _integer(delete_bytes),
+                 'A fragment splice needs at most 2000 code points and an exact deletion byte count.')
+        self._boundary(buffer,offset); self._boundary(buffer,offset+delete_bytes)
+        try: data = text.encode('utf-8')
+        except UnicodeError as error: raise GraphError('Fragment text must encode as valid UTF-8.') from error
+        replacement = tempfile.TemporaryFile('w+b')
+        try:
+            source = buffer['file']; source.seek(0); remaining = offset
+            while remaining:
+                chunk = source.read(min(65536,remaining)); _require(chunk, 'Staged file ended unexpectedly.')
+                replacement.write(chunk); remaining -= len(chunk)
+            replacement.write(data); source.seek(offset+delete_bytes)
+            while chunk := source.read(65536): replacement.write(chunk)
+            replacement.flush()
+            newer = dict(buffer, file=replacement, revision=revision+1, size=replacement.tell())
+            result = self._value_header(token,row,newer)
+            row['buffer'] = newer; source.close()
+            return result
+        except Exception:
+            replacement.close(); raise
+
+    def finish_value(self, workspace, token, owner, sequence, value, revision):
+        row, buffer = self._buffer(token, owner, sequence, value, revision, workspace)
+        self._admit(workspace, row['draft']['document'], excluding=token, staging_bytes=buffer['size'])
+        buffer['file'].seek(0)
+        try: parsed = _parse(buffer['file'].read().decode('utf-8'))
+        except (UnicodeError,RecursionError) as error: raise GraphError('Staged value is not valid finite JSON.') from error
+        authoring_memory.footprint(parsed)  # Reject exponent overflow, not just NaN constants.
+        document = _operation(row['draft']['document'], {'op':'replace','path':buffer['path'],'value':parsed})
+        result = self._publish(workspace,token,row,document)
+        buffer['file'].close()
+        return result
+
+    def discard_value(self, token, owner, sequence, value, revision):
+        row, buffer = self._buffer(token,owner,sequence,value,revision)
+        buffer['file'].close(); row['buffer'] = None
+        return self._header(token,row)
+
+    def admit_commit(self, workspace, token, owner, sequence):
+        row = self._get(token,owner,sequence,workspace)
+        _require(row['buffer'] is None, 'Finish or discard the staged value before retaining the draft.')
+        return self._admit(workspace,row['draft']['document'],excluding=token)

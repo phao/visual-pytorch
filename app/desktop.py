@@ -571,6 +571,17 @@ class Window(QMainWindow):
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
+        if action == 'scienceDraftCommit' and workspace:
+            # Admission before the potentially large undo SQL snapshot, not just
+            # after dispatch reaches the draft service. No bytes are admitted here.
+            from .authoring_sessions import _json
+            from .memory import memory_percent
+            req = _json(req)
+            sessions = getattr(self,'authoring_sessions',None)
+            if sessions is None: raise ValueError('Unknown draft session for this owner.')
+            configuration = getattr(self,'config',None)
+            sessions.memory_limit_percent = memory_percent(configuration.values.get('memory_limit_percent',10.) if configuration else 10.)
+            sessions.admit_commit(workspace,req.get('session'),bridge if bridge is not None else self,req.get('sequence'))
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
         try:result=Window._dispatch(self,req,bridge)

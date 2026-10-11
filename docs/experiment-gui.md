@@ -22,6 +22,15 @@ and stale replies are guarded, including a notified disk reload with unchanged
 UUID. These are projection/DOM bounds, not lazy storage or registry-cost bounds.
 See [scientific-browser.md](scientific-browser.md) for exact schemas and CLI parity.
 
+For non-root dataset/task/experiment values, **Edit this value…** opens a separate
+owned draft and raw chunk editor from the selected exact revision. Apply fragment
+preserves unfinished JSON; Use staged value parses/replaces the whole value only
+on success; Validate and Retain remain explicit. UTF-8 byte cursors and literal
+tokens preserve long values and integer precision. Constrained RAM admission
+estimates precede large-value parsing and undo capture. This actual Qt path is
+independent of the typed forms below; its full protocol and cost limits are in
+[chunked-draft-values.md](chunked-draft-values.md).
+
 Task context and experiment stored-revision selectors now use independent search/
 page controls instead of complete metadata indexes. They preserve historical and
 explicitly unavailable pins without rebuilding/discarding other text controls.
@@ -68,7 +77,8 @@ External/lazy storage and richer diagnostics are still open work.
 New owned-session backend/Qt transport supplies bounded pages and atomic
 owner/sequence-fenced patches, but these typed forms have not migrated to it.
 [owned-authoring-sessions.md](owned-authoring-sessions.md) specifies its tested
-scope and remaining large-value/resource work; current form payloads stay unbounded.
+scope; the separate chunk editor has large-value/admission support, but current
+typed form payloads stay unbounded.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
 explicit Save workspace is still required to persist the working copy to disk.

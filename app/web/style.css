@@ -216,4 +216,6 @@ pre,input,select{font-size:calc(var(--ui-font-size,14px) - 1px)}
 #pack-menus{gap:var(--menu-unit);padding:var(--menu-unit) calc(2 * var(--menu-unit)) calc(2 * var(--menu-unit))}
 #pack-menus button{padding:calc(.75 * var(--menu-unit));gap:var(--menu-unit);min-height:calc(1.4em + 1.4 * var(--menu-unit))}
 #toast{z-index:100001}
+.science-value-text{display:block;width:100%;min-height:8em;max-height:14em;resize:vertical;font:inherit;font-family:monospace}
+#science-value-identity{overflow-wrap:anywhere}
 .validation-chip{left:auto;right:16px;top:12px;max-width:calc(100% - 32px)}

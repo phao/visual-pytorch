@@ -101,6 +101,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceDraftValueRead', 'scienceDraftValueDiscard',
          'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
          'scienceBrowse', 'scienceSummary', 'scienceInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
@@ -108,7 +109,9 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
-                 'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose'}
+                 'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
+                 'scienceDraftValueStart', 'scienceDraftValueRead', 'scienceDraftValueSplice',
+                 'scienceDraftValueFinish', 'scienceDraftValueDiscard'}
 ACTIONS = READS | EDITS | DRAFT_ACTIONS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'} | NOTEBOOK_ACTIONS
 
 
@@ -128,12 +131,19 @@ def dispatch(window, req, source=None):
             'scienceDraftCheck': (('action', 'session', 'sequence'), ()),
             'scienceDraftCommit': (('action', 'session', 'sequence'), ()),
             'scienceDraftClose': (('action', 'session'), ()),
+            'scienceDraftValueStart': (('action', 'session', 'sequence', 'path'), ('from_base',)),
+            'scienceDraftValueRead': (('action', 'session', 'sequence', 'value', 'value_revision'), ('offset',)),
+            'scienceDraftValueSplice': (('action', 'session', 'sequence', 'value', 'value_revision', 'offset', 'delete_bytes', 'text'), ()),
+            'scienceDraftValueFinish': (('action', 'session', 'sequence', 'value', 'value_revision'), ()),
+            'scienceDraftValueDiscard': (('action', 'session', 'sequence', 'value', 'value_revision'), ()),
         }[action]
         _keys(req, required, optional, context=action+' request (including exact sequence where applicable)')
         owner = source if source is not None else window
         if not hasattr(window, 'authoring_sessions'):
             window.authoring_sessions = Sessions()
         sessions = window.authoring_sessions
+        configuration = getattr(window, 'config', None)
+        sessions.memory_limit_percent = configuration.values.get('memory_limit_percent', 10.) if configuration else 10.
         if action == 'scienceDraftOpen':
             result = sessions.open(workspace, owner, req['kind'], base=req.get('reference'), sid=req.get('id'))
             if source is not None and hasattr(source, 'destroyed') and not getattr(source, '_draft_cleanup_connected', False):
@@ -141,6 +151,11 @@ def dispatch(window, req, source=None):
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftValueStart': return sessions.start_value(workspace, token, owner, req['sequence'], req['path'], from_base=req.get('from_base',False))
+        if action == 'scienceDraftValueRead': return sessions.read_value(token, owner, req['sequence'], req['value'], req['value_revision'], offset=req.get('offset',0))
+        if action == 'scienceDraftValueSplice': return sessions.splice_value(workspace, token, owner, req['sequence'], req['value'], req['value_revision'], offset=req['offset'], delete_bytes=req['delete_bytes'], text=req['text'])
+        if action == 'scienceDraftValueFinish': return sessions.finish_value(workspace, token, owner, req['sequence'], req['value'], req['value_revision'])
+        if action == 'scienceDraftValueDiscard': return sessions.discard_value(token, owner, req['sequence'], req['value'], req['value_revision'])
         if action == 'scienceDraftDescribe': return sessions.describe(token, owner)
         if action == 'scienceDraftRead':
             return sessions.read(token, owner, req.get('sequence'), path=req.get('path'),

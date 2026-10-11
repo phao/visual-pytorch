@@ -3,7 +3,8 @@
 `app/authoring_sessions.py` and the Qt bridge provide bounded draft transport
 without sending complete drafts for Open/Check/Commit. **The existing typed
 forms have not migrated to these commands.** This is a tested prerequisite,
-not completion of resource convergence or a published feature.
+not completion of resource convergence or a published feature. A separate actual
+GUI [chunked value editor](chunked-draft-values.md) now uses these sessions.
 
 ## Ownership and identity
 
@@ -92,11 +93,14 @@ Wire bounds do not bound complete draft/SQL parsing, validation/dependencies,
 touched-container copies, history snapshots, registry admission or RAM. Open
 still validates/copies full base bytes on the host. There is no lazy storage,
 parallel persistence, persistent cache, detached job or optimizer continuation.
-Long values can be inspected in chunks; replacement of arbitrary large cells/raw
-unfinished JSON still needs chunked value editing and explicit resource admission.
-Do not truncate data/keys/ontology/text to meet the patch limit.
+Long values can now be inspected and edited through raw UTF-8 temporary buffers,
+with separate buffer revisions, explicit whole-value acceptance and constrained
+draft admission estimates. See [chunked-draft-values.md](chunked-draft-values.md)
+for all five actions, exact-base path translation and tested GUI behavior. This
+does not bound all host costs or migrate existing typed forms. Do not truncate
+data/keys/ontology/text to meet the patch limit.
 
-Next: large-value/resource safeguards and migration of actual typed forms onto
+Next: migration of actual typed forms/context onto
 owner/sequence pages, preserving invalid local text and existing typed helpers;
 paged field/port contexts and local selection cards; then in-app figures,
 integrated C acceptance and unchanged D/E. Stateless CLI specification/import

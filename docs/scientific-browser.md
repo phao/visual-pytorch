@@ -6,6 +6,11 @@ second database. None of these operations fits transforms, allocates a numerical
 model, trains, generates a notebook or changes stored bytes/heads/history. This
 checkpoint is not yet integrated into the public `main` release.
 
+Its **Edit this value…** control is a separate mutation workflow, not a read
+action: it opens an owned draft for a non-root dataset/task/experiment value.
+[chunked-draft-values.md](chunked-draft-values.md) specifies staging, explicit
+acceptance, admission and retained-text semantics; browsing itself remains pure.
+
 ## Identity and limits
 
 An exact reference has exactly `kind`, `id`, `revision`. Kind is one of `dataset`,

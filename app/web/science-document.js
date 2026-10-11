@@ -12,6 +12,8 @@
     $('science-tree-prev').disabled=reading!==null||!location.backs.length;
     $('science-tree-next').disabled=reading!==null||!page||page.next_offset===null;
     $('science-tree-rows').querySelectorAll('button').forEach(b=>b.disabled=reading!==null);
+    const edit=$('science-tree-edit');if(edit)edit.disabled=!selected||reading!==null||!page||location.part!=='value'||
+      !location.path.length||!['dataset','task','experiment'].includes(selected.reference.kind)||api.busy?.()||api.editing?.();
   }
   function preview(value){
     if(value.type==='object'||value.type==='array')return value.type+' · '+value.size+' members';
@@ -67,8 +69,10 @@
       $('science-tree-parent').onclick=()=>act(()=>navigate(location.part==='key'?location.path:location.path.slice(0,-1),'value'));
       $('science-tree-next').onclick=()=>act(()=>{if(reading!==null||!page||page.next_offset===null)return;location.backs.push(location.offset);location.offset=page.next_offset;page=null;return read();});
       $('science-tree-prev').onclick=()=>act(()=>{if(reading!==null||!location.backs.length)return;location.offset=location.backs.pop();page=null;return read();});controls();
+      const edit=$('science-tree-edit');if(edit)edit.onclick=()=>api.editValue?.({reference:{...selected.reference},workspace:selected.workspace,path:[...location.path]});
     },
     select(reference){this.clear();selected={reference:{...reference},workspace:api.workspace()};controls();if($('science-details').open)act(read);},
+    stateChanged(){controls();},
     clear(){if(!api)return;generation++;reading=null;selected=null;page=null;location={path:[],part:'value',offset:0,backs:[]};
       $('science-tree-rows').replaceChildren();$('science-tree-path').textContent='';$('science-tree-status').textContent='Open a retained specification to inspect its bounded pages. No training.';controls();}
   };
