@@ -49,6 +49,10 @@ Dataset-specific Page/Edit/Value commands and their closed DTO/operation/target
 grammars are in [typed-dataset-sessions.md](typed-dataset-sessions.md). They share
 the same owner and document sequence, not an additional draft store.
 
+Task-specific binding/transform pages, literal ordered edits and owned exact
+compatibility commands are specified in [typed-task-sessions.md](typed-task-sessions.md).
+These are tested native transport only; the actual task form has not migrated.
+
 Open accepts only dataset/task/experiment. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
 template/new-ID checks apply. Headers have `version: 1`,
@@ -107,7 +111,7 @@ descriptors, queues stable-ID edits and opens a child value buffer in its existi
 session. Child Finish/Discard return to the parent, never retain/discard its
 whole draft. Do not truncate data/keys/ontology/text to meet the patch limit.
 
-Next: migration of task/experiment typed forms/context onto
+Next: migration of task/experiment typed forms onto
 owner/sequence pages, preserving invalid local text and existing typed helpers;
 local selection cards/axes; field/port suggestions now have separate
 [bounded context pages](task-context-pages.md). Then in-app figures,

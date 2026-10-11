@@ -135,6 +135,9 @@ reads/explicit exports remain available. The next implementation unit is owned
 task/experiment typed-authoring draft migration and admission integration, preserving
 incomplete text and exact identity rather than transferring whole drafts. Hiding
 the full JSON in a collapsed panel is not a fix.
+Native task binding/transform page, literal-edit and owned compatibility primitives
+now exist with actual bridge checks; [typed-task-sessions.md](typed-task-sessions.md)
+records their exact scope. The visible task controller still requires migration.
 
 After these concrete C convergence items and the integration audit, proceed to
 the unchanged D family/recurrent and E durable batch/distributed requirements.
@@ -181,6 +184,14 @@ text, rank-8 previews, supplementary-character IDs, failed-page retry and actual
 font14/18/28 geometry pass. Native dataset/task/experiment regressions pass,
 including real fits. These are context projection/editor preservation checks,
 not task/experiment draft migration, universal host costs or integrated C.
+
+The native task-card/transform/literal-edit/owned-compatibility checkpoint passes
+508 Python tests (171.320 s)/156 JavaScript tests (689 ms). Ten new stdlib task
+cases and actual sandboxed QWebChannel exercise 80 binding/1000 transform reads,
+literal integer precision, ordinal/sequence/owner/origin/staging/admission,
+atomic rollback/strict retention and unchanged SQL/history. This is native
+transport only: the visible task form still uses the complete legacy draft path.
+The 80-binding fixture does not certify compilation of an 80-port model.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

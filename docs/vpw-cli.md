@@ -78,6 +78,10 @@ tokens and uses the same owned session for a child value editor. Dataset int64
 storage accepts the full signed 64-bit range through GUI/CLI/backend validation;
 explicit float32 numerical preparation does not promise exact integer arithmetic.
 There are no persistent CLI draft tokens or new SQLite tables.
+Native owned task card/transform pages and literal edits are described in
+[typed-task-sessions.md](typed-task-sessions.md). They do not add CLI commands or
+change the agent-facing TaskSpec grammar. The task GUI controller migration is
+still pending; native transport checks are not a claim that it already uses them.
 
 `task-context-page fields|input_ports|output_ports --model ID REVISION --dataset
 ID REVISION [--query TEXT] [--offset N] [--limit 1..25] [--pin STABLE_ID]` shares

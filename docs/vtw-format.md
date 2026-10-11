@@ -42,6 +42,10 @@ Task field/port suggestion pages are also read-only projections, not partial
 model/dataset documents or persistent bindings. Their shared GUI/CLI protocol is
 in [task-context-pages.md](task-context-pages.md); stored scientific order/IDs
 and full metadata remain unchanged.
+Owned task binding/transform cards, literal edit batches and compatibility
+commands are also transient native transport, specified in
+[typed-task-sessions.md](typed-task-sessions.md). They add no SQL rows or CLI
+session tokens; the visible task form has not yet migrated to that transport.
 
 ## 2. Exact relational schema
 

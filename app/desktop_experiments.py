@@ -101,6 +101,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility',
          'scienceDraftDatasetPage','scienceDraftDatasetValue',
          'scienceDraftValueRead', 'scienceDraftValueDiscard',
          'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftCheck', 'scienceDraftClose',
@@ -110,6 +111,7 @@ READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave', 'scienceDraftCommit'}
 DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftRead', 'scienceDraftPatch',
+                 'scienceDraftTaskPage', 'scienceDraftTaskTransforms', 'scienceDraftTaskCompatibility', 'scienceDraftTaskEdit',
                  'scienceDraftDatasetPage','scienceDraftDatasetEdit','scienceDraftDatasetValue',
                  'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
                  'scienceDraftValueStart', 'scienceDraftValueRead', 'scienceDraftValueSplice',
@@ -141,6 +143,10 @@ def dispatch(window, req, source=None):
             'scienceDraftDatasetPage': (('action','session','sequence'),('field_offset','row_offset','field_limit','row_limit')),
             'scienceDraftDatasetEdit': (('action','session','sequence','operations'),()),
             'scienceDraftDatasetValue': (('action','session','sequence','target'),()),
+            'scienceDraftTaskPage': (('action','session','sequence','collection'),('offset','limit')),
+            'scienceDraftTaskTransforms': (('action','session','sequence','collection','binding'),('offset','limit')),
+            'scienceDraftTaskCompatibility': (('action','session','sequence','model','dataset'),()),
+            'scienceDraftTaskEdit': (('action','session','sequence','operations'),()),
         }[action]
         _keys(req, required, optional, context=action+' request (including exact sequence where applicable)')
         owner = source if source is not None else window
@@ -156,6 +162,14 @@ def dispatch(window, req, source=None):
                 source._draft_cleanup_connected = True
             return result
         token = req['session']
+        if action == 'scienceDraftTaskPage': return sessions.task_page(token, owner, req['sequence'], req['collection'],
+            **{key:req[key] for key in ('offset','limit') if key in req})
+        if action == 'scienceDraftTaskTransforms': return sessions.task_transforms(token, owner, req['sequence'],
+            req['collection'], req['binding'], **{key:req[key] for key in ('offset','limit') if key in req})
+        if action == 'scienceDraftTaskCompatibility': return sessions.task_compatibility(workspace, token, owner,
+            req['sequence'], req['model'], req['dataset'])
+        if action == 'scienceDraftTaskEdit': return sessions.task_edit(workspace, token, owner,
+            req['sequence'], req['operations'])
         if action == 'scienceDraftDatasetPage':return sessions.dataset_page(token,owner,req['sequence'],
             **{key:req[key] for key in ('field_offset','row_offset','field_limit','row_limit') if key in req})
         if action == 'scienceDraftDatasetEdit':return sessions.dataset_edit(workspace,token,owner,req['sequence'],req['operations'])

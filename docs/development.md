@@ -15,6 +15,33 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 00:27 -03:00 — Owned literal task card/transform primitives
+
+Native task sessions now provide bounded ordered binding/transform pages, literal
+edit batches and compatibility checks without task document transfer. This
+prepares actual controller migration; **the visible task form still uses the
+complete legacy draft path**. Cards never encode a hidden full pipeline or large
+description merely for previews. Literal text preserves integer tokens outside
+JavaScript's exact Number range. Ordered batches reuse existing atomic patch/
+admission/origin/history machinery; failed checks retain bytes. No additional
+SQL grammar or CLI session tokens. Protocol: [typed-task-sessions.md](typed-task-sessions.md).
+
+Ten new stdlib tests pass, covering 80 bindings/1000 transforms, hidden metadata,
+literal/staged precision, bounded cursor coverage, atomic rollback/stale moves,
+historical head/base/strict retention, malformed pages and owner/origin/buffer/RAM
+fences. Extended actual sandboxed QWebChannel checks all four commands, exact
+9007199254740993 transport, closed requests/distinct owners/stale sequences,
+unchanged SQL/history and owner teardown. No host Torch/console errors. Final
+full-suite validation passes 508 Python tests (171.320 s) and 156 JavaScript
+tests (689 ms); ten focused task cases pass on stdlib (0.051 s). Actual bridge
+reads also cover 80 bindings/1000 transforms and pending-terminal edit refusal.
+The 80-binding fixture verifies reusable TaskSpec transport, not an 80-port
+model fit or relaxation of the inherited graph block limit.
+
+Next connect actual task form/pages/local transforms/child values, then experiment
+forms/local axes/cards and remaining C integration. Full native storage/validation/
+history costs, recovery/completion, figures and unchanged D/E remain open.
+
 ### 2026-10-11 00:16 -03:00 — Independent task field/port context pages
 
 The actual task form now uses independent bounded dataset-field/input-port/

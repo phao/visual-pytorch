@@ -42,6 +42,11 @@ ordinals. Local draft axes/pairing choices and task/experiment full drafts remai
 unbounded. See [authoring-revision-choices.md](authoring-revision-choices.md) and
 [task-context-pages.md](task-context-pages.md).
 
+Owned task card/transform pages, literal edits and compatibility commands are
+tested through the actual native bridge; [typed-task-sessions.md](typed-task-sessions.md)
+specifies that transport. The actual task form below has **not** migrated yet.
+Do not confuse bounded native primitives with the complete legacy form path.
+
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.

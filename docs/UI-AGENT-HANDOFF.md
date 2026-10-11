@@ -710,6 +710,13 @@ patch batches against that sequence rather than repeatedly submitting complete
 drafts. Bind actual owner/working-copy/connection identity on the host, retaining
 unsaved inspection after switches but rejecting admission into a replacement.
 Close explicitly or on owner teardown; failed checks must preserve bytes.
+Task binding/transform cards must retain scientific ordinals, independently page
+pipelines and return complete literal JSON or explicit staged-value markers.
+Send small typed values as native-parsed literal text rather than JavaScript
+Number conversions; larger values use the same parent session's child editor.
+Reload ordinal paths after sequence-changing structure edits. Native primitives
+and tests are specified in [typed-task-sessions.md](typed-task-sessions.md);
+the actual task form has not yet migrated.
 Preserve scientific order and invalid local text. A wire limit is not a bound on
 whole-host parsing/copies/history/validation; long values need separate editing
 and resource safeguards rather than truncation. The current tested backend/Qt

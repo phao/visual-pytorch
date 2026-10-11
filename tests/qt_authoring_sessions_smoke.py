@@ -21,6 +21,7 @@ from app.core import Workspace
 from app.desktop import Bridge, Window
 from app.science_browser import encoded
 from test_authoring import measurements
+from test_task_authoring import multi_fixture
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')
@@ -116,6 +117,74 @@ try:
     prior = h.workspace.history.summary(); snapshot = h.workspace.db.serialize()
     request({'action':'scienceDraftCommit','session':noop['session'],'sequence':0})
     assert h.workspace.db.serialize()==snapshot and h.workspace.history.summary()==prior
+    # New task transport is tested through the actual native bridge. The typed
+    # task form has not yet switched to these commands.
+    model, observations, task = multi_fixture()
+    h.workspace.put(model); model_ref = h.workspace.freeze_model(model['id'])
+    data_ref = h.workspace.put_spec('dataset', observations)
+    task_ref = h.workspace.put_spec('task', task)
+    draft = request({'action':'scienceDraftOpen','kind':'task','reference':task_ref})
+    task_args = {'session':draft['session'],'sequence':0}
+    snapshot = h.workspace.db.serialize(); prior = h.workspace.history.summary()
+    cards = request({'action':'scienceDraftTaskPage',**task_args,'collection':'inputs','limit':1})
+    assert cards['scope']=='owned-task-page' and cards['next_offset']==1
+    assert cards['rows'][0]['properties'][0]['text']=='"left"'
+    transforms = request({'action':'scienceDraftTaskTransforms',**task_args,
+        'collection':'inputs','binding':0,'offset':1,'limit':1})
+    assert transforms['scope']=='owned-task-transform-page'
+    assert transforms['rows'][0]['properties'][0]['text']=='"affine"'
+    compatibility = request({'action':'scienceDraftTaskCompatibility',**task_args,
+        'model':model_ref,'dataset':data_ref})
+    assert compatibility['status']=='compatible' and compatibility['task']==task_ref
+    for command in [
+        {'action':'scienceDraftTaskPage',**task_args,'collection':'inputs','extra':True},
+        {'action':'scienceDraftTaskTransforms',**task_args,'collection':'inputs','binding':True},
+        {'action':'scienceDraftTaskCompatibility',**task_args,'model':model_ref,'dataset':data_ref,'draft':task},
+        {'action':'scienceDraftTaskPage','session':draft['session'],'collection':'inputs'},
+    ]: request(command,ok=False)
+    request({'action':'scienceDraftTaskPage',**task_args,'collection':'inputs'},owner='other',ok=False)
+    assert h.workspace.db.serialize()==snapshot and h.workspace.history.summary()==prior
+    advanced = request({'action':'scienceDraftPatch',**task_args,
+        'operations':[{'op':'put','path':transforms['rows'][0]['path'],'key':'scale','value':3}]})
+    assert advanced['sequence']==1
+    request({'action':'scienceDraftTaskTransforms',**task_args,'collection':'inputs','binding':0},ok=False)
+    current = request({'action':'scienceDraftTaskTransforms',**task_args,'sequence':1,
+        'collection':'inputs','binding':0})
+    assert current['rows'][1]['properties'][1]['text']=='3'
+    precise = request({'action':'scienceDraftTaskEdit',**task_args,'sequence':1,
+        'operations':[{'op':'put-json','path':transforms['rows'][0]['path'],
+                       'key':'scale','text':'9007199254740993'}]})
+    assert precise['sequence']==2
+    current = request({'action':'scienceDraftTaskTransforms',**task_args,'sequence':2,
+        'collection':'inputs','binding':0})
+    assert current['rows'][1]['properties'][1]['text']=='9007199254740993'
+    request({'action':'scienceDraftTaskEdit',**task_args,'sequence':2,
+        'operations':[{'op':'put-json','path':[],'key':'name','text':'"discarded"'},
+                      {'op':'put-json','path':[],'key':'name','text':'NaN'}]},ok=False)
+    assert request({'action':'scienceDraftDescribe','session':draft['session']})==precise
+    assert h.workspace.db.serialize()==snapshot
+    request({'action':'scienceDraftClose','session':draft['session']})
+    task['id']='large-pipeline-task';task['description']={'large':'λ'*20000}
+    task['inputs']=[{'port':'p'+str(i),'field':'a','transforms':[]} for i in range(80)]
+    task['inputs'][7]['transforms']=[{'kind':'affine','scale':i+1,'offset':i} for i in range(1000)]
+    large_ref=h.workspace.put_spec('task',task)
+    large=request({'action':'scienceDraftOpen','kind':'task','reference':large_ref})
+    snapshot=h.workspace.db.serialize()
+    args={'session':large['session'],'sequence':0,'collection':'inputs'}
+    cards=request({'action':'scienceDraftTaskPage',**args,'offset':6})
+    assert cards['total']==80 and cards['next_offset']==12
+    assert cards['rows'][1]['transforms']['total']==1000 and cards['description']['text'] is None
+    steps=request({'action':'scienceDraftTaskTransforms',**args,'binding':7,'offset':700,'limit':3})
+    assert steps['total']==1000 and steps['next_offset']==703
+    assert [r['ordinal'] for r in steps['rows']]==[700,701,702]
+    h.job=SimpleNamespace(isRunning=lambda:False,awaiting_terminal=True,terminal_delivered=False)
+    assert 'Stop the current run' in request({'action':'scienceDraftTaskEdit',
+        'session':large['session'],'sequence':0,
+        'operations':[{'op':'put-json','path':[],'key':'name','text':'"blocked"'}]},ok=False)
+    request({'action':'scienceDraftTaskPage',**args})
+    h.job=None
+    assert h.workspace.db.serialize()==snapshot
+    request({'action':'scienceDraftClose','session':large['session']})
     unsaved = request({'action':'scienceDraftOpen','kind':'task'})
     origin = h.workspace; replacement = Workspace(); workspaces.append(replacement)
     replacement.db.execute("UPDATE metadata SET value=? WHERE key='workspace_id'", (unsaved['workspace_id'],))
@@ -144,7 +213,8 @@ try:
     assert errors==[] and 'torch' not in sys.modules
     print(json.dumps({'qwebchannel_owner_transport':'PASS','large_records':1600,'bounded_pages':'PASS',
         'duplicate_json_atomic':'PASS','exact_sequences':'PASS','same_uuid_origin_fence':'PASS',
-        'history_noop_save_reload':'PASS','owner_teardown':'PASS','host_torch':False,'console_errors':errors}))
+        'history_noop_save_reload':'PASS','task_cards_transforms_compatibility':'PASS',
+        'task_closed_requests_owner_sequence_readonly':'PASS','owner_teardown':'PASS','host_torch':False,'console_errors':errors}))
 finally:
     # Drop the externally referenced page before its off-record profile owner.
     page.deleteLater(); QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete); app.processEvents()

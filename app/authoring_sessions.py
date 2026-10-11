@@ -333,3 +333,30 @@ class Sessions:
         row=self._get(token,owner,sequence)
         _require(row['draft']['kind']=='dataset','Typed dataset values require a dataset draft.')
         return dataset_drafts.locate(row['draft']['document'],self._header(token,row),target)
+
+    def task_page(self, token, owner, sequence, collection, **cursor):
+        from . import task_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'task', 'Typed task pages require a task draft.')
+        return task_drafts.page(row['draft']['document'], self._header(token, row), collection, **cursor)
+
+    def task_transforms(self, token, owner, sequence, collection, binding, **cursor):
+        from . import task_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'task', 'Typed task transforms require a task draft.')
+        return task_drafts.transforms(row['draft']['document'], self._header(token, row),
+                                      collection, binding, **cursor)
+
+    def task_compatibility(self, workspace, token, owner, sequence, model, dataset):
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'task', 'Task compatibility requires a task draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before checking compatibility.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        return science_browser._bounded(authoring.task_compatibility(workspace, row['draft'], model, dataset))
+
+    def task_edit(self, workspace, token, owner, sequence, operations):
+        from . import task_drafts
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'task', 'Typed task edits require a task draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before typed edits.')
+        return self.patch(workspace, token, owner, sequence, task_drafts.operations(_json(operations)))
