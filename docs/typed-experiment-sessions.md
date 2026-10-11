@@ -107,7 +107,8 @@ next_offset, byte_limit65536, text_limit256, reference_text_limit8192 and roots.
 Each row has ordinal, current absolute ordinal path, and properties. Each
 property has key, path, present, text and summary. Root properties are name,
 question, selection.kind and version. Version edits permit the explicit v1→v2
-experiment upgrade, not downgrade of an owned v2 draft. Descriptor path is null when an intermediate/leaf is
+experiment upgrade, not downgrade of an owned v2 draft. Descriptor path is null
+when an intermediate/leaf is
 missing; missing does not mean a present JSON null. A complete `text` is literal
 strict JSON, not a JavaScript Number. Otherwise an explicit type/size summary
 marks an incomplete value; it is not editable partial JSON.

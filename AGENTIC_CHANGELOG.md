@@ -4,7 +4,7 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
-## 2026-10-11 06:42 -03:00 — Explicit family experiment axes and terminal recovery
+## 2026-10-11 06:40 -03:00 — Explicit family experiment axes and terminal recovery
 
 Added lazy ordered fixed/binding-axis family choices to experiment/run version2,
 because experimental design must identify concrete family coordinates without

@@ -1,6 +1,6 @@
 # Development state and roadmap
 
-## 2026-10-11 06:42 -03:00 — Stage D: explicit family experiment axes
+## 2026-10-11 06:40 -03:00 — Stage D: explicit family experiment axes
 
 Version-2 experiments select exact historical architecture families with fixed
 stable-symbol bindings and ordered integer axes. Mixed-radix preview skips
