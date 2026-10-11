@@ -102,10 +102,10 @@ document ID/version and response projection must pass before new bytes/sequence
 are published. A failed second operation/oversized header rolls back the entire
 batch. Scientific fields/records/ports/axes/transforms/selections are never sorted.
 
-Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID/
-version cannot change except explicit experiment v1→v2 upgrade for family
-selections or family v1→v2 upgrade for shared finite uses. V2 edits preserve v2;
-other kinds preserve v1. `revision` cannot be injected. See
+Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID
+cannot change; family/experiment versions can explicitly advance 1→2→3 or 1→3
+for the declared extensions, never decrease. Other kinds preserve their version.
+`revision` cannot be injected. See [constructor-choices.md](constructor-choices.md),
 [family-experiment-axes.md](family-experiment-axes.md) and
 [shared-parameters.md](shared-parameters.md).
 Check/Commit run the

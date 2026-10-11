@@ -1,5 +1,52 @@
 # Development state and roadmap
 
+## 2026-10-11 07:35 -03:00 — Stage D: explicit constructor choices
+
+Family v3 supports model-local integer/boolean/finite string symbols and matching
+assignments to existing activation/bias/pooling/Concat constructor fields.
+Arithmetic remains integer-only; defaults, domains, scopes and input bindings
+are explicit. Unknown operators or incompatible constructors remain visible,
+not evaluated Python, silently filtered selections or repaired graphs. Actual
+JSON bools/strings flow through immutable specialization v2 and experiment/run
+v3, exact axes/coordinates/provenance, Qt/CLI/worker/report paths. Type-exact
+membership keeps false distinct from integer zero. `.vtw` v10 gates this grammar,
+without new SQL tables or changed old hashes/concrete model versions. Example:
+examples/families/activation-bias.json, ten valid MLP choices with6/10 parameters.
+
+Owned typed Qt cards expose alphabetic type selectors, enum domains and literal
+defaults, explicit monotonic version upgrades and preserved invalid text.
+Existing tied mode never downgrades v3; experiment Add family reads fresh native
+roots after pending edits rather than a stale version. Selection version is an
+explicit numeric control. No new hidden draft persistence or source fork.
+Specs are synchronized; full contract is [constructor-choices.md](constructor-choices.md).
+
+Verified753 Python247.679s/285 JS1194.74306ms, plus16 pure0.284s and4 focused
+numerical18.131s. Ten activation/bias instances match independent functional
+outputs/input/parameter gradients and generated code; Conv2d/AvgPool boolean
+arguments have independent gradient checks. Three worker fits/retries validate
+typed checkpoint/provenance and fresh standalone prediction; an actual two-point
+Jupyter rerun exports models, predictors and curves with unchanged source SQL.
+Actual sandboxed Qt defaults/invalid scalar/read-only preview/retention/instance/
+Save-reload and typed experiment axes/20 candidates/worker3 updates/saved exact
+evidence pass without host Torch/console errors. Prior independent/tied editor
+and integer-axis native workflows pass; reviewed capture shows real typed cards.
+Numerical runs are serial/one-threaded; no final ResourceWarnings.
+
+Failed probes retained: broad family glob in stdlib-only Python lacked optional
+Torch/notebook dependencies; first worker/Qt fixtures used nonexistent helper
+names; old native fixture searched the renamed integer-symbol section. The first
+full753 run had six old error-message expectation failures, fixed by preserving
+legacy wording, not weakening field rejection. Unknown-version probe now uses4
+because3 is actually supported. An initial capture included an old dismissed
+toast/template section; final real capture folds templates and shows both symbols.
+
+D remains local/branch-only/incomplete. Next scoped nested constructor bindings,
+runtime-spatial guards and structured recurrent state/length/mask/reset/mixed
+composition; E durable/heavyweight execution follows actual D acceptance. Current
+graph/closure/native-cost/platform limits remain explicit. No main integration,
+publication, installer change or user app/config/workspace mutation. The full
+A–E goal remains active; no roadmap re-audit.
+
 ## 2026-10-11 07:04 -03:00 — Stage D: genuine shared parameter identity
 
 Concrete Linear/Conv2d/Module blocks now have explicit local `share_with` ownership,

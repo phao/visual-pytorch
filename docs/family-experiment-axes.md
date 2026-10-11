@@ -1,5 +1,10 @@
 # Architecture family experiment axes — experiment/run version 2
 
+Version2 remains integer-only. [Constructor choices](constructor-choices.md)
+extend this grammar in experiment/run version3 and container10: boolean and enum
+string axes, type-exact membership, matching family v3 and specialization v2.
+Existing ordered paging/provenance/training rules below continue unchanged.
+
 This is an implemented local Stage D checkpoint, not tied weights, runtime
 recurrence, dynamic spatial shapes or durable jobs. Reference implementations
 are app/family_axes.py, app/experiment_objects.py and app/family_records.py.

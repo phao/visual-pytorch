@@ -35,7 +35,7 @@ def _project(workspace, ref, record, attempt, offset, limit):
     if 'model' in objects:
         parameters = validate_model(docs['model']['models'], docs['model']['root'])['parameters']
         objects['model']['parameters'] = parameters
-        if record['version'] == 2: objects['model']['parameters_exact'] = str(parameters)
+        if record['version'] >= 2: objects['model']['parameters_exact'] = str(parameters)
     objects['dataset']['observations'] = len(docs['dataset']['records'])
     manifest = resolved['manifest'] if resolved else None
     split = None if manifest is None else {

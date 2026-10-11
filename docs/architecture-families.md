@@ -9,7 +9,9 @@ run admission. Immutable family/specialization records now live in `.vtw` v7;
 the existing Qt scientific browser can inspect/import them. This checkpoint now
 adds [typed owned family authoring](typed-family-sessions.md),
 [explicit experiment axes](family-experiment-axes.md) and version-2
-[shared finite uses](shared-parameters.md). Runtime recurrence remains separate.
+[shared finite uses](shared-parameters.md). Version3 additionally supports
+[explicit boolean/enum constructor choices](constructor-choices.md), their
+typed retained bindings and experiment axes. Runtime recurrence remains separate.
 
 ## Family document version 1
 
@@ -88,7 +90,7 @@ An ingress from a router retains its explicit `from_port`. A downstream Concat
 source is rewritten in place, preserving feature packing. Bodies cannot overlap
 or nest in version 1. Consecutive repeat bodies are supported.
 
-Version1 supports only `mode: "independent"`. Version2 additionally accepts
+Version1 supports only `mode: "independent"`. Version2 and3 additionally accept
 `tied` and explicit local template `share_with` ownership; see
 [shared-parameters.md](shared-parameters.md). `recurrent` and unknown modes fail
 explicitly, never becoming independent copies. `count` is a positive
@@ -111,7 +113,8 @@ templates preserve geometry. This is not the configurable browser layout engine.
 ## Results and identities
 
 `specialize(family, bindings)` either returns a verified concrete instance or
-raises GraphError. Bindings map stable symbol IDs to integers, not labels.
+raises GraphError. Bindings map stable symbol IDs to declared scalar values,
+not symbol labels: integers for v1/v2, optional booleans/enum strings for v3.
 Unspecified symbols use explicit defaults; otherwise execution is refused.
 Templates are never modified. All concrete models are shape-checked before return.
 Errors name the model and assigned fields; arithmetic errors name their exact
@@ -131,7 +134,8 @@ hash follows existing presentation-independent rules.
 
 `preview` returns `verified` plus the resolved receipt, `conditional` plus required
 symbol IDs/scopes/names, or `incompatible` plus a reason. Bad grammar, unknown IDs
-and noninteger supplied values raise; valid integers outside declared bounds are
+and supplied wrong scalar types raise; valid integers outside declared bounds or
+v3 strings outside declared enum domains are
 reported incompatible even if other bindings remain unresolved. The current
 preview is allocation-free for tensors, not a universal memory/cost guarantee.
 
@@ -168,13 +172,15 @@ does not claim one executable instance accepts arbitrary spatial dimensions.
 
 ### Retained records and exact stored preview
 
-`family` uses version1 or the explicit sharing extension in version2, with only the optional verified registry
+`family` uses version1, the explicit sharing extension in version2 or typed
+constructor version3, with only the optional verified registry
 `revision` added. Its revision is the external definition's original digest.
 Unbound families may be retained as drafts; retaining them does not compile or
 materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
 `family`, `bindings`, `model`, plus optional verified `revision`. Both references
 are exact `{kind,id,revision}` objects of their declared kind. Bindings must
 include every stable symbol ID, even defaults; booleans are not integers here.
+Specialization v2 retains family v3's exact typed values; v1 retains family v1/v2.
 
 Admission/load/save re-resolve the exact family with those bindings and compare
 the expected frozen `model_document` identity under the reference JSON hash.

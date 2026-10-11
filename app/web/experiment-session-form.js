@@ -143,7 +143,7 @@
       if(collection==='models'){
         if(p.family){grid.append(text('Family choice ID','id'),ref('Exact family','family','family'),
           text('Fixed bindings JSON','bindings',{mode:'json',area:true}),text('Ordered binding axes JSON','axes',{mode:'json',area:true}));
-          card.append(el('p','Each axis: {"symbol":"stable-id","values":[2,4]}. Last binding axis changes fastest. Missing defaults stay conditional; incompatible combinations remain visible. No automatic training.'));
+          card.append(el('p','Each axis: {"symbol":"stable-id","values":[2,4]}. Version 3 also supports [false,true] and declared string choices such as ["ReLU","Tanh"]. Last axis changes fastest. Missing defaults stay conditional; incompatible combinations remain visible. No automatic training.'));
         }else grid.append(ref('Exact architecture','reference','model'));
       }
       else if(collection==='data_tasks')grid.append(text('Pairing ID','id'),ref('Exact dataset','dataset','dataset'),ref('Exact task','task','task'));
@@ -180,6 +180,7 @@
   }
   function renderRoots(){const roots=Object.fromEntries(state.groups.models.page.roots.map(p=>[p.key,p]));state.rootControls.replaceChildren(
     control('Research question',roots.question,{kind:'document'},'question',{area:true}),
+    control('Selection version · 3 enables constructor choices',roots.version,{kind:'document'},'version',{mode:'number',integer:true,min:1,max:3}),
     select('Comparison mode',[['crossed','Crossed · every architecture × dataset/task'],['paired','Paired · explicit whitelist']],scalar(roots['selection.kind']),{kind:'document'},'selection.kind'),
     el('p','Crossed requires an empty whitelist; paired needs explicit entries. Changing mode never removes entries; exclusions keep reasons.'));
   }
@@ -201,7 +202,7 @@
         collection==='splits'?window.LoomExperimentAuthoring.split(crypto.randomUUID(),g.method.value):collection==='initialization_seeds'?7:
         collection==='protocols'?window.LoomExperimentAuthoring.protocol(crypto.randomUUID()):window.LoomExperimentAuthoring.comparison(collection==='exclusions'))}]));section.append(g.add);
       if(collection==='models')section.append(button('Add family selection',()=>structure(collection,f=>[
-        {op:'property',target:{kind:'document'},key:'version',text:'2'},
+        {op:'property',target:{kind:'document'},key:'version',text:String(Math.max(2,Number(f.roots.find(p=>p.key==='version')?.text||'1')))},
         {op:'insert-json',path:f.path,index:f.total,text:JSON.stringify(window.LoomExperimentAuthoring.family(crypto.randomUUID()))}])));
     }$('science-experiment-context-status').textContent='Independent exact stored/local choices · bounded scientific-order axes · no training';clearPreview();controls();
   }

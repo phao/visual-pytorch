@@ -142,7 +142,7 @@
           <div class="inline-actions"><button id="science-author-new-family" title="Use the current valid drawing as a concrete seed, without changing it">New architecture family</button><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
           <section id="science-family-editor" hidden aria-label="Owned architecture family authoring">
             <h3>Architecture family draft</h3><p id="science-family-identity" class="tiny"></p>
-            <p class="tiny">A drawing is a concrete seed. Symbols have stable IDs and model-local scopes. Assignments replace existing integer fields. Counts expand independent finite chains, not tied weights or recurrent execution.</p>
+            <p class="tiny">A drawing is a concrete seed. Stable, model-local symbols specify dimensions and explicit constructor choices. Finite repeats are independent or explicitly tied; neither means runtime recurrence. Preview checks each concrete instance without training.</p>
             <div id="science-family-roots" class="science-author-grid"></div>
             <div id="science-family-cards"></div>
             <p class="tiny">Expressions use integers or JSON objects: {"symbol":"hidden-width"} or {"op":"mul","args":[2,{"symbol":"hidden-width"}]}. Shape assignments use arrays of these expressions. Exact division rejects a remainder. Python expressions are never executed.</p>

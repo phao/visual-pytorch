@@ -1,7 +1,7 @@
 """Concrete-first family specialization, without Torch, Qt, eval or a solver.
 
 An external family is a checked template closure plus scoped integer assignments
-and independent or explicitly tied finite chain repeats. Runtime recurrence is
+and explicit scalar constructor choices and finite chain repeats. Runtime recurrence is
 not approximated by finite copies; sharing is explicit local module identity.
 """
 import copy
@@ -21,6 +21,12 @@ FIELDS = {
     'Permute': {'dims'}, 'Activation': {'dim'},
 }
 ARRAY_FIELDS = {'shape', 'kernel_size', 'stride', 'padding', 'dilation', 'output_size', 'dims'}
+CHOICE_FIELDS = {
+    'Linear': {'bias': 'boolean'}, 'Conv2d': {'bias': 'boolean', 'padding_mode': 'enum'},
+    'Activation': {'activation': 'enum'}, 'Concat': {'flatten': 'boolean'},
+    'AvgPool2d': {'count_include_pad': 'boolean', 'ceil_mode': 'boolean'},
+    'MaxPool2d': {'ceil_mode': 'boolean'},
+}
 TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
     Output={'shape'}, Linear={'features', 'bias'}, Reshape={'shape'},
     Activation={'activation', 'dim'}, Module={'ref'}, Concat={'sources', 'flatten'},
@@ -47,6 +53,45 @@ def integer(value, where):
     return value
 
 
+def binding_atom(value, where, *, typed=False):
+    """Closed JSON scalar, not Python text, floats, containers or bool-as-int."""
+    if typed and (type(value) is bool or identifier(value)):
+        return value
+    return integer(value, where)
+
+
+def symbol_type(symbol):
+    return symbol.get('type', 'integer')
+
+
+def binding_value(symbol, value, where):
+    kind = symbol_type(symbol)
+    require(type(value) is {'integer': int, 'boolean': bool, 'enum': str}[kind],
+            where + ': expected ' + kind + ' binding (no coercion).')
+    if kind == 'integer':
+        integer(value, where)
+        require(symbol.get('minimum', 1) <= value <= symbol.get('maximum', MAX_INTEGER),
+                where + ': outside declared bounds.')
+    elif kind == 'enum':
+        require(identifier(value), where + ': enum value must be a bounded trimmed string.')
+        require(value in symbol['values'], where + ': outside declared enum choices.')
+    return value
+
+
+def constructor_expression(value, kind, symbols, scope, where):
+    if isinstance(value, dict):
+        keys(value, ('symbol',), where=where)
+        sid = value['symbol']
+        require(isinstance(sid, str) and sid in symbols and symbols[sid]['scope'] == scope,
+                where + ': unknown or out-of-scope constructor symbol.')
+        require(symbol_type(symbols[sid]) == kind, where + ': constructor symbol type mismatch.')
+        return [sid]
+    require(type(value) is (bool if kind == 'boolean' else str),
+            where + ': expected ' + kind + ' literal or symbol reference.')
+    if kind == 'enum': require(identifier(value), where + ': invalid constructor string literal.')
+    return []
+
+
 def expression(value, symbols, scope, where, *, depth=0, budget=None):
     """Check a typed JSON AST and collect stable symbol IDs in first-use order."""
     budget = [256] if budget is None else budget
@@ -61,6 +106,7 @@ def expression(value, symbols, scope, where, *, depth=0, budget=None):
         sid = value['symbol']
         require(isinstance(sid, str) and sid in symbols, where + ': unknown symbol ID.')
         require(symbols[sid]['scope'] == scope, where + ': symbol is outside this model scope.')
+        require(symbol_type(symbols[sid]) == 'integer', where + ': arithmetic requires integer symbols.')
         return [sid]
     keys(value, ('op', 'args'), where=where)
     op, args = value['op'], value['args']
@@ -127,7 +173,7 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'))
-    require(type(doc['version']) is int and doc['version'] in (1, 2), 'Family supports integer version 1 or 2.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3), 'Family supports integer version 1, 2 or 3.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -142,7 +188,7 @@ def validate_family(doc):
             for node in model['graph']['nodes']:
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
-                require(doc['version'] == 2 or 'share_with' not in node,
+                require(doc['version'] >= 2 or 'share_with' not in node,
                         'Explicit shared templates require family version 2.')
                 require('op_version' not in node or (type(node['op_version']) is int and node['op_version'] == 1),
                         'Block ' + node['id'] + ': unsupported operator version.')
@@ -169,16 +215,28 @@ def validate_family(doc):
     require(isinstance(doc['symbols'], list) and len(doc['symbols']) <= 128, 'Family allows at most 128 symbols.')
     symbols, names = {}, set()
     for symbol in doc['symbols']:
-        keys(symbol, ('id', 'scope', 'name'), ('default', 'minimum', 'maximum'), 'Family symbol')
+        keys(symbol, ('id', 'scope', 'name'), ('default', 'minimum', 'maximum', 'type', 'values') if doc['version'] >= 3
+             else ('default', 'minimum', 'maximum'), 'Family symbol')
         sid, scope, name = symbol['id'], symbol['scope'], symbol['name']
         require(identifier(sid) and sid not in symbols and isinstance(scope, str) and scope in models and
                 identifier(name) and (scope, name) not in names, 'Symbol ID must be unique; name unique within model scope.')
-        low = integer(symbol.get('minimum', 1), 'Symbol ' + sid + ' minimum')
-        high = integer(symbol.get('maximum', MAX_INTEGER), 'Symbol ' + sid + ' maximum')
-        require(low <= high, 'Symbol ' + sid + ': minimum exceeds maximum.')
+        kind = symbol_type(symbol)
+        require(isinstance(kind, str) and kind in ('integer', 'boolean', 'enum'), 'Symbol ' + sid + ': unsupported scalar type.')
+        if kind == 'integer':
+            require('values' not in symbol, 'Integer symbol cannot have enum values.')
+            low = integer(symbol.get('minimum', 1), 'Symbol ' + sid + ' minimum')
+            high = integer(symbol.get('maximum', MAX_INTEGER), 'Symbol ' + sid + ' maximum')
+            require(low <= high, 'Symbol ' + sid + ': minimum exceeds maximum.')
+        else:
+            require('minimum' not in symbol and 'maximum' not in symbol, 'Noninteger symbols cannot have arithmetic bounds.')
+            if kind == 'boolean': require('values' not in symbol, 'Boolean domain is exactly false/true; no enum values.')
+            else:
+                values = symbol.get('values')
+                require(isinstance(values, list) and 1 <= len(values) <= 64 and
+                        all(identifier(v) for v in values) and len(set(values)) == len(values),
+                        'Enum symbol needs 1..64 distinct bounded string choices.')
         if 'default' in symbol:
-            default = integer(symbol['default'], 'Symbol ' + sid + ' default')
-            require(low <= default <= high, 'Symbol ' + sid + ': default outside bounds.')
+            binding_value(symbol, symbol['default'], 'Symbol ' + sid + ' default')
         symbols[sid] = symbol
         names.add((scope, name))
     require(isinstance(doc['assignments'], list) and len(doc['assignments']) <= 512,
@@ -191,14 +249,18 @@ def validate_family(doc):
                 'Assignment needs model/node/field identities.')
         node = next((n for n in models[mid]['graph']['nodes'] if n['id'] == nid), None)
         where = mid + '/' + nid + '.' + field
-        require(node is not None and field in FIELDS.get(node['type'], set()) and field in node,
-                where + ': target must be an existing supported integer field.')
+        choice = CHOICE_FIELDS.get(node['type'], {}).get(field) if node is not None and doc['version'] >= 3 else None
+        require(node is not None and (choice or field in FIELDS.get(node['type'], set())) and field in node,
+                where + ': target must be an existing supported ' + ('constructor' if doc['version'] >= 3 else 'integer') + ' field.')
         require(not (node['type'] == 'Input' and field == 'features' and 'shape' in node),
                 where + ': explicit shape takes precedence; assign shape instead of ignored features.')
         target = (mid, nid, field)
         require(target not in targets, where + ': duplicate assignment target.')
         targets.add(target)
         value = assignment['value']
+        if choice:
+            used.update(constructor_expression(value, choice, symbols, mid, where))
+            continue
         values = value if isinstance(value, list) else [value]
         if isinstance(value, list):
             require(field in ARRAY_FIELDS and 1 <= len(value) <= 8, where + ': unsupported field array.')
@@ -209,7 +271,7 @@ def validate_family(doc):
     for repeat in doc['repeats']:
         keys(repeat, ('id', 'model', 'nodes', 'count', 'mode'), where='Family repeat')
         require(identifier(repeat['id']) and repeat['id'] not in repeat_ids, 'Repeat ID must be unique.')
-        require(repeat['mode'] == 'independent' or (doc['version'] == 2 and repeat['mode'] == 'tied'),
+        require(repeat['mode'] == 'independent' or (doc['version'] >= 2 and repeat['mode'] == 'tied'),
                 'Repeat ' + repeat['id'] + ': tied mode requires family version 2; runtime recurrence/unknown modes are not copies.')
         mid = repeat['model']
         require(isinstance(mid, str) and mid in models, 'Repeat needs an existing model scope.')
@@ -294,20 +356,22 @@ def specialize(doc, supplied=None):
     """Return a verified concrete closure plus binding/provenance receipt, or raise."""
     symbols = validate_family(doc)
     supplied = {} if supplied is None else supplied
-    require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to integers.')
+    require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to declared scalar values.')
     bindings = {}
     for sid, symbol in symbols.items():
         require(sid in supplied or 'default' in symbol, 'Unresolved symbol ' + sid + ': bind ' + symbol['scope'] + '/' + symbol['name'] + '.')
-        value = integer(supplied.get(sid, symbol.get('default')), 'Binding ' + sid)
-        require(symbol.get('minimum', 1) <= value <= symbol.get('maximum', MAX_INTEGER), 'Binding ' + sid + ': outside declared bounds.')
+        value = binding_value(symbol, supplied.get(sid, symbol.get('default')), 'Binding ' + sid)
         bindings[sid] = value
     models = copy.deepcopy(doc['models'])
     for assignment in doc['assignments']:
         mid, nid, field = (assignment[k] for k in ('model', 'node', 'field'))
         node = next(n for n in models[mid]['graph']['nodes'] if n['id'] == nid)
         value, where = assignment['value'], mid + '/' + nid + '.' + field
-        node[field] = ([evaluate(v, bindings, where) for v in value] if isinstance(value, list)
-                       else evaluate(value, bindings, where))
+        if field in CHOICE_FIELDS.get(node['type'], {}):
+            node[field] = bindings[value['symbol']] if isinstance(value, dict) else value
+        else:
+            node[field] = ([evaluate(v, bindings, where) for v in value] if isinstance(value, list)
+                           else evaluate(value, bindings, where))
     occurrences = _expanded(models, doc['repeats'], bindings)
     expanded_models = {r['model'] for r in doc['repeats']}
     for mid, model in models.items():
@@ -342,12 +406,14 @@ def preview(doc, supplied=None):
     """Keep unresolved/invalid selections visible; malformed grammar still raises."""
     symbols = validate_family(doc)
     supplied = {} if supplied is None else supplied
-    require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to integers.')
+    require(isinstance(supplied, dict) and set(supplied) <= set(symbols), 'Bindings must map known stable symbol IDs to declared scalar values.')
     # Validate supplied values even if another symbol is still unresolved.
     for sid, value in supplied.items():
-        integer(value, 'Binding ' + sid)
-        if not symbols[sid].get('minimum', 1) <= value <= symbols[sid].get('maximum', MAX_INTEGER):
-            return {'status': 'incompatible', 'reason': 'Binding ' + sid + ': outside declared bounds.'}
+        binding_atom(value, 'Binding ' + sid, typed=doc['version'] >= 3)
+        require(type(value) is {'integer': int, 'boolean': bool, 'enum': str}[symbol_type(symbols[sid])],
+                'Binding ' + sid + ': expected ' + symbol_type(symbols[sid]) + ' binding (no coercion).')
+        try: binding_value(symbols[sid], value, 'Binding ' + sid)
+        except GraphError as error: return {'status': 'incompatible', 'reason': str(error)}
     missing = [{'id': sid, 'scope': s['scope'], 'name': s['name']}
                for sid, s in symbols.items() if sid not in supplied and 'default' not in s]
     if missing:

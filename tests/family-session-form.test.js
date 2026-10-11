@@ -29,9 +29,9 @@ function fixture(){
   const field=(collection,key)=>get('science-family-cards').querySelectorAll('[data-family-card]').find(n=>n.dataset.familyCard===collection)?.querySelectorAll('[data-key]').find(n=>n.dataset.key===key);
   return {form,root,get,field,state,requests,toasts,saved,staged,click:id=>get(id).onclick()};
 }
-async function opened(f){
+async function opened(f,changes={}){
   const done=f.form.open();await tick();assert.equal(f.requests[0].action,'scienceDraftOpen');f.requests[0].resolve(h());await tick();
-  f.requests.slice(1,5).forEach(r=>r.resolve(page(r)));await done;return f;
+  f.requests.slice(1,5).forEach(r=>r.resolve(page(r,changes[r.args.collection]||{})));await done;return f;
 }
 function edit(n,value,type='change'){n.value=value;n.dispatchEvent({type});}
 
@@ -103,4 +103,44 @@ test('independent repeat mode does not infer a downgrade or share equal values',
   const done=f.click('science-family-check');await tick();
   assert.equal(f.requests[5].args.operations.length,1);assert.equal(f.requests[5].args.operations[0].key,'mode');
   f.requests[5].resolve(h(1));await tick();f.requests[6].resolve(ref);await done;
+});
+
+test('constructor type queues version 3 before its type and leaves explicit repairs to the user',async()=>{
+  const f=fixture(),r={args:{collection:'symbols',sequence:0,offset:0}},p=page(r);
+  p.rows[0].properties.push({key:'type',present:false,text:null,path:null,summary:null});
+  await opened(f,{symbols:p});const n=f.field('symbols','type');
+  assert.equal(n.tagName,'select');assert.deepEqual(n.children.map(o=>o.value),['boolean','enum','integer']);
+  edit(n,'enum');const done=f.click('science-family-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[5].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'3'},
+    {op:'property',target:{kind:'entry',collection:'symbols',ordinal:0},key:'type',text:'"enum"'}]);
+  f.requests[5].resolve(h(1));await tick();f.requests[6].reject(Error('Remove arithmetic bounds from enum'));await done;
+  assert.equal(f.form.active(),true);assert.equal(f.field('symbols','minimum').value,'1');
+});
+
+test('typed scalar defaults and enum domains preserve exact JSON strings and booleans',async()=>{
+  const f=fixture(),p=page({args:{collection:'symbols',sequence:0,offset:0}});
+  p.rows[0].properties=[descriptor('type','enum',[0]),descriptor('default','Tanh',[1]),descriptor('values',['Tanh','ReLU'],[2])];
+  await opened(f,{symbols:p});assert.equal(f.field('symbols','default').value,'"Tanh"');
+  edit(f.field('symbols','default'),'"GELU"');edit(f.field('symbols','values'),'["ReLU","GELU"]');
+  const done=f.click('science-family-check');await tick();const operations=f.requests[5].args.operations;
+  assert.equal(operations.find(o=>o.key==='default').text,'"GELU"');
+  assert.equal(operations.find(o=>o.key==='values').text,'["ReLU","GELU"]');
+  assert.equal(operations.find(o=>o.key==='version').text,'3');
+  f.requests[5].resolve(h(1));await tick();f.requests[6].resolve(ref);await done;
+  edit(f.field('symbols','default'),'false');const again=f.click('science-family-check');await tick();
+  assert.equal(f.requests[7].args.operations[0].text,'false');f.requests[7].resolve(h(2));await tick();f.requests[8].resolve(ref);await again;
+});
+
+test('tied mode preserves an already-read or pending version 3 upgrade',async()=>{
+  const f=fixture(),roots=[descriptor('version',3,[0])];await opened(f,{repeats:{roots}});
+  edit(f.field('repeats','mode'),'tied');const done=f.click('science-family-check');await tick();
+  assert.equal(f.requests[5].args.operations.length,1);assert.equal(f.requests[5].args.operations[0].key,'mode');
+  f.requests[5].resolve(h(1));await tick();f.requests[6].resolve(ref);await done;
+});
+
+test('invalid unquoted enum default stays visible and blocks preview without native mutation',async()=>{
+  const f=await opened(fixture());edit(f.field('symbols','default'),'Tanh');
+  await f.click('science-family-preview');assert.equal(f.requests.length,5);
+  assert.equal(f.field('symbols','default').value,'Tanh');assert.ok('invalid' in f.field('symbols','default').dataset);
 });

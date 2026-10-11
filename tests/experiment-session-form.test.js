@@ -44,6 +44,15 @@ test('actual experiment opens a header and seven bounded axes, never a complete 
   assert.deepEqual(f.requests.slice(1).map(r=>r.args.collection),collections);assert.ok(f.requests.slice(1).every(r=>r.args.limit===6&&!('draft' in r.args)));
   assert.equal(f.field('Maximum updates').value,'3');assert.equal(f.get('science-author-check').disabled,false);
 });
+
+test('selection version 3 is an exact explicit root edit, not inferred from raw bindings',async()=>{
+  const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 3 enables constructor choices').querySelector('input');
+  edit(n,'3');const done=f.click('science-author-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[8].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'3'}]);
+  f.requests[8].resolve(header(1));await tick();f.requests[9].resolve(reference);await done;
+});
 test('focused unsafe integer literals survive native flush before Check',async()=>{
   const f=await opened(fixture()),n=f.field('Maximum updates');edit(n,'9007199254740993','input');f.root.activeElement=n;
   const done=f.click('science-author-check');await tick();assert.equal(n.disabled,true);assert.equal(f.requests[8].args.operations[0].text,'9007199254740993');
@@ -167,6 +176,15 @@ test('adding family choice explicitly upgrades experiment grammar and inserts wi
   assert.equal(operations[1].op,'insert-json');assert.equal(JSON.stringify(operations[1].path),'[11]');
   const value=JSON.parse(operations[1].text);assert.equal(value.id,'entry');assert.equal(value.family.kind,'family');assert.deepEqual(value.axes,[]);
   f.requests[9].resolve(header(1));await tick();replyPages(f,10);await done;
+});
+
+test('adding a family after a pending version 3 edit uses the fresh native page, not stale roots',async()=>{
+  const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 3 enables constructor choices').querySelector('input');
+  edit(n,'3');const done=f.button('Add family selection','models').onclick();await tick();
+  assert.equal(f.requests[8].args.operations[0].text,'3');f.requests[8].resolve(header(1));await tick();
+  f.requests[9].resolve(page(f.requests[9],{roots:[descriptor('version',3,[0])]}));await tick();
+  assert.equal(f.requests[10].args.operations[0].text,'3');f.requests[10].resolve(header(2));await tick();replyPages(f,11);await done;
 });
 test('family axis invalid JSON stays visible and blocks native Check',async()=>{
   const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3])];

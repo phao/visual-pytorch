@@ -13,7 +13,9 @@ This document defines the preserved version-1 baseline. Version-2 experiment/run
 extensions for explicit ordered family binding axes, conditional coordinates and
 atomic exact specialization provenance are fully specified in
 [family-experiment-axes.md](family-experiment-axes.md). They require container v8;
-report recipes and all other scientific document grammars remain version 1.
+report recipes remain version 1. Version3 typed family coordinates and terminal
+provenance are specified in [constructor-choices.md](constructor-choices.md),
+requiring container10; old experiment/run versions retain their existing grammar.
 
 ## Common rules and exact references
 

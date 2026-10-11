@@ -19,15 +19,20 @@ are implemented, not automatically inferred from symbol ranges.
 2. Concrete templates list stable model IDs, names and graph descriptors. The
    root refers to one of those IDs.
 3. Add symbols with stable IDs, model-local scopes, readable names, optional
-   integer defaults and bounds. A blank default means unresolved, not zero.
+   integer defaults/bounds or version-3 boolean/finite enum choices. Type selectors
+   are alphabetic; defaults and enum values use literal JSON. Changing type does
+   not silently remove incompatible bounds/defaults. A blank default means unresolved, not zero.
 4. Add assignments to existing template node fields. Values are integers,
    expression ASTs or arrays of expressions for shapes/pairs. Examples:
    {"symbol":"width-id"} or {"op":"mul","args":[2,{"symbol":"width-id"}]}.
+   Version3 also permits existing constructor fields such as bias and activation,
+   with matching literals or symbol references; see [constructor-choices.md](constructor-choices.md).
    No Python text is executed.
 5. Add finite repeats: stable repeat ID, model ID, ordered node-ID array,
    count expression and explicit mode "independent" or "tied". Selecting tied
-   explicitly upgrades the owned family document to version2 in the same edit
-   batch; v2 downgrade is denied. Current unary-chain
+   explicitly upgrades a v1 owned family document to version2 in the same edit
+   batch, preserving v3 when already selected. Type/domain edits explicitly
+   upgrade to v3. All owned version downgrades are denied. Current unary-chain
    ingress/egress/no-crossing constraints still apply.
 6. Preview with a JSON stable-symbol-ID binding map. Omitted values use defaults.
    Conditional/incompatible results explain missing/invalid choices. Preview

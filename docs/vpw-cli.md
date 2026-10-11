@@ -26,6 +26,11 @@ accepts tied finite repeats; .vtw v9 is required. `parameter-counts` attributes
 newly owned parameters once to the canonical block and zero to its aliases.
 Complete ownership/constructor/CLI/export rules: [shared-parameters.md](shared-parameters.md).
 
+Family v3 constructor choices use explicit JSON boolean/string bindings in the
+same preview/specialize commands. Specialization v2, experiment/run v3 and .vtw
+v10 preserve exact typed provenance; older integer grammars are not widened.
+See [constructor-choices.md](constructor-choices.md).
+
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic
 `apply` batch accepts `{"op":"panel-layout","value": <preset-or-null>}`.
 The closed CSS-pixel preset, validation ranges, missing/default behavior and

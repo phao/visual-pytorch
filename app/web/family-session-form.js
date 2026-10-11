@@ -2,7 +2,7 @@
 (() => {
   let root,api,saved,state=null,pending=false,epoch=0,controlling=false,flushing=false;
   const $=id=>root.getElementById(id),el=(tag,text)=>{const n=root.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  const collections={templates:'Concrete templates',symbols:'Scoped integer symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied'};
+  const collections={templates:'Concrete templates',symbols:'Scoped constructor symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied'};
   const args=()=>({session:state.header.session,sequence:state.header.sequence});
   const live=(owner,ticket)=>state===owner&&!owner.stale&&ticket===epoch&&owner.header.workspace_id===api.workspace();
   const issue=e=>{$(state?'science-family-status':'science-family-instance-status').textContent=e.message;api.toast(e.message,true);};
@@ -36,6 +36,10 @@
     const identity=JSON.stringify([target,key]);state.edits=state.edits.filter(e=>e.identity!==identity);
     state.edits.push({identity,operation:{op:'property',target,key,text}});delete n.dataset.invalid;delete n.dataset.dirty;n.removeAttribute('aria-invalid');invalidate();
   }
+  function upgrade(version,n){const queued=state.edits.find(e=>e.operation.target.kind==='document'&&e.operation.key==='version');
+    const current=queued?Number(queued.operation.text):state.documentVersion;
+    if(current<version)enqueue({kind:'document'},'version',String(version),n);
+  }
   async function mutate(operations){const owner=state,ticket=epoch,sequence=owner.header.sequence;
     const h=await api.call('scienceDraftFamilyEdit',{...args(),operations});
     if(!live(owner,ticket))return false;
@@ -59,15 +63,17 @@
       owner.header=h;invalidate();await act(readAll);
     }});
   }
-  function control(d,target,readOnly=false){
-    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph'].includes(key),
-      numeric=['default','minimum','maximum','version'].includes(key),n=el(key==='mode'?'select':json?'textarea':'input');
-    if(key==='mode'){
-      const current=d.present?JSON.parse(d.text):'independent';
-      for(const value of [...new Set(['independent','tied',current])].sort()){
+  function control(d,target,readOnly=false,symbolType='integer'){
+    const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph','values','default'].includes(key),
+      numeric=['minimum','maximum','version'].includes(key),
+      selector=['mode','type'].includes(key),n=el(selector?'select':json&&key!=='default'?'textarea':'input');
+    if(selector){
+      const current=d.present&&d.text!==null?JSON.parse(d.text):key==='mode'?'independent':'integer';
+      for(const value of [...new Set([...(key==='mode'?['independent','tied']:['boolean','enum','integer']),current])].sort()){
         const option=el('option',value);option.value=value;n.append(option);
       }
-      n.title='Independent: fresh parameters per use. Tied: one shared parameter set across finite uses; family version 2.';
+      n.title=key==='mode'?'Independent: fresh parameters per use. Tied: one shared parameter set across finite uses.':
+        'Explicit scalar type. Enum: JSON array of finite strings and a quoted default. Boolean: true/false. Noninteger symbols have no minimum/maximum; remove those explicitly. Family version 3.';
     }
     n.dataset.familyControl='';n.dataset.key=key;const large=d.present&&d.text===null;
     n.dataset.large=String(large);n.dataset.readOnly=String(readOnly);
@@ -75,11 +81,12 @@
     else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):'';
     n.oninput=()=>{n.dataset.dirty='';invalidate();};
     n.onchange=()=>{try{
-      let text;if((numeric||['default','minimum','maximum'].includes(key))&&n.value.trim()==='')text=null;
-      else if(json||numeric){text=n.value;JSON.parse(text);
-        if(numeric&&!/^-?(0|[1-9][0-9]*)$/.test(text))throw Error('Enter an exact decimal integer, or blank for an absent default/bound.');
+      let text;if((numeric||['default','values'].includes(key))&&n.value.trim()==='')text=null;
+      else if(json||numeric){text=n.value;const parsed=JSON.parse(text);
+        if((numeric||key==='default'&&typeof parsed==='number')&&!/^-?(0|[1-9][0-9]*)$/.test(text))throw Error('Enter an exact decimal integer, or blank for an absent default/bound.');
       }else text=JSON.stringify(n.value);
-      if(key==='mode'&&n.value==='tied')enqueue({kind:'document'},'version','2',n);
+      if(key==='mode'&&n.value==='tied')upgrade(2,n);
+      if(['type','values'].includes(key))upgrade(3,n);
       enqueue(target,key,text,n);
     }catch(e){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(e);}};
     wrapper.append(n);if(!readOnly&&d.path&&(large||json))wrapper.append(button('Edit staged JSON…',()=>raw(d.path,key)));
@@ -90,11 +97,13 @@
     if(page.version!==1||page.scope!=='owned-family-page'||page.session!==request.session||page.sequence!==request.sequence||page.workspace_id!==owner.header.workspace_id||page.id!==owner.header.id||page.collection!==collection||page.offset!==g.offset||page.limit!==6)
       throw Error('Family page does not match its owner, sequence and cursor.');
     g.page=page;g.body.replaceChildren();g.range.textContent=page.offset+'–'+(page.offset+page.rows.length)+' of '+page.total;
+    const version=page.roots.find(d=>d.key==='version');if(version?.present&&version.text!==null)owner.documentVersion=JSON.parse(version.text);
     g.prev.dataset.orderDisabled=String(!g.backs.length);g.next.dataset.orderDisabled=String(page.next_offset===null);
     for(const row of page.rows){const card=el('fieldset'),target={kind:'entry',collection,ordinal:row.ordinal};
       card.dataset.familyCard=collection;card.dataset.ordinal=String(row.ordinal);card.append(el('legend',row.template||collection+' '+(row.ordinal+1)));
       const grid=el('div');grid.className='science-author-grid';card.append(grid);
-      for(const d of row.properties)grid.append(control(d,target,collection==='templates'&&d.key==='id'));
+      const type=row.properties.find(d=>d.key==='type'),symbolType=type?.present&&type.text!==null?JSON.parse(type.text):'integer';
+      for(const d of row.properties)grid.append(control(d,target,collection==='templates'&&d.key==='id',symbolType));
       if(collection!=='templates'){
         card.append(button('Remove',()=>structure(collection,{op:'remove',collection,index:row.ordinal})));
         if(row.ordinal>0)card.append(button('Move up',()=>structure(collection,{op:'move',collection,from:row.ordinal,to:row.ordinal-1})));
@@ -131,7 +140,7 @@
     const identity=api.workspace(),ticket=epoch,h=await api.call('scienceDraftOpen',{kind:'family',...(reference?{reference}:{model:api.model()})});
     if(h.version!==1||h.scope!=='owned-authoring-session'||h.kind!=='family'||h.workspace_id!==identity||h.sequence!==0||
        (reference?(h.base?.kind!=='family'||h.base?.id!==reference.id||h.base?.revision!==reference.revision||h.id!==reference.id):h.base!==null))throw Error('Family draft does not match its exact base/workspace.');
-    state={header:h,stale:identity!==api.workspace()||ticket!==epoch,groups:{},edits:[],edit:0,failed:true,preview:null};layout();await readAll();invalidate();
+    state={header:h,documentVersion:1,stale:identity!==api.workspace()||ticket!==epoch,groups:{},edits:[],edit:0,failed:true,preview:null};layout();await readAll();invalidate();
   }
   window.LoomFamilySessionForm={
     active,open(reference=null){return act(()=>open(reference));},

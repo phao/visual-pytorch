@@ -8,14 +8,14 @@ import copy
 import math
 
 from .datasets import _identifier, _keys, _require
-from .families import integer, validate_family, preview
+from .families import binding_atom, validate_family, preview
 
 
 def family_choice(value):
     return isinstance(value, dict) and 'family' in value
 
 
-def validate_choice(value):
+def validate_choice(value, *, version=2):
     from .experiment_objects import reference
     if not family_choice(value):
         reference(value, 'model')
@@ -27,7 +27,7 @@ def validate_choice(value):
              'Family choice needs fixed stable-symbol-ID bindings.')
     for sid, val in value['bindings'].items():
         _require(_identifier(sid), 'Fixed binding needs a stable symbol ID.')
-        integer(val, 'Fixed binding ' + sid)
+        binding_atom(val, 'Fixed binding ' + sid, typed=version >= 3)
     _require(isinstance(value['axes'], list) and len(value['axes']) <= 128,
              'Family choice needs an ordered array of at most 128 binding axes.')
     seen = set(value['bindings'])
@@ -39,21 +39,22 @@ def validate_choice(value):
         seen.add(sid)
         _require(isinstance(values, list) and 1 <= len(values) <= 1000,
                  'Each family axis needs 1..1000 explicit ordered integers.')
-        for val in values: integer(val, 'Axis ' + sid)
-        _require(len(set(values)) == len(values), 'Duplicate value in family axis ' + sid + '.')
+        for val in values: binding_atom(val, 'Axis ' + sid, typed=version >= 3)
+        _require(len({(type(v), v) for v in values}) == len(values), 'Duplicate value in family axis ' + sid + '.')
 
 
 def dependencies(choices):
     return [value['family'] if family_choice(value) else value for value in choices]
 
 
-def validate_dependencies(choices, resolve):
+def validate_dependencies(choices, resolve, *, version=2):
     for value in choices:
         if not family_choice(value): continue
         ref = value['family']
         source = resolve(ref['kind'], ref['id'], ref['revision'])
         from .family_records import definition
         symbols = validate_family(definition(source))
+        _require(version >= 3 or source['version'] < 3, 'Family version 3 selections require experiment version 3.')
         selected = set(value['bindings']) | {a['symbol'] for a in value['axes']}
         _require(selected <= set(symbols), 'Family choice names an unknown stable symbol ID.')
 
@@ -85,7 +86,7 @@ def at(choices, index):
     raise IndexError('Model selection index is outside the declared axes.')
 
 
-def selected(choices, coordinate):
+def selected(choices, coordinate, *, version=2):
     """Strict membership, including no invented, omitted or rounded bindings."""
     if isinstance(coordinate, dict) and coordinate.get('kind') == 'model':
         from .experiment_objects import reference
@@ -100,17 +101,18 @@ def selected(choices, coordinate):
     _require(choice is not None, 'Family choice not selected by experiment.')
     expected = set(choice['bindings']) | {a['symbol'] for a in choice['axes']}
     _require(set(coordinate['bindings']) == expected, 'Coordinate must specify exactly the fixed and axis bindings.')
-    for sid, val in coordinate['bindings'].items(): integer(val, 'Coordinate binding ' + sid)
-    _require(all(coordinate['bindings'][k] == v for k, v in choice['bindings'].items()),
+    for sid, val in coordinate['bindings'].items(): binding_atom(val, 'Coordinate binding ' + sid, typed=version >= 3)
+    _require(all(type(coordinate['bindings'][k]) is type(v) and coordinate['bindings'][k] == v for k, v in choice['bindings'].items()),
              'Coordinate changed a fixed family binding.')
-    _require(all(coordinate['bindings'][a['symbol']] in a['values'] for a in choice['axes']),
+    _require(all(any(type(coordinate['bindings'][a['symbol']]) is type(v) and coordinate['bindings'][a['symbol']] == v
+                     for v in a['values']) for a in choice['axes']),
              'Coordinate binding is outside the declared family axis.')
     return choice
 
 
-def resolve_model(choices, coordinate, resolve):
+def resolve_model(choices, coordinate, resolve, *, version=2):
     """Return pure frozen provenance; conditional points remain non-executable."""
-    choice = selected(choices, coordinate)
+    choice = selected(choices, coordinate, version=version)
     from .experiment_objects import _get
     if not family_choice(choice):
         model = _get(resolve, coordinate)

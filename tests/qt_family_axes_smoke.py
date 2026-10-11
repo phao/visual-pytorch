@@ -17,6 +17,9 @@ from app.desktop import Bridge, Window
 from app.experiment_objects import object_reference
 from app.revisions import validate_all
 from test_family_axes import family_experiment
+from test_constructor_choices import choice_experiment
+
+typed = os.environ.get('VTW_CONSTRUCTOR_AXES') == '1'
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')
@@ -32,7 +35,7 @@ class Page(QWebEnginePage):
 class Harness(QObject):
     state = Window.state; describe = Window.describe
     def __init__(self, folder):
-        super().__init__(); self.config = Config(folder / 'config.json'); self.workspace, self.e = family_experiment()
+        super().__init__(); self.config = Config(folder / 'config.json'); self.workspace, self.e = (choice_experiment if typed else family_experiment)()
         self.ref = object_reference('experiment', self.e); self.workspace.save(folder / 'original.vtw')
         self.job = None; self.torch_python = '/home/pedro/miniforge3/bin/python3.12'; self.rendering = {}; self.requests = []
         self.bridge = Bridge(self, view)
@@ -77,20 +80,21 @@ with tempfile.TemporaryDirectory() as directory:
         js('document.querySelector("[data-panel=science]").click();document.getElementById("experiment-dock").style.height="850px";document.getElementById("experiment-dock").style.width="1080px"')
         until('!document.getElementById("science-panel").hidden')
         change('document.getElementById("science-kind")', 'experiment')
-        until('document.getElementById("science-object").options.length===2')
+        until('document.getElementById("science-object").options.length==='+str(3 if typed else 2))
         # Browser option serialization need not use the caller's key order.
         js('(()=>{const n=document.getElementById("science-object");n.value=[...n.options].find(o=>JSON.parse(o.value).revision===' + json.dumps(h.ref['revision']) + ').value;n.dispatchEvent(new Event("change"));})()')
-        until('document.querySelectorAll("#science-candidates [data-science-run]").length===16')
+        until('document.querySelectorAll("#science-candidates [data-science-run]").length==='+str(24 if typed else 16))
         before = h.workspace.db.serialize(); click('science-author-edit')
         until('!document.getElementById("science-author-check").disabled && Boolean(document.querySelector(\'[data-experiment-axis="model"] textarea\'))')
         axes = field('Ordered binding axes JSON'); changed_axes = json.dumps([
+            {'symbol': 'activation-kind', 'values': ['ReLU', 'Tanh']}, {'symbol': 'learn-bias', 'values': [True, False]}] if typed else [
             {'symbol': 'hidden-width', 'values': [3, 2]}, {'symbol': 'hidden-depth', 'values': [2, 1]}])
         change(axes, '['); click('science-author-check')
         until('document.getElementById("science-author-status").textContent.includes("invalid")')
         assert js(axes + '.value') == '['; assert before == h.workspace.db.serialize()
         change(axes, changed_axes); click('science-experiment-preview')
         until('document.querySelectorAll("#science-experiment-preview-rows .science-candidate").length===16')
-        assert js('document.querySelector("#science-experiment-preview-rows .science-candidate").textContent.includes("34 trainable parameters")')
+        assert js('document.querySelector("#science-experiment-preview-rows .science-candidate").textContent.includes("'+str(10 if typed else 34)+' trainable parameters")')
         assert before == h.workspace.db.serialize(); assert not h.workspace.dirty
         # Create a second family choice through the real version-upgrading button
         # and exact revision selector, not a fabricated complete document.
@@ -101,8 +105,8 @@ with tempfile.TemporaryDirectory() as directory:
         js('(()=>{const n=' + exact + ';n.value=[...n.options].find(o=>o.value && JSON.parse(o.value).revision===' + json.dumps(family_ref['revision']) + ').value;n.dispatchEvent(new Event("change"));})()')
         click('science-author-save')
         until('document.getElementById("science-author").hidden && document.querySelectorAll("#science-candidates [data-science-run]").length===20')
-        retained = h.workspace.get_spec('experiment', h.e['id']); assert retained['version'] == 2
-        assert retained['models'][0]['axes'][0]['values'] == [3, 2]; assert len(retained['models']) == 2
+        retained = h.workspace.get_spec('experiment', h.e['id']); assert retained['version'] == (3 if typed else 2)
+        assert retained['models'][0]['axes'][0]['values'] == (['ReLU', 'Tanh'] if typed else [3, 2]); assert len(retained['models']) == 2
         assert h.workspace.list_specs('run') == []; assert h.workspace.list_specs('specialization') == []
         if os.environ.get('VTW_FAMILY_AXES_CAPTURE'):
             loop = QEventLoop(); QTimer.singleShot(150, loop.quit); loop.exec(); assert view.grab().save(os.environ['VTW_FAMILY_AXES_CAPTURE'])
@@ -110,13 +114,13 @@ with tempfile.TemporaryDirectory() as directory:
         until('Boolean(window.loom.state.experiment_job)')
         until('!window.loom.state.experiment_job && document.getElementById("toast-message").textContent.includes("completed")', 40)
         run = h.workspace.get_spec('run', h.workspace.list_specs('run')[0]['id'])
-        assert run['version'] == 2; assert run['attempts'][0]['result']['counts']['completed_updates'] == 3
+        assert run['version'] == (3 if typed else 2); assert run['attempts'][0]['result']['counts']['completed_updates'] == 3
         refs = run['resolved']['references']; specialization = h.workspace.get_spec('specialization', refs['specialization']['id'], refs['specialization']['revision'])
-        assert specialization['bindings'] == {'hidden-width': 3, 'hidden-depth': 2}
+        assert specialization['bindings'] == ({'activation-kind': 'ReLU', 'learn-bias': True} if typed else {'hidden-width': 3, 'hidden-depth': 2})
         change('document.getElementById("science-kind")', 'run')
         until('!document.getElementById("science-run").hidden && Boolean(document.querySelector("[data-run-evidence]"))')
         evidence = h.dispatch({'action': 'scienceRunEvidence', 'reference': object_reference('run', run)})
-        assert evidence['objects']['model']['parameters_exact'] == '34'
+        assert evidence['objects']['model']['parameters_exact'] == ('10' if typed else '34')
         assert evidence['objects']['specialization']['reference'] == refs['specialization']
         assert evidence['execution']['counts']['completed_updates'] == 3
         assert not getattr(h, 'experiment_recoveries', {}); validate_all(h.workspace.db)
@@ -125,6 +129,7 @@ with tempfile.TemporaryDirectory() as directory:
         finally: loaded.db.close()
         assert 'torch' not in sys.modules; assert not errors, errors
         print(json.dumps({'ok': True, 'typed_family_axes': True, 'invalid_json_preserved': True,
+                          'constructor_choices': typed,
                           'ordered_axes': True, 'add_family_selection': True, 'candidates': 20,
                           'worker_updates': 3, 'exact_specialization_delivered': True,
                           'save_reload': True, 'host_torch': False, 'console_errors': errors}))

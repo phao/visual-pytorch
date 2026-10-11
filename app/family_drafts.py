@@ -12,7 +12,7 @@ from .experiment_drafts import _locate
 from .families import preview as resolve_preview
 
 PROPERTIES = {
-    'symbols': ('id', 'scope', 'name', 'default', 'minimum', 'maximum'),
+    'symbols': ('id', 'scope', 'name', 'type', 'values', 'default', 'minimum', 'maximum'),
     'assignments': ('model', 'node', 'field', 'value'),
     'repeats': ('id', 'model', 'nodes', 'count', 'mode'),
     'templates': ('id', 'name', 'graph'),

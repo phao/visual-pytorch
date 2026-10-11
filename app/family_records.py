@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from .datasets import _identifier, _keys, _require, _version
 from .evidence import digest
 from .experiment_objects import reference
-from .families import specialize, preview, validate_family, integer
+from .families import specialize, preview, validate_family, binding_atom
 
 
 def definition(doc):
@@ -26,14 +26,14 @@ def validate_family_revision(doc):
 
 def validate_specialization(doc):
     _keys(doc, ('version', 'id', 'name', 'family', 'bindings', 'model'), ('revision',), 'Specialization')
-    _version(doc, 'Specialization')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2), 'Specialization supports integer version 1 or 2.')
     _require(_identifier(doc['id']) and _identifier(doc['name']), 'Specialization needs a stable ID/name.')
     reference(doc['family'], 'family'); reference(doc['model'], 'model')
     _require(isinstance(doc['bindings'], dict) and len(doc['bindings']) <= 128,
              'Specialization must retain all resolved stable-symbol-ID bindings.')
     for sid, value in doc['bindings'].items():
         _require(_identifier(sid), 'Specialization binding key must be a stable symbol ID.')
-        integer(value, 'Specialization binding ' + sid)
+        binding_atom(value, 'Specialization binding ' + sid, typed=doc['version'] == 2)
 
 
 def validate_specialization_dependencies(doc, resolve):
@@ -42,6 +42,8 @@ def validate_specialization_dependencies(doc, resolve):
     family = resolve(doc['family']['kind'], doc['family']['id'], doc['family']['revision'])
     model = resolve(doc['model']['kind'], doc['model']['id'], doc['model']['revision'])
     source = definition(family)
+    _require(doc['version'] == (2 if source['version'] >= 3 else 1),
+             'Specialization version must match its exact family scalar grammar.')
     _require(set(doc['bindings']) == {s['id'] for s in source['symbols']},
              'Specialization bindings must explicitly include every symbol, including defaults.')
     resolved = specialize(source, doc['bindings'])
@@ -96,7 +98,7 @@ def resolution_records(frozen, resolved, *, sid=None, name=None):
     model = frozen_document('model', model_document(resolved['models'], resolved['root']))
     model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
     record = frozen_document('specialization', {
-        'version': 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
+        'version': 2 if frozen['version'] >= 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
         'name': name if name is not None else frozen['name'] + ' · resolved',
         'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref})
     return {'family_ref': family_ref, 'model': model, 'model_ref': model_ref,

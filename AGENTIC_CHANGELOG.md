@@ -4,6 +4,24 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 07:35 -03:00 — Explicit scalar constructor choices
+
+Added family v3 boolean/finite enum symbols and constructor assignments, because
+integer-only width/depth cannot express activation/bias experimental families.
+Typed immutable specialization v2 and experiment/run v3 preserve actual scalar
+values, exact type-aware membership and canonical terminal provenance; .vtw v10
+gates the grammar without tables or old hash changes. Owned Qt type/domain/default
+controls and numeric experiment version reuse existing history/memory/staging/
+ownership fences. Fixed stale-root Add family upgrades; tied mode preserves v3.
+
+Added runnable activation/bias example,16 pure/4 numerical cases,6 JavaScript
+form checks and real sandboxed Qt typed defaults/retention/worker/evidence/reload.
+Final753 Python247.679s/285 JS1194.74306ms pass, including independent gradients,
+workers/retries/fresh predictors and an actual two-point Jupyter rerun. Preserved
+failed probes and legacy error wording; old version probe advances to4. Specs,
+primary-source references and verified limits are in docs/constructor-choices.md
+and docs/development.md. D/E remain incomplete; public/user state unchanged.
+
 ## 2026-10-11 07:04 -03:00 — Genuine shared parameter ownership
 
 Added explicit local Linear/Conv2d/Module owners and family v2 finite tied uses,
