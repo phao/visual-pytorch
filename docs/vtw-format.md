@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 15
+# Visual Torch Workspace (.vtw): format specification, version 16
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -17,16 +17,17 @@ version-7 container; they add no SQL table or sidecar. The
 [retained runtime H/W contracts](runtime-spatial-contracts.md) require version12;
 [explicit runtime task execution](runtime-task-execution.md) requires version13;
 [recurrent graph references](recurrent-graph-contract.md) require version14;
-[retained temporal families](temporal-families.md) require version15.
+[retained temporal families](temporal-families.md) require version15;
+[explicit temporal experiment execution](temporal-task-execution.md) requires version16.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 15. The current reader accepts versions 1–15; opening
-an older file copies it into memory and upgrades the working version to 15.
-Opening alone never rewrites the source; explicit Save writes version 15.
+PRAGMA user_version = 16. The current reader accepts versions 1–16; opening
+an older file copies it into memory and upgrades the working version to 16.
+Opening alone never rewrites the source; explicit Save writes version 16.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -85,7 +86,12 @@ retained family, bindings, constructor contexts and frozen model. Earlier header
 containing family6 or specialization5 fail. No new SQL tables, experiment/run
 grammar or variable-T experiment execution are added by this version. See
 [temporal-families.md](temporal-families.md).
-Older binaries are not expected to open version 15;
+Version16 adds ExperimentSpec/RunRecord v5's explicit runtime-temporal-v1 family
+execution choice and TaskBundle v3's exact temporal provenance. Earlier headers
+containing experiment/run v5 fail. No SQL table, TaskSpec, DatasetSpec or report
+recipe version changes. Existing concrete/spatial execution retains its explicit
+meaning. See [temporal-task-execution.md](temporal-task-execution.md).
+Older binaries are not expected to open version 16;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -126,7 +132,7 @@ creates external evidence; no browser projection is a persisted scientific spec.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 15;
+PRAGMA user_version = 16;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -176,7 +182,8 @@ version5 and specialization integer version4 in a version-12 container;
 experiment/run additionally support integer version4 in a version-13 container;
 model additionally supports integer version3 in a version-14 container;
 family additionally supports integer version6 and specialization integer version5
-in a version-15 container);
+in a version-15 container; experiment/run additionally support integer version5
+in a version-16 container);
 other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to

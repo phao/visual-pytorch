@@ -172,7 +172,7 @@ def run_report(payload, directory):
                                                 record['selection']['experiment']['revision'])
                 bundle = candidate_bundle(experiment, record['selection']['coordinates'], workspace.get_spec,
                                           saved_manifest=record['resolved']['manifest'])
-                if bundle['version']==2:
+                if bundle['version'] in (2,3):
                     new_file(directory / ('runtime-architecture-' + summary['reference']['revision'] + '.py'),
                              generate_task_architecture(bundle,constrained=False))
                 new_file(directory / ('predictor-' + summary['reference']['revision'] + '.py'),

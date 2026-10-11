@@ -5,8 +5,9 @@ policy. It is not an upgrade of `runtime-spatial-v1`, a constructor repeat,
 hidden between-call state, or finite copying. The ordinary graph remains concrete
 unless a caller selects this policy. [Family6](temporal-families.md) now retains
 this policy and its exact specialization5 witness, with owned Qt editing and
-CLI preview/retention/export. Temporal experiment execution selection remains
-unimplemented. Family1–5 continue to reject Recurrent, and spatial runtime declarations
+CLI preview/retention/export. [Temporal experiment execution](temporal-task-execution.md)
+now selects it explicitly in ExperimentSpec5/TaskBundle3. Family1–5 continue to
+reject Recurrent, and spatial runtime declarations
 continue to reject recurrence anywhere in the reachable closure.
 
 ## Declaration and pure proof

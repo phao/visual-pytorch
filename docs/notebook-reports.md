@@ -53,7 +53,7 @@ bundle/
   LICENSE
   README.txt
   requirements.txt
-  runtime/app/             complete 24-file numerical source closure
+  runtime/app/             complete 30-file current numerical source closure
   executions/<attempt>/   fresh artifacts from each explicit execution
 ```
 
@@ -79,7 +79,10 @@ New bundles include `activations.py`, `families.py`, `family_records.py`,
 in the30-file copied closure, together with `recurrent.py`, `recurrent_nodes.py`
 and `temporal_shapes.py`. Genuine prior29-file runtimes are accepted only when
 captured source does not import the missing temporal helper; capturing it alone
-does not select temporal experiment execution. Genuine prior25-file runtimes are accepted only
+does not by itself select temporal experiment execution. Explicit ExperimentSpec5/
+TaskBundle3 now selects [temporal execution](temporal-task-execution.md) through
+this same captured runtime, including saved/rerun kernels and exact temporal
+runtime architecture/predictor artifacts. Genuine prior25-file runtimes are accepted only
 if captured source does not require the two new dependencies. Current-source
 omissions fail before a kernel. Explicit runtime tasks and per-run runtime
 architecture/predictor exports are specified in

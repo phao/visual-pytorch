@@ -19,6 +19,10 @@ requiring container10; old experiment/run versions retain their existing grammar
 Version4 optionally selects explicit concrete/runtime family execution, requiring
 container13; [runtime-task-execution.md](runtime-task-execution.md) specifies its
 provenance, actual dataset cases and preserved older checkpoint identities.
+Version5 adds the separate explicit temporal execution choice, requiring container16;
+[temporal-task-execution.md](temporal-task-execution.md) specifies TaskBundle3,
+temporal proof/current-case planning and exact worker/predictor/kernel behavior.
+Report recipes remain version1; no older choice opts in automatically.
 
 ## Common rules and exact references
 

@@ -1,5 +1,11 @@
 # Owned experiment editor — retained local Stage C checkpoint
 
+The family execution selector now also offers Runtime sequence T. Selecting it
+queues explicit experiment version5 before the execution property; older concrete/
+spatial choices require4 and never downgrade an acknowledged5. The visible exact
+version control accepts1–5. Owned sequence/workspace/head/job/child-editor fences
+remain unchanged. See [temporal-task-execution.md](temporal-task-execution.md).
+
 The native owned-session service now provides experiment selection cards, named
 literal edits, current-property lookup, local selection choices and a projected
 prospective preview. The actual experiment form now uses this service for Open,

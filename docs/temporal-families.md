@@ -147,10 +147,11 @@ pure imports, owner/gradient parity for row/CNN cases, warm starts, mixed-T fitt
 current RAM and fresh app-free inference. A real sandboxed Qt/WebChannel workflow
 edits/previews/retains/exports/materializes and reloads a version15 workspace.
 
-Variable-T **experiment/data/task/worker/notebook execution selection is still
-pending**. Capturing temporal helpers or creating a concrete instance does not
-prove that integration. Existing fixed recurrent experiments and explicit spatial
-runtime experiments retain their meanings. Existing-node recurrent interface
+Variable-T [experiment/data/task/worker/notebook execution](temporal-task-execution.md)
+now requires a separate explicit ExperimentSpec5 selection. Retaining a family or
+creating a concrete drawing never selects it automatically. Existing fixed recurrent
+experiments and explicit spatial runtime experiments retain their meanings.
+Existing-node recurrent interface
 reconfiguration remains explicit CLI edits; the Qt recurrent modal creates nodes.
 
 Run `python examples/temporal_family.py` for a disposable retained .vtw15/native/

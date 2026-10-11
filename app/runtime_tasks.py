@@ -12,13 +12,16 @@ from .evidence import digest
 from .runtime_shapes import specification, shape_contract
 
 
-def proof(family, specialization, model):
+def proof(family, specialization, model, *, execution='runtime-spatial-v1'):
     """Closed frozen provenance; no lookup of mutable heads or inferred bindings."""
     from .family_records import validate_specialization_dependencies
     from .revisions import frozen_document
     f=frozen_document('family',family);s=frozen_document('specialization',specialization)
     m=frozen_document('model',model)
-    _require(f['version']==5 and s['version']==4 and s['runtime'] is not None,
+    _require(execution in ('runtime-spatial-v1','runtime-temporal-v1'),'Unknown explicit runtime task execution policy.')
+    temporal=execution=='runtime-temporal-v1'
+    _require(f['version']==(6 if temporal else 5) and s['version']==(5 if temporal else 4) and s['runtime'] is not None,
+             'Temporal runtime execution needs family6 and a nonnull specialization5 witness.' if temporal else
              'Runtime task execution needs an exact family5 declaration and specialization4 witness.')
     records={('family',f['id'],f['revision']):f,('model',m['id'],m['revision']):m}
     def resolve(kind,sid,revision):
@@ -28,28 +31,41 @@ def proof(family, specialization, model):
     return {'family':f,'specialization':s}
 
 
-def contract(model,dataset,task,runtime):
+def contract(model,dataset,task,runtime, *, execution=None):
     """Plan the dataset's actual shapes, then ordinary task checks validate meaning."""
     _keys(runtime,('family','specialization'),context='Runtime task provenance')
-    value=proof(runtime['family'],runtime['specialization'],model)
+    if execution is None:
+        execution='runtime-temporal-v1' if runtime['specialization'].get('version')==5 else 'runtime-spatial-v1'
+    value=proof(runtime['family'],runtime['specialization'],model,execution=execution)
     _require(digest(value)==digest(runtime),'Runtime task provenance must retain exact frozen revisions.')
     models=model['models'];root=model['root'];decl=value['specialization']['runtime']['inputs']
-    spec=specification(models,root,decl);fields={f['id']:f for f in dataset['fields']}
+    temporal=execution=='runtime-temporal-v1'
+    if temporal:
+        from .temporal_shapes import specification as make_spec, shape_contract as plan
+    else:make_spec,plan=specification,shape_contract
+    spec=make_spec(models,root,decl);fields={f['id']:f for f in dataset['fields']}
     baseline=validate_model(models,root);shapes={g['id']:g['shape'] for g in baseline['input_groups']}
     for binding in task['inputs']:
         if binding.get('port') not in decl:continue
         _require(binding.get('field') in fields and 'derived' not in binding,
-                 'Runtime image ports need explicit numeric field bindings, not derived length/mask inputs.')
+                 'Runtime ports need explicit numeric field bindings, not inferred or derived length/mask inputs.')
         field=fields[binding['field']]
-        _require(field['dtype'] in ('float32','int64','bool') and len(field['shape'])==3 and all(v>0 for v in field['shape']),
+        _require(field['dtype'] in ('float32','int64','bool') and
+                 (1<=len(field['shape'])<=8 if temporal else len(field['shape'])==3 and all(v>0 for v in field['shape'])),
+                 'Temporal fields need numeric sample tensors and explicit rectangular collation.' if temporal else
                  'Runtime image fields need a fixed rectangular numeric CHW shape; ragged collation requires a separate policy.')
         shape,_,_= _pipeline(field,binding['transforms'])
         shapes[binding['port']]=shape
-    return shape_contract(models,root,spec,shapes)
+    return plan(models,root,spec,shapes)
 
 
 def input_policy(bundle):
     model=bundle['model'];baseline=validate_model(model['models'],model['root'])
+    if bundle['version']==3:
+        actual=contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],execution='runtime-temporal-v1')
+        return {'kind':'runtime-temporal-v1','runtime_temporal':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
+                'baseline_input_groups':copy.deepcopy(baseline['input_groups']),
+                'fitted_input_shapes':{g['id']:g['shape'] for g in actual['input_groups']}}
     return {'runtime_inputs':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
             'baseline_input_groups':copy.deepcopy(baseline['input_groups'])}
 
@@ -61,12 +77,13 @@ def record_shapes(input_spec,records):
     a different image size must not silently reinterpret a saved feature vector.
     """
     _require(isinstance(records,list) and records,'Runtime inference needs a nonempty rectangular record batch.')
-    policy=input_spec['runtime_policy'];decl=policy['runtime_inputs']
+    policy=input_spec['runtime_policy'];temporal=policy.get('kind')=='runtime-temporal-v1'
+    decl=policy['runtime_temporal'] if temporal else policy['runtime_inputs']
     groups={g['id']:g for g in policy['baseline_input_groups']}
     fields={f['id']:f for f in input_spec['dataset']['fields']}
     shapes={g['id']:list(g['shape']) for g in groups.values()}
     def shape(value, depth=0):
-        _require(depth<3,'Runtime image samples must have exactly three CHW axes.')
+        _require(depth<(8 if temporal else 3),'Runtime sample rank exceeds the declared tensor boundary.')
         _require(isinstance(value,list) and value,'Runtime image sample axes must be positive rectangular lists.')
         tail=shape(value[0],depth+1) if isinstance(value[0],list) else []
         for v in value:
@@ -78,9 +95,14 @@ def record_shapes(input_spec,records):
         if pid not in decl:continue
         fid=binding['field'];field=fields[fid]
         _require(all(isinstance(r,dict) and fid in r for r in records),'Inference record is missing input field '+fid+'.')
+        if temporal and binding['transforms']:
+            for row in records:_value(row[fid],field)
+            shapes[pid]=list(policy['fitted_input_shapes'][pid])
+            continue
         values=[shape(r[fid]) for r in records]
         actual=values[0];fixed=groups[pid]['shape']
-        _require(len(actual)==3 and all(v==actual for v in values),'Each runtime image port needs one common CHW sample shape per batch.')
+        _require(len(actual)==(len(groups[pid]['shape']) if temporal else 3) and all(v==actual for v in values),
+                 'Each runtime port needs one common rectangular sample shape per batch; padding must be explicit.')
         _require(math.prod(actual)<=MAX_INTEGER and all(i in decl[pid] or v==fixed[i] for i,v in enumerate(actual)),
                  'Runtime inference changed a fixed channel/spatial dimension.')
         _require(not binding['transforms'] or actual==field['shape'],

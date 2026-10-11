@@ -107,6 +107,8 @@ identities, independent of baseline T and generated scoped model IDs. Compatible
 strict warm starts transfer weights across those constructor points, not optimizer
 state or hidden recurrent state. [Temporal families](temporal-families.md) gives
 the complete retained grammar and native exact-specialization construction API.
+Explicit [temporal experiments](temporal-task-execution.md) now reuse this same
+checked constructor for their runtime architecture and saved predictor exports.
 
 ## Captured runnable closure and provenance
 

@@ -53,8 +53,12 @@ group/time splits, exact saved predictors/curves and explicit notebook generatio
 and real-kernel execution. These additions are not included in the initial
 `v0.1.0-alpha.1` prerelease. See [Stage C acceptance](docs/stage-c-acceptance.md),
 [experiment GUI](docs/experiment-gui.md) and [notebook setup](docs/notebook-reports.md).
-Recurrent/symbolic model families and durable detached/distributed execution
-remain future work. See [development](docs/development.md) and the
+Local Stage D development also includes [scoped architecture families](docs/architecture-families.md),
+[explicit recurrent graphs](docs/recurrent-graph-contract.md) and
+[temporal experiments](docs/temporal-task-execution.md), with exact saved/runtime
+provenance and checked standalone export. Stage D acceptance is still incomplete;
+durable detached/distributed execution remains future work. These are development
+capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
@@ -110,6 +114,12 @@ then select Experiment → Experiments & history. Browse exact dataset/task/mode
 revisions, preview candidates, run a trial and inspect its retained evidence.
 Notebook generation and execution are separate explicit actions and need the
 optional environments described in [notebook setup](docs/notebook-reports.md).
+
+For the development temporal workflow, run
+`python -m examples.temporal_experiment /path/to/new-temporal.vtw`.
+It creates explicit T=3/7 dataset/task cases over one retained recurrent family;
+add `--train` for separate bounded CPU worker trials. No implicit state carry,
+parameter sharing across trials or automatic padding is inferred.
 
 `A`, `B`, `E`, `I` toggle Architectures, Building blocks, Experiment and Inspector.
 `D` deletes the selection; undo/redo repairs accidental edits. Empty canvas

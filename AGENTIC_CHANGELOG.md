@@ -4,6 +4,32 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 14:06 -03:00 — Explicit temporal experiment execution
+
+Added ExperimentSpec/RunRecord5, TaskBundle3/RunIdentity3 and container16 to select
+runtime-temporal-v1 explicitly, because retained temporal families alone did not
+execute through the scientific workflow. Exact family6/specialization5 provenance,
+dataset-derived actual T, stable role/port IDs and unchanged learned dimensions
+now reach native workers, restored/app-free predictors and actual saved/rerun
+notebook kernels. Temporal nested-unroll RAM charges are included and reproduced
+in result validation. Fitted transforms keep saved raw/processed shapes; explicit
+pad does not become guessed collation or a refitted feature statistic. Concrete/
+spatial modes and old identities remain unchanged. Owned Qt selection upgrades
+to5 before editing policy; older modes never downgrade it.
+
+Added19 unittest cases and1 JS case. Final1032 Python358.777s (1029 PASS/3 Qt-only
+skips separately covered in127 native/pure4.930s),321 JS1447.211262ms and real Qt
+temporal/spatial edit/preview/worker/save/reload pass. Independent per-row optimizer
+oracles use float32 tolerance; native/worker checkpoints and new-T native/app-free
+predictions are exact. CNN transitions, explicit padding/standardization, unavailable
+supervision, CLI fits and real saved/rerun checkpoint/metric equality pass. Three
+pinned legacy bundles/identities and6 spatial actual cases match3079bfd exactly.
+The new public example completes two default-constrained12-update T=3/7 trials;
+standard-library creation and existing-file refusal also pass. Failed initial
+fixture assertions remain private evidence; source stayed fixed during full suite.
+Specs are aligned. Remaining D authoring/acceptance and E are not complete; no
+main/public integration, live user state changes or new campaign.
+
 ## 2026-10-11 13:36 -03:00 — Retained temporal family provenance and actual Qt workflow
 
 Added closed family6/specialization5 in container15, because variable-time models

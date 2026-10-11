@@ -71,7 +71,7 @@ with tempfile.TemporaryDirectory() as td:
         request=next(r for r in h.requests if r['action']=='scienceDraftExperimentEdit')
         assert request['operations'][0]['key']=='version' and request['operations'][0]['text']=='4'
         assert request['operations'][1]['key']=='execution'
-        version='([...document.querySelectorAll("#science-experiment-bindings label")].find(n=>n.firstChild.textContent==="Selection version · 4 enables runtime execution").querySelector("input"))'
+        version='([...document.querySelectorAll("#science-experiment-bindings label")].find(n=>n.firstChild.textContent==="Selection version · 4 enables spatial, 5 temporal runtime").querySelector("input"))'
         assert js(version+'.value')=='4'
         if os.environ.get('VTW_RUNTIME_TASK_CAPTURE'):
             loop=QEventLoop();QTimer.singleShot(150,loop.quit);loop.exec();assert view.grab().save(os.environ['VTW_RUNTIME_TASK_CAPTURE'])

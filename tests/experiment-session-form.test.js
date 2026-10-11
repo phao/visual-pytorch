@@ -47,7 +47,7 @@ test('actual experiment opens a header and seven bounded axes, never a complete 
 
 test('selection version 3 is an exact explicit root edit, not inferred from raw bindings',async()=>{
   const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
-    .find(n=>n.textContent==='Selection version · 4 enables runtime execution').querySelector('input');
+    .find(n=>n.textContent==='Selection version · 4 enables spatial, 5 temporal runtime').querySelector('input');
   edit(n,'3');const done=f.click('science-author-check');await tick();
   assert.deepEqual(JSON.parse(JSON.stringify(f.requests[8].args.operations)),[
     {op:'property',target:{kind:'document'},key:'version',text:'3'}]);
@@ -180,7 +180,7 @@ test('adding family choice explicitly upgrades experiment grammar and inserts wi
 
 test('adding a family after a pending version 3 edit uses the fresh native page, not stale roots',async()=>{
   const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
-    .find(n=>n.textContent==='Selection version · 4 enables runtime execution').querySelector('input');
+    .find(n=>n.textContent==='Selection version · 4 enables spatial, 5 temporal runtime').querySelector('input');
   edit(n,'3');const done=f.button('Add family selection','models').onclick();await tick();
   assert.equal(f.requests[8].args.operations[0].text,'3');f.requests[8].resolve(header(1));await tick();
   f.requests[9].resolve(page(f.requests[9],{roots:[descriptor('version',3,[0])]}));await tick();
@@ -198,18 +198,18 @@ test('draft family candidate labels display bindings and exact decimal parameter
   assert.match(text,/width-depth.*width=4.*depth=3/);assert.match(text,/9007199254740993 trainable parameters/);
 });
 
-for(const policy of ['concrete-v1','runtime-spatial-v1'])test('explicit '+policy+' selection queues grammar 4 first and acknowledges its visible version',async()=>{
+for(const policy of ['concrete-v1','runtime-spatial-v1','runtime-temporal-v1'])test('explicit '+policy+' selection queues its exact grammar first and acknowledges its visible version',async()=>{
   const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),
     descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3]),descriptor('execution',null,null,false)];
   const f=await opened(fixture(),{models:{roots:[descriptor('version',3,[0])],rows:[{ordinal:0,path:[2,0],properties:props}]}});
   const mode=f.field('Family execution','model');assert.equal(mode.value,'concrete-v1');assert.equal(f.requests.length,8);
   edit(mode,policy);const done=f.click('science-author-check');await tick();
   assert.equal(JSON.stringify(f.requests[8].args.operations),JSON.stringify([
-    {op:'property',target:{kind:'document'},key:'version',text:'4'},
+    {op:'property',target:{kind:'document'},key:'version',text:policy==='runtime-temporal-v1'?'5':'4'},
     {op:'property',target:{kind:'entry',collection:'models',ordinal:0},key:'execution',text:JSON.stringify(policy)}]));
   f.requests[8].resolve(header(1));await tick();f.requests[9].resolve(reference);await done;
   const version=f.get('science-experiment-bindings').querySelectorAll('label')
-    .find(n=>n.textContent==='Selection version · 4 enables runtime execution').querySelector('input');assert.equal(version.value,'4');
+    .find(n=>n.textContent==='Selection version · 4 enables spatial, 5 temporal runtime').querySelector('input');assert.equal(version.value,policy==='runtime-temporal-v1'?'5':'4');
   edit(mode,'runtime-spatial-v1');const again=f.click('science-author-check');await tick();
   assert.equal(f.requests[10].args.operations.length,1);assert.equal(f.requests[10].args.operations[0].key,'execution');
   f.requests[10].resolve(header(2));await tick();f.requests[11].resolve(reference);await again;

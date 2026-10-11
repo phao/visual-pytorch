@@ -1,6 +1,6 @@
 # Agent and user CLI contract
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container15). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container16). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
@@ -20,7 +20,10 @@ Family6 and specialization5 use these same commands, with required nullable
 runtime_policy and an exact nullable runtime-temporal-v1 witness. Materialization
 inserts the complete Module/Recurrent closure children-first in one atomic edit.
 Preview/export do not rewrite the workspace or allocate PyTorch. CLI constructor
-bindings do not select temporal experiment execution. See
+bindings do not select temporal experiment execution. An ExperimentSpec5 family
+choice must explicitly choose execution:runtime-temporal-v1. Existing preview/run-
+candidate/run evidence/export-run-trained/notebook operations then use exact
+TaskBundle3 temporal provenance, not a parallel CLI format. See
 [temporal-families.md](temporal-families.md).
 Family v4 scoped Module call bindings and specialization v3 local contexts use
 these same CLI operations, with no agent-only schema shortcuts. See

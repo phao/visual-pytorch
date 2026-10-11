@@ -171,5 +171,11 @@ def validate_result(bundle, result):
     expected['components']['typed_preparation'] = prepared['preparation_estimate']['estimated_bytes']
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     expected['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (8192 + 512 * point_rows * len(bundle['task']['heads']))
+    if bundle['version']==3:
+        from .temporal_shapes import admission as temporal_admission
+        model=bundle['model']
+        extra=temporal_admission(model['models'],model['root'],prepared['contract'],size,constrained=False,
+                                 memory_limit_percent=memory['limit_percent'],gradients=True)
+        expected['components']['recurrent_unrolls']=extra['memory']['components']['recurrent_unrolls']
     _require(digest(memory['components']) == digest(expected['components']) and memory['batch'] == expected['batch'],
              'RAM component estimates do not match the recorded runtime policy.')

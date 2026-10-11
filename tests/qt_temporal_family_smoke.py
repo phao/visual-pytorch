@@ -107,7 +107,7 @@ with tempfile.TemporaryDirectory() as td:
         h.workspace.save(folder/'final.vtw');opened=Workspace.load(folder/'final.vtw')
         try:
             assert opened.get_spec('specialization',instance['id'],record['revision'])==record
-            assert opened.db.execute('PRAGMA user_version').fetchone()[0]==15==VERSION
+            assert opened.db.execute('PRAGMA user_version').fetchone()[0]==VERSION
         finally:opened.db.close()
         assert not errors,errors;assert 'torch' not in sys.modules
         print(json.dumps({'ok':True,'temporal_card':True,'explicit_family6':True,'invalid_text_retained':True,

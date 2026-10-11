@@ -1,5 +1,55 @@
 # Development state and roadmap
 
+## 2026-10-11 14:06 -03:00 — Explicit temporal scientific execution
+
+ExperimentSpec/RunRecord5 in .vtw16 explicitly select runtime-temporal-v1;
+TaskBundle3/RunIdentity3 capture exact family6/specialization5/model provenance.
+Data/task bindings supply the actual rectangular T while constructor frames,
+states and learned dimensions remain fixed. Native/worker fitting, restored and
+checked app-free predictors and actual saved/rerun notebook kernels use one
+validated compiler path. Current-minibatch nested-unroll copies/controls join task
+RAM admission and are independently reproduced by stored result validation.
+Fitted inputs retain saved raw field and processed shapes; explicit pad remains
+literal collation, not automatic resizing or inferred controls/loss masking.
+
+Owned Qt Family execution adds Runtime sequence T and queues explicit5 before
+the policy edit; selecting concrete/spatial never downgrades an acknowledged5.
+Existing CLI preview/run-candidate/evidence/export/notebook operations share the
+versioned contract. Old experiment choices never opt in; null or spatial witnesses
+cannot impersonate temporal execution. Concrete identity1/spatial identity2 remain
+byte-identical on3 pinned bundle fixtures and6 spatial actual-shape cases.
+
+Final unchanged-source1032 Python358.777s (1029 PASS/3 Qt-only skips covered in127
+native/pure4.930s),321 JS1447.211262ms and real sandboxed Qt temporal/spatial
+selection/preview/worker/save/reload pass. Added19 unittest cases/1 JS case.
+Independent per-row recurrence/Adam comparison uses float32 tolerance after
+matching float64 additive reduction, not a bitwise claim across differently batched
+linear kernels. Native/worker checkpoints/history and native/fresh app-free
+predictions remain exact. CNN transition fitting, new-T inference, explicit pad/
+standardization lowering, unavailable supervision, current RAM, CLI fit/export,
+forged identities and real saved/rerun kernel checkpoint/metric equality pass.
+
+Initial failures were fixture/API assertions: wrong exception class, passing an
+unsupported validator keyword, validating the transport's full bundle as a stored
+artifact, and mismatched oracle reduction precision. Corrected tests without
+relaxing execution/provenance guards; raw failed/final logs remain private campaign
+evidence. Python source/discovered tests stayed fixed throughout the full suite.
+Actual Qt capture was inspected; DOM/WebChannel workflow, not native mouse evidence.
+
+Public `examples/temporal_experiment.py` creates a new GUI-ready workspace without
+Torch; --train explicitly runs two default-constrained12-update demonstrations at
+T=3/7. First observed (update4)→final train objectives are0.227049→0.0189748 and
+0.304974→0.0122513, not claimed initialization losses. Existing-file refusal leaves
+bytes unchanged. Each trial is an independent instance of one exact family, not
+shared weights across trials. Exact contract: [temporal-task-execution.md](temporal-task-execution.md).
+
+Next finish remaining D authoring/acceptance, then E durable/heavyweight execution.
+Existing-node recurrent interface reconfiguration is still explicit CLI edits;
+the Qt modal only creates. Dynamic derived-control adapters, changing-T fitted
+preprocessing and ragged implicit collation are not silently added. D/E/full goal
+remain incomplete/local. No main/public integration or live user app/config/
+workspace/desktop changes, source fork, new campaign or CPW cleanup.
+
 ## 2026-10-11 13:36 -03:00 — Retained temporal family and exact construction
 
 Family6 requires nullable runtime_policy (only nonnull runtime-temporal-v1) and

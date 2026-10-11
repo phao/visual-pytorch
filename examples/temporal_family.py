@@ -30,7 +30,7 @@ def main():
         result=retain(workspace,family=document,materialize=True)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'example.vtw';workspace.save(path);opened=Workspace.load(path)
-            assert opened.db.execute('PRAGMA user_version').fetchone()[0]==VERSION==15
+            assert opened.db.execute('PRAGMA user_version').fetchone()[0]==VERSION
             native=compile_specialization(opened,result['specialization'])
             source=stored_source(opened,result['family']);output=Path(directory)/'checked_family.py'
             write_new_family(source,output)

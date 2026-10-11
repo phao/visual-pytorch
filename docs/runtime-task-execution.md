@@ -3,6 +3,9 @@
 Reference: `app/runtime_tasks.py`, `app/task_execution.py`,
 `app/experiment_objects.py`, `app/worker.py`, and the owned experiment form.
 This is a bounded Stage D extension, not completion of recurrence or durable jobs.
+The separate [temporal execution policy](temporal-task-execution.md) uses
+ExperimentSpec5/TaskBundle3. It does not reinterpret this spatial policy or its
+closed family5/specialization4 proof.
 
 ## Selection, storage and compatibility
 
