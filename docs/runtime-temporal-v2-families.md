@@ -3,8 +3,8 @@
 Family8, Specialization7 and container19 extend the separately versioned
 [runtime-temporal-v2 backend](runtime-temporal-v2.md). This is retained D work,
 not full D/E completion. [TaskBundle4](runtime-temporal-v2-tasks.md) admits direct
-typed training/worker/inference; ExperimentSpec/RunRecord v2 execution choices
-remain unsupported. Existing versions and retained source closures are
+typed training/worker/inference; [ExperimentSpec/RunRecord6](runtime-temporal-v2-experiments.md)
+explicitly retains this choice in container20. Existing versions and retained source closures are
 not silently widened, upgraded or rewritten.
 
 ## Explicit definition and witness

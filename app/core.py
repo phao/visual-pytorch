@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 19
+VERSION = 20
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -592,6 +592,11 @@ class Workspace:
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
             validate_all(w.db)
+            if version < 20:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] >= 6:
+                        raise GraphError('Temporal-v2 experiment/run contracts require a version-20 container.')
             if version < 19:
                 from .revisions import _parse
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):

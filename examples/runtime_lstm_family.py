@@ -43,7 +43,7 @@ def main():
                           'specialization':result['specialization'],'model':result['model'],
                           'parameters':result['resolved']['contract']['parameters'],
                           'runtime':result['resolved']['runtime'],
-                          'status':'runtime-v2-family-retained; not-trained; task-routes-not-yet-admitted'}))
+                          'status':'runtime-v2-family-retained; not-trained; no-dataset-task-or-experiment-created'}))
     finally:
         workspace.db.close()
 

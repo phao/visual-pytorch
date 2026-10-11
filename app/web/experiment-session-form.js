@@ -125,7 +125,7 @@
     n.onchange=()=>{try{
       if(key==='execution'){
         const queued=state.edits.find(e=>e.operation.target.kind==='document'&&e.operation.key==='version');
-        const required=n.value==='runtime-temporal-v1'?5:4;
+        const required=n.value==='runtime-temporal-v2'?6:n.value==='runtime-temporal-v1'?5:4;
         if((queued?Number(queued.operation.text):state.documentVersion)<required)enqueue({kind:'document'},'version',String(required),n);
       }
       enqueue(target,key,JSON.stringify(n.value),n);
@@ -153,7 +153,7 @@
       if(collection==='models'){
         if(p.family){grid.append(text('Family choice ID','id'),ref('Exact family','family','family'),
           text('Fixed bindings JSON','bindings',{mode:'json',area:true}),text('Ordered binding axes JSON','axes',{mode:'json',area:true}));
-          grid.append(select('Family execution', [['concrete-v1','Concrete baseline'],['runtime-spatial-v1','Runtime image H/W'],['runtime-temporal-v1','Runtime sequence T']],scalar(p.execution,'concrete-v1'),target,'execution'));
+          grid.append(select('Family execution', [['concrete-v1','Concrete baseline'],['runtime-spatial-v1','Runtime image H/W'],['runtime-temporal-v1','Runtime sequence T (v1)'],['runtime-temporal-v2','Runtime sequence T with LSTM (v2)']],scalar(p.execution,'concrete-v1'),target,'execution'));
           card.append(el('p','Each axis: {"symbol":"stable-id","values":[2,4]}. Version 3 also supports [false,true] and declared string choices such as ["ReLU","Tanh"]. Last axis changes fastest. Missing defaults stay conditional; incompatible combinations remain visible. No automatic training.'));
         }else grid.append(ref('Exact architecture','reference','model'));
       }
@@ -190,7 +190,7 @@
     }g.range.textContent=(g.page.rows.length?g.offset+1:0)+'–'+(g.offset+g.page.rows.length)+' / '+g.page.total+' · scientific order';controls();
   }
   function renderRoots(){const roots=Object.fromEntries(state.groups.models.page.roots.map(p=>[p.key,p]));state.documentVersion=scalar(roots.version,1);
-    const version=control('Selection version · 4 enables spatial, 5 temporal runtime',roots.version,{kind:'document'},'version',{mode:'number',integer:true,min:1,max:5});
+    const version=control('Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2',roots.version,{kind:'document'},'version',{mode:'number',integer:true,min:1,max:6});
     state.versionControl=version.querySelector('input');state.rootControls.replaceChildren(
     control('Research question',roots.question,{kind:'document'},'question',{area:true}),
     version,

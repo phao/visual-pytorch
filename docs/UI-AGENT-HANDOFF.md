@@ -39,9 +39,14 @@ remain separate. This does not change general floating-panel mechanics or imply
 runtime-T LSTM support. The separate Family8 extension uses the same editor;
 entering a runtime-temporal-v2 policy explicitly queues its grammar upgrade.
 Invalid text and old policy meaning remain intact, with no floating-panel redesign.
-Typed runtime-v2 experiments are not yet supported. See
+The owned experiment selector separately queues explicit version6 before a
+runtime-temporal-v2 execution choice; it does not invent state data/masks/splits.
+Its exact version field accepts1–6, and switching policies never silently
+downgrades an acknowledged/queued version. Retention/training/history/report
+routes use the same frozen contract. See
 [LSTM family contract](lstm-families.md) and
-[runtime-v2 families](runtime-temporal-v2-families.md).
+[runtime-v2 families](runtime-temporal-v2-families.md) and
+[runtime-v2 experiments](runtime-temporal-v2-experiments.md).
 
 ## 2. Coordinate systems and stacking
 

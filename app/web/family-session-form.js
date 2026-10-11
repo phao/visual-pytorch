@@ -91,7 +91,7 @@
     }
     if(key==='runtime_policy'){
       n.placeholder='{"version":2,"kind":"runtime-temporal-v2","inputs":{"sequence":[0]}} · null = fixed';
-      n.title='Explicit policy: family6/7 uses version1 runtime-temporal-v1 for Recurrent, not LSTM. Family8 uses version2 runtime-temporal-v2 for Recurrent/LSTM. Null means fixed shapes and is required for LSTM in family7. Editing a v2 policy explicitly upgrades to family8. Stable root Input IDs with semantic T sample axis [0]; frames/states/learned dimensions remain fixed. Declare mask/reset T separately; remove fixed Output annotations explicitly when needed. Older spatial runtime_inputs must be removed explicitly, not silently converted. Direct TaskBundle4 training/inference is admitted; retained runtime-v2 experiment choices are not yet admitted.';
+      n.title='Explicit policy: family6/7 uses version1 runtime-temporal-v1 for Recurrent, not LSTM. Family8 uses version2 runtime-temporal-v2 for Recurrent/LSTM. Null means fixed shapes and is required for LSTM in family7. Editing a v2 policy explicitly upgrades to family8. Stable root Input IDs with semantic T sample axis [0]; frames/states/learned dimensions remain fixed. Declare mask/reset T separately; remove fixed Output annotations explicitly when needed. Older spatial runtime_inputs must be removed explicitly, not silently converted. TaskBundle4 and an explicit ExperimentSpec6 runtime-temporal-v2 choice use this exact retained policy; no implicit task, mask, state data or time split.';
     }
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
     else n.value=d.present?(json||numeric?d.text:JSON.parse(d.text)):selector?(key==='mode'?'independent':'integer'):'';
