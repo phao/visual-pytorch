@@ -6,8 +6,10 @@
 compiled graph. The [recurrent graph contract](recurrent-graph-contract.md) now
 exposes it through a closed multiport graph node, container14/ModelRevision3,
 existing atomic CLI graph edits, concrete task workers, saved predictors and
-captured notebook helpers. The GUI palette/inspector and a retained temporal
-family/runtime grammar remain Stage D work. Old ModelRevision/family hashes and
+captured notebook helpers, with guarded Qt palette/Inspector authoring. A separate
+[runtime-temporal-v1 backend API](runtime-temporal-contracts.md) now permits
+declared root T variations; retained temporal family/experiment selection remains
+Stage D work. Old ModelRevision/family hashes and
 task interpretations are preserved; finite tied repeats do not become recurrent.
 
 The existing graph defines one transition; it stays acyclic. Recurrence lives

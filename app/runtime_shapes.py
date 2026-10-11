@@ -34,6 +34,11 @@ def declaration(models, mid, runtime_inputs):
 def specification(models, mid, runtime_inputs):
     """Static parameter-dependency proof, not a successful example-batch guess."""
     declared = declaration(models, mid, runtime_inputs)
+    return _dependency_specification(models, mid, declared)
+
+
+def _dependency_specification(models, mid, declared, *, temporal=False):
+    """Shared proof engine; the two public policies have separate declarations."""
     visited = set()
     def closure(key):
         if key in visited: return
@@ -42,9 +47,9 @@ def specification(models, mid, runtime_inputs):
         from .core import check_document
         check_document(models[key])
         for n in models[key]['graph']['nodes']:
-            if n['type'] == 'Recurrent':
+            if n['type'] == 'Recurrent' and not temporal:
                 raise GraphError('Runtime-spatial-v1 does not declare temporal recurrent ports; use a concrete recurrent graph until the temporal runtime contract is selected.')
-            if n['type'] == 'Module': closure(n['ref'])
+            if n['type'] in {'Module', 'Recurrent'}: closure(n['ref'])
     closure(mid)
     baseline = validate_model(models, mid)
     guards, contexts, memo, baseline_cache = [], set(), {}, {}
@@ -62,7 +67,9 @@ def specification(models, mid, runtime_inputs):
             before = parts[0] if parts else inputs[nid]; current = list(before)
             if kind == 'Linear':
                 if before[-1]:
-                    raise GraphError(location + ': Linear weight input width depends on runtime ' + ', '.join(sorted(before[-1])) + '. Bind image resolution or add AdaptiveAvgPool2d/spatial reduction before Flatten.')
+                    repair = ('. Bind T or keep time out of the learned last-axis width with an explicit reduction/adapter.' if temporal else
+                              '. Bind image resolution or add AdaptiveAvgPool2d/spatial reduction before Flatten.')
+                    raise GraphError(location + ': Linear weight input width depends on runtime ' + ', '.join(sorted(before[-1])) + repair)
                 current[-1] = frozenset()
             elif kind == 'Conv2d':
                 if before[0]:
@@ -87,6 +94,27 @@ def specification(models, mid, runtime_inputs):
                 current = {pid:before[:-1]+[frozenset()] for pid in item['ports']}
                 guards.append({'path':location,'rule':'last-axis-equals-declared-part-sum'})
             elif kind == 'Replicator': current = {pid:list(before) for pid in item['ports']}
+            elif kind == 'Recurrent':
+                from .recurrent_nodes import normalized, sources, specification as recurrent_specification
+                n = normalized(node)
+                bound = dict(zip(sources(n), parts))
+                time = merged([bound[row['source']][0] for row in n['sequence_inputs']])
+                for row in n['sequence_inputs']:
+                    if merged(bound[row['source']][1:]):
+                        raise GraphError(location + ': transition frame dimensions must be independent of runtime T.')
+                for row in n['states']:
+                    if merged(bound[row['source']]):
+                        raise GraphError(location + ': initial and returned state dimensions must be independent of runtime T.')
+                if 'lengths' in n['controls'] and merged(bound[n['controls']['lengths']['source']]):
+                    raise GraphError(location + ': lengths must retain the fixed sample shape [1].')
+                child = validate_model(models, n['ref'])
+                walk(n['ref'], {g['id']:[frozenset() for _ in g['shape']] for g in child['input_groups']}, location + '/transition')
+                current = {row['port']:[time, *[frozenset() for _ in child['shapes'][row['output']]['output_shape']]]
+                           for row in n['sequence_outputs']}
+                current.update({row['port']:[frozenset() for _ in child['shapes'][row['input']]['output_shape']]
+                                for row in n['states']})
+                guards.append({'path':location, 'rule':'equal-positive-T; fixed-frame-and-state; exact-controls; current-B/T-admission',
+                               'bindings':recurrent_specification(n), 'sources':sources(n), 'controls':copy.deepcopy(n['controls'])})
             elif kind == 'Module':
                 child = validate_model(models,node['ref'])
                 if len(child['input_groups']) != 1 and merged(before):
@@ -101,10 +129,10 @@ def specification(models, mid, runtime_inputs):
                   [merged([merged(values[g['id']]) for g in c['output_groups']])])
         memo[context] = result
         return result
-    inputs = {g['id']:[frozenset({g['id'] + '.' + ('H' if i == 1 else 'W')}) if i in declared.get(g['id'],[]) else frozenset()
+    inputs = {g['id']:[frozenset({g['id'] + '.' + ('T' if temporal else 'H' if i == 1 else 'W')}) if i in declared.get(g['id'],[]) else frozenset()
                          for i in range(len(g['shape']))] for g in baseline['input_groups']}
     output = walk(mid, inputs, mid)
-    return {'version':1,'scope':'explicit-eager-runtime-spatial-contract','runtime_inputs':declared,
+    return {'version':1,'scope':'explicit-eager-runtime-temporal-contract' if temporal else 'explicit-eager-runtime-spatial-contract','runtime_inputs':declared,
             'status':'conditional','parameter_shapes':'statically-independent-of-runtime-axes',
             'guards':guards,'output_dependencies':[sorted(v) for v in output],
             'baseline_input_groups':copy.deepcopy(baseline['input_groups'])}
@@ -112,16 +140,18 @@ def specification(models, mid, runtime_inputs):
 
 def shape_contract(models, mid, spec, shapes):
     """Pure actual-case shape validation; no tensor, RNG or mutable plan cache."""
+    temporal = spec.get('scope') == 'explicit-eager-runtime-temporal-contract'
     groups = spec['baseline_input_groups']
     if not isinstance(shapes, dict) or set(shapes) != {g['id'] for g in groups}:
         raise GraphError('Runtime shape preview must supply every root Input ID exactly once.')
     for g in groups:
         actual = tensor_shape(shapes[g['id']]); fixed = g['shape']; allowed = spec['runtime_inputs'].get(g['id'], [])
         if len(actual) != len(fixed) or any(a != b and i not in allowed for i,(a,b) in enumerate(zip(actual,fixed))):
-            raise GraphError('Input ' + g['id'] + ': only declared H/W axes may vary; channels, rank and all other dimensions remain fixed.')
+            raise GraphError('Input ' + g['id'] + (': only declared T axes may vary; rank and all frame/state dimensions remain fixed.' if temporal else
+                             ': only declared H/W axes may vary; channels, rank and all other dimensions remain fixed.'))
     try: return contract(models, mid, input_shapes=shapes)
     except GraphError as error:
-        raise GraphError('Runtime spatial shape is incompatible: ' + str(error)) from error
+        raise GraphError('Runtime ' + ('temporal' if temporal else 'spatial') + ' shape is incompatible: ' + str(error)) from error
 
 
 def admission(c, batch_size, *, constrained=True, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
@@ -158,6 +188,14 @@ def compile_runtime_model(models, mid, runtime_inputs, *, constrained=True,
                           memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT, initial_shapes=None):
     """Construct once; reject weight-dependent axes before allocating layers."""
     spec = specification(models, mid, runtime_inputs)
+    return _compile_runtime_model(models, mid, spec, constrained=constrained,
+                                  memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
+
+
+def _compile_runtime_model(models, mid, spec, *, constrained=True,
+                           memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT, initial_shapes=None):
+    """Construct fixed owners once, then plan and admit each explicit runtime case."""
+    temporal = spec['scope'] == 'explicit-eager-runtime-temporal-contract'
     from .core import compile_model, preflight, _graph_values, _graph_tensor
     if initial_shapes is None:
         preflight(models,mid,constrained,memory_limit_percent=memory_limit_percent)
@@ -169,9 +207,16 @@ def compile_runtime_model(models, mid, runtime_inputs, *, constrained=True,
         if key in frozen: return
         frozen[key] = {k:copy.deepcopy(models[key][k]) for k in ('id','name','graph')}
         for node in frozen[key]['graph']['nodes']:
-            if node['type'] == 'Module': capture(node['ref'])
+            if node['type'] in {'Module', 'Recurrent'}: capture(node['ref'])
     capture(mid)
     baseline = compile_model(frozen,mid,constrained=False)
+    if temporal:
+        # Retain the caller's admission policy also inside recurrent wrappers.
+        # The pure whole-graph preview below already charges their current unroll.
+        for layer in baseline.modules():
+            if hasattr(layer, 'transition') and hasattr(layer, 'memory_limit_percent'):
+                layer.constrained = constrained
+                layer.memory_limit_percent = memory_percent(memory_limit_percent)
     class RuntimeGraph(type(baseline)):
         def __init__(self):
             super().__init__(OrderedDict(baseline.named_children()))
@@ -180,9 +225,17 @@ def compile_runtime_model(models, mid, runtime_inputs, *, constrained=True,
         def runtime_specification(self): return copy.deepcopy(self._runtime_spec)
 
         def preview_shapes(self, shapes, *, batch_size=1, gradients=True, dtype_bytes=4):
+            if type(gradients) is not bool:
+                raise GraphError('Runtime gradients policy must be boolean.')
             c = shape_contract(frozen,mid,spec,shapes)
-            report = admission(c,batch_size,constrained=constrained,memory_limit_percent=memory_limit_percent,
-                               gradients=gradients,dtype_bytes=dtype_bytes)
+            if temporal:
+                from .temporal_shapes import admission as temporal_admission
+                report = temporal_admission(frozen, mid, c, batch_size, constrained=constrained,
+                                            memory_limit_percent=memory_limit_percent,
+                                            gradients=gradients or self.training, dtype_bytes=dtype_bytes)
+            else:
+                report = admission(c,batch_size,constrained=constrained,memory_limit_percent=memory_limit_percent,
+                                   gradients=gradients,dtype_bytes=dtype_bytes)
             return {'version':1,'status':'verified-for-supplied-shapes','contract':c,'safety':report}
 
         def _call_contract(self,x):
@@ -195,6 +248,8 @@ def compile_runtime_model(models, mid, runtime_inputs, *, constrained=True,
             else: raise GraphError('Runtime multi-input execution requires named tensors; packed data cannot identify variable port shapes.')
             if any(not isinstance(p,torch.Tensor) or p.layout != torch.strided or p.device.type != 'cpu' or p.dtype not in (torch.float32,torch.float64) for p in parts):
                 raise GraphError('Runtime inputs must be dense CPU float32/float64 tensors.')
+            if temporal and any(p.dtype != torch.float32 for p in parts):
+                raise GraphError('Runtime-temporal-v1 requires dense CPU float32 inputs, including explicit control adapters.')
             if any(p.ndim < 2 for p in parts) or len({p.shape[0] for p in parts}) != 1:
                 raise GraphError('Runtime named inputs must have one common positive batch size B.')
             if len({p.dtype for p in parts}) != 1 or any(p.device.type != 'cpu' or p.dtype != parts[0].dtype for p in self.parameters()):

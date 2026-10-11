@@ -13,7 +13,10 @@ This checkpoint implements concrete graph shapes, SQLite/CLI admission, native
 and app-free forward, exact checkpoints, existing task workers and portable
 notebook execution, plus guarded palette branch creation, a didactic Inspector,
 distinct input/output sockets and selected-port editing in the existing Qt UI.
-It does not implement a temporal architecture-family/runtime grammar. Existing family versions1–5 and
+It does not implement a retained temporal architecture-family/experiment grammar.
+The separate [runtime-temporal-v1 API](runtime-temporal-contracts.md) now permits
+explicit backend root T declarations without changing this ordinary concrete
+graph interpretation. Existing family versions1–5 and
 `runtime-spatial-v1` explicitly reject this new node rather than interpreting
 time as a spatial axis or silently opting in. Direct recurrent execution permits
 variable T; a concrete root graph fixes T in its Input shape, just like any other

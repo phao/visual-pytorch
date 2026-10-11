@@ -1,5 +1,49 @@
 # Development state and roadmap
 
+## 2026-10-11 13:00 -03:00 — Temporal graph runtime foundation
+
+Explicit `compile_model(..., runtime_temporal={root_input_id:[0]})` now permits
+declared semantic T variations on a concrete graph without rebuilding parameters.
+The allocation-free dependency proof requires fixed transition frames/states and
+learned dimensions, retaining stable roles/ports/controls. Every actual CPU
+float32 named-input call checks current shapes and whole-graph/nested-unroll RAM
+before packing/control casts. Full BPTT, active-only masking, resets, zero padding,
+sharing and explicit state remain the existing executor's semantics. Spatial
+runtime proof/shape bytes and old family grammars are not reinterpreted.
+
+`temporal_export.temporal_source` captures the exact checked eleven-module runtime
+and frozen reachable model. Import and pure proof need no Torch/app installation;
+`build_model()` creates native-path parameters explicitly. Captured outputs/all
+gradients and fresh-process loaded-weight predictions are exact. New notebook
+bundles include30 helper files; current missing imports fail before kernel launch,
+genuine old capsules still execute. No new SQL/container/family/experiment version.
+
+Final unchanged-source988 Python355.820s (985 PASS/3 Qt-only skips separately
+covered by72 native/pure1.237s),316 JS1450.782962ms and85 focused5.911s pass.
+Added34 unittest cases for pure declarations/proofs, independent row/CNN/nested
+tensor/all-gradient oracles, current RAM, invalid types/controls, all-masked NaNs,
+shared owner/optimizer identity, initial shapes and source tampering/portability.
+The manual durable `tests/probe_temporal_cohorts.py` checks independent T=(3,7)
+and(9,1) with one shared cell and full gradient parity. Three spatial spec byte
+comparisons and27 actual-plan byte comparisons match pinned e1402bd exactly.
+`examples/temporal_runtime.py` trains one10-parameter cell at T=4/7,60 updates:
+loss0.287035→0.000228155 under default constraints; actual-case T=11 preview passes.
+
+Earlier failures were fixture guard selection, CNN parameter ordering, unannotated
+concrete control axes and a state-axis mismatch before the intended proof test.
+The first full984-test pass preceded a real review finding: false-like non-boolean
+preview gradient flags could be accepted in training mode. Reproduced it, added
+strict validation and train/eval tests, then reran the full suite. Both full runs
+held production Python fixed; private evidence retains failed/probe/first/final
+logs rather than presenting the earlier run as final verification.
+
+Exact API/limitations: `runtime-temporal-contracts.md`. This remains a local D
+checkpoint. Next retain an explicitly versioned temporal family/specialization
+proof and select it via owned GUI/CLI and data/task/experiment/worker/notebook
+paths. Mere helper capture does not enable such selection. Existing recurrent
+interface reconfiguration remains explicit CLI edits. D/E/full goal incomplete;
+no public/main integration or live user app/config/workspace/desktop changes.
+
 ## 2026-10-11 12:18 -03:00 — Recurrent palette/Inspector and agent authoring
 
 The concrete recurrent backend now has actual Qt authoring: a reusable-transition

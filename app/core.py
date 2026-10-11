@@ -792,7 +792,13 @@ def generate_code(models, model_id):
 
 
 def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
-                  runtime_inputs=None, initial_shapes=None):
+                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None):
+    if runtime_temporal is not None:
+        if runtime_inputs is not None:
+            raise GraphError('Spatial and temporal runtime policies are distinct; select exactly one.')
+        from .temporal_shapes import compile_temporal_model
+        return compile_temporal_model(models, mid, runtime_temporal, constrained=constrained,
+                                      memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
     if runtime_inputs is not None:
         from .runtime_shapes import compile_runtime_model
         return compile_runtime_model(models, mid, runtime_inputs, constrained=constrained,

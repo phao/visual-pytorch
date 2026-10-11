@@ -4,6 +4,40 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 13:00 -03:00 — Explicit temporal runtime graph proof and execution
+
+Added a separate opt-in runtime-temporal-v1 API: explicit semantic root T axes
+can vary while frame/state dimensions and learned owners stay fixed. Pure
+dependency proofs retain exact recurrent roles/bindings/adapters and reject
+T-dependent learned widths, frames or states before construction. Actual calls
+validate named CPU float32 inputs and admit the complete current-B/T graph plus
+conservative nested recurrent copies/controls before packing or conversion.
+Shared cells reuse parameter/optimizer objects without hidden between-call state.
+Ordinary concrete graphs, family1–5 and runtime-spatial-v1 keep their meanings.
+
+Checked standalone temporal source captures only the frozen reachable graph,
+explicit policy/proof and eleven-module runtime. Import/proof are Torch-free;
+construction is explicit, native state-dict paths are preserved, and fresh
+app-free predictions plus captured outputs/all gradients are exact. New notebook
+closures capture30 helpers; missing imported temporal helpers fail before a
+kernel, while genuine older capsules remain supported. No storage grammar change.
+
+Added34 unittest cases and a durable independent-time-cohort probe. Final988
+Python355.820s:985 PASS/3 Qt-only skips covered by72 native/pure checks1.237s.
+All316 JS1450.782962ms and85 focused checks5.911s pass. Independent row/CNN/nested
+outputs/all gradients, all-masked NaN padding, exact controls, early RAM refusal,
+shared owners and current initial shapes pass. Three spatial specs and27 actual
+plans remain byte-identical to e1402bd. The default-constrained example trains
+T=4/7 with one10-parameter cell,60 updates, loss0.287035→0.000228155, and previews
+T=11. A real non-boolean preview-flag defect was reproduced/fixed; initial fixture
+failures and the first984-test pass are retained privately. Production Python
+was held unchanged during both full regressions.
+
+This is a D runtime foundation, not retained temporal family/experiment selection
+or D/E acceptance. Next implement that versioned witness and owned GUI/CLI/data/
+task/worker/report integration. No main/public, live user app/config/workspace/
+desktop, source fork, new campaign or CPW cleanup change.
+
 ## 2026-10-11 12:18 -03:00 — Guarded recurrent diagram authoring and visual ports
 
 Added explicit recurrent branch creation to Building Blocks and the existing

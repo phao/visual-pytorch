@@ -76,7 +76,10 @@ Generation records Python/platform. There are no absolute private source paths.
 
 New bundles include `activations.py`, `families.py`, `family_records.py`,
 `family_axes.py`, `runtime_shapes.py`, `runtime_tasks.py` and `family_export.py`
-in the27-file copied closure. Genuine prior25-file runtimes are accepted only
+in the30-file copied closure, together with `recurrent.py`, `recurrent_nodes.py`
+and `temporal_shapes.py`. Genuine prior29-file runtimes are accepted only when
+captured source does not import the missing temporal helper; capturing it alone
+does not select temporal experiment execution. Genuine prior25-file runtimes are accepted only
 if captured source does not require the two new dependencies. Current-source
 omissions fail before a kernel. Explicit runtime tasks and per-run runtime
 architecture/predictor exports are specified in

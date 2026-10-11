@@ -98,12 +98,15 @@ runtime-domain continuation.
 
 ## Captured runnable closure and provenance
 
-The source contains the exact family definition and an isolated eight-module
-runtime: activations, core, evidence, families, graph, memory, operators and
-runtime_shapes.
+The source contains the exact family definition and an isolated eleven-module
+runtime: activations, core, evidence, families, graph, memory, operators,
+runtime_shapes, recurrent, recurrent_nodes and temporal_shapes. Capturing the
+temporal helper preserves the optional compiler closure; family1–5 still reject
+Recurrent and do not implicitly acquire a temporal policy. See
+[runtime-temporal-contracts.md](runtime-temporal-contracts.md).
 Core/evidence are selected AST declarations covering the reachable resolver,
 contracts, compiler and semantic schema, not the Workspace/SQLite/training/UI
-machinery. Other six files are captured unchanged. No application installation,
+machinery. Other nine files are captured unchanged. No application installation,
 Qt, database, dataset observations, sidecar package or executable user expression
 is required. Resolution/compiler behavior is reused, not reimplemented from a
 visually similar drawing. The private package is initialized lazily under a lock
