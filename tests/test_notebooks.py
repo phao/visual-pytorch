@@ -46,6 +46,92 @@ class NotebookTests(unittest.TestCase):
         self.assertEqual(result['execution']['status'], 'completed', result['execution']['error'])
         return Path(exported['path']), Path(result['path']), result
 
+    @staticmethod
+    def no_training_kernel(payload, index):
+        """Arm probes in the actual fresh kernel, not only the authoring host."""
+        notebook = build_notebook(payload, index)
+        bootstrap = next(c for c in notebook.cells if c.metadata.visual_pytorch.section == 'bootstrap')
+        bootstrap.source += """
+import builtins
+import app.report_runtime as audited_report_runtime
+import app.experiment_objects as audited_experiment_objects
+import app.task_training as audited_task_training
+import app.transport as audited_transport
+no_training_audit = {'phase': 'armed', 'violations': [], 'kernel_pid': os.getpid(),
+                     'runtime': str(Path(audited_report_runtime.__file__).resolve())}
+audit_path = execution_dir / 'no-training-audit.json'
+def write_no_training_audit():
+    audit_path.write_text(json.dumps(no_training_audit, sort_keys=True), encoding='utf-8')
+def no_training_guard(label):
+    def forbidden(*args, **kwargs):
+        no_training_audit['phase'] = 'violation'
+        no_training_audit['violations'].append(label)
+        write_no_training_audit()
+        raise AssertionError('Saved-result training fence: ' + label)
+    return forbidden
+audited_report_runtime.execute_candidate = no_training_guard('report_runtime.execute_candidate')
+audited_experiment_objects.execute_candidate = no_training_guard('experiment_objects.execute_candidate')
+audited_task_training.train_task = no_training_guard('task_training.train_task')
+audited_transport.run_json_worker = no_training_guard('transport.run_json_worker')
+original_import = builtins.__import__
+def no_torch_import(name, *args, _original=original_import,
+                    _forbid=no_training_guard('torch import'), **kwargs):
+    if name == 'torch' or name.startswith('torch.'):
+        return _forbid(name)
+    return _original(name, *args, **kwargs)
+builtins.__import__ = no_torch_import
+assert 'torch' not in sys.modules, 'Fresh report kernel unexpectedly loaded Torch'
+write_no_training_audit()
+"""
+        final = next(c for c in reversed(notebook.cells) if c.cell_type == 'code')
+        final.source += """
+assert no_training_audit['violations'] == []
+assert 'torch' not in sys.modules
+builtins.__import__ = original_import
+no_training_audit.update(phase='completed', torch_loaded=False)
+write_no_training_audit()
+"""
+        return notebook
+
+    def test_actual_saved_report_kernel_forbids_training_worker_and_torch_import(self):
+        successful = self.trial()
+        failed = self.trial('failed', python='/nonexistent/private-report-fence-python')
+        ref = self.recipe('result-report', [successful['reference'], failed['reference']])
+        before = self.w.db.serialize()
+        with patch('app.notebooks.build_notebook', side_effect=self.no_training_kernel):
+            directory, attempt, terminal = self.execute(ref, destination='guarded-saved-report')
+        audit = json.loads((attempt / 'no-training-audit.json').read_text())
+        self.assertEqual(audit['phase'], 'completed'); self.assertEqual(audit['violations'], [])
+        self.assertFalse(audit['torch_loaded']); self.assertGreater(audit['kernel_pid'], 0)
+        self.assertTrue(Path(audit['runtime']).is_relative_to(directory / 'runtime'))
+        view = json.loads((attempt / 'report-data.json').read_text())
+        self.assertFalse(view['notebook_execution']['training_requested'])
+        self.assertEqual([r['reference'] for r in view['runs']], [successful['reference'], failed['reference']])
+        self.assertEqual([r['status'] for r in view['runs']], ['completed', 'failed'])
+        self.assertEqual(view['runs'][0]['checkpoint_id'], successful['record']['attempts'][0]['result']['checkpoint_id'])
+        self.assertFalse(list(attempt.glob('run-*.json')))
+        self.assertIn('no-training-audit.json', terminal['execution']['artifacts'])
+        self.assertEqual(self.w.db.serialize(), before)
+
+    def test_actual_rerun_kernel_is_rejected_by_same_training_fence_negative_control(self):
+        ref = self.recipe(); before = self.w.db.serialize()
+        with patch('app.notebooks.build_notebook', side_effect=self.no_training_kernel):
+            exported = create_bundle(self.w, ref, self.root / 'guarded-rerun')
+        terminal = execute_bundle(exported['path'], timeout=60)
+        self.assertEqual(terminal['execution']['status'], 'failed')
+        self.assertEqual(terminal['execution']['error']['type'], 'CellExecutionError')
+        attempt = Path(terminal['path']); audit = json.loads((attempt / 'no-training-audit.json').read_text())
+        self.assertEqual(audit['phase'], 'violation')
+        self.assertEqual(audit['violations'], ['report_runtime.execute_candidate'])
+        notebook = nbformat.read(attempt / 'executed.ipynb', as_version=4)
+        failure = next(c for c in notebook.cells if c.metadata.visual_pytorch.section == 'resolution')
+        self.assertIn('Saved-result training fence', json.dumps(failure.outputs))
+        later = notebook.cells[notebook.cells.index(failure) + 1:]
+        self.assertTrue(all(c.execution_count is None for c in later if c.cell_type == 'code'))
+        self.assertFalse((attempt / 'report-data.json').exists()); self.assertFalse(list(attempt.glob('run-*.json')))
+        self.assertIn('no-training-audit.json', terminal['execution']['artifacts'])
+        self.assertEqual(self.w.db.serialize(), before)
+
     def test_generation_validates_format_stable_ids_no_training_or_execution(self):
         ref = self.recipe()
         with patch('app.transport.run_json_worker', side_effect=AssertionError('generation must not train')):

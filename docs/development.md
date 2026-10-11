@@ -9,7 +9,8 @@ integration as described in AGENTS.md; campaign locks alone are insufficient.
 
 Current development checkpoint: A and the bounded B CNN slice are integrated;
 C remains local on `task/stage-c-experiments`. The latest C checkpoints below add
-explicit GUI notebook execution and rendered report-figure acceptance. Earlier
+explicit GUI notebook execution, rendered report-figure acceptance and a
+requirement-level [C audit](stage-c-verification.md). Earlier
 checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
@@ -401,6 +402,32 @@ whole-file CSV reading or full metadata/data/manifest transport. Richer in-app
 figures, remaining authoring/report presentation bounds and the pinned full C
 exit audit remain next, before D/E. Partial C stays unmerged/unpublished; public
 main and user app/workspaces/configuration are unchanged.
+
+### Stage C requirement audit and kernel-local no-training fence
+
+[stage-c-verification.md](stage-c-verification.md) now maps every requirement and
+exit item in the original nepr C paragraph to executable source and concrete
+tests, while separating those bounded computational examples from remaining
+GUI/resource/integration convergence. It identifies actual unbounded scientific
+metadata, raw document/report transport, inline cells and authoring forms rather
+than treating collapsed JSON panels or row-count paging as cost bounds. The next
+implementation unit is a GUI/CLI shared exact-revision bounded read browser;
+authoring transport requires a separate owned-draft design. D/E remain unchanged.
+
+The audit also found a test-evidence gap: a parent-process monkeypatch cannot
+prohibit training inside a separate notebook kernel. Two new real-kernel tests
+install candidate/task/worker and Torch-import guards inside the generated
+notebook before report resolution/all report sections. Exact saved successful and
+failed evidence completes with zero guard violations and no Torch import. The
+same guarded rerun is a negative control: it fails on its first candidate dispatch,
+retains the actual failure receipt/audit, and executes no later report cells.
+Both source SQL snapshots remain byte-identical. The two focused tests pass
+(4.599 s); the full current suite passes 447 Python tests (169.871 s) and 94 JS
+tests (547 ms). Guard import callbacks capture the original importer safely through
+kernel teardown; an initial test-helper teardown NameError was fixed and does not
+remain in the final result. The host's Jupyter-path migration DeprecationWarning
+is not a numerical failure. This probe is not a security sandbox or remote-job
+test. Production behavior is unchanged from the figure checkpoint.
 
 ### First executable checkpoint — not Stage C completion
 

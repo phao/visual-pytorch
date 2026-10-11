@@ -152,6 +152,14 @@ Later GUI execution and cancellation evidence is recorded in
 [development.md](development.md) and [notebook-gui-execution.md](notebook-gui-execution.md).
 These are fixture/environment-specific results, not cross-platform bitwise promises.
 
+The [Stage C requirement audit](stage-c-verification.md) separates computational
+exit evidence from remaining GUI/transport/integration work. Its saved-result
+no-training probe runs inside an actual fresh kernel, guarding candidate/task/
+worker entry points and Torch imports while all selected report sections execute.
+The same guarded rerun fails at its first candidate dispatch as a negative
+control. Parent-process patches alone cannot prove this subprocess property;
+these test guards are not a hostile-code sandbox.
+
 Bundle execution runs trusted Python. Integrity checks are not a hostile-code
 sandbox, signatures, remote job receipts or optimizer resume. Source workspaces
 remain read-only and generated runs are bundle artifacts, not automatically
