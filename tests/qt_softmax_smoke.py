@@ -89,6 +89,7 @@ with tempfile.TemporaryDirectory() as directory:
         finally:loaded.db.close()
         if os.environ.get('VTW_SOFTMAX_SCREENSHOT'):
             js('document.querySelector(".node.Activation .node-type-icon").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))');inspect()
+            js('if(document.getElementById("library-panel").hidden)document.querySelector("[data-open-panel=library-panel]").click()')
             loop=QEventLoop();QTimer.singleShot(300,loop.quit);loop.exec();assert view.grab().save(os.environ['VTW_SOFTMAX_SCREENSHOT'])
         assert not errors,errors;assert 'torch' not in sys.modules
         print(json.dumps({'actual_softmax_palette_inspector':'PASS','sample_axis_batch_exclusion':'PASS','invalid_edits_preserved':'PASS',

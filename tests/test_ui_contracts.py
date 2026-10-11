@@ -35,6 +35,23 @@ def declarations(selector):
 
 
 class UIContractTests(unittest.TestCase):
+    def test_related_palette_controls_have_named_groups_sorted_as_units(self):
+        html=(ROOT/'app/web/index.html').read_text()
+        js=(ROOT/'app/web/editor.js').read_text()
+        for name,select,button in (('activation','activation-select','add-activation'),
+                                   ('reference','reference-select','add-reference')):
+            group=re.search(r'<div id="'+name+r'-palette-group"[^>]*>(.*?)</div>',html,re.S)
+            self.assertIsNotNone(group)
+            self.assertIn('role="group" aria-labelledby="'+name+'-palette-label"',group[0])
+            for identifier in (name+'-palette-label',select,button):
+                self.assertIn('id="'+identifier+'"',group[1])
+            self.assertIn("[$('"+name+"-palette-group')]",js)
+        rule=declarations('.floating-panel .palette-group')
+        self.assertEqual(rule['border'],'1px solid var(--line)')
+        self.assertEqual(rule['gap'],'var(--menu-unit)')
+        self.assertEqual(rule['padding'],'var(--menu-unit)')
+        self.assertEqual(rule['min-width'],'0')
+
     def test_visual_pytorch_brand_preserves_compatibility_ids_and_vector_style(self):
         self.assertEqual(APP_NAME, 'Visual PyTorch')
         self.assertEqual(DESKTOP_ID, 'tensor-loom')

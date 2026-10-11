@@ -69,12 +69,14 @@
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
       <div id="library-scroll" class="scrollport">
       <div class="sidebar-section"><div class="eyebrow">BUILDING BLOCKS</div><button id="add-linear" class="palette"><span class="type-symbol purple-text">ƒ</span><span><b>Linear</b><small>Learn a matrix and a bias</small></span><span>+</span></button>
-      <label for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Softmax</option><option>Tanh</option></select>
-      <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button>
+      <div id="activation-palette-group" class="palette-group" role="group" aria-labelledby="activation-palette-label">
+      <label id="activation-palette-label" for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Softmax</option><option>Tanh</option></select>
+      <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button></div>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
-      <label for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button>
+      <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
+      <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button></div>
       <div class="eyebrow">NAMED BOUNDARIES</div>
       <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
       <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>

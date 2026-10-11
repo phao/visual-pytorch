@@ -15,6 +15,24 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 03:28 -03:00 — Related controls framed as browsing units
+
+The user requested tiny framing for selector/action groups. Activation and
+Architecture reference now have labelled semantic wrappers with a one-pixel
+theme-line border,7px radius and existing menu-unit padding/gap. Standalone
+buttons remain unframed. Alphabetical browsing moves each whole group, preserving
+control IDs, tooltip/help actions, keyboard order and click behavior. Product
+and portable UI specifications record the pattern.
+
+Actual WebEngine checks pass288 group samples:16 concrete themes ×3 fonts
+(14/18/28) ×3 spacings (1/4/10) ×2 groups, including containment, themed borders,
+selector-before-action order, alphabetical group units and unframed standalones.
+All23 source UI guards pass0.025s,245 JavaScript tests pass1017.982ms and actual
+Softmax palette/inspector/invalid-edit/history/folding/code/save-reload passes
+again. The preceding588-test full Python result belongs to the Softmax
+checkpoint; this presentation-only follow-up uses focused source/desktop checks,
+not a claim of a589-test full rerun. No computational/storage change or publication.
+
 ### 2026-10-11 03:25 -03:00 — Explicit selectable-axis Softmax
 
 The user's requested N-way Softmax is now an Activation choice. A declared sample

@@ -1135,8 +1135,7 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-select').previousElementSibling,$('activation-select'),$('add-activation')],
-    [$('reference-select').previousElementSibling,$('reference-select'),$('add-reference')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));

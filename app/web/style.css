@@ -207,6 +207,9 @@ pre,input,select{font-size:calc(var(--ui-font-size,14px) - 1px)}
 .node-resize .resize-mark{stroke:var(--muted);stroke-width:1.4;pointer-events:none}
 .floating-panel .sidebar-section{padding:calc(1.5 * var(--menu-unit)) calc(1.25 * var(--menu-unit))}
 .floating-panel .palette{padding:var(--menu-unit) calc(1.25 * var(--menu-unit));margin:calc(1.25 * var(--menu-unit)) 0;gap:var(--menu-unit);min-height:calc(24px + 2 * var(--menu-unit))}
+.floating-panel .palette-group{display:grid;gap:var(--menu-unit);padding:var(--menu-unit);margin:calc(1.25 * var(--menu-unit)) 0;border:1px solid var(--line);border-radius:7px;min-width:0}
+.floating-panel .palette-group>.palette,.floating-panel .palette-group>.field-label{margin:0}
+.floating-panel .palette-group>select{min-width:0;width:100%}
 .floating-panel .field-label{margin:calc(1.5 * var(--menu-unit)) 0 calc(.75 * var(--menu-unit))}
 .floating-panel :is(input,select,textarea){padding:calc(.75 * var(--menu-unit)) var(--menu-unit)}
 .floating-panel .model-row{padding:var(--menu-unit) calc(.75 * var(--menu-unit));gap:var(--menu-unit);margin-bottom:calc(.5 * var(--menu-unit))}

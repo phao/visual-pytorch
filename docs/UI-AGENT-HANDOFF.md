@@ -191,6 +191,16 @@ Every block button shows only a type icon and name. Help lives in its native
 title tooltip and aria-label, not permanent secondary text. Reuse this compact
 pattern but retain explanatory content, especially in didactical software.
 
+When a selector configures a specific add/action button, put its label, selector
+and button inside one named semantic group (`role="group"`, `aria-labelledby`).
+Visual PyTorch uses `.palette-group` for Activation and Architecture reference.
+A one-pixel `--line` border, 7px corners and one menu-spacing unit of internal
+padding/gap hint at their relationship without making another heavyweight panel.
+Child button/label margins are zero inside the group. Keep the group intact when
+sorting browsing entries and retain selector-before-action keyboard order.
+Standalone buttons are not framed; grouping never changes their actions, graph
+or persistence. Reuse the pattern for genuinely coupled controls, not every row.
+
 Code blocks may have independent horizontal overflow. Do not claim that every
 possible nested scrollbar is forbidden; the actual rule concerns normal panels.
 

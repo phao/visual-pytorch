@@ -37,6 +37,13 @@ Architectures' title owns +; its non-collapsible Currently open card precedes
 the list and shows name/counts/shape/parameter information or draft status.
 Building-block buttons show icons/names only, with descriptive hover tooltips
 and accessible labels. NN boxes have distinct top-right vector type icons.
+Related selector/action pairs have a small rounded, one-pixel theme-token frame:
+Nonlinear activation + Activation, and Reusable architecture + Architecture
+reference. Each is a labelled semantic group and stays together when browsing
+entries are alphabetically sorted. Standalone actions remain unframed. Internal
+padding/gap use the existing menu-spacing unit; child margins are removed so
+the frame does not reintroduce oversized whitespace. This is a visual grouping,
+not an additional collapsible menu or graph/computational edit.
 
 The architecture toolbar occupies the center of the top header. Canvas geometry
 does not shrink when a menu opens. Fit finds the largest unobscured rectangle;

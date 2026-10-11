@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 03:28 -03:00 — Small frames for related palette controls
+
+Grouped activation choice/add and architecture choice/add with subtle rounded
+theme-token borders, because the user wanted their relationship visible.
+Standalone actions remain unframed; related controls sort as one named group.
+Existing menu spacing controls padding/gap without extra child margins.
+Actual WebEngine checks pass288 group samples across16 concrete themes,
+fonts14/18/28 and spacing1/4/10;23 source checks and245 JavaScript tests pass.
+Actual Softmax insert/inspector/history/save/reload also passes after this change.
+Portable and product UI specifications are aligned; no computational change.
+
 ## 2026-10-11 03:25 -03:00 — Selectable-axis Softmax across the product
 
 Added Softmax to the existing Activation block, with explicit sample-axis
