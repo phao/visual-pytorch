@@ -17,6 +17,17 @@ def main():
 
     try:
         request = json.load(sys.stdin)
+        if request.get('kind') == 'task-v1':
+            from .datasets import _keys
+            from .task_training import train_task
+            _keys(request, ('kind', 'bundle'), ('constrained', 'memory_limit_percent'), 'Task worker request')
+            result = train_task(request['bundle'], progress=lambda point: send('progress', point), cancel=cancel,
+                                constrained=request.get('constrained', True),
+                                memory_limit_percent=request.get('memory_limit_percent', DEFAULT_MEMORY_LIMIT_PERCENT))
+            send('result', result)
+            return 0
+        if 'kind' in request:
+            raise ValueError('Unsupported worker request kind.')
         # Reject unsafe jobs before importing Torch or allocating model/data tensors.
         from .core import preflight
         doc = request["models"][request["id"]]

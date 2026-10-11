@@ -23,12 +23,13 @@ from .context_menu import configure_context_menu
 from .config import Config
 from .identity import APP_NAME, DESKTOP_ID, ICON_FILE
 from .file_sync import revision, stamp
+from .job_state import job_busy
 
 from PyQt6.QtCore import QObject, QSettings, QThread, QTimer, QUrl, Qt, pyqtSignal as Signal, pyqtSlot as Slot
 from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont
 from PyQt6.QtWidgets import (QApplication, QFileDialog, QInputDialog, QMainWindow,
                             QMessageBox, QTabWidget, QDialog, QFormLayout, QDoubleSpinBox,
-                            QSpinBox, QDialogButtonBox, QComboBox)
+                            QSpinBox, QDialogButtonBox, QComboBox, QCheckBox)
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, qWebEngineVersion
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -69,8 +70,43 @@ class TrainingJob(QThread):
             self.failed.emit(str(exc))
 
 
+class TaskTrainingJob(QThread):
+    """Frozen task worker adapter; draft selection UI is a later Stage C gate."""
+    point = Signal(str)
+    completed = Signal(str)
+    failed = Signal(str)
+
+    def __init__(self, bundle, parent, python, constrained=True,
+                 memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
+        super().__init__(parent)
+        self.bundle = copy.deepcopy(bundle)
+        self.python = python
+        self.constrained = constrained
+        self.memory_limit_percent = memory_limit_percent
+        self.cancel = threading.Event()
+        self.process = None
+
+    def stop(self):
+        self.cancel.set()
+
+    def run(self):
+        try:
+            from .transport import run_json_worker
+            result = run_json_worker([self.python, '-u', '-m', 'app.worker'],
+                {'kind': 'task-v1', 'bundle': self.bundle, 'constrained': self.constrained,
+                 'memory_limit_percent': self.memory_limit_percent},
+                on_progress=lambda point: self.point.emit(json.dumps(point, allow_nan=False)),
+                cancel=self.cancel, cwd=str(Path(__file__).resolve().parent.parent),
+                on_process=lambda process: setattr(self, 'process', process))
+            self.completed.emit(json.dumps(result, allow_nan=False))
+        except Exception as error:
+            self.failed.emit(str(error))
+
+
 class Bridge(QObject):
-    event = Signal(str)
+    # Preserve the QWebChannel name without shadowing QObject.event(), which is
+    # called for DeferredDelete and other native Qt events on the bridge itself.
+    notification = Signal(str, name='event')
 
     def __init__(self, window, view):
         super().__init__(view)
@@ -82,13 +118,16 @@ class Bridge(QObject):
             if len(payload) > 16_000_000:
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
+            if isinstance(req, dict) and req.get('action', '').startswith('scienceDraft'):
+                from .revisions import _parse
+                req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)
             return json.dumps({"ok": True, "value": value}, allow_nan=False)
         except Exception as exc:
             return json.dumps({"ok": False, "error": str(exc)})
 
     def send(self, kind, payload=None):
-        self.event.emit(json.dumps({"kind": kind, "payload": payload}, allow_nan=False))
+        self.notification.emit(json.dumps({"kind": kind, "payload": payload}, allow_nan=False))
 
 
 class Window(QMainWindow):
@@ -156,7 +195,6 @@ class Window(QMainWindow):
             ("Back", "Alt+Left", lambda: self.current_view().back()),
             ("Forward", "Alt+Right", lambda: self.current_view().forward()),
             ("Open current architecture in new tab", "Ctrl+T", self.duplicate_tab),
-            ("Find…", "Ctrl+F", self.find),
         ]:
             action = QAction(title, self)
             action.setShortcut(QKeySequence(key))
@@ -177,7 +215,7 @@ class Window(QMainWindow):
     def current_view(self):
         return self.tabs.currentWidget()
 
-    def open_tab(self, mid=None):
+    def open_tab(self, mid=None, *, clear_menus=False):
         view = QWebEngineView()
         view.mid = mid
         configure_context_menu(view, self)
@@ -190,6 +228,7 @@ class Window(QMainWindow):
         page.setWebChannel(channel)
         view.bridge, view.channel = bridge, channel
         url = QUrl.fromLocalFile(str(Path(__file__).parent / "web" / "index.html"))
+        if clear_menus:url.setQuery('menus=hidden')
         if mid:
             url.setFragment("model=" + mid)
         view.setUrl(url)
@@ -233,7 +272,7 @@ class Window(QMainWindow):
             self.apply_theme();self.broadcast()
 
     def display_options(self):
-        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing')}
+        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False,'menu_grid_snap':False}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing','grid_snap','menu_grid_snap')}
         dialog = QDialog(self)
         dialog.setWindowTitle(APP_NAME+' — Display preferences')
         dialog.setMinimumWidth(max(480, self.config.values['font_size'] * 30))
@@ -259,11 +298,21 @@ class Window(QMainWindow):
         boxes.setRange(1,100);boxes.setValue(self.config.values.get('box_spacing',35))
         boxes.setToolTip('Independent of menu spacing. 1 is densest, 100 roomiest; text size is unchanged.')
         layout.addRow('NN box spacing (1–100)',boxes)
+        snap=QCheckBox('Snap blocks to grid by default',dialog)
+        snap.setObjectName('display-grid-snap')
+        snap.setChecked(self.config.values.get('grid_snap',False))
+        snap.setToolTip('Ctrl temporarily inverts snapping for block movement and resizing. Independent of menus.')
+        layout.addRow(snap)
+        menu_snap=QCheckBox('Snap menus to grid by default',dialog)
+        menu_snap.setObjectName('display-menu-grid-snap')
+        menu_snap.setChecked(self.config.values.get('menu_grid_snap',False))
+        menu_snap.setToolTip('Ctrl temporarily inverts menu/pack movement and resizing. Shift-drag still moves the menu layer. Independent of blocks.')
+        layout.addRow(menu_snap)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         preview=buttons.addButton('Preview',QDialogButtonBox.ButtonRole.ActionRole)
         preview.setObjectName('preview-display')
         preview.setToolTip('Try these settings without saving; Cancel restores the previous appearance.')
-        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value()}
+        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value(),'grid_snap':snap.isChecked(),'menu_grid_snap':menu_snap.isChecked()}
         def preview_now():
             self.set_display(persist=False,**values())
             dialog.setMinimumWidth(max(480,self.config.values['font_size']*30))
@@ -273,11 +322,11 @@ class Window(QMainWindow):
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
         accepted=dialog.exec()==QDialog.DialogCode.Accepted
         if accepted and self.set_display(**values()):return
-        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35}.get(key)) for key in original}!=original:
+        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False,'menu_grid_snap':False}.get(key)) for key in original}!=original:
             self.set_display(persist=False,**original)
 
     def safety_options(self):
-        if self.job and self.job.isRunning():
+        if job_busy(self.job):
             QMessageBox.warning(self, 'Stop training first', 'Stop the active run before changing run safety.')
             return
         dialog = QDialog(self)
@@ -297,7 +346,7 @@ class Window(QMainWindow):
 
     def poll_workspace(self):
         workspace = self.workspace
-        if not workspace or not workspace.path or (self.job and self.job.isRunning()):
+        if not workspace or not workspace.path or job_busy(self.job):
             return
         try:
             current_stamp = stamp(workspace.path)
@@ -336,7 +385,7 @@ class Window(QMainWindow):
 
     def reload_workspace(self):
         if self.workspace and self.workspace.path:
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 QMessageBox.warning(self, 'Stop training first', 'Stop the active run before reloading the workspace.')
                 return False
             return self.load_workspace(self.workspace.path)
@@ -365,11 +414,6 @@ class Window(QMainWindow):
     def duplicate_tab(self):
         self.open_tab(self.current_view().mid)
 
-    def find(self):
-        text, ok = QInputDialog.getText(self, "Find in current page", "Text:")
-        if ok:
-            self.current_view().findText(text)
-
     def recent_files(self):
         raw = self.settings_store.value("recentFiles", "[]")
         try:
@@ -383,6 +427,7 @@ class Window(QMainWindow):
         self.settings_store.setValue("recentFiles", json.dumps(recent[:12]))
 
     def state(self):
+        from .recovery_views import header as recovery_header
         models = self.workspace.models() if self.workspace else {}
         app=QApplication.instance()
         system='light' if isinstance(app,QApplication) and app.styleHints().colorScheme()==Qt.ColorScheme.Light else 'dark'
@@ -396,11 +441,18 @@ class Window(QMainWindow):
             "workspace_id": self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0] if self.workspace else None,
             "dirty": bool(self.workspace and self.workspace.dirty),
             "models": models, "recent": self.recent_files(),
-            "training_id": self.job.mid if self.job and self.job.isRunning() else None,
+            "training_id": self.job.mid if job_busy(self.job) else None,
+            "experiment_job": self.job.snapshot.get('run_id') if job_busy(self.job) and hasattr(self.job, 'snapshot') else None,
+            "notebook_job": {**{k: self.job.snapshot[k] for k in ('id', 'workspace_id', 'selection')},
+                             'operation': self.job.snapshot.get('operation', 'execute')} if job_busy(self.job)
+                and hasattr(self.job, 'snapshot') and 'selection' in self.job.snapshot and 'timeout' in self.job.snapshot else None,
+            "experiment_recoveries": recovery_header(self),
             "torch_python": self.torch_python,
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,
             "layout_preferences": self.workspace.layout_preferences if self.workspace else None,
+            "panel_layout": self.workspace.panel_layout if self.workspace else None,
+            "panel_scope": self.workspace.panel_scope if self.workspace else None,
             "memory_limit_percent": self.config.values['memory_limit_percent'] if hasattr(self, 'config') else DEFAULT_MEMORY_LIMIT_PERCENT,
             "display": {k: v for k, v in self.config.values.items() if k != 'layout'} if hasattr(self, 'config') else {'font_size':14,'ui_zoom':1.15},
         }
@@ -424,7 +476,7 @@ class Window(QMainWindow):
         self.setWindowTitle(f"{name}{dirty} — {APP_NAME}")
 
     def can_replace(self):
-        if self.job and self.job.isRunning():
+        if job_busy(self.job):
             QMessageBox.information(self, "Training in progress", "Stop training before changing workspaces.")
             return False
         if self.workspace and self.workspace.dirty:
@@ -503,7 +555,7 @@ class Window(QMainWindow):
     def update_history_actions(self):
         if not hasattr(self,'undo_action'):return
         history=self.workspace.history.summary() if self.workspace else {'undo':False,'redo':False}
-        active=bool(self.job and self.job.isRunning())
+        active=job_busy(self.job)
         self.undo_action.setEnabled(history['undo'] and not active)
         self.redo_action.setEnabled(history['redo'] and not active)
 
@@ -511,7 +563,7 @@ class Window(QMainWindow):
         action=req.get('action')
         if action in {'undo','redo'}:
             if not self.workspace:return False
-            if self.job and self.job.isRunning():raise ValueError('Stop training before undo/redo.')
+            if job_busy(self.job):raise ValueError('Stop training before undo/redo.')
             changed=self.workspace.history.restore(self.workspace,redo=action=='redo')
             if changed:
                 self.broadcast()
@@ -521,8 +573,22 @@ class Window(QMainWindow):
                         view=self.tabs.widget(index)
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'}
+        from .desktop_experiments import EDITS
+        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
+            raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
+        if action == 'scienceDraftCommit' and workspace:
+            # Admission before the potentially large undo SQL snapshot, not just
+            # after dispatch reaches the draft service. No bytes are admitted here.
+            from .authoring_sessions import _json
+            from .memory import memory_percent
+            req = _json(req)
+            sessions = getattr(self,'authoring_sessions',None)
+            if sessions is None: raise ValueError('Unknown draft session for this owner.')
+            configuration = getattr(self,'config',None)
+            sessions.memory_limit_percent = memory_percent(configuration.values.get('memory_limit_percent',10.) if configuration else 10.)
+            sessions.admit_commit(workspace,req.get('session'),bridge if bridge is not None else self,req.get('sequence'))
         before=workspace.history.capture(workspace.db) if workspace and action in edits else None
         changes=workspace.db.total_changes if workspace else 0
         try:result=Window._dispatch(self,req,bridge)
@@ -549,22 +615,52 @@ class Window(QMainWindow):
         if action == "home":
             bridge.send("navigate", None)
             return True
-        if action == "find":
-            self.find()
-            return True
         if action == 'setLayoutPreferences':
             if not self.workspace:
                 raise ValueError('Open a workspace before saving its layout preferences.')
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError('Stop training before changing workspace layout preferences.')
             self.workspace.set_layout_preferences(req['layout'])
             self.broadcast()
             return self.workspace.layout_preferences
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
+        if action == 'setPanelLayout':
+            if set(req) != {'action', 'workspace_id', 'panel_scope', 'expected', 'layout'}:
+                raise ValueError('Panel arrangement request has missing or unsupported fields.')
+            from .presentation import validate_panel_layout
+            wid=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; review its panel arrangement before saving.')
+            if validate_panel_layout(req['expected']) != self.workspace.panel_layout:
+                raise ValueError('Saved panel arrangement changed; restore or review it before overwriting.')
+            self.workspace.set_panel_layout(req['layout'])
+            result={'workspace_id':wid,'panel_scope':self.workspace.panel_scope,
+                    'layout':self.workspace.panel_layout,'dirty':self.workspace.dirty}
+            self.broadcast('panelLayout',result)
+            return result
+        from .desktop_experiments import ACTIONS, dispatch as science_dispatch
+        if action in ACTIONS: return science_dispatch(self, req, bridge)
         models = self.workspace.models()
+        if action=='layoutParameterCounts':
+            if set(req)!={'action','workspace_id','panel_scope','id','graph'}:
+                raise ValueError('Parameter layout request has missing or unsupported fields.')
+            wid=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            mid=req['id']
+            if req['workspace_id']!=wid or req['panel_scope']!=self.workspace.panel_scope or mid not in models:
+                raise ValueError('Workspace changed; retry parameter sizing.')
+            expected=copy.deepcopy(models[mid]['graph'])
+            for n in expected['nodes']:
+                n.setdefault('x',0);n.setdefault('y',0)
+                if n['type']=='Linear':n.setdefault('bias',True)
+            if req['graph']!=expected:raise ValueError('Architecture changed; retry parameter sizing after its edits are saved.')
+            from .presentation import block_parameter_counts
+            contract=validate_model(models,mid)
+            interfaces={n['id']:validate_model(models,n['ref']) for n in models[mid]['graph']['nodes'] if n['type']=='Module'}
+            return {'workspace_id':wid,'panel_scope':self.workspace.panel_scope,'id':mid,
+                    'counts':block_parameter_counts(models[mid],contract,interfaces)}
         if action == "setConstrainedMode":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop the current run before changing its safety mode.")
             self.workspace.set_constrained_mode(req["enabled"])
             self.broadcast()
@@ -574,12 +670,13 @@ class Window(QMainWindow):
             if mid not in models:
                 raise ValueError("That architecture no longer exists.")
             if req.get("newTab"):
-                self.open_tab(mid)
+                if req.get('clearMenus') is True:self.open_tab(mid,clear_menus=True)
+                else:self.open_tab(mid)
             else:
-                bridge.send("navigate", mid)
+                bridge.send('navigateClean' if req.get('clearMenus') is True else 'navigate',mid)
             return True
         if action == "newModel":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before creating an architecture.")
             kind = req.get("kind", "linear")
             if kind == "mlp":
@@ -595,7 +692,7 @@ class Window(QMainWindow):
             bridge.send("navigate", doc["id"])
             return doc["id"]
         if action == "deleteModel":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before deleting an architecture.")
             self.workspace.delete(req["id"])
             self.broadcast()
@@ -605,7 +702,7 @@ class Window(QMainWindow):
             doc = req["document"]
             if doc["id"] not in models:
                 raise ValueError("That architecture no longer exists.")
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before editing an architecture.")
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
@@ -613,7 +710,7 @@ class Window(QMainWindow):
         if action == "describe":
             return self.describe(req["id"])
         if action == "generateData":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("Stop training before changing the dataset.")
             doc = models[req["id"]]
             data = generate_dataset(models, doc["id"], req.get("samples", 256),
@@ -628,7 +725,7 @@ class Window(QMainWindow):
         if action == "compile":
             return generate_code(models, req["id"])
         if action == 'rebindDataset':
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError('Stop training before rebinding dataset columns.')
             from .evidence import binding_for, dataset_report
             doc=models[req['id']]
@@ -657,7 +754,7 @@ class Window(QMainWindow):
                 Path(path).write_text(code, encoding="utf-8")
             return bool(path)
         if action == "train":
-            if self.job and self.job.isRunning():
+            if job_busy(self.job):
                 raise ValueError("A training run is already active.")
             doc = models[req["id"]]
             data = doc.get("dataset")
@@ -726,6 +823,21 @@ class Window(QMainWindow):
         self.broadcast()
 
     def closeEvent(self, event):
+        if getattr(self.job, 'awaiting_terminal', False):
+            # Do not block the GUI event loop that must admit queued evidence.
+            self.job.stop()
+            self.broadcast('externalConflict', 'Stopping active work; close again after its terminal evidence has been retained.')
+            event.ignore()
+            return
+        from .desktop_experiments import recovery_rows
+        if any(not row['exported_to'] for row in recovery_rows(self)):
+            answer=QMessageBox.warning(self, 'Unexported experiment recovery evidence',
+                'Some terminal evidence could not be admitted. It is only retained in this session. '
+                'Export it from Experiment → Experiments & history before closing, or explicitly discard it.',
+                QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer != QMessageBox.StandardButton.Discard:
+                event.ignore(); return
         if self.job and self.job.isRunning():
             self.job.stop()
             self.job.wait()

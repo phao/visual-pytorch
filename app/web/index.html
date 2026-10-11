@@ -13,9 +13,33 @@
   <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
   <script src="tensor-operators.js" defer></script>
+  <script src="activations.js" defer></script>
   <script src="building-block-help.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="panels.js" defer></script>
+  <script src="dataset-authoring.js" defer></script>
+  <script src="task-authoring.js" defer></script>
+  <script src="task-form.js" defer></script>
+  <script src="task-context.js" defer></script>
+  <script src="experiment-authoring.js" defer></script>
+  <script src="experiment-form.js" defer></script>
+  <script src="run-evidence.js" defer></script>
+  <script src="evidence-curves.js" defer></script>
+  <script src="evidence-view.js" defer></script>
+  <script src="science-results.js" defer></script>
+  <script src="revision-choice.js" defer></script>
+  <script src="science-author.js" defer></script>
+  <script src="draft-value-editor.js" defer></script>
+  <script src="dataset-session-form.js" defer></script>
+  <script src="task-session-form.js" defer></script>
+  <script src="experiment-local-choice.js" defer></script>
+  <script src="experiment-session-form.js" defer></script>
+  <script src="notebook-selection.js" defer></script>
+  <script src="science-notebooks.js" defer></script>
+  <script src="science-document.js" defer></script>
+  <script src="science-recoveries.js" defer></script>
+  <script src="science-candidates.js" defer></script>
+  <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
 <body>
@@ -24,7 +48,7 @@
     <div class="navigation"><button id="back" class="icon" title="Back · Alt+Left">‹</button><button id="forward" class="icon" title="Forward · Alt+Right">›</button><button id="new-tab" class="icon" title="Open architecture in a new tab · Ctrl+T">↗</button></div>
     <div class="workspace-label"><span id="file-name">Welcome</span><span id="save-state" class="muted">No workspace open</span></div>
     <div class="canvas-toolbar" hidden><div><span class="eyebrow">ARCHITECTURE</span><h2 id="model-title">Linear regression</h2></div><div class="canvas-tools"><button id="rename-model" title="Rename architecture">Rename</button><button id="fit">Fit</button><button id="zoom-out" class="icon">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="icon">+</button><button id="validate" class="validate">Validate</button><button id="reset-panels" title="Restore panel positions and sizes">Panels ↺</button></div></div>
-    <div class="actions"><label class="safety-toggle" title="Limit runs, not architecture specifications"><input id="constrained-mode" type="checkbox" checked disabled>Constrained</label><button id="open-workspace">Open…</button><button id="save-workspace">Save workspace</button><button id="find" class="icon" title="Find · Ctrl+F">⌕</button></div>
+    <div class="actions"><label class="safety-toggle" title="Limit runs, not architecture specifications"><input id="constrained-mode" type="checkbox" checked disabled>Constrained</label><button id="open-workspace">Open…</button><button id="save-workspace">Save workspace</button></div>
   </header>
 
   <main id="welcome" class="welcome">
@@ -45,18 +69,20 @@
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
       <div id="library-scroll" class="scrollport">
       <div class="sidebar-section"><div class="eyebrow">BUILDING BLOCKS</div><button id="add-linear" class="palette"><span class="type-symbol purple-text">ƒ</span><span><b>Linear</b><small>Learn a matrix and a bias</small></span><span>+</span></button>
-      <label for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Tanh</option></select>
-      <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button>
+      <div id="activation-palette-group" class="palette-group" role="group" aria-labelledby="activation-palette-label">
+      <label id="activation-palette-label" for="activation-select" class="field-label">Nonlinear activation</label><select id="activation-select"><option>GELU</option><option selected>ReLU</option><option>Sigmoid</option><option>Softmax</option><option>Tanh</option></select>
+      <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button></div>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
-      <label for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button>
+      <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
+      <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button></div>
       <div class="eyebrow">NAMED BOUNDARIES</div>
       <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
       <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>
       <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button>
       <button id="add-replicator" class="palette compact-palette"><span class="type-symbol amber-text">⇉</span><span><b>Replicator</b><small>Expose the full tensor on two ports without copying it</small></span></button></div>
-      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl-drag snaps blocks to the grid. Named boundaries define a reusable architecture's interface.</p></div>
+      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl reverses the grid-snapping default set in Display preferences. Named boundaries define a reusable architecture's interface.</p></div>
       </div>
     </aside>
 
@@ -87,17 +113,20 @@
             <div class="inline-fields"><label>Between layers<input id="layout-expanded-layer_gap" type="number" min="8" max="1000" step="1" value="80"></label><label>Between blocks<input id="layout-expanded-block_gap" type="number" min="8" max="1000" step="1" value="32"></label></div>
             <label class="layout-check"><input id="layout-expanded-rearrange" type="checkbox" checked>Rearrange blocks</label>
             <label class="layout-check"><input id="layout-expanded-fit" type="checkbox" checked>Fit after expanding</label>
+            <label class="layout-check" title="Collapse zero-parameter blocks. Smallest learnable blocks use minimum expanded height; others scale relatively up to 4× that height."><input id="layout-expanded-parameter_sizing" type="checkbox">Size by learnable parameters</label>
+            <p class="tiny">When enabled: collapse blocks with 0 parameters; expand learnable blocks with relative heights. Smallest positive count uses minimum expanded height. Requires a valid architecture.</p>
             <button id="expand-all" class="primary">Expand all</button>
           </div>
         </details>
         <div class="layout-footer"><p class="tiny">Settings belong to this workspace; Save workspace keeps them on disk. Spacing is in model units, independent of interface zoom. Each action is one undoable visual edit. Ports remain on the left/right in both directions.</p><button id="save-layout-preferences">Save layout preferences</button></div>
+        <details class="layout-section" id="panel-arrangement-section"><summary>Floating panel arrangement</summary><div class="layout-options"><p class="tiny">Save panel positions, sizes, visibility and stacking as this workspace's opening preset. Ordinary moves remain local; this preset does not affect the network or undo history. Save workspace to keep it on disk.</p><button id="save-panel-arrangement">Save current arrangement</button><button id="restore-panel-arrangement">Restore saved arrangement</button></div></details>
       </div>
     </aside>
 
     <section class="workarea">
       <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div class="canvas-note">Drag blocks · drag arrow ends to reconnect · D deletes selection · wheel to zoom · drag empty space to pan</div><div id="validation-message" class="validation-chip">Checking graph…</div></div>
       <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
-        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
+        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
         <div id="experiment-scroll" class="scrollport">
         <div id="experiment-panel" class="experiment panel-content">
           <section class="data-section"><div class="section-line"><h3>1. Prepare x, y data</h3><span id="data-status" class="muted">No dataset yet</span></div>
@@ -108,6 +137,63 @@
         </div>
         <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
+        <div id="science-panel" class="panel-content" hidden>
+          <div class="inline-actions"><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
+          <section id="science-value-editor" hidden aria-label="Chunked draft value editor">
+            <h3>Edit exact value · staged draft</h3><p id="science-value-identity" class="tiny"></p>
+            <p class="tiny">Edit one JSON fragment at a time. Fragments may be incomplete JSON; Apply fragment preserves them, and Use staged value checks the entire value. Nothing is retained until Retain revision. No training.</p>
+            <label>JSON fragment<textarea id="science-value-text" class="science-value-text" spellcheck="false"></textarea></label>
+            <p id="science-value-status" role="status" class="tiny"></p>
+            <div class="inline-actions"><button id="science-value-prev">‹ Fragment</button><button id="science-value-next">Fragment ›</button><button id="science-value-apply">Apply fragment</button><button id="science-value-finish">Use staged value</button><button id="science-value-start">Edit value again</button></div>
+            <div class="inline-actions"><button id="science-value-check">Validate draft</button><button id="science-value-save">Retain revision</button><button id="science-value-discard">Discard draft</button></div>
+          </section>
+          <section id="science-author" hidden aria-label="Typed scientific object authoring">
+            <h3 id="science-author-title">Dataset draft</h3><p id="science-author-id" class="tiny"></p>
+            <label>Object name<input id="science-author-name" data-author-control maxlength="200"></label>
+            <div id="science-author-dataset">
+            <p class="tiny">Fields and observations keep stable IDs. Shape excludes the batch axis. Cells use JSON scalars or tensor arrays; null means missing. Edits never convert values or reorder labels automatically.</p>
+            <div class="inline-actions"><input id="science-author-field-id" data-author-control placeholder="New stable field ID" aria-label="New stable field ID"><button id="science-author-add-field">Add field</button></div>
+            <div class="inline-actions"><button id="science-author-fields-prev">‹ Fields</button><span id="science-author-field-page" class="tiny"></span><button id="science-author-fields-next">Fields ›</button></div>
+            <div id="science-author-fields"></div>
+            <div class="inline-actions"><input id="science-author-record-id" data-author-control placeholder="Observation ID (blank = new UUID)" aria-label="New observation ID"><button id="science-author-add-record">Add observation</button></div>
+            <div class="inline-actions"><button id="science-author-rows-prev">‹ Observations</button><span id="science-author-row-page" class="tiny"></span><button id="science-author-rows-next">Observations ›</button></div>
+            <div id="science-author-records" class="science-author-records"></div>
+            <details><summary>Dataset metadata</summary><div id="science-author-metadata"></div></details>
+            </div>
+            <div id="science-author-task" hidden>
+              <p class="tiny">Bind stable port IDs to stable field IDs, not their list positions. Transform order is explicit. Fitted transforms learn from training observations only. Derived lengths/masks must match a padded input from the same source field.</p>
+              <div class="science-author-grid"><label>Exact architecture for compatibility<select id="science-task-model" data-author-control></select></label><label>Exact dataset for compatibility<select id="science-task-dataset" data-author-control></select></label></div>
+              <p id="science-task-context-status" class="tiny"></p><button id="science-task-context-refresh" data-author-control>Refresh context choices</button>
+              <datalist id="science-task-input-ports"></datalist><datalist id="science-task-output-ports"></datalist><datalist id="science-task-fields"></datalist>
+              <div id="science-task-context-pages"></div>
+              <div id="science-task-bindings"></div>
+              <p class="tiny">MSE/MAE use numerical targets. Cross-entropy uses raw logits and fixed categorical indices, with no target transforms. A mask excludes elements; sample weights weight observations/elements; objective weight scales this head. All outputs need a named head.</p>
+              <button id="science-task-compatibility" data-author-control>Check exact interface compatibility</button><p id="science-task-compatibility-status" role="status" class="tiny"></p>
+            </div>
+            <div id="science-author-experiment" hidden>
+              <p class="tiny">An experiment selects exact architectures and dataset/task revisions, splits, independent initialization seeds and training configurations. Authoring and preview never fit or train. Retain a valid revision before explicitly running its candidates.</p>
+              <button id="science-experiment-refresh" data-author-control>Refresh available exact revisions</button><p id="science-experiment-context-status" class="tiny"></p>
+              <div id="science-experiment-bindings"></div>
+              <div class="inline-actions"><button id="science-experiment-preview" data-author-control>Preview draft candidates · no training</button><button id="science-experiment-prev">‹ Preview page</button><button id="science-experiment-next">Preview page ›</button></div>
+              <p id="science-experiment-preview-status" role="status" class="tiny"></p><div id="science-experiment-preview-rows"></div>
+            </div>
+            <p id="science-author-status" role="status" class="tiny"></p>
+            <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-retry-page" hidden>Retry page</button><button id="science-author-cancel">Cancel draft</button></div>
+          </section>
+          <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
+          <div class="science-toolbar"><label>Search names / IDs<input id="science-object-query" maxlength="200" placeholder="Literal text, not a pattern"></label><button id="science-object-search">Search</button><button id="science-object-prev">‹ Revisions</button><span id="science-object-page" role="status" class="tiny"></span><button id="science-object-next">Revisions ›</button></div>
+          <div class="inline-actions"><p id="science-status" role="status" class="tiny">Browsing never trains. Exact revisions retain historical meaning.</p><button id="science-stop" hidden>Stop run</button></div>
+          <div id="science-recovery" hidden><p class="tiny">Unadmitted evidence is kept for this session. Inspect bounded pages or export before closing; contains captured data and results, not a running-job receipt.</p><label>Recovery evidence<select id="science-recovery-object"></select></label><div class="inline-actions"><label>Search run IDs / diagnostics<input id="science-recovery-query" maxlength="200"></label><button id="science-recovery-search">Search</button><button id="science-recovery-refresh">Refresh</button><button id="science-recovery-prev">‹ Evidence</button><button id="science-recovery-next">Evidence ›</button></div><p id="science-recovery-page" role="status" class="tiny"></p><button id="science-recovery-show">Inspect recovery</button><button id="science-recovery-export">Export recovery JSON…</button></div>
+          <div id="science-selection" hidden><p id="science-question"></p><div class="inline-actions"><button id="science-previous">‹ Previous</button><span id="science-page" class="tiny"></span><button id="science-next">Next ›</button><button id="science-candidate-refresh">Refresh candidates</button></div><div id="science-candidates"></div></div>
+          <div id="science-run" hidden><div class="inline-actions"><button id="science-retry" title="Fresh training using the saved selection and split, not optimizer continuation">Retry this run</button><button id="science-report-add">Add exact run to comparison</button></div><label>Report question<input id="science-report-question" value="What does this saved trial show?" maxlength="20000"></label><button id="science-make-report">Create saved-result report</button>
+            <div class="inline-actions"><label>Retained attempt<input id="science-evidence-attempt" type="number" min="1" value="1"></label><button id="science-evidence-read">Read this attempt</button><button id="science-metrics-prev">‹ Metrics</button><button id="science-metrics-next">Metrics ›</button></div><div id="science-run-evidence" class="science-evidence"></div>
+            <div class="inline-actions"><button id="science-predictor-view">View checkpoint predictor</button><button id="science-predictor-export">Export checkpoint predictor…</button></div><p class="tiny">Uses the displayed retained attempt, not an unread attempt number or newer head. Saved preprocessing/weights; no training or optimizer resume. Export requires a new file.</p><details id="science-predictor" hidden><summary>Standalone retained inference source</summary><p id="science-predictor-status" class="tiny"></p><pre id="science-predictor-code"></pre></details>
+          </div>
+          <details id="science-report-composer"><summary id="science-report-selection-label">Compare exact saved runs · 0 selected</summary><p class="tiny">Selection is transient. Create a recipe, then Save workspace. No training is launched. Revisions/retries of one logical run cannot be counted as extra runs.</p><div id="science-report-selection"></div><div class="science-author-grid"><label>Report name<input id="science-comparison-name" value="Saved run comparison" maxlength="200"></label><label>Research question<input id="science-comparison-question" value="How do these exact saved trials compare?" maxlength="20000"></label></div><button id="science-comparison-create">Create saved comparison recipe</button></details>
+          <div id="science-report" hidden><p id="science-report-mode" class="tiny"></p><button id="science-generate" title="Creates a new complete notebook directory. Does not execute or train.">Generate notebook bundle…</button><div class="inline-actions"><button id="science-report-prev">‹ Saved runs</button><span id="science-report-page" class="tiny"></span><button id="science-report-next">Saved runs ›</button></div><div id="science-report-evidence"></div></div>
+          <details id="science-notebook"><summary>Notebook execution · explicit</summary><p class="tiny">Inspect a complete trusted bundle, then explicitly run it. Saved-result notebooks do not train; rerun notebooks launch fresh fits. Generated runs remain external artifacts, not workspace runs. Input hashes are not a sandbox.</p><div class="science-author-grid"><label>Report / kernel Python<input id="science-notebook-python" placeholder="/absolute/path/to/python" spellcheck="false"></label><label>Timeout per cell (seconds)<input id="science-notebook-timeout" type="number" min="1" value="600"></label></div><div class="inline-actions"><button id="science-notebook-inspect">Inspect bundle…</button><button id="science-notebook-execute" disabled>Run saved-result notebook…</button><button id="science-notebook-stop" hidden>Stop notebook</button></div><p id="science-notebook-selection" class="tiny">No bundle inspected. Generation does not run cells.</p><p id="science-notebook-status" role="status" class="tiny"></p><div class="inline-actions"><label>Session executions<select id="science-notebook-history" aria-label="Session notebook executions"></select></label><button id="science-notebook-refresh">Read execution receipts</button></div><div id="science-notebook-evidence"></div></details>
+          <details id="science-details"><summary>Specification / evidence · exact selection</summary><p class="tiny">Typed summary below; complete retained or session-recovery contents are inspected in bounded pages, not silently truncated or treated as editable JSON.</p><pre id="science-document"></pre><div class="inline-actions"><button id="science-tree-root">Root</button><button id="science-tree-parent">Parent</button><button id="science-tree-prev">‹ Contents</button><button id="science-tree-next">Contents ›</button><button id="science-tree-retry">Retry contents</button><button id="science-tree-edit">Edit this value…</button></div><p id="science-tree-path" class="tiny"></p><p id="science-tree-status" role="status" class="tiny"></p><div id="science-tree-rows" class="science-evidence-table"></div></details>
+        </div>
         </div>
       </div>
     </section>

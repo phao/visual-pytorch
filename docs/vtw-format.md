@@ -1,23 +1,29 @@
-# Visual Torch Workspace (.vtw): format specification, version 4
+# Visual Torch Workspace (.vtw): format specification, version 6
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
-app/file_sync.py and vpw_cli.py. The reusable GUI has a separate specification:
+app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separate specification:
 [UI-AGENT-HANDOFF.md](UI-AGENT-HANDOFF.md).
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 4. The current reader accepts versions 1, 2, 3 and 4; opening
-an older file copies it into memory and upgrades the working version to 4.
-Opening alone never rewrites the source; explicit Save writes version 4.
+PRAGMA user_version = 6. The current reader accepts versions 1–6; opening
+an older file copies it into memory and upgrades the working version to 6.
+Opening alone never rewrites the source; explicit Save writes version 6.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
 without changing SQL tables. Version 4 adds versioned structured operators,
 optional named sample axes and a checked recorded structured dataset adapter,
-without changing SQL tables. Older binaries are not expected to open version 4;
+without changing SQL tables. Version 5 adds independent immutable dataset/task/
+model revisions and mutable browsing heads, with guarded SQL and exact content
+validation. Version 6 adds closed experiment/run/report semantics to those same
+revision tables, checks exact dependencies and append-only terminal attempts,
+and captures actual split manifests. These are application semantics, not new
+SQL tables. A version-1–5 header containing experiment/run/report rows is rejected.
+Older binaries are not expected to open version 6;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -26,12 +32,39 @@ row/document ID/name consistency and reference-index correspondence. Semantic
 drafts can open without compiling. Opening never executes model code or launches
 training. These checks are not a hostile-file sandbox or memory guarantee.
 
+Dataset int64 values use exact JSON integer tokens in the full signed 64-bit
+range; see [dataset-task-contract.md](dataset-task-contract.md). Explicit float32
+training preparation does not promise exact arithmetic on large integers.
+The Qt [typed dataset session](typed-dataset-sessions.md) and raw-value buffers
+are transient editor state, not `.vtw` rows, retained revisions or CLI sessions.
+Only successful parent admission followed by workspace Save persists edits.
+Task field/port suggestion pages are also read-only projections, not partial
+model/dataset documents or persistent bindings. Their shared GUI/CLI protocol is
+in [task-context-pages.md](task-context-pages.md); stored scientific order/IDs
+and full metadata remain unchanged.
+Owned task binding/transform cards, literal edit batches and compatibility
+commands are also transient native transport, specified in
+[typed-task-sessions.md](typed-task-sessions.md). They add no SQL rows or CLI
+session tokens; the visible task form now uses that transport, including linked
+child staging. Only explicit parent Commit followed by workspace Save persists
+edits. Native transient origin proofs are not additional file identities.
+Native experiment card/local-choice/value/edit/preview commands likewise add no
+persisted rows or parallel format; [typed-experiment-sessions.md](typed-experiment-sessions.md)
+specifies their transient grammar and actual form. Experiment cards/raw-child
+buffers now share one transient session; only explicit parent Commit and file
+Save persist an ordinary complete ExperimentSpec. No parallel SQLite store is added.
+
+Window-owned recovery scope/sequence and browser pages are also transient;
+[recovery-browser.md](recovery-browser.md) specifies their exact boundary. They
+add no .vtw tables or durable jobs. Only explicit full recovery JSON export
+creates external evidence; no browser projection is a persisted scientific spec.
+
 ## 2. Exact relational schema
 
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 4;
+PRAGMA user_version = 6;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -50,7 +83,38 @@ CREATE TABLE runs(
     architecture_id TEXT NOT NULL REFERENCES architectures(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL, graph_snapshot TEXT NOT NULL,
     result TEXT NOT NULL);
+CREATE TABLE spec_revisions(
+    kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
+    name TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL,
+    PRIMARY KEY(kind,id,revision));
+CREATE TABLE spec_heads(
+    kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
+    PRIMARY KEY(kind,id),
+    FOREIGN KEY(kind,id,revision)
+        REFERENCES spec_revisions(kind,id,revision));
+CREATE TRIGGER spec_revisions_no_update BEFORE UPDATE ON spec_revisions
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be updated'); END;
+CREATE TRIGGER spec_revisions_no_delete BEFORE DELETE ON spec_revisions
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be deleted'); END;
+CREATE TRIGGER spec_revisions_no_replace BEFORE INSERT ON spec_revisions
+WHEN EXISTS(SELECT 1 FROM spec_revisions
+            WHERE kind=NEW.kind AND id=NEW.id AND revision=NEW.revision)
+BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 ```
+
+Independent revision kinds are dataset, experiment, model, report, run and task
+(integer document version 1); other kinds/versions are rejected.
+Revisions are content-addressed finite JSON and never overwritten or cascaded
+from authoring architecture deletion. Browsing heads are mutable references to
+retained revisions. Exact schemas, frozen reference closures, hash/guard checks,
+working-copy-only migration, archive/reselection and undo retention are specified
+in [revision-store.md](revision-store.md). Exact experiment, terminal run and report
+recipe schemas are in [experiment-objects.md](experiment-objects.md).
+Their JSON references are checked by the application on admission/load/save;
+only head→revision references are SQL foreign keys. This is a Stage C component,
+not the completed experiment GUI. Notebook artifacts are separately specified in
+[notebook-reports.md](notebook-reports.md). Legacy datasets/runs keep their
+original meaning and existing APIs; no automatic typed-data interpretation occurs.
 
 ### Metadata
 
@@ -61,7 +125,8 @@ CREATE TABLE runs(
 | created_at | UTC ISO-8601 string with timezone |
 | name | Workspace display name; initially Untitled workspace |
 | constrained_mode | Text true or false; absent legacy key means true |
-| layout_preferences | Optional closed finite JSON layout profile version 1; absent uses defaults. See [layout.md](layout.md). |
+| layout_preferences | Optional finite JSON, closed layout profile version 1; absent means independent defaults. See [layout.md](layout.md). |
+| panel_layout | Optional closed floating-panel preset version 1, CSS-pixel ordinary rectangles/flags/stacking; not computational history. See [panel-workspace.md](panel-workspace.md). |
 
 Unknown metadata keys are preserved, not executed. Timestamps are write/run
 evidence, not graph order or semantic versions. SQLite rowid determines the
@@ -77,7 +142,7 @@ architectures.document is a JSON object:
 | name | 1–100 nonblank characters; row name is the stripped document name |
 | graph | Object with nodes and edges arrays |
 | training | Optional object: epochs/lr/seed default to 400/0.03/7 |
-| view | Optional presentation object: x, y, zoom, optional fitted |
+| view | Optional legacy camera object: x, y, zoom, optional fitted. GUI opens ignore it and center/fit; current camera is session-only and GUI edits submit neutral view. See [layout.md](layout.md). |
 | result | Latest result object or null |
 | dataset_binding | Null, or a version-1 binding object identifying input/output groups by stable node ID, sample shape and canonical start/stop offsets, plus output_mode |
 
@@ -88,7 +153,8 @@ round trips but do not acquire execution semantics.
 
 architecture_refs must exactly index every Module as (owner ID, node ID, ref ID).
 Targets must exist. A stale independent index is rejected; deleting a referenced
-target is blocked. Deleting an unreferenced architecture cascades its data/runs.
+target is blocked. Deleting an unreferenced architecture cascades its legacy
+data/runs, not independent revisions/frozen closures.
 The current API keeps at least one architecture once a collection is populated.
 
 ## 3. Graph identity, wires and ordering
@@ -152,7 +218,7 @@ Current training tensors are float32.
 | --- | --- | --- |
 | Input | shape; legacy features; optional axes | Exact named sample shape; explicit shape takes precedence; features=d means shape=[d]. axes lists unique sample-axis names (one per dimension), never B. |
 | Linear | features, bias (default true) | nn.Linear(in_last,out_features); last axis only, shared weights across all preceding sample positions. |
-| Activation | activation | ReLU, Tanh, Sigmoid or exact GELU; axes preserved. |
+| Activation | activation; Softmax dim=-1 | ReLU, Tanh, Sigmoid or exact GELU are elementwise. Softmax normalizes a slice along one sample axis, excluding B; dim indexes sample dimensions, negative indices count from the end. Runtime nn.Softmax gets the resolved index plus 1. Shapes and axes are preserved. |
 | Reshape | shape | x.reshape(B,*resolved_shape); sample product preserved; one -1 inferred; B never reshaped. |
 | Concat | sources, flatten (default true) | Ordered incoming tensors; flatten each sample then concatenate dim 1, or concatenate dim -1 with matching preceding dimensions when flatten=false. |
 | Splitter | parts=[{output:port_id,features:size},...] | torch.split on last axis; positive sizes sum to incoming last-axis width; other axes preserved. |
@@ -242,6 +308,22 @@ reordering; restore weights against their graph snapshot, not another architectu
 
 ## 6. Data, training and evidence
 
+This section describes the unchanged architecture-owned legacy adapter. Independent
+dataset/task/model revisions use the revision-store schema introduced in v5. Their
+task-aware worker returns a separate frozen JSON training artifact and fitted
+predictor, specified in [task-training-contract.md](task-training-contract.md).
+It does not silently write that artifact into legacy `runs` or `result`.
+The v6 `run-candidate` wrapper explicitly stores its validated terminal evidence
+as an independent RunRecord, with exact dependencies and captured actual manifest.
+See [experiment-objects.md](experiment-objects.md). GUI/history
+integration remains a subsequent Stage C gate.
+
+The local Stage C `scienceRunCurve`/CLI `run-curve` interface derives paged head
+curves from these immutable RunRecord attempts. It adds no tables or persisted
+objects, changes no existing evidence and never trains on read. The exact read
+projection, fixed axes and missing-value rules are in
+[saved-run-curves.md](saved-run-curves.md).
+
 datasets.payload contains matching x/y arrays with at least two flat rows.
 x has inputs values; y has outputs canonical values. Values are finite numbers,
 not booleans, with magnitude at most 1e6. Optional truth/source/seed/noise fields
@@ -300,7 +382,8 @@ admission. This is an inference checkpoint, not an optimizer/resume checkpoint
 or authenticated proof of how a manually supplied result was obtained. Historical runs are
 not rewritten. Regular source exports instantiate fresh weights; export-trained
 embeds the matched trained state for evaluation-mode inference. A history browser
-and notebook generation are not implemented.
+is not implemented. Exact-revision result/rerun notebook bundles are implemented
+separately; they do not silently reinterpret this legacy result format.
 
 Existing datasets retain their binding when only the graph changes. Training
 rejects an incompatible binding rather than silently assigning old columns to
@@ -322,8 +405,15 @@ is explicitly labelled a fresh-weight template; trained inference uses the
 validated trained export API/CLI. Worker completions are checked against their
 captured snapshot before entering current/history storage.
 
-Future notebook generation may create .ipynb directly or via an agent prompt.
-No notebook schema/command/protocol is claimed or reserved in this version.
+Notebook bundles use `.ipynb` v4 plus a closed version-1 input manifest and exact
+revision closure, outside the SQLite container. Generation and actual-kernel
+execution are distinct explicit commands; neither writes the source workspace.
+The GUI's inspected bundle selection, active job and session receipt history are
+not SQLite tables/revisions. Durable requested/executed notebooks and execution
+receipts live in external bundle attempt directories; rerun results are not
+automatically admitted as workspace RunRecords. No v6/schema change is introduced
+by explicit GUI execution. See [notebook-reports.md](notebook-reports.md) and
+[notebook-gui-execution.md](notebook-gui-execution.md) for exact contracts and limits.
 
 ## 7. Run policy is not graph meaning
 
@@ -374,6 +464,13 @@ Use [vpw-cli.md](vpw-cli.md), not raw SQL, for agents: it maintains reference
 indices/results and applies an edit batch with one save. --expect-revision makes
 read/plan/edit explicit. Share saved .vtw snapshots, not unsaved GUI buffers.
 
+Stored candidate browsing has a separate non-document projection, also exposed
+as CLI `preview-experiment-page`: exact retained identity/coordinates/status/
+references/counts, explicit partial reasons and decimal totals, no full manifests
+or resolved protocols. It is not an admitted ExperimentSpec or persisted SQL
+record; the complete `preview-experiment` read remains available. No v6 schema
+change follows. See [candidate-browser.md](candidate-browser.md).
+
 Session undo/redo stores at most 50 edit steps and 128 MiB of combined SQLite
 snapshots in a private temporary directory, NOT extra .vtw tables. Save retains
 history; opening/external reload starts fresh history. Undo marks the workspace
@@ -384,7 +481,10 @@ history with a notice; history is not a durable recovery/backup facility.
 
 User settings are separate: ~/.tensorloon/config.json stores ui_zoom (0.5–3),
 font_size (integer 12–28), theme, spacing (integer 1–10), box_spacing (integer
-1–100) and memory_limit_percent. Defaults are 1.15, 14, dark, 4, 35 and 10.
+1–100), memory_limit_percent, grid_snap and menu_grid_snap (strict booleans).
+Defaults are 1.15, 14, dark, 4, 35, 10, false and false. grid_snap applies only to
+blocks; menu_grid_snap applies to panels/pack. Ctrl inverts each independently
+during its movement/resize; Shift retains menu-layer movement. See [panel-workspace.md](panel-workspace.md).
 Older string spacing values compact/spaced load as 4/10 in memory, without a
 file write; the next explicit preference Save writes numeric spacing. New
 preference changes accept only integers in range, not strings, floats or booleans.

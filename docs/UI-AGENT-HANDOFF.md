@@ -36,8 +36,8 @@ not a prohibition on improving the design.
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |
 | --- | --- | --- | --- |
-| Canvas world | Model/world units | Box positions and graph view | Free block drag; Ctrl snaps; empty drag pans |
-| Floating menus | CSS viewport units relative to editing stage | No; per-view session | Menu drag; Shift-drag translates menu layer |
+| Canvas world | Model/world units | Box positions/sizes; camera session-only | Block drag; Ctrl inverts block snap default; empty drag pans |
+| Floating menus | CSS viewport units relative to editing stage | Explicit workspace preset; ordinary moves tab-local | Menu drag; Shift-drag translates menu layer |
 | Whole interface | Qt WebEngine zoom | App config JSON | Ctrl+/Ctrl−; not canvas zoom |
 
 Canvas transforms are translate(view.x,view.y) followed by scale(view.zoom).
@@ -45,6 +45,16 @@ Convert pointer positions through the inverse transform before moving a box.
 Snap grid is 24 world units for boxes, 24 CSS stage units for menus. Grid origin
 is (0,0) in each layer, not the window decoration's top-left. UI zoom scales page
 appearance, but does not replace these logical coordinate definitions.
+
+The single application header wraps its title/tools and workspace actions without
+overlapping groups. At extreme interface zoom it is a focus-scrollable region,
+capped at 40vh, rather than pushing controls outside the window or consuming the
+canvas. The footer wraps, with a 15vh scroll cap. The launcher pack is capped to
+the stage; its list can scroll independently of its stationary grip. Ordinary
+floating-panel content still uses its existing overlay rails. These are overflow
+fallbacks, not hidden duplicate commands or reductions to the user's font size.
+Full truncated architecture/file names remain available as hover titles. Native
+single/multiple-tab checks cover real control focus/hit tests and mouse clicks.
 
 The editing stage is positioned, isolated, clipped to its rectangle. Menus are
 absolute descendants, not OS top-level windows. They therefore cannot draw over
@@ -111,10 +121,14 @@ when the title is offstage. It does not guarantee the whole title remains visibl
 
 Grid rules:
 
-- Ctrl + menu/pack drag: snap its **top-left** point to nearest 24-unit grid point.
-- Ctrl + resize: snap **bottom-right**, preserving top-left where feasible.
+- Independent user Display preferences `grid_snap` (blocks) and `menu_grid_snap`
+  (panels/pack/layer) default false; Ctrl inverts the appropriate one per event.
+  Preview/Cancel/Save behave like other display preferences. Shift retains its
+  menu-layer role; group selection remains deferred.
+- Snapped menu/pack drag: align its **top-left** to the nearest 24-unit grid point.
+- Snapped resize: align **bottom-right**, preserving top-left where feasible.
   Choose a grid-aligned corner satisfying minimum size.
-- Ctrl + Shift layer-drag: snap pack top-left as the shared anchor; preserve
+- Shift layer-drag with snapping active: snap pack top-left as the shared anchor; preserve
   relative positions by applying the same delta to ordinary menus, including hidden ones.
 - Visibility constraints can override exact snapping at stage extremes. Expanded
   menus do not move/resize and are excluded from layer translation until restored.
@@ -123,6 +137,27 @@ On stage resize, refit expanded menus and constrain moved ordinary rectangles/pa
 Closed menus need no immediate painted layout; when measuring one, briefly remove
 hidden synchronously and restore it before the next paint. Never interpret a
 display:none zero rectangle as its stored geometry.
+
+### Explicit workspace panel preset
+
+Layout → Floating panel arrangement saves the current ordinary rectangles,
+visibility, expansion flags, pack location/collapse and bottom-to-top order to
+`metadata.panel_layout`. Save workspace commits the draft to `.vtw`. New tabs and
+workspace opens initialize from it; Restore saved arrangement reapplies it.
+Ordinary gestures remain tab-local and create no history steps. Other open tabs
+receive updated preset metadata without immediately moving. Reset is local.
+Opening from the Architectures list clears selection/hides all panels/collapses
+the pack after success, including tab-hint/Ctrl/Meta/double-click opens. A new tab
+suppresses preset visibility once at initial load; ordinary navigation is unchanged.
+Failed opens do not hide the layer. The saved preset is not rewritten.
+Font/viewport adaptation keeps readable minima and a 24-unit recoverable slice,
+without rewriting the saved geometry. Capture expanded panels' ordinary restore
+rectangle, not full-stage bounds. Presets are outside computational undo/redo;
+restoring a historical graph must preserve the current preset.
+
+The precise closed JSON schema, CLI operation, stale-write guards and global
+snap-default distinction are in [panel-workspace.md](panel-workspace.md). Treat
+these as app storage bindings: a different product may use its own equivalent.
 
 ## 5. Gesture priority and event ownership
 
@@ -191,6 +226,16 @@ Every block button shows only a type icon and name. Help lives in its native
 title tooltip and aria-label, not permanent secondary text. Reuse this compact
 pattern but retain explanatory content, especially in didactical software.
 
+When a selector configures a specific add/action button, put its label, selector
+and button inside one named semantic group (`role="group"`, `aria-labelledby`).
+Visual PyTorch uses `.palette-group` for Activation and Architecture reference.
+A one-pixel `--line` border, 7px corners and one menu-spacing unit of internal
+padding/gap hint at their relationship without making another heavyweight panel.
+Child button/label margins are zero inside the group. Keep the group intact when
+sorting browsing entries and retain selector-before-action keyboard order.
+Standalone buttons are not framed; grouping never changes their actions, graph
+or persistence. Reuse the pattern for genuinely coupled controls, not every row.
+
 Code blocks may have independent horizontal overflow. Do not claim that every
 possible nested scrollbar is forbidden; the actual rule concerns normal panels.
 
@@ -207,7 +252,10 @@ General reusable concepts:
 - Double-click any box opens Inspector for that exact box.
 - Wire removal by double-click targets the exact edge, including source-port identity.
 - Fit chooses the largest axis-aligned canvas rectangle not covered by visible menus/pack.
-  If usable space is absent/small, request that the user hide/move a menu.
+  Insets are 50 CSS stage units per side on roomy rectangles, decreasing to 15%
+  of each dimension on narrow ones. Every positive region is usable, including
+  strips below 80 units; absent/zero space requests hiding/moving a menu. Fit
+  never forces a minimum scale that would overflow the available rectangle.
 
 Box compactness is separate from menu compactness. User setting box_spacing is
 an integer 1–100, default 35. With t=box_spacing/100, compute in world units:
@@ -262,16 +310,17 @@ semantics, datasets and results. Its boolean collapsed flag persists with the
 block and participates in undo/redo. Training disables folding and movement.
 Bézier bend is at least 50
 units, otherwise approximately 45% of horizontal separation. View wheel zoom uses
-the pointer as anchor; graph zoom is clamped to 0.05–2.5; Fit caps initial scale at 1.3.
+the pointer as anchor; manual graph zoom is clamped to 0.05–2.5; Fit caps initial
+scale at 1.3 but may go below 0.05 to keep the graph inside the free rectangle.
 These numbers are defaults, not domain laws. Menu CSS and diagram SVG text must
 remain independently tuneable when adopting larger readable defaults.
 
 Every box has a 14×14 bottom-right SVG resize target with two diagonal marks,
 nwse-resize cursor, accessible label/disabled state and keyboard focus. Drag in
-inverse canvas/world coordinates; do not change top-left. Ctrl snaps bottom-right
+inverse canvas/world coordinates; do not change top-left. Active snapping aligns bottom-right
 to the 24-unit world grid, raising a snapped corner as necessary to satisfy the
 minimum. Arrow keys change a focused grip by 8 units; Shift or Ctrl uses 24, and
-Ctrl also snaps. The Inspector has no removal or diagram width/height controls.
+Ctrl inverts the block snap default. The Inspector has no removal or diagram width/height controls.
 The block context menu's Automatic size deletes both size preferences, preserving
 position, folding and computation. It is undoable and disabled during training;
 the dispatcher rechecks the captured model/block IDs and busy state. Repeating
@@ -322,7 +371,17 @@ Expanded defaults: LR, layer gap 80, block gap 32, rearrange=true, fit=true.
 Gaps are integers 8–1000 world units, independent of diagram/UI zoom and padding.
 Directions LR and TB mean left-to-right/top-to-bottom node ranking; ports retain
 their existing left/right positions in both. Style/profile controls do not alter
-port identity or compute order. Current control values apply on each button press;
+port identity or compute order. Current control values apply on each button press.
+Expanded profiles optionally accept strict boolean `parameter_sizing` (default
+off; missing legacy key means off). Enabled Expand all collapses zero-parameter
+blocks and expands positive-count blocks. The least positive count uses readable
+minimum height; linear relative scaling reaches 4× minimum at the largest count,
+or all minimum when counts tie. Module instances include internals. Widths are
+unchanged. This intentionally replaces positive blocks' preferred heights;
+undo/Automatic size can restore/reset them. Native exact decimal counts are read
+only for a validated matching graph/workspace instance; stale replies never
+replace a newer graph. Ordinary layout still supports drafts. See
+[layout.md](layout.md) for the formula, count grammar, CLI and precise limits.
 Save layout preferences updates both profiles in the current workspace's
 `metadata.layout_preferences` JSON, as one session undo entry. Explicit Save
 workspace writes the `.vtw` snapshot. Full state carries `workspace_id` and
@@ -343,7 +402,9 @@ Prepare the changed graph on a private clone, applying all compact flags before
 measuring layout dimensions. Reject bad preferences/endpoints or coordinates
 outside ±100000 without replacing the original diagram. Apply state, geometry and
 optional fitting as exactly one workspace/history edit. Undo restores previous
-folding, positions and view; expanded width/height preferences are retained.
+folding and positions; the session camera is preserved, not restored from history.
+Ordinary expansion retains preferred dimensions; parameter sizing replaces
+positive-count preferred heights deliberately, with undo restoring them.
 Keep current scientific results/datasets/bindings intact. Do not allow either
 button during training or an active block gesture. Fit honors floating overlays
 and may request more visible room when panels cover the canvas.
@@ -462,7 +523,16 @@ a custom left-click pop-up menu. Validation banners anchor upper-right, 16 units
 from stage right and 12 from top. Notifications sit bottom-center above menu
 layers: 5500ms automatic lifetime, opacity transitions 250ms in/out, then hidden;
 an accessible × button dismisses early. New notifications cancel old close timers.
+Notification text is pointer-transparent, so a low-positioned panel button remains
+usable underneath it; only the visible close button accepts pointer events.
 Respect reduced motion. Use a separate message span so updates retain the button.
+
+Canvas pan/zoom/Fit are session-only and never write the workspace or add history
+steps. Every architecture open ignores legacy camera metadata and centers/fits
+its current geometry. Ordinary acknowledgements preserve the tab camera;
+workspace-instance changes refit. GUI model edits submit neutral legacy `view`,
+not the active camera. Old files are not rewritten merely by opening them.
+Global interface zoom is still persisted independently as a user preference.
 
 Themes share one geometry/interaction system with semantic colour tokens in
 app/themes.py: Aurora, Bauhaus, Blueprint, Cyberpunk, Dark, GitHub, Light, Math,
@@ -502,6 +572,9 @@ Domain history is session-only SQLite snapshots (50 steps/128 MiB combined),
 not floating-menu/display preferences. No history edits during training;
 preserve run evidence for surviving restored architectures. A different product
 must choose its own transactional history implementation, not blindly reuse .vtw.
+
+The plain browser-page Find button, context-menu entry and Ctrl+F binding are
+removed; no replacement architecture search is claimed.
 
 Group selection is explicitly NOT implemented. The owner is considering ordinary
 selection versus Ctrl-selection/drag; a future decision may replace current Ctrl
@@ -638,3 +711,263 @@ Design reference: [Qt tool-palette controls](https://doc.qt.io/qt-6/qdockwidget.
 informed movable/closable/expandable affordances. The implemented menus are HTML,
 not QDockWidget instances. The pack, independent layer gestures and snapping
 anchors are the owner's requested interaction design, not borrowed native behavior.
+
+## Typed scientific drafts (branch-only Visual PyTorch extension)
+
+The floating Experiment/history tab hosts typed dataset, task and experiment drafts. Reuse
+their interaction pattern, not the domain grammar by accident: stable identities,
+exact historical base distinct from expected current head, private unsaved text,
+read-only validation, explicit immutable admission and separate file Save. Context
+suggestions must never replace exact selections or infer bindings by list order.
+Reordering a semantic chain is an explicit up/down operation, not alphabetical
+presentation sorting. Numeric parse errors stay visible and block destructive
+rerender/admission; refreshing suggestions must retain that text. Typing clears
+old compatibility results before blur. Checks are visibly scoped: intrinsic object
+validity is not interface compatibility, and neither proves execution/resource
+admission. Asynchronous replies from another workspace/draft are ignored.
+
+The accepted panel layer/keyboard/typing and history behavior remain unchanged.
+Task/dataset forms use theme colors, base-font controls and responsive grids inside
+the same scroll container. Task transform action buttons use intrinsic compact
+width, not equal-width expansion. All task bindings are currently rendered, while
+dataset cells page six fields/twenty records: neither is a full transport bound.
+Experiment selections use explicit exact references, ordered axes, independent
+seeds, typed split/optimizer/budget controls and reasoned comparison exclusions.
+Refresh must preserve selected identities, including unavailable historical refs.
+Comparison-mode changes must not discard conflicting whitelist entries. External
+observation IDs are literal lines, not comma-separated or silently deduplicated.
+Train-free draft preview pages 25 coordinates with no Run buttons, clears on edits
+and returns exact decimal Cartesian counts. Retain first, then run explicitly.
+All experiment axis cards currently render; paging is not a metadata/transport or
+RAM bound. Full C convergence remains unfinished.
+
+For read-only retained objects, reuse a separate bounded inspection surface,
+not the mutable authoring draft or a collapsed copy of the entire JSON. Metadata
+choices page alphabetically and preserve an exact historical pin outside the
+current page/search. Typed summaries must declare their projection scope, never
+masquerade as a complete editable specification. Tree navigation uses immutable
+member ordinals, preserves scientific array order, marks partial keys/values and
+provides explicit full-key/scalar paging. Show actual cursor/range and retain
+visited offsets; byte-limited pages need not have the requested row count.
+Use literal text nodes and local table/scalar overflow with theme/base fonts.
+Disable/guard duplicate pending navigation. Fence late success AND error delivery
+by workspace and selection/generation; a notified same-UUID reload must also
+invalidate pending contents. Verify returned revision/path/part/offset before
+display. Scope limits to response/DOM bytes/counts; full registry validation and
+draft transport are separate costs. The Visual PyTorch realization and reusable
+contract are in [scientific-browser.md](scientific-browser.md).
+
+For stored-reference authoring controls, reuse independent bounded revision
+pickers, not one complete metadata index copied into every selector. Preserve
+chosen exact pins across search/page/refresh; represent missing pins separately
+from valid metadata. Explicit experiment selections must not be guessed from
+list position. Search tools are siblings of a single-control select label, with
+their own accessible names, compact grid/range and full exact-ID/hash tooltip.
+Fence pending successes/errors by owner/workspace/generation/disposal, validate
+returned kind/query/cursor/pin, and guard repeated navigation. Suggestion refresh
+must not rebuild/discard incomplete unrelated fields. A notified same-UUID reload
+also invalidates suggestions without replacing draft refs/text. This does not
+page local draft axes or bound whole draft transport. Task field/port suggestions
+now use independent bounded datalist pages, literal search, exact-ID inspection
+and visible missing pins. Keep original scientific ordinal alongside alphabetic
+browsing, and label partial shape/axes previews as previews with actual rank.
+Do not send observations/vocabularies/arbitrary metadata merely for suggestions.
+Search/paging must not rebuild/flush binding controls or discard invalid text.
+The shared GUI/CLI contract and unbounded native-cost limits are in
+[task-context-pages.md](task-context-pages.md). The executable
+realization and reusable limitations are in
+[authoring-revision-choices.md](authoring-revision-choices.md).
+For large mutable documents, distinguish an owned editor session/sequence from
+an immutable scientific revision. Read only projected pages; send atomic ordered
+patch batches against that sequence rather than repeatedly submitting complete
+drafts. Bind actual owner/working-copy/connection identity on the host, retaining
+unsaved inspection after switches but rejecting admission into a replacement.
+Close explicitly or on owner teardown; failed checks must preserve bytes.
+Task binding/transform cards must retain scientific ordinals, independently page
+pipelines and return complete literal JSON or explicit staged-value markers.
+Send small typed values as native-parsed literal text rather than JavaScript
+Number conversions; larger values use the same parent session's child editor.
+Resolve named properties against the current native document after each ordered
+operation; removing optional keys must not shift a later edit into another key.
+Flush prior queues and reload ordinal paths before structural changes. The actual
+task form implements this pattern; its exact protocol and tests are specified
+in [typed-task-sessions.md](typed-task-sessions.md). Bound visible binding cards
+and each visible pipeline independently. Update Back/Next from current navigation
+history, not cached flags from before history was advanced. Settle parallel reads
+before lifting the pending-command guard even if one fails early. Retry must
+reuse the owner/session and retain invalid text; reject wrong/stale page and
+admission identities before painting. Small properties use compact typed fields;
+explicit incomplete large markers offer a same-session staged-editor button.
+Returning to a UUID alone cannot resume editing: prove actual native owner,
+Workspace, connection and sequence. Notified reload stays stale until explicit
+cancel/reopen. This is not durable recovery or a universal ABA detector.
+Preserve scientific order and invalid local text. A wire limit is not a bound on
+whole-host parsing/copies/history/validation; long values need separate editing
+and resource safeguards rather than truncation. The current tested backend/Qt
+service is in [owned-authoring-sessions.md](owned-authoring-sessions.md). The actual
+Qt value editor stages raw JSON in one owned temporary buffer, separates buffer
+revision from document sequence, uses UTF-8 byte cursors and explicit whole-value
+acceptance, and preserves malformed text/original values. RAM admission estimates
+precede full parsing/undo capture, not universal allocator bounds. Dirty navigation,
+exact identities, pending commands and reload-fenced replies need independent
+tests. Reuse the precise protocol in [chunked-draft-values.md](chunked-draft-values.md).
+The actual dataset form now uses projected literal descriptors, stable-target
+queued edits and a linked child editor in the same session. Capture focused
+dirty text before disabling controls; reject late identity/sequence/cursor replies.
+Flush queued small edits before resolving a current ordinal by stable IDs; object
+key insertion order is not identity. Child Finish/Discard return a verified
+advanced/unchanged header, never retain/discard the parent. Keep validation scoped
+to the owning form, and clean discarded controls on explicit Cancel. Offer page
+retry without losing text or creating another session; initial read failure must
+not enable actions needing a page. Batched edits are atomic per batch, not an
+entire multi-batch form transaction. Large markers are not truncated values.
+Reserve readable table ID columns and local horizontal scrolling instead of
+squeezing headings letter-by-letter; test rendered geometry across font settings.
+The exact reusable protocol is in [typed-dataset-sessions.md](typed-dataset-sessions.md).
+Actual experiment forms now also use owned literal cards/edits and staged children.
+Keep notification signals from shadowing
+native QObject event methods while preserving the advertised channel name.
+See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
+precise scoped compatibility, failure behavior and actual Qt test evidence.
+
+Bound each mutable local axis independently, not just remote registry choices.
+Retain original ordinals, exact out-of-page pins, incomplete entries and duplicate
+selection diagnostics while sorting browsing metadata. Named nested fields must
+resolve after earlier key removals; array ordering is computation, not decoration.
+Projected prospective candidates should expose identities/status/explicit partial
+diagnostics/counts without repeatedly transferring full split manifests, role IDs
+or training protocols. No-fit preview still has native validation/manifest costs.
+The tested native primitives and closed contracts are in
+[typed-experiment-sessions.md](typed-experiment-sessions.md); the actual experiment
+controller now adopts them. Reference dropdown identity must ignore JSON key order;
+pairing values remain literal IDs, not JSON strings. Disable controls as soon as
+the owned header is accepted, before first-page delivery. Preserve failed Back
+history, and await every parallel read before releasing pending guards. Use
+partial projection DTOs only for controls, never as retained scientific specs.
+
+Apply the same principle to stored candidates, not just drafts. The actual read
+controller now uses a byte-bounded exact-revision preview with role counts and
+explicit partial diagnostics; deliberate complete CLI reads remain available.
+Follow returned cursors, commit navigation history only after successful reads,
+and let Refresh retry the acknowledged cursor after a failed Back/Next. Clear
+on selection/workspace/notified reload, fence late data/errors/continuations,
+and disable runs while read/launch/metadata selection is pending. Detached old
+row handlers must not launch. Explicit Run sends exact retained reference and
+coordinates plus workspace identity, never a partial projection as a scientific
+specification. Native capture/training guards remain authoritative. See
+[candidate-browser.md](candidate-browser.md) for the tested concrete contract.
+
+## Saved evidence and comparison recipes (branch-only domain extension)
+
+Reuse the separation between inspecting immutable facts and explicitly requesting
+execution. A structured view identifies its exact object revision and retained
+attempt, never quietly advancing to a mutable head. A failed latest attempt must
+not display an earlier success as its own result. Missing/unavailable values are
+different from numerical zero and from a metric that is not applicable. Actual
+execution counts and checkpoint identities are evidence, not decorative labels.
+Summary rounding is presentation-only; expandable ledgers expose original values.
+Tables keep numerical/status cells intact and scroll horizontally inside the
+floating panel without changing base fonts. User metadata is literal text, not
+HTML or implicitly interpreted math.
+
+An ordered transient selection basket explicitly chooses immutable run references.
+Adding the identical reference is a no-op; a different revision of the same
+logical run requires explicit removal, not silently counting a retry as another
+run. Create recipe is an explicit history-aware domain edit; file persistence is
+a separate Save action. Viewing that recipe never executes it. Drilldown uses
+the recipe's exact references, not current heads. Failures/cancellation/exclusion
+remain visible. The view must not assert independent replication or aggregate
+incompatible metrics merely because runs appear together.
+
+Workspace change clears the transient basket and fences late replies. Origin
+admission may already have happened; ignoring its late reply does not establish
+detached persistence or crash recovery. A UUID check is not same-UUID/ABA safety.
+Keep reads available during execution, with native mutations guarded through
+pending terminal delivery, not only visually disabled buttons. Page bounds are
+response/render limits, not a proof of bounded dependency/data validation.
+
+The concrete implementation uses app/run_views.py, app/web/run-evidence.js,
+app/web/evidence-view.js and app/web/science-results.js. Preserve their explicit
+domains when adapting them; another application must define its own identities,
+evidence grammar, units, history and statistical interpretation. See
+[saved-evidence-views.md](saved-evidence-views.md) for the executable contract.
+
+### Session recovery evidence and small terminal notifications
+
+Do not automatically transfer full results/captured datasets after terminal
+delivery, or repeat a complete recovery list on every state update. Keep full
+evidence native and offer explicit read-only choice/tree pages and full export.
+Recovery belongs to the window, not the active workspace or deleted worker.
+Use a lifetime scope ID plus exact sequence for retained/exported marker changes;
+label it session evidence, not a durable execution receipt. Preserve outside
+pins, scientific value order, literal integer tokens and visibly partial previews.
+Disable editing captured recovery values. Retry failed reads without losing Back
+history; fence stale navigation/search continuations as well as their data replies.
+Recheck scope/sequence/busy state after a file chooser returns, and refuse overwrite.
+New browser projections do not change domain/SQLite/agent-import contracts.
+Visual PyTorch's exact implementation is in [recovery-browser.md](recovery-browser.md).
+
+### Exact retained artifact preview/export
+
+An artifact action uses the displayed verified object/attempt, not unread input
+text or a newer mutable head. Preview is literal source, scoped as generation
+only; producing code is not executing it. Status/update counts travel with the
+artifact so cancellation or an initial zero-update state cannot masquerade as
+successful work. Scrolling long source inside the existing panel preserves user
+font size rather than shrinking content to fit. Changing the displayed selection
+clears old source and invalidates late preview replies.
+
+External file creation is explicit and separate from domain history/file Save.
+Capture verified exact artifact bytes before entering a native chooser's nested
+event loop; recheck origin object/identity and busy state before creation. Cancel
+does nothing. Refuse existing files/final symlinks rather than silently replacing
+them. A file-write receipt identifies actual source hash and origin, not execution
+or crash-safe recovery. Metadata/learned states may be sensitive even if record
+payloads are omitted. In Visual PyTorch, app/run_export.py reuses the existing
+inference lowering; see [saved-predictor-export.md](saved-predictor-export.md).
+
+### Explicit asynchronous external work
+
+The Notebook execution disclosure reuses the floating panel rather than adding
+another native-window layout. Separate generation, input inspection and actual
+execution: labels must describe which work can train or change external files.
+An inspected selection pins exact input hashes; it does not stand in for a mutable
+current object. Native confirmation defaults to Cancel, uses plain text and
+preserves the full human app/action title. Put long technical identities in Show
+Details instead of allowing them to dominate the dialog width.
+
+Busy spans queued terminal delivery as well as the live worker. Inspection also
+runs off the GUI thread. Stopping inspection has no execution receipt; stopping
+real work retains actual partial evidence when cleanup succeeds, not a fabricated
+success. Display replied/started steps separately from completed work. Reads stay
+available, while edits and competing work have native admission guards.
+
+Readable receipt cards use theme tokens, base fonts, wrapping local paths/hashes
+and a collapsed byte/hash ledger. Use literal DOM text, not trusted-looking HTML
+from artifacts. Clear a previous verified card before a read that may fail due to
+changed bytes. Workspace/request-generation fences prevent late inspection from
+selecting a new origin. External artifacts and session history are not domain
+undo or file Save; preserve those distinctions when adapting this pattern.
+Visual PyTorch's exact actions/events and verified scope are specified in
+[notebook-gui-execution.md](notebook-gui-execution.md), not a generic promise of
+detached recovery or safe execution of arbitrary code.
+
+### Scientific figure companions in exported reports
+
+When the product exports numerical reports, make figure meaning recoverable
+without hover or color alone. Preserve unlike quantities in separate plots,
+explicit missing spans, distinct markers/line patterns, exact source identities,
+checkpoint/population scope, source-unit versus transformed-loss meaning and
+retention/discard information. Do not turn descriptive seed variation into
+confidence intervals or hide failed trials to improve appearance.
+
+Associate each figure with a readable caption and a bounded exact data disclosure;
+state its full-data artifact and preview scope. Keep vector labels readable at
+native size, allowing local scrolling in narrow readers. Scope description IDs
+when multiple figures share a document. Measure actual rendered text rectangles
+and inspect captures; character counts alone do not prove label containment.
+Synthetic display stress values must be labelled as such, not passed off as fits.
+These trusted-generated HTML report companions are not a reason to render arbitrary
+artifact HTML in the editor's literal evidence cards. See Visual PyTorch's precise
+[report-figure-presentation.md](report-figure-presentation.md) for the tested pattern
+and font/frontend/accessibility/resource limits.

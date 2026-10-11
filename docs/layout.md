@@ -20,14 +20,71 @@ Direction LR places ranks left-to-right; TB places ranks top-to-bottom. Sockets
 remain left/right in either mode. Disable Rearrange to preserve positions;
 disable Fit to preserve the viewport. Each bulk operation, including fit when
 possible, is one undoable edit. Both operations are disabled during training.
-They leave computation, weights, data, bindings and preferred expanded sizes intact.
+They leave computation, weights, data and bindings intact. Ordinary actions retain
+preferred expanded sizes; the opt-in parameter style deliberately replaces
+learnable blocks' preferred heights, as one undoable presentation edit.
+
+## Parameter-relative expanded layout
+
+All Blocks Expanded has **Size by learnable parameters** (default off). When
+enabled, Expand all collapses blocks with zero learnable parameters and expands
+all positive-count blocks. The smallest positive count uses minimum expanded
+height. For positive count p, minimum/maximum positive counts m/M and readable
+minimum height `h_min`, the height is `h_min * (1 + 3 * (p - m) / (M - m))`.
+If `M = m`, every learnable block has height `h_min`. Thus heights span minimum
+to 4× minimum, not absolute
+pixels/model-units per parameter. All-zero architectures collapse entirely.
+Counts determine a relative visual scale; heights are not directly proportional
+to p because the minimum is pinned. Counts and ratios are per open architecture,
+not across the entire workspace collection.
+
+Linear counts use only the last input axis and include an enabled bias;
+convolution counts include grouped kernel weights and optional bias. Reusable
+Module instances include their nested architecture's parameters. Routing,
+activations (including Softmax), shape/axis adapters, inputs/outputs and current
+pooling operators have zero parameters. Current operators have no frozen-weight
+authoring option; a future freezing feature must update this trainable-count
+contract. Unknown counts/operators are never assumed to be zero.
+
+A native read validates the current graph and exact workspace instance before
+returning decimal-string counts. The UI waits for pending edits and rejects
+changed graph/workspace/active-gesture/job contexts before applying. Counts above
+JavaScript's safe-integer range subtract as BigInt before computing a bounded
+visual ratio. Invalid drafts can still use ordinary layout, but parameter sizing
+requires valid inference and does not guess. This is not a run/RAM admission.
+
+Widths remain unchanged; sockets follow effective heights and counts. The
+existing Rearrange/Direction/gap/Fit settings apply after mixed folding/sizing.
+With Rearrange off, positions stay unchanged and overlap is possible. Save layout
+preferences stores the optional strict boolean `expanded.parameter_sizing` in
+`metadata.layout_preferences`; old version-1 profiles missing it mean off,
+without rewriting on load. The collapsed profile never accepts this key.
+Unchecking it restores ordinary all-expanded behavior, but does not erase custom
+heights; undo or Automatic size can restore/reset dimensions. Applying the style
+does not automatically store the option. The existing explicit Save behavior applies.
+
+CLI `parameter-counts ARCHITECTURE_ID` returns the same exact ID→decimal-count
+map without changing the file or importing Qt/Torch. `layout` batches store the
+boolean. Heights/folding/positions use ordinary saved node fields, not an extra
+scientific grammar. Code, weights, gradients and checkpoint identity are unchanged.
+
+## Session-only camera
+
+Canvas pan, zoom and Fit are view operations, not workspace edits. They do not
+write SQL/files, add undo steps or mark dirty. Every architecture open centers
+and fits the current graph in the available canvas, ignoring legacy saved camera
+coordinates. Ordinary state acknowledgements preserve the current tab camera;
+workspace-instance changes refit. GUI model edits submit a neutral legacy `view`
+object, not the current camera. Reading or opening old files does not rewrite
+their unused view metadata. Computational undo restores graph geometry, not the
+camera. Global interface zoom remains a separately persisted user preference.
 
 The persisted `metadata` key is `layout_preferences`; its TEXT value is JSON:
 
 ```json
 {"version":1,
  "collapsed":{"style":"layered","direction":"LR","layer_gap":48,"block_gap":16,"rearrange":true,"fit":true},
- "expanded":{"style":"layered","direction":"LR","layer_gap":80,"block_gap":32,"rearrange":true,"fit":true}}
+ "expanded":{"style":"layered","direction":"LR","layer_gap":80,"block_gap":32,"rearrange":true,"fit":true,"parameter_sizing":false}}
 ```
 
 Only `layered` is implemented. Future styles need an explicit implementation and
@@ -67,7 +124,7 @@ port-constrained routing engine behind the same profile/action interface.
 Node tests cover profile validation, deterministic/idempotent layout, spacing,
 preferred sizes, ordering/semantic preservation, cycles, disconnected graphs,
 many-port routers, atomic failures and 100 uneven 64-node DAG configurations.
-Real Qt WebEngine tests exercise the buttons, single-entry undo, viewport restore,
+Real Qt WebEngine tests exercise the buttons, single-entry graph undo, session camera preservation,
 workspace persistence, undo/redo control synchronization and unchanged scientific identity.
 
 ## Compact block content

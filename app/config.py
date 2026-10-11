@@ -8,7 +8,7 @@ from pathlib import Path
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent
 from .themes import resolve_theme
 
-DEFAULTS = {'ui_zoom': 1.15, 'font_size': 14, 'memory_limit_percent': DEFAULT_MEMORY_LIMIT_PERCENT, 'theme':'dark','spacing':4,'box_spacing':35}
+DEFAULTS = {'ui_zoom': 1.15, 'font_size': 14, 'memory_limit_percent': DEFAULT_MEMORY_LIMIT_PERCENT, 'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False,'menu_grid_snap':False}
 
 
 class Config:
@@ -45,6 +45,9 @@ class Config:
         box=values.get('box_spacing',DEFAULTS['box_spacing'])
         if isinstance(box,bool) or not isinstance(box,int) or not 1<=box<=100:
             raise ValueError('NN box spacing must be an integer from 1 to 100.')
+        for key in ('grid_snap','menu_grid_snap'):
+            if type(values.get(key, DEFAULTS[key])) is not bool:
+                raise ValueError('Snap defaults must be booleans.')
 
     def save(self, **changes):
         if 'layout' in changes:

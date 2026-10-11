@@ -41,14 +41,15 @@ def _decode_event(line):
 
 
 def run_json_worker(command, request, on_progress=None, cancel=None, *, cwd=None,
-                    on_process=None, timeout=None, grace_seconds=5, kill_seconds=3,
+                    on_process=None, on_cancel=None, timeout=None, grace_seconds=5, kill_seconds=3,
                     max_line_bytes=256*1024**2, stderr_limit=64*1024):
     """Launch without a shell; drain both pipes while writing the request.
 
     Validate/serialize admission arguments before launch. Deliver progress in
     order, require exactly one final result and exit status zero, retain only a
     bounded stderr tail. An optional wall deadline covers the launched worker;
-    cancellation sends TERM then KILL. Every post-launch exception reaps the
+    cancellation sends TERM then KILL, or invokes an explicit cooperative
+    on_cancel(process) callback before the same KILL deadline. Every post-launch exception reaps the
     direct child, including a callback failure. Callbacks are trusted, synchronous
     and must not block. This is not isolation against hostile grandchildren.
     """
@@ -139,7 +140,10 @@ def run_json_worker(command, request, on_progress=None, cancel=None, *, cwd=None
                 raise WorkerError('Worker execution deadline exceeded.')
             if cancel is not None and cancel.is_set() and termination is None:
                 termination = now
-                process.send_signal(signal.SIGTERM)
+                if on_cancel:
+                    on_cancel(process)
+                else:
+                    process.send_signal(signal.SIGTERM)
             if termination is not None and now-termination > grace_seconds:
                 process.kill()
             if termination is not None and now-termination > grace_seconds+kill_seconds:

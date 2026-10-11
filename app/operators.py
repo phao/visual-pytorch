@@ -40,6 +40,9 @@ def normalized(node):
     """Explicit defaults/pairs for new operators only; preserve legacy documents."""
     from .core import GraphError
     kind = node['type']
+    if kind == 'Activation':
+        from .activations import normalize_activation
+        return normalize_activation(node)
     if kind not in TENSOR_OPERATORS:
         return dict(node)
     if type(node.get('op_version', 1)) is not int or node.get('op_version', 1) != 1:

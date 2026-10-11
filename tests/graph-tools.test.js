@@ -15,6 +15,28 @@ const seed = () => ({graph: {nodes: [
   {id: "output", type: "Output", x: 600, y: 170},
 ], edges: [{from: "input", to: "linear"}, {from: "linear", to: "output"}]}});
 const get = (d, id) => d.graph.nodes.find(n => n.id === id);
+test('Fit stays centered inside every positive free region without altering graph or dimensions',()=>{
+  for(const collapsed of [false,true])for(const spacing of [1,35,100]){
+    G.setSpacing(spacing);const d=seed();d.graph.nodes.forEach(n=>n.collapsed=collapsed);
+    d.graph.nodes[1].width=4000;d.graph.nodes[1].height=3000;
+    const before=JSON.stringify(d);
+    for(const r of [{x:0,y:0,width:1400,height:800},{x:271,y:0,width:62,height:95},
+      {x:0,y:175,width:333,height:18},{x:10,y:20,width:.01,height:.01}]){
+      const v=G.fitViewport(d.graph.nodes,r);assert.ok(v?.fitted && v.zoom>0 && v.zoom<=1.3);
+      const left=Math.min(...d.graph.nodes.map(n=>v.x+n.x*v.zoom)),right=Math.max(...d.graph.nodes.map(n=>v.x+(n.x+G.width(n))*v.zoom));
+      const top=Math.min(...d.graph.nodes.map(n=>v.y+n.y*v.zoom)),bottom=Math.max(...d.graph.nodes.map(n=>v.y+(n.y+G.height(n))*v.zoom));
+      assert.ok(left>=r.x-1e-8 && right<=r.x+r.width+1e-8 && top>=r.y-1e-8 && bottom<=r.y+r.height+1e-8);
+      assert.ok(Math.abs((left+right)/2-(r.x+r.width/2))<1e-8 && Math.abs((top+bottom)/2-(r.y+r.height/2))<1e-8);
+    }
+    assert.equal(JSON.stringify(d),before);
+  }
+  G.setSpacing(100);
+});
+test('Fit rejects empty, covered or invalid regions without a bogus NaN camera',()=>{
+  const d=seed(),r={x:0,y:0,width:900,height:600};
+  for(const rect of [null,{}, {...r,width:0},{...r,height:-1},{...r,width:NaN},{...r,y:Infinity}])assert.equal(G.fitViewport(d.graph.nodes,rect),null);
+  assert.equal(G.fitViewport([],r),null);d.graph.nodes[0].x=NaN;assert.equal(G.fitViewport(d.graph.nodes,r),null);
+});
 test('Compact boxes retain distinct ports and expanded preferences through movement',()=>{
   for(const type of ['Linear','Concat','Splitter','Replicator']){
     const n={id:'n',type,x:48,y:72,width:300,height:220,sources:['a','b','c'],

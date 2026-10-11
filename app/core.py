@@ -18,16 +18,12 @@ from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
 from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
+from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
+from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 4
+VERSION = 6
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
-ACTIVATIONS = {
-    "ReLU": "nn.ReLU(inplace=False)",
-    "Tanh": "nn.Tanh()",
-    "Sigmoid": "nn.Sigmoid()",
-    "GELU": "nn.GELU(approximate='none')",
-}
 
 
 def timestamp():
@@ -56,12 +52,6 @@ def default_model(name="Linear regression", inputs=2, outputs=1):
 
 class GraphError(ValueError):
     pass
-
-
-def activation_name(value):
-    if not isinstance(value, str) or value not in ACTIVATIONS:
-        raise GraphError("Choose an activation: ReLU, Tanh, Sigmoid, or GELU.")
-    return value
 
 
 def default_mlp(name="MLP regression", inputs=2, outputs=1, hidden=(16, 16), activation="Tanh"):
@@ -264,7 +254,7 @@ def check_document(doc):
         if node["type"] == "Linear" and not isinstance(node.get("bias", True), bool):
             raise GraphError("Bias must be true or false.")
         if node["type"] == "Activation":
-            activation_name(node.get("activation"))
+            normalize_activation(node)
         if node["type"] == "Module" and not isinstance(node.get("ref"), str):
             raise GraphError("An architecture block needs a reference ID.")
         for key in ("x", "y"):
@@ -294,7 +284,7 @@ class Workspace:
         self.db = sqlite3.connect(":memory:")
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.executescript("""
-            PRAGMA user_version=4;
+            PRAGMA user_version=6;
             CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE architectures(
                 id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -313,6 +303,8 @@ class Workspace:
                 created_at TEXT NOT NULL, graph_snapshot TEXT NOT NULL,
                 result TEXT NOT NULL);
         """)
+        from .revisions import create_schema
+        create_schema(self.db)
         self.db.executemany("INSERT INTO metadata VALUES (?,?)", [
             ("format", FORMAT), ("workspace_id", uuid.uuid4().hex),
             ("created_at", timestamp()), ("name", "Untitled workspace"),
@@ -323,6 +315,28 @@ class Workspace:
         self.dirty = False
         self.disk_revision = None
         self.disk_stamp = None
+        self.panel_scope = uuid.uuid4().hex  # Ephemeral UI owner; never stored in .vtw.
+
+    @property
+    def panel_layout(self):
+        from .presentation import validate_panel_layout
+        row = self.db.execute("SELECT value FROM metadata WHERE key='panel_layout'").fetchone()
+        try:
+            return validate_panel_layout(json.loads(row[0]) if row else None)
+        except (ValueError, TypeError) as error:
+            raise GraphError('Invalid workspace panel_layout metadata: ' + str(error)) from error
+
+    def set_panel_layout(self, value):
+        from .presentation import validate_panel_layout
+        value = validate_panel_layout(value)
+        if value != self.panel_layout:
+            with self.db:
+                if value is None:
+                    self.db.execute("DELETE FROM metadata WHERE key='panel_layout'")
+                else:
+                    self.db.execute("INSERT OR REPLACE INTO metadata VALUES ('panel_layout', ?)",
+                                    (json.dumps(value, sort_keys=True, allow_nan=False),))
+            self.dirty = True
 
     @property
     def layout_preferences(self):
@@ -477,8 +491,34 @@ class Workspace:
                             (mid, timestamp(), json.dumps(graph_snapshot), json.dumps(result, allow_nan=False)))
         self.dirty = True
 
+    def put_spec(self, kind, document, select=True):
+        from .revisions import RevisionStore
+        return RevisionStore(self).put(kind, document, select)
+
+    def get_spec(self, kind, sid, revision=None):
+        from .revisions import RevisionStore
+        return RevisionStore(self).get(kind, sid, revision)
+
+    def list_specs(self, kind=None, all_revisions=False):
+        from .revisions import RevisionStore
+        return RevisionStore(self).list(kind, all_revisions)
+
+    def select_spec(self, kind, sid, revision):
+        from .revisions import RevisionStore
+        RevisionStore(self).select(kind, sid, revision)
+
+    def archive_spec(self, kind, sid):
+        from .revisions import RevisionStore
+        RevisionStore(self).archive(kind, sid)
+
+    def freeze_model(self, mid):
+        from .revisions import model_document
+        return self.put_spec('model', model_document(self.models(), mid))
+
     def save(self, path, *, require_new=False):
         from .file_sync import revision, save_lock, stamp
+        from .revisions import validate_all
+        validate_all(self.db)
         path = Path(path).expanduser().resolve()
         if path.suffix.lower() != ".vtw":
             path = path.with_suffix(".vtw")
@@ -519,7 +559,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, 3, VERSION} or magic != (FORMAT,):
+            if version not in {1, 2, 3, 4, 5, VERSION} or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -538,9 +578,16 @@ class Workspace:
                     raise GraphError('Architecture row ID/name does not match its document.')
             w.constrained_mode
             w.layout_preferences
+            w.panel_layout
             if version<3:
                 # Working-copy migration only; the disk snapshot stays untouched until Save.
                 for doc in loaded.values():w.put(doc)
+            from .revisions import migrate_schema, validate_all
+            if version < 5:
+                migrate_schema(w.db)
+            if version < 6 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('experiment','run','report') LIMIT 1").fetchone():
+                raise GraphError('Experiment/run/report revisions require a version-6 container.')
+            validate_all(w.db)
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:
@@ -642,7 +689,7 @@ def generate_code(models, model_id):
                 s = contract["shapes"][node["id"]]
                 op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
             elif node["type"] == "Activation":
-                op = ACTIVATIONS[activation_name(node.get("activation"))]
+                op = activation_constructor_code(node, len(contract['shapes'][node['id']]['input_shape']))
             elif node["type"] == "Reshape":
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
             elif node['type'] in TENSOR_OPERATORS:
@@ -694,7 +741,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
                               device='cpu', dtype=torch.float32)
         elif node["type"] == "Activation":
             name = activation_name(node.get("activation"))
-            layer = getattr(nn, name)()
+            layer = (nn.Softmax(dim=softmax_axis(node, len(contract['shapes'][node['id']]['input_shape'])) + 1)
+                     if name == 'Softmax' else getattr(nn, name)())
         elif node["type"] == "Reshape":
             layer = Reshape(contract["shapes"][node["id"]]["output_shape"])
         elif node['type'] in TENSOR_OPERATORS:

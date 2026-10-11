@@ -22,21 +22,35 @@ initial geometry and closes menus without destroying their contents.
 
 Normal empty-canvas drag pans the graph. Shift + primary-button drag on stage
 translates the menu layer, including hidden ordinary menu positions, excluding
-full-stage expanded menus and text-input interactions. Ctrl-drag snaps a menu's
-top-left to the 24-unit stage grid; Ctrl-resize snaps bottom-right, preserving
-top-left/minimum size where feasible. Ctrl+Shift snaps the pack anchor and applies
-one shared delta. Normal box Ctrl-drag uses the separate 24-unit world grid.
+full-stage expanded menus and text-input interactions. Two independent user
+Display preferences control default grid snapping: blocks (`grid_snap`) and menus
+(`menu_grid_snap`), both default off; Ctrl inverts the appropriate layer's default
+during movement/resize.
+Snapped menu drags use top-left in the 24-unit stage grid; resizes use bottom-right,
+preserving top-left/minimum size where feasible. Shift layer movement snaps the
+pack anchor when snapping is active and applies one shared delta. Blocks use a
+separate 24-unit world grid. [Workspace presets](panel-workspace.md) save panel
+geometry/visibility/stacking explicitly in `.vtw`, independently of global display.
 
 Menus have overlay scrollbars, with hover/focus/scroll reveal and drag/keyboard
 control. Architectures is no longer nested in Building blocks. Its
 model list has natural height and no inner scrollbar or collapsible subsection;
-the outer menu
-scrolls if necessary. Building blocks retains the separate reusable-architecture
+the outer menu scrolls if necessary. Opening a model from that list clears selection and collapses the PANELS pack,
+hiding all menus after a successful open (same tab, tab hint, Ctrl/Meta or double
+click). Saved presets are not rewritten; other navigation keeps its own behavior.
+Building blocks retains the separate reusable-architecture
 selector. No Create MLP button/dialog is present.
 Architectures' title owns +; its non-collapsible Currently open card precedes
 the list and shows name/counts/shape/parameter information or draft status.
 Building-block buttons show icons/names only, with descriptive hover tooltips
 and accessible labels. NN boxes have distinct top-right vector type icons.
+Related selector/action pairs have a small rounded, one-pixel theme-token frame:
+Nonlinear activation + Activation, and Reusable architecture + Architecture
+reference. Each is a labelled semantic group and stays together when browsing
+entries are alphabetically sorted. Standalone actions remain unframed. Internal
+padding/gap use the existing menu-spacing unit; child margins are removed so
+the frame does not reintroduce oversized whitespace. This is a visual grouping,
+not an additional collapsible menu or graph/computational edit.
 
 The architecture toolbar occupies the center of the top header. Canvas geometry
 does not shrink when a menu opens. Fit finds the largest unobscured rectangle;
@@ -65,15 +79,16 @@ self-links/cycles, blank releases, Escape, pointer cancellation/lost capture and
 window blur cancel without a graph/history edit. Successful release is one
 undoable computational edit and invalidates current learned results. Tensor
 shape errors may still create a saveable non-runnable draft; no shape is guessed.
-Every diagram block has a bottom-right resize grip: Ctrl snaps that corner to the
+Every diagram block has a bottom-right resize grip: active snapping aligns it to the
 24-unit world grid, preserving top-left and readable minimums. Focused grips use
-8-unit arrow steps, or 24 with Shift/Ctrl. Inspector Width/Height and Automatic
-size are alternate controls. Sizes persist in .vtw, follow undo/redo, update wires/
+8-unit arrow steps, or 24 with Shift/Ctrl. The block context menu's Automatic size
+removes custom dimensions; Inspector exposes no dimension/removal controls.
+Sizes persist in .vtw, follow undo/redo, update wires/
 Fit and never change tensor shapes, datasets or learned weights. Linear footers
 always start Bias on/off; counts and weight dimensions use only the last axis.
 
 Default font is 14px with UI zoom 1.15. Options → Display preferences edits font/
-zoom/theme, numeric 1–10 menu spacing (default 4) and separate 1–100 NN box spacing
+zoom/theme, independent block/menu snap defaults, numeric 1–10 menu spacing (default 4) and separate 1–100 NN box spacing
 (default 35). Menu content uses that value as a CSS-pixel padding unit without
 scaling fonts or frame/heading drag handles. Legacy Compact/Spaced preferences
 load as 4/10 without writing; explicit Save persists the numeric value.
@@ -131,3 +146,17 @@ context hit-testing/editor deletion/undo/redo via a private
 workspace. Native Qt tests cover menu assembly, display persistence and tab style.
 Desktop readability/dialogs/full interaction and Alt-Tab/Dolphin integration
 still require a normal-desktop trial. Chromium sandboxing was retained.
+
+Responsive chrome: header title/tools and workspace actions wrap independently,
+with maximum height40vh and focus-scrollable overflow at extreme UI zoom. Footer
+wraps with maximum height15vh. The launcher list has a stage-height cap and its
+own thin scroll region, leaving the grip visible. Standard floating-panel content
+retains overlay rails. Fit uses shared rendered block metrics and adaptive margins
+inside the largest uncovered stage rectangle, even below80 CSS units; only absent
+space fails. These camera operations remain non-persistent. Native-window checks
+use long names, one/two tabs, private state and physical mouse clicks.
+
+References: [MDN flex shrink](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-shrink),
+[automatic minimum width](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/min-width)
+and [scrollable overflow](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow).
+These informed the CSS; actual installed Qt behavior is established by the tests.

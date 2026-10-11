@@ -55,6 +55,16 @@ class History:
         try:
             with closing(sqlite3.connect(source[-1])) as snapshot:snapshot.backup(candidate)
             candidate.execute('PRAGMA foreign_keys=ON')
+            from .revisions import merge_retained
+            merge_retained(candidate, workspace.db)
+            # Saved floating-menu presets are outside computational edit history.
+            # Preserve the current preset even across old whole-database snapshots.
+            workspace.panel_layout  # Validate before changing either database.
+            row=workspace.db.execute("SELECT value FROM metadata WHERE key='panel_layout'").fetchone()
+            if row:
+                candidate.execute("INSERT OR REPLACE INTO metadata VALUES ('panel_layout', ?)",row)
+            else:
+                candidate.execute("DELETE FROM metadata WHERE key='panel_layout'")
             # New training evidence survives reverting earlier edits for models
             # that exist in the restored collection. Deleted-model evidence is
             # recoverable through its history snapshot/redo, not an orphan FK row.

@@ -1,6 +1,7 @@
 # Local worker transport contract
 
-This specifies `app.transport.run_json_worker`, used by the Qt `TrainingJob`.
+This specifies `app.transport.run_json_worker`, used by the Qt `TrainingJob` and
+`TaskTrainingJob`, and task-training CLI commands.
 It is a local, single-direct-child process transport, not a detached job service
 or a sandbox against malicious code. It does not implement roadmap Stage E.
 
@@ -37,6 +38,16 @@ failed request delivery cannot be masked by an earlier valid-looking result.
 Numerical training-result semantics are validated separately, not by this generic
 transport envelope.
 
+The numerical worker retains the legacy `{models,id,...}` regression request and
+adds the closed `{kind:"task-v1",bundle,...}` request. Unknown dispatch kinds fail
+explicitly. Task validation/combined RAM admission precedes Torch import. See
+[task-training-contract.md](task-training-contract.md) for frozen bundle, terminal
+result, named heads, budgets, fitted predictor and metric semantics. A task worker
+can return a structurally valid result with status failed/cancelled/unavailable
+and exit zero: process/transport success is not a claim that training completed.
+Admission/import/process failures still use transport errors; durable attempt
+records remain pending. The real Qt task smoke verifies no Torch in the GUI host.
+
 Three threads service stdout, stderr and stdin concurrently from launch. This
 avoids the pipe dependency cycle when a child fills output before consuming a
 large request. Stdout uses a bounded queue (32 entries) and a per-line byte limit;
@@ -49,13 +60,24 @@ uses the separate memory policy.
 
 ## Termination and ownership
 
-Cancellation sends SIGTERM; after `grace_seconds` (default 5 s), SIGKILL follows
-if needed. A cooperative worker may return a partial result with exit zero.
+Cancellation sends SIGTERM by default; after `grace_seconds` (default 5 s),
+SIGKILL follows if needed. An explicit trusted `on_cancel(process)` callback can
+replace the initial signal with a cooperative request; it is called once and
+retains the same escalation/cleanup deadlines. A cooperative worker may return
+a partial result with exit zero. The notebook runner uses a private Stop marker
+and a 30 s grace period so real kernel cleanup can retain partial notebook/receipt
+bytes. Inspection has no kernel and uses the ordinary termination policy.
+See [notebook GUI execution](notebook-gui-execution.md) for its distinct evidence.
 Cancellation has an additional `kill_seconds` deadline (default 3 s). Protocol,
 callback, thread-start and execution-deadline failures also run cleanup:
 terminate, bounded wait, kill, reap the direct child, join pipe threads and close
 streams. Callback exceptions retain their original type; protocol/admission,
 deadline and unsuccessful-exit errors use `WorkerError`.
+
+Two additional transport tests check a signal-free cooperative request/one-call
+result and Stop-hook failure/reaping. Existing training callers retain their
+original TERM/KILL defaults; notebook receipts require independent artifact and
+content validation beyond this generic process envelope.
 
 This contract assumes the direct worker owns its pipes and does not create
 grandchildren that inherit and retain them. Such descendants can outlive the

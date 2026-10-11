@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest import mock
 from contextlib import redirect_stdout
-from app.core import Workspace, default_model, GraphError
+from app.core import Workspace, default_model, GraphError, VERSION
 from app.config import Config, DEFAULTS
 from app.file_sync import revision, save_lock
 import vpw_cli
@@ -99,9 +99,9 @@ class CLIConfigTests(unittest.TestCase):
             path=Path(td)/'legacy.vtw';w=Workspace();w.put(default_model());w.save(path);w.db.close()
             with sqlite3.connect(path) as db:db.execute('PRAGMA user_version=1')
             before=path.read_bytes();w=Workspace.load(path)
-            self.assertEqual(w.db.execute('PRAGMA user_version').fetchone()[0],4)
+            self.assertEqual(w.db.execute('PRAGMA user_version').fetchone()[0],VERSION)
             self.assertEqual(path.read_bytes(),before);w.save(path);w.db.close()
-            with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
+            with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],VERSION)
 
     def test_config_remembers_zoom_and_font_and_preserves_unknown_keys(self):
         with tempfile.TemporaryDirectory() as td:
@@ -134,6 +134,30 @@ class CLIConfigTests(unittest.TestCase):
             for value in (0,11,True,1.5,'4','compact','spaced',None,[]):
                 before=path.read_bytes()
                 with self.assertRaises(ValueError):c.save(spacing=value)
+                self.assertEqual(path.read_bytes(),before)
+
+    def test_grid_default_is_boolean_persistent_and_legacy_read_is_nonmutating(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'config.json'
+            path.write_text(json.dumps({'font_size':18,'future_key':'kept'}))
+            before=path.read_bytes();c=Config(path)
+            self.assertFalse(c.values['grid_snap']);self.assertEqual(path.read_bytes(),before)
+            self.assertFalse(c.values['menu_grid_snap'])
+            for enabled in (True,False):
+                c.save(grid_snap=enabled)
+                self.assertIs(Config(path).values['grid_snap'],enabled)
+                self.assertEqual(Config(path).values['future_key'],'kept')
+            for invalid in (0,1,'true',None,[],{}):
+                before=path.read_bytes()
+                with self.assertRaises(ValueError):c.save(grid_snap=invalid)
+                self.assertEqual(path.read_bytes(),before)
+            c.save(grid_snap=True,menu_grid_snap=False)
+            self.assertTrue(Config(path).values['grid_snap']);self.assertFalse(Config(path).values['menu_grid_snap'])
+            c.save(grid_snap=False,menu_grid_snap=True)
+            self.assertFalse(Config(path).values['grid_snap']);self.assertTrue(Config(path).values['menu_grid_snap'])
+            for invalid in (0,1,'true',None,[],{}):
+                before=path.read_bytes()
+                with self.assertRaises(ValueError):c.save(menu_grid_snap=invalid)
                 self.assertEqual(path.read_bytes(),before)
 
     def test_legacy_menu_choices_migrate_in_memory_until_explicit_save(self):

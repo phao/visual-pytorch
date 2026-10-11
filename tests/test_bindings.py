@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from app.core import Workspace, default_model, GraphError, train_model, validate_model
+from app.core import Workspace, default_model, GraphError, train_model, validate_model, VERSION
 from app.evidence import dataset_report, checkpoint_report
 import vpw_cli
 
@@ -118,7 +118,7 @@ class BindingTests(unittest.TestCase):
                     self.assertTrue(self.report(loaded,mid)['allowed'])
                     loaded.save(path)
                 finally:loaded.db.close()
-                with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
+                with sqlite3.connect(path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],VERSION)
 
     def test_cli_rebind_is_explicit_atomic_preserves_values_and_historical_runs(self):
         w,mid=self.workspace();d=w.models()[mid];result=train_model(w.models(),mid)

@@ -5,23 +5,22 @@
   const G = window.LoomGraph;
   const L = window.LoomLayout;
   const T = window.LoomTensorOperators;
-  const floating = window.LoomPanels.initialize(document);
-  const activationInfo = {
-    ReLU: ["h = max(0, z)", "Keeps positive features; zeros negative ones."],
-    Tanh: ["h = tanh(z)", "Smooth, zero-centered output between −1 and 1."],
-    Sigmoid: ["h = 1 / (1 + exp(−z))", "Bounds each feature between 0 and 1. Regression still uses MSE, not a classification loss."],
-    GELU: ["h = z · Φ(z)", "Smooth gating using the normal CDF. PyTorch uses the exact, non-approximated mode."],
-  };
+  const snapEnabled = event => window.LoomPanels.snapEnabled(event,document.documentElement.dataset.gridSnap==='true');
+  const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.menuGridSnap==='true');
+  const activationInfo = window.LoomActivations.info;
   let host, state = {models: {}, recent: []}, doc = null, description = null;
   let selected = null, selectedPort = null, selectedWire = null, connecting = null, drag = null, panel = "experiment";
   let syncQueue = Promise.resolve(), describeGeneration = 0;
+  let panelWorkspace, panelSavePending=false;
+  let parameterSizingPending=false;
+  let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
   const clone = obj => JSON.parse(JSON.stringify(obj));
   const esc = str => String(str).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const modelID = () => location.hash.startsWith("#model=") ? location.hash.slice(7) : null;
   const node = id => doc?.graph.nodes.find(n => n.id === id);
-  const busy = () => Boolean(state.training_id);
+  const busy = () => Boolean(state.training_id || state.experiment_job || state.notebook_job);
   const shapeText = s => "[B, " + (s?.join(", ") || "?") + "]";
   function prepareModel(value) {
     value.view={x:0,y:0,zoom:1,...(value.view || {})};
@@ -55,6 +54,8 @@
   }
 
   function header() {
+    document.documentElement.dataset.gridSnap=String(state.display?.grid_snap===true);
+    document.documentElement.dataset.menuGridSnap=String(state.display?.menu_grid_snap===true);
     document.documentElement.dataset.theme=state.theme || 'dark';
     document.documentElement.dataset.spacing=String(state.display?.spacing ?? 4);
     document.documentElement.style.setProperty('--menu-unit',(state.display?.spacing ?? 4)+'px');
@@ -62,6 +63,7 @@
     Object.entries(state.theme_tokens || {}).forEach(([key,value])=>document.documentElement.style.setProperty('--'+key,value));
     document.documentElement.style.setProperty("--ui-font-size",(state.display?.font_size || 14)+"px");
     $("file-name").textContent = state.path ? state.path.split(/[\\/]/).pop() : (Object.keys(state.models).length ? "Untitled.vtw" : "Welcome");
+    $("file-name").title=$("file-name").textContent;
     $("save-state").textContent = state.dirty ? "Unsaved changes · Ctrl+S" : state.path ? "All changes saved" : "No workspace open";
     $("save-workspace").disabled = !Object.keys(state.models).length;
     $("constrained-mode").checked = state.constrained_mode !== false;
@@ -72,7 +74,13 @@
     $("resume-area").hidden = !Object.keys(state.models).length;
     $("runtime").textContent = (state.binding || "Qt webview") + " · SQLite workspace" +
       (state.rendering?.mode === "software" ? " · software webview" : "");
-    for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy();
+    for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy() || parameterSizingPending;
+    $('save-panel-arrangement').disabled=!doc||panelSavePending;
+    $('restore-panel-arrangement').disabled=!doc||panelSavePending;
+  }
+  function restoreWorkspacePanels(force=false) {
+    if(!doc||!state.workspace_id)return;
+    if(force||panelWorkspace!==state.panel_scope){floating.apply(state.panel_layout??null);panelWorkspace=state.panel_scope;}
   }
 
   function recentFiles() {
@@ -94,12 +102,14 @@
     const id = modelID();
     endDrag();
     doc = id && state.models[id] ? prepareModel(clone(state.models[id])) : null;
+    if(doc)doc.view={x:0,y:0,zoom:1}; // Saved legacy view is not the initial viewport.
     $("welcome").hidden = Boolean(doc);
     $("editor").hidden = !doc;
     description = null;
     connecting = null;
     selectedWire = null;
     header();
+    restoreWorkspacePanels();
     recentFiles();
     if (!doc) {
       $("status").textContent = "Open a workspace to start building";
@@ -108,23 +118,28 @@
     selected = doc.graph.nodes.find(n => n.type === "Linear" || n.type === "Module")?.id || doc.graph.nodes[0]?.id;
     document.title = doc.name + " · Visual PyTorch";
     render();
+    if(clearMenusOnRoute){clearMenusOnRoute=false;selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}
     await describe();
     if (!doc.view.fitted) requestAnimationFrame(() => { if (doc?.id === id) fit(); });
   }
 
   function hydrate(value) {
+    const viewport=doc&&state.panel_scope===value.panel_scope?clone(doc.view):null;
     const layoutChanged=state.workspace_id!==value.workspace_id ||
       JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
     state = value;
+    window.LoomScience?.stateChanged();
     if(layoutChanged)renderLayoutPreferences();
     if (doc && state.models[doc.id]) {
       doc = prepareModel(clone(state.models[doc.id]));
+      doc.view=viewport || {x:0,y:0,zoom:1};
       render();
-      describe();
+      describe().then(()=>{if(!viewport&&doc)fit();});
     } else if (doc && !state.models[doc.id]) {
       navigate(null);
     }
     header();
+    restoreWorkspacePanels();
     recentFiles();
   }
 
@@ -137,8 +152,9 @@
       button.className = "model-row" + (doc?.id === model.id ? " selected" : "");
       const refCount = model.graph.nodes.filter(n => n.type === "Module").length;
       button.innerHTML = '<span class="model-glyph">▣</span><span><b>' + esc(model.name) + '</b><small>' + model.graph.nodes.length + ' blocks' + (refCount ? ' · ' + refCount + ' reference' + (refCount > 1 ? 's' : '') : model.graph.nodes.some(n => n.type === "Activation") ? ' · nonlinear graph' : ' · affine graph') + '</small></span><span class="tab-hint">↗</span>';
-      button.onclick = event => safe("openModel", {id: model.id, newTab: event.ctrlKey || event.metaKey || Boolean(event.target.closest(".tab-hint"))});
-      button.ondblclick = () => safe("openModel", {id: model.id, newTab: true});
+      const open=async newTab=>{if(await safe('openModel',{id:model.id,newTab,clearMenus:true})){selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}};
+      button.onclick = event => open(event.ctrlKey || event.metaKey || Boolean(event.target.closest(".tab-hint")));
+      button.ondblclick = () => open(true);
       $("model-list").append(button);
     }
     const current = $("reference-select").value;
@@ -171,6 +187,7 @@
   function render() {
     if (!doc) return;
     $("model-title").textContent = doc.name;
+    $("model-title").title=doc.name;
     renderLibrary();
     renderGraph();
     renderInspector();
@@ -214,7 +231,8 @@
   function persist() {
     if (!doc) return Promise.resolve();
     const snapshot = clone(doc), mid = doc.id;
-    state.models[mid] = clone(doc);
+    snapshot.view={x:0,y:0,zoom:1}; // Keep viewport state out of persisted edits/history.
+    state.models[mid] = clone(snapshot);
     state.dirty = true;
     header();
     syncQueue = syncQueue.then(async () => {
@@ -287,7 +305,7 @@
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
-      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? "Elementwise · 0 params" : "Named tensor · float32";
+      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
       const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(note,4.9,14));
       noteText.append(svgElement('title',{},note));group.append(noteText);
       if(n.collapsed){
@@ -295,7 +313,7 @@
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
-          n.type==='Activation'?n.activation:['Input','Output','Reshape'].includes(n.type)?line:
+          n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape'].includes(n.type)?line:
           n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
@@ -315,7 +333,7 @@
       const grip=svgElement('g',{class:'node-resize',transform:'translate('+(m.width-14)+','+(height-14)+')',tabindex:busy()?-1:0,role:'button','aria-label':'Resize '+label+' block','aria-disabled':String(busy())});
       grip.append(svgElement('path',{d:'M0 0H14V14H0Z',fill:'transparent',stroke:'none'}));
       grip.append(svgElement('path',{d:'M3 11L11 3M7 11L11 7',class:'resize-mark',fill:'none'}));
-      grip.append(svgElement('title',{},'Drag to resize · Ctrl snaps bottom-right · arrow keys resize'));if(!n.collapsed)group.append(grip);
+      grip.append(svgElement('title',{},'Drag to resize · Ctrl inverts grid snapping · arrow keys resize'));if(!n.collapsed)group.append(grip);
       $("nodes").append(group);
     }
     // Above the boxes, but just outside their input sockets. Every destination
@@ -357,24 +375,18 @@
     view.x = anchor.x - x * view.zoom;
     view.y = anchor.y - y * view.zoom;
     updateViewport();
-    persist();
   }
-  function fit(save=true) {
+  function fit() {
     if (!doc) return;
-    const rect = floating.available(), nodes = doc.graph.nodes;
-    if (!rect || rect.width<80 || rect.height<80) {toast("Hide or move a panel to make room, then Fit the graph.");return;}
-    const left = Math.min(...nodes.map(n => n.x)), top = Math.min(...nodes.map(n => n.y));
-    const right = Math.max(...nodes.map(n => n.x + G.width(n))), bottom = Math.max(...nodes.map(n => n.y + G.height(n)));
-    const scale = Math.min(1.3, (rect.width - 100) / (right - left), (rect.height - 100) / (bottom - top));
-    const fittedScale = Math.max(.05, scale);
-    doc.view = {zoom: fittedScale, x: rect.x + (rect.width - (right - left) * fittedScale) / 2 - left * fittedScale, y: rect.y + (rect.height - (bottom - top) * fittedScale) / 2 - top * fittedScale, fitted: true};
+    const fitted=G.fitViewport(doc.graph.nodes,floating.available());
+    if(!fitted){toast("Hide or move a panel to make room, then Fit the graph.");return;}
+    doc.view=fitted;
     updateViewport();
-    if(save)persist();
   }
 
   function renderLayoutPreferences(){
     const options=state.layout_preferences || L.defaults();
-    for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries(options[mode])){
+    for(const mode of ['collapsed','expanded'])for(const [key,value] of Object.entries({...L.defaults()[mode],...options[mode]})){
       const control=$('layout-'+mode+'-'+key);if(!control)continue;
       if(control.type==='checkbox')control.checked=value;else control.value=value;
     }
@@ -384,20 +396,33 @@
       const control=$('layout-'+mode+'-'+key);
       p[key]=control.type==='checkbox'?control.checked:control.type==='number'?Number(control.value):control.value;
     }
+    if(mode==='expanded')p.parameter_sizing=$('layout-expanded-parameter_sizing').checked;
     return L.validate(p);
   }
   function readLayoutPreferences(){
     return {version:1,collapsed:readLayoutProfile('collapsed'),expanded:readLayoutProfile('expanded')};
   }
-  function bulkBlocks(collapsed){
-    if(!doc || busy() || drag)return;
+  async function bulkBlocks(collapsed){
+    if(!doc || busy() || drag || parameterSizingPending)return;
     try{
       const options=readLayoutProfile(collapsed?'collapsed':'expanded');
-      const updated=L.apply(doc,collapsed,options,G);
+      let counts=null;
+      if(!collapsed && options.parameter_sizing){
+        const scope=state.panel_scope,wid=state.workspace_id,mid=doc.id;
+        parameterSizingPending=true;header();await syncQueue;
+        if(state.panel_scope!==scope || state.workspace_id!==wid || doc?.id!==mid || busy() || drag)throw Error('Workspace changed; retry parameter sizing.');
+        const graph=JSON.stringify(doc.graph);
+        const result=await call('layoutParameterCounts',{workspace_id:wid,panel_scope:scope,id:mid,graph:clone(doc.graph)});
+        if(state.panel_scope!==scope || state.workspace_id!==wid || doc?.id!==mid || JSON.stringify(doc.graph)!==graph || busy() || drag)throw Error('Architecture changed; retry parameter sizing.');
+        if(result.workspace_id!==wid || result.panel_scope!==scope || result.id!==mid)throw Error('Parameter sizing response belongs to another architecture.');
+        counts=result.counts;
+      }
+      const updated=L.apply(doc,collapsed,options,G,counts);
       doc=updated;connecting=null;$('pending-wire').setAttribute('hidden','');
       render();if(options.fit)fit(false);persist();
-      toast(collapsed?'All blocks minimized. Undo restores the previous layout.':'All blocks expanded. Undo restores the previous layout.');
+      toast(collapsed?'All blocks minimized. Undo restores the previous layout.':options.parameter_sizing?'Parameter layout applied: zero-parameter blocks collapsed; learnable blocks expanded. Undo restores the previous layout.':'All blocks expanded. Undo restores the previous layout.');
     }catch(error){toast(error.message,true);}
+    finally{parameterSizingPending=false;header();}
   }
   $('minimize-all').onclick=()=>bulkBlocks(true);
   $('expand-all').onclick=()=>bulkBlocks(false);
@@ -437,6 +462,11 @@
       html += '<div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'</div><p class="inspect-note">Preserve the number of elements in each sample. One dimension may be -1, inferred from the incoming tensor. Batch B never changes.</p>';
     } else if (n.type === "Activation") {
       html += '<label class="inspect-label">Activation</label><select id="node-activation"' + (busy() ? ' disabled' : '') + '>' + Object.keys(activationInfo).sort().map(key => '<option' + (key === n.activation ? ' selected' : '') + '>' + key + '</option>').join('') + '</select><div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'<br>0 trainable parameters</div><p class="inspect-note">' + esc(activationInfo[n.activation][1]) + '</p><p class="inspect-note">Activations give the network nonlinear expressive power.</p>';
+      if(n.activation==='Softmax'){
+        const rank=s?.input_shape?.length,dim=n.dim??-1;
+        const resolved=rank?((dim%rank)+rank)%rank:null;
+        html+='<label class="inspect-label" for="softmax-dim">Normalization axis · sample dimensions</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+(busy()?' disabled':'')+'><p class="inspect-note">Axis numbers exclude batch B. Default −1 is the last axis; 0 is the first sample axis.'+(resolved===null?' Connect the input to validate this axis.':' PyTorch dim = '+(resolved+1)+(s?.output_axes?.[resolved]?' ('+esc(s.output_axes[resolved])+')':'')+'.')+'</p>';
+      }
     } else if (n.type === "Concat") {
       html += '<label class="inspect-bias"><input id="flatten-concat" type="checkbox"'+(n.flatten!==false?' checked':'')+(busy()?' disabled':'')+'>Flatten each sample before joining</label><p class="inspect-note">Connect branch outputs to this box. Checked: flatten and concatenate sample values. Unchecked: concatenate the last axis, requiring equal other dimensions. Port order determines concatenation order.</p>';
       n.sources.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + ' · ' + (node(nid)?.features || "?") + '</span><button data-move-input="' + i + '"' + (!i || busy() ? ' disabled' : '') + '>↑</button></div>');
@@ -489,7 +519,17 @@
       persist();
     };
     if ($("bias")) $("bias").onchange = () => { n.bias = $("bias").checked; invalidateRun(); persist(); };
-    if ($("node-activation")) $("node-activation").onchange = () => { n.activation = $("node-activation").value; invalidateRun(); persist(); };
+    if ($("node-activation")) $("node-activation").onchange = () => {
+      n.activation = $("node-activation").value;
+      if(n.activation==='Softmax')n.dim=-1;else delete n.dim;
+      invalidateRun(); persist();
+    };
+    if($('softmax-dim'))$('softmax-dim').onchange=()=>{
+      if(busy())return;
+      try{n.dim=window.LoomActivations.axis($('softmax-dim').value,s?.input_shape?.length??null);}
+      catch(error){toast(error.message,true);renderInspector();return;}
+      invalidateRun();persist();
+    };
     if ($("port-label")) $("port-label").onchange = () => {
       const label = $("port-label").value.trim();
       if (!label) { toast("Give this port a name.", true); renderInspector(); return; }
@@ -510,7 +550,7 @@
     if ($("open-reference")) $("open-reference").onclick = () => safe("openModel", {id: n.ref});
     if ($("tab-reference")) $("tab-reference").onclick = () => safe("openModel", {id: n.ref, newTab: true});
     $("equation").textContent = n.type === "Activation" ? activationInfo[n.activation][0] : n.type === "Reshape" ? "y = x.reshape(B, …shape)" : n.type === "Concat" ? "x = cat(parts, dim="+(n.flatten===false?"−1":"1")+")" : n.type === "Splitter" ? "parts = split(x, sizes, dim=−1)" : n.type === "Replicator" ? "outᵢ = x" : n.type === "Module" ? "y = module(x)" : n.type === "Linear" ? (n.bias ? "y = x Aᵀ + b" : "y = x Aᵀ") : "ŷ = fθ(x)";
-    const activationTex={ReLU:'h=\\max(0,z)',Tanh:'h=\\tanh(z)',Sigmoid:'h=\\frac{1}{1+e^{-z}}',GELU:'h=z\\,\\Phi(z)'};
+    const activationTex=window.LoomActivations.tex;
     const tex=n.type==='Activation'?activationTex[n.activation]:n.type==='Linear'?'y=xA^{\\mathsf T}'+(n.bias?'+b':''):n.type==='Replicator'?'y_i=x':n.type==='Module'?'y=\\operatorname{module}(x)':n.type==='Reshape'?'y=\\operatorname{reshape}(x,B,\\ldots)':n.type==='Concat'?'y=\\operatorname{cat}(x_1,\\ldots)':n.type==='Splitter'?'(y_1,\\ldots)=\\operatorname{split}(x)':'\\hat y=f_\\theta(x)';
     window.LoomMath.set($("equation"),tex).catch(()=>{}); // Keep readable plain formula on failure.
     if(T.types.includes(n.type)){
@@ -536,7 +576,7 @@
     const id = "n_" + Math.random().toString(36).slice(2, 10);
     const block = {id, type, x: after.x + 245, y: after.y};
     if (type === "Linear") Object.assign(block, {features: shape(after)?.output || 1, bias: true});
-    else if (type === "Activation") block.activation = $("activation-select").value;
+    else if (type === "Activation") {block.activation = $("activation-select").value;if(block.activation==='Softmax')block.dim=-1;}
     else if (type === "Reshape") block.shape = shape(after)?.output_shape || [-1];
     else if(T.types.includes(type))Object.assign(block,T.defaults(type,shape(after)?.output_shape));
     else if (type === "Concat") {block.sources=[port?after.id+"@"+port:after.id];block.flatten=true;}
@@ -628,7 +668,7 @@
     $("rebind-data").hidden = !admission?.can_rebind;
     $("rebind-data").disabled = busy();
     if(doc.dataset && admission?.allowed===false)$("dataset-bindings").open=true;
-    $("training-state").textContent = state.training_id === doc.id ? "Training…" : busy() ? "Training another model" : verified ? (doc.result.stopped ? "Stopped · current checkpoint" : "Complete · current checkpoint") : legacy ? "Unverified legacy result" : doc.result ? "Checkpoint not current" : admission?.allowed===false && doc.dataset ? "Dataset blocked" : "Ready when data is loaded";
+    $("training-state").textContent = state.training_id === doc.id ? "Training…" : state.notebook_job ? (state.notebook_job.operation==='inspect'?'Inspecting notebook':'Executing notebook') : busy() ? "Training another model" : verified ? (doc.result.stopped ? "Stopped · current checkpoint" : "Complete · current checkpoint") : legacy ? "Unverified legacy result" : doc.result ? "Checkpoint not current" : admission?.allowed===false && doc.dataset ? "Dataset blocked" : "Ready when data is loaded";
     $("loss-value").textContent = (verified || legacy) && Number.isFinite(doc.result?.mse) ? (legacy?"Unverified · ":"")+doc.result.mse.toExponential(2) : "—";
     for (const id of ["epochs", "learning-rate", "seed", "sample-count", "noise"]) $(id).disabled = busy();
     const safety = description?.run_safety;
@@ -646,8 +686,9 @@
   function showPanel(name) {
     floating.open("experiment-dock");
     panel = name;
+    $("panel-context").textContent = name === "science" ? "Exact revisions · explicit runs" : "CPU · full-batch Adam · MSE";
     document.querySelectorAll("[data-panel]").forEach(el => el.classList.toggle("active", el.dataset.panel === name));
-    for (const p of ["experiment", "code", "results"]) $(p + "-panel").hidden = p !== name;
+    for (const p of ["experiment", "code", "results", "science"]) $(p + "-panel").hidden = p !== name;
   }
   function renderResults() {
     const r = doc?.result;
@@ -854,13 +895,13 @@
       $('pending-wire').setAttribute('d',wirePath(portPoint(node(drag.edge.from),true,drag.edge.from_port || null),point));
       $('status').textContent='Reconnect destination · drop on an empty input socket · Escape cancels';
     } else if (drag.kind === 'resize') {
-      G.resizeBlock(node(drag.id),drag.width+dx,drag.height+dy,event.ctrlKey);
-      $("status").textContent=event.ctrlKey?'Resize · bottom-right snaps to grid':'Resize block · hold Ctrl to snap';
+      G.resizeBlock(node(drag.id),drag.width+dx,drag.height+dy,snapEnabled(event));
+      $("status").textContent=snapEnabled(event)?'Resize · bottom-right snaps to grid · Ctrl for free resizing':'Free resize · Ctrl to snap';
       renderGraph();
     } else if (drag.kind === "node") {
-      const position = G.snapPosition(drag.x + dx, drag.y + dy, event.ctrlKey);
+      const position = G.snapPosition(drag.x + dx, drag.y + dy, snapEnabled(event));
       Object.assign(node(drag.id), position);
-      $("status").textContent = event.ctrlKey ? "Snap to grid · 24 model units" : "Free drag · hold Ctrl to snap";
+      $("status").textContent = snapEnabled(event) ? "Snap to grid · 24 model units · Ctrl for free drag" : "Free drag · Ctrl to snap";
       renderGraph();
     } else {
       doc.view.x = drag.x + dx;
@@ -892,7 +933,7 @@
         }
       }
       renderGraph();
-    } else if (ended?.moved) persist();
+    } else if (ended?.moved && ended.kind!=='pan') persist();
   }
   $("canvas").addEventListener("pointerup", endDrag);
   window.addEventListener('pointerup',event=>{if(drag?.deferredCapture)endDrag(event);});
@@ -928,7 +969,7 @@
     const grip=event.target.closest('.node-resize'),delta={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[event.key];
     if(grip && delta && doc && !busy()){
       event.preventDefault();const n=node(grip.closest('.node').dataset.id),factor=event.shiftKey || event.ctrlKey?3:1;
-      G.resizeBlock(n,G.width(n)+delta[0]*factor,G.height(n)+delta[1]*factor,event.ctrlKey);
+      G.resizeBlock(n,G.width(n)+delta[0]*factor,G.height(n)+delta[1]*factor,snapEnabled(event));
       persist().then(()=>document.querySelector('.node[data-id="'+CSS.escape(n.id)+'"] .node-resize')?.focus());return;
     }
     if(!editing && !event.altKey && (event.ctrlKey || event.metaKey)) {
@@ -968,7 +1009,6 @@
   $("back").onclick = () => history.back();
   $("forward").onclick = () => history.forward();
   $("new-tab").onclick = () => doc && safe("openModel", {id: doc.id, newTab: true});
-  $("find").onclick = () => safe("find");
   $("new-workspace").onclick = () => safe("newWorkspace");
   $("open-workspace").onclick = $("welcome-open").onclick = () => safe("openWorkspace");
   $("save-workspace").onclick = async () => { await syncQueue; const ok = await safe("save"); if (ok) toast("Workspace saved."); };
@@ -982,6 +1022,19 @@
     header();
   };
   $("reset-panels").onclick = () => {floating.reset();toast("Panels hidden and menu pack restored. Choose a menu to open it.");};
+  $('restore-panel-arrangement').onclick=()=>{restoreWorkspacePanels(true);toast('Saved workspace panel arrangement restored.');};
+  $('save-panel-arrangement').onclick=async()=>{
+    if(!doc||panelSavePending)return;
+    const workspace_id=state.workspace_id,panel_scope=state.panel_scope,expected=clone(state.panel_layout??null);
+    panelSavePending=true;header();
+    try {
+      const result=await call('setPanelLayout',{workspace_id,panel_scope,expected,layout:floating.capture()});
+      if(state.workspace_id!==workspace_id||state.panel_scope!==panel_scope)return;
+      state.panel_layout=result.layout;state.dirty=result.dirty;
+      toast('Panel arrangement saved in this workspace draft. Save workspace to keep it on disk.');
+    } catch(error){if(state.workspace_id===workspace_id&&state.panel_scope===panel_scope)toast(error.message,true);}
+    finally{panelSavePending=false;header();}
+  };
   $("resume-workspace").onclick = () => safe("openModel", {id: Object.keys(state.models)[0]});
   $("add-model").onclick = async () => { const name = await nameDialog("New architecture"); if (name) safe("newModel", {name}); };
   $("rename-model").onclick = async () => { const name = await nameDialog("Rename architecture", doc.name, "Rename"); if (name) { doc.name = name; await persist(); renderLibrary(); } };
@@ -1032,9 +1085,12 @@
 
   function onEvent(raw) {
     const event = JSON.parse(raw);
+    window.LoomScience?.event(event);
     if (event.kind === "state") hydrate(event.payload);
+    else if(event.kind==='panelLayout'&&event.payload.workspace_id===state.workspace_id&&event.payload.panel_scope===state.panel_scope){state.panel_layout=event.payload.layout;state.dirty=event.payload.dirty;header();}
     else if(event.kind==='history'){state.history=event.payload;if(event.payload.notice)toast(event.payload.notice,true);}
     else if (event.kind === "navigate") navigate(event.payload);
+    else if(event.kind==='navigateClean'){clearMenusOnRoute=true;navigate(event.payload);}
     else if (event.kind === "progress" && doc?.id === event.payload.id) {
       const point = event.payload;
       liveHistories[doc.id] ||= [];
@@ -1051,7 +1107,7 @@
       }
       toast(event.payload.result.stopped ? "Training stopped; partial result recorded." : "Training complete. Inspect Learned parameters and predictions.");
     } else if (event.kind === "trainingError" || event.kind === "externalConflict") toast(event.payload, true);
-    else if (event.kind === "externalReload") toast(event.payload);
+    else if (event.kind === "externalReload") {restoreWorkspacePanels(true);toast(event.payload);}
   }
 
   async function initialize() {
@@ -1059,6 +1115,8 @@
       host = channel.objects.host;
       host.event.connect(onEvent);
       state = await call("state");
+      window.LoomScience.mount(document, {call, toast, busy, model:()=>doc?.id, workspace:()=>state.workspace_id,
+        python:()=>state.torch_python,notebookJob:()=>state.notebook_job,recoveryHeader:()=>state.experiment_recoveries});
       window.loom = {call, get document() { return clone(doc); }, get state() { return clone(state); }, fit,
         selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));},
         contextAt(x,y){
@@ -1120,12 +1178,11 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-select').previousElementSibling,$('activation-select'),$('add-activation')],
-    [$('reference-select').previousElementSibling,$('reference-select'),$('add-reference')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-replicator','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));
   $("dots").querySelector("circle").setAttribute("cy", 0);
-  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: snap · wheel: zoom · empty drag: pan · Shift-drag: menus";
+  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: invert snapping · wheel: zoom · empty drag: pan · Shift-drag: menus";
 })();

@@ -1,20 +1,17 @@
 "use strict";
 ((root,factory)=>{
-  const api=factory(typeof module!=="undefined" && module.exports ? require('./tensor-operators.js') : root.LoomTensorOperators);
+  const common=typeof module!=="undefined" && module.exports;
+  const api=factory(common ? require('./tensor-operators.js') : root.LoomTensorOperators,
+    common ? require('./activations.js') : root.LoomActivations);
   if(typeof module!=="undefined" && module.exports)module.exports=api;
   else root.LoomBlockHelp=api;
-})(typeof globalThis!=="undefined"?globalThis:this,T=>{
+})(typeof globalThis!=="undefined"?globalThis:this,(T,A)=>{
   const names={
     'add-linear':'Linear','add-activation':'Activation','add-reshape':'Reshape',
     'add-concat':'Concat','add-reference':'Architecture reference','add-input':'Input part',
     'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter',
   };
-  const activations={
-    ReLU:['h = max(0, z)','Keeps positive values and replaces negative values with zero.'],
-    Tanh:['h = tanh(z)','Maps each value smoothly into (−1, 1); zero remains zero.'],
-    Sigmoid:['h = 1 / (1 + exp(−z))','Maps each value into (0, 1). A sigmoid does not choose a classification loss; the task or training interface chooses the loss.'],
-    GELU:['h = z · Φ(z)','Multiplies each value by the standard normal cumulative probability at that value. This app uses PyTorch’s exact, non-approximated GELU.'],
-  };
+  const activations=A.info;
   function describe(id,context={}){
     const type=context.tensorType;
     if(type && T.definitions[type])return {name:type,
@@ -34,10 +31,11 @@
         equation='y = x Aᵀ + b';tex='y=xA^{\\mathsf T}+b';break;
       case 'add-activation':{
         const kind=activations[context.activation]?context.activation:'ReLU';
-        paragraphs=['Adds the selected '+kind+' activation, applied independently to each tensor value. The shape is unchanged and no weights are learned.',
+        paragraphs=['Adds the selected '+kind+' activation'+(kind==='Softmax'?', normalizing a slice along one sample axis':', applied independently to each tensor value')+'. The shape is unchanged and no weights are learned.',
           activations[kind][1],
           'Place an activation after a Linear or convolution block to introduce nonlinearity. Change the function using the palette selector before adding, or in the Inspector afterwards.'];
-        equation=activations[kind][0];break;
+        if(kind==='Softmax')paragraphs.push('The default axis is −1 (last sample dimension). In the Inspector choose sample axis 0..rank−1 or a negative index; batch B is excluded. [B, N] stays [B, N] and each row sums to 1.');
+        equation=activations[kind][0];tex=A.tex[kind];break;
       }
       case 'add-reshape':paragraphs=['Adds a box that changes a sample’s dimensions without changing its number of values. Batch B is preserved.',
         'For example, [B, 2, 3] can become [B, 6]. Specify sample dimensions without B; one −1 dimension may be inferred.',

@@ -6,6 +6,22 @@ examples and release documentation here. Private campaign records and research
 workspaces are not part of the public product. Do not create nested repositories
 or maintain another live application copy in a research campaign.
 
+## Scratch, campaign evidence and source ownership
+
+When sole product development is active, work in this visible canonical checkout
+on the current task branch. Separate worktrees remain useful for real concurrent
+writers, but do not create hidden routine source forks under `.cpw-workspace/`.
+The public product is shared across campaigns, like shared project context;
+campaign source snapshots are historical, not another live application.
+
+Use Git-ignored `.scratch/` for disposable test fixtures, temporary profiles and
+environments. Set TMPDIR to that existing directory for bounded tests when useful.
+Keep meaningful private research/test evidence and handoffs in the owning campaign
+under its write lock, not in the public product or CPW bookkeeping directory.
+Reserve `.cpw-workspace/` for CPW-owned locks, inboxes, activity/provenance state and
+their receipts. Older evidence/environment paths remain valid until explicitly
+and safely reorganized; never broadly delete them or break pinned references.
+
 ## Git and collaboration
 
 Use branch → work → validate → commit → integrate, targeting `main`. Use the

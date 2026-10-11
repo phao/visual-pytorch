@@ -15,7 +15,7 @@ test('Linear identifies the last axis, learned weights, bias and affine composit
   assert.equal(h.equation,'y = x Aᵀ + b');
 });
 test('Activation explanation tracks all selectable functions without choosing a loss',()=>{
-  for(const activation of ['ReLU','Tanh','Sigmoid','GELU']){
+  for(const activation of ['ReLU','Tanh','Sigmoid','GELU','Softmax']){
     const context={activation},before=JSON.stringify(context),h=H.describe('add-activation',context);
     assert.ok(h.paragraphs[0].includes(activation));assert.equal(JSON.stringify(context),before);
   }

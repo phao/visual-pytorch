@@ -114,7 +114,7 @@ with tempfile.TemporaryDirectory() as td:
     assert js('!document.body.textContent.includes("Tensor Loom")')
     assert js('JSON.stringify([...document.querySelectorAll("#model-list b")].map(e=>e.textContent))') == json.dumps(['Alpha','Linear regression','zeta'],separators=(',',':'))
     assert js('JSON.stringify([...document.getElementById("reference-select").options].map(e=>e.textContent))') == '["Alpha","zeta"]'
-    assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Tanh"]'
+    assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Softmax","Tanh"]'
     assert js('document.getElementById("activation-select").value') == 'ReLU'
     assert js('JSON.stringify([...document.querySelectorAll("#pack-menus button")].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()))') == '["Architectures","Building blocks","Experiment","Inspector","Layout"]'
     assert js('JSON.stringify([...document.querySelectorAll("#library-scroll .palette b")].map(e=>e.textContent))') == '["Activation","AdaptiveAvgPool2d","Architecture reference","AvgPool2d","Concat","Conv2d","Flatten","Linear","MaxPool2d","Permute","Reshape","Input part","Output","Replicator","Splitter"]'
@@ -354,7 +354,10 @@ with tempfile.TemporaryDirectory() as td:
         assert view.grab().save(str(Path(screenshot).with_name(Path(screenshot).stem+'-collapsed.png')))
     js('document.getElementById("layout-collapsed-section").open=false;document.getElementById("layout-expanded-section").open=true;')
     js('document.getElementById("layout-expanded-layer_gap").value="80";')
+    js('document.getElementById("expand-all").scrollIntoView({block:"nearest"})')
     QTest.mouseClick(widget,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,block_center('#expand-all'))
+    QTest.qWait(100)
+    assert js('(() => {const p=document.getElementById("expand-all"),r=p.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===p;})()'), 'Notification text must not intercept a panel button'
     until('window.loom.document.graph.nodes.every(n=>n.collapsed===false)')
     QTest.qWait(100)
     assert len(h.workspace.history.undo_stack)==history_before+2
@@ -367,7 +370,8 @@ with tempfile.TemporaryDirectory() as td:
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(small_doc))
     js('window.loom.perform("undo");')
     until('JSON.stringify(window.loom.document.graph)==='+json.dumps(before_bulk))
-    assert js('JSON.stringify(window.loom.document.view)')==view_before_bulk
+    # Viewport is now session-only: graph undo must not restore a stored camera.
+    assert h.workspace.models()[h.model['id']]['view']=={'x':0,'y':0,'zoom':1}
     config_before=h.config.path.read_bytes() if h.config.path.exists() else None
     js('document.getElementById("layout-expanded-direction").value="TB";document.getElementById("layout-expanded-layer_gap").value="123";document.getElementById("save-layout-preferences").click();')
     until('window.loom.state.layout_preferences.expanded.layer_gap===123')
