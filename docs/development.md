@@ -1,5 +1,39 @@
 # Development state and roadmap
 
+## 2026-10-11 10:33 -03:00 — Explicit recurrent transition execution foundation
+
+`app/recurrent.py` compiles one existing transition graph with explicit stable
+sequence/state bindings and positive runtime T. There is one shared parameter
+object, not a finite independent repeat or hidden between-call state. Multiple
+state streams, masks/lengths, active-only resets to call-initial state, zero padded
+outputs and full BPTT are implemented. CNN operations, spatial CHW states, nested
+references and tied parameters work inside the transition. Current-B/T whole-unroll
+RAM admission occurs before allocation/execution; controls are strictly typed.
+Snapshot/export captures only the reachable runnable closure, never datasets,
+results or unrelated drafts. Checked portable source uses the same forward/RAM
+helpers and parameter paths. Semantic identity excludes presentation and labels.
+
+The precise API, policies, safety limitations and primary references are in
+`recurrent-transitions.md`; `examples/recurrent_transition.py` is runnable.
+37 focused tests pass, including independent functional outputs and all gradients,
+40-update MLP/30-update CNN fits, masking/reset/NaN padding, shared weights, manual
+chunk carry, real app-free subprocess inference/training and allocation refusal.
+Final unchanged-source regression:908 Python tests296.513s (905 PASS/3 Qt-only
+skips covered by93 native-export checks3.124s),299 JS1164.833592ms and107 pure/native
+tests1.982s pass.37 focused cases2.536s and the actual default-constrained example
+pass. The earlier pre-closure full run passed907 tests293.532s; its Jupyter paths
+deprecation warning and the wrong-cwd native launcher probe are retained in
+campaign evidence. Final full regression has no warnings or failures.
+
+This is a backend primitive, NOT a persisted recurrent graph node/family/.vtw
+revision, CLI/task-worker/report/notebook integration or new GUI feature. Those
+are the next D implementation steps. There is no new storage grammar/container,
+GPU/fusion/tracing claim, automatic loss masking or optimizer skip policy. A
+trainer must explicitly skip updates for all-invalid objectives: zero gradients
+do not suppress existing Adam momentum/decay. D/E and the full goal remain active,
+on local task/stage-d-families only. No main integration, publication, user app
+restart, desktop/config/workspace changes, source fork or roadmap re-audit.
+
 ## 2026-10-11 09:57 -03:00 — Stage D explicit runtime task execution
 
 Experiment/run v4 adds an optional per-family concrete-v1/runtime-spatial-v1

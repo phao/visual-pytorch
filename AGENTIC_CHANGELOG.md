@@ -4,6 +4,21 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 10:33 -03:00 — Explicit recurrent transition execution foundation
+
+Implemented a Torch-lazy explicit-state recurrent executor over existing graphs,
+because finite tied graph repeats do not provide runtime recurrence/state semantics.
+Stable-ID interfaces, variable T, active-row lengths/masks/reset, full BPTT, CNN
+and multiple/spatial states, current-RAM unroll admission and checked app-free
+source are implemented. Reachable-graph-only snapshots deliberately exclude
+datasets/results and unrelated drafts. Added a precise portable specification,
+runnable example and37 independent contract/numerical/fit/export tests, all passing.
+Final unchanged-source908-Python regression (905 PASS/3 native-covered skips),
+299 JavaScript,107 pure/native,93 native-export and the default-constrained example
+pass. Earlier907-Python/wrong-cwd probes remain in campaign evidence. This is a backend foundation,
+not recurrent diagram/storage/CLI/task-worker/report delivery or D/E completion.
+No existing grammar, public refs, user app/config/workspace or desktop changes.
+
 ## 2026-10-11 09:57 -03:00 — Explicit runtime task execution
 
 Added opt-in experiment/run v4 execution selection, frozen Runtime TaskBundle2 /
