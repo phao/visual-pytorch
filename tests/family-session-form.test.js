@@ -87,3 +87,20 @@ test('failed card read preserves a raw repair path while typed admission remains
   assert.equal(f.get('science-family-raw').disabled,false);assert.equal(f.get('science-family-retry').disabled,false);
   assert.equal(f.field('assignments','node').disabled,true);
 });
+
+test('tied repeat mode explicitly upgrades family grammar before mode edit',async()=>{
+  const f=await opened(fixture()),n=f.field('repeats','mode');assert.equal(n.tagName,'select');
+  edit(n,'tied');const done=f.click('science-family-check');await tick();
+  const operations=f.requests[5].args.operations;
+  assert.deepEqual(JSON.parse(JSON.stringify(operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'2'},
+    {op:'property',target:{kind:'entry',collection:'repeats',ordinal:0},key:'mode',text:'"tied"'}]);
+  f.requests[5].resolve(h(1));await tick();f.requests[6].resolve(ref);await done;
+});
+
+test('independent repeat mode does not infer a downgrade or share equal values',async()=>{
+  const f=await opened(fixture());edit(f.field('repeats','mode'),'independent');
+  const done=f.click('science-family-check');await tick();
+  assert.equal(f.requests[5].args.operations.length,1);assert.equal(f.requests[5].args.operations[0].key,'mode');
+  f.requests[5].resolve(h(1));await tick();f.requests[6].resolve(ref);await done;
+});

@@ -109,7 +109,8 @@ def model_document(models, mid):
             if node['type'] == 'Module':
                 visit(node['ref'])
     visit(mid)
-    result = {'version': 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
+    shared = any('share_with' in n for m in closure.values() for n in m['graph']['nodes'])
+    result = {'version': 2 if shared else 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
               'architecture_hash': identity(closure, mid)['architecture']}
     validate_model_document(result)
     return result
@@ -117,7 +118,7 @@ def model_document(models, mid):
 
 def validate_model_document(doc):
     _keys(doc, ('version', 'id', 'name', 'root', 'models', 'architecture_hash'), ('revision',), 'ModelRevision')
-    _version(doc, 'ModelRevision')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2), 'ModelRevision supports integer version 1 or 2.')
     _require(_identifier(doc['id']) and _identifier(doc['name']) and doc['root'] == doc['id'] and
              isinstance(doc['models'], dict) and doc['root'] in doc['models'], 'Frozen model needs a root and reachable closure.')
     closure = doc['models']
@@ -129,6 +130,8 @@ def validate_model_document(doc):
         _require('input_order' in model['graph'] and all(not (PRESENTATION & set(n)) for n in model['graph']['nodes']),
                  'Frozen graph requires pinned packing and no node presentation fields.')
         _require(all(normalized(n) == n for n in model['graph']['nodes']), 'Frozen operator defaults must be normalized.')
+    _require(doc['version'] == 2 or not any('share_with' in n for m in closure.values() for n in m['graph']['nodes']),
+             'Explicit shared parameters require ModelRevision version 2.')
     _require(closure[doc['root']]['name'] == doc['name'], 'Frozen root name does not match document.')
     reachable = set()
     def visit(mid):

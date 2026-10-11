@@ -9,7 +9,7 @@ TENSOR_OPERATORS = frozenset({
     'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute',
 })
 LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape'}
-COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version'}
+COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version', 'share_with'}
 FIELDS = {
     'Conv2d': {'out_channels', 'kernel_size', 'stride', 'padding', 'dilation', 'groups', 'bias', 'padding_mode'},
     'AvgPool2d': {'kernel_size', 'stride', 'padding', 'ceil_mode', 'count_include_pad'},

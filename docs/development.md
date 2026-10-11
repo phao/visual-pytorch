@@ -1,5 +1,54 @@
 # Development state and roadmap
 
+## 2026-10-11 07:04 -03:00 — Stage D: genuine shared parameter identity
+
+Concrete Linear/Conv2d/Module blocks now have explicit local `share_with` ownership,
+not equal-value copies or implicit template reuse. Chains resolve independently
+of data-flow order; missing/cyclic/different-type and incompatible constructors
+fail. The execution plan reuses one canonical registered module. Parameter counts,
+optimizer state, checkpoint keys/stable IDs and exported code contain its weights
+once, while execution/activation/workspace costs count every use. Nested Modules
+preserve local scope. Layout attributes newly owned parameters to the owner and
+zero to aliases. Inspector offers an explicit same-type selector and explanatory
+text; notes retain bias/shared-owner information and existing undo/persistence.
+
+Family v2 accepts finite tied repeats and explicit sharing in templates. Internal/
+external template links are remapped without copying weights; incompatible uses
+remain visible. The typed mode selector explicitly upgrades v1 alongside tied;
+v2 downgrade is denied. Shared drawing seeds preserve version2. `.vtw` v9 gates
+this extension without new SQL tables, and frozen ModelRevision v2 prevents old
+validators from ignoring ownership. Independent v1 captures/hashes remain.
+The runnable width-depth-tied example learns25 parameters regardless of depth.
+Affine analysis now follows execution occurrences, not unique module enumeration.
+Specifications: [shared-parameters.md](shared-parameters.md), format/CLI/revision/
+family/session documents are synchronized. Portable closure remains24 files.
+
+Verified16 pure checks0.099s and279 JS1261.220197ms cover grammar/identity/paths,
+strict version fences, seed/owned upgrades, CLI, template remapping, source
+structure and SQLite no-rewrite. Independent double forward/input/parameter
+gradients cover repeated Linear/nested Module and grouped Conv2d branches with
+different fixed H/W. Adam matches one functional shared-parameter oracle. Actual
+worker fits/retry, strict unique/forged-alias checkpoint admission, fresh standalone
+prediction, legacy3-update training/affine evidence and a real two-point Jupyter
+rerun with exported models/predictors/curves are exercised by the broad suite.
+Actual sandboxed Qt Inspector sharing/undo/redo and tied-family upgrade/preview/
+retention/instance/save-reload pass without host Torch/preview SQL writes or
+console errors. Prior independent family native workflows also pass. A real
+capture is reviewed. Numerical batches are serialized and one-threaded.
+
+Final733 Python230.039s passes on current source, including the additional
+malformed-model guard and seventh legacy-training case. Failed probes retained: outdated version/message and
+source-variable guard assumptions, fixture indentation/DOM casing/candidate
+field/readiness errors. Test-only SQLite connections are explicitly closed,
+not ResourceWarnings suppressed. An initial capture preceded repaint and had
+overlapping fixture coordinates; final capture has seeded geometry/paint wait.
+
+This is local branch-only progress, not full D acceptance/main integration or
+publication. Richer constructor choices, runtime-spatial guards and recurrent
+state/length/mask/reset/mixed composition remain; E follows D acceptance. Partial/
+transposed ties are not silently approximated. User app/config/workspaces and
+public refs are unchanged. The full goal remains active; no roadmap re-audit.
+
 ## 2026-10-11 06:40 -03:00 — Stage D: explicit family experiment axes
 
 Version-2 experiments select exact historical architecture families with fixed

@@ -77,7 +77,8 @@ class UIContractTests(unittest.TestCase):
         self.assertIn('n.x+width(n)',(ROOT/'app/web/graph-tools.js').read_text())
         self.assertIn("class:'node-resize'",js)
         self.assertIn("'Bias '+(n.bias!==false?'on':'off')",js)
-        self.assertIn('shortened(note,4.9,14)',js)
+        self.assertIn('shortened(sharingNote,4.9,14)',js)
+        self.assertIn("const sharingNote=n.share_with?(['Linear','Conv2d'].includes(n.type)?'Bias '",js)
         self.assertEqual(declarations('.node-resize')['cursor'],'nwse-resize')
 
     def test_all_palettes_start_closed_under_one_pack(self):

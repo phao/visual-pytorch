@@ -282,7 +282,7 @@ class FamilyAxisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / 'family.vtw'; self.w.save(path)
             with closing(Workspace.load(path).db) as db:
-                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 8)
+                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], VERSION)
                 validate_all(db)
             with closing(sqlite3.connect(path)) as db: db.execute('PRAGMA user_version=7'); db.commit()
             before = path.read_bytes()

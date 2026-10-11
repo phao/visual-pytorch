@@ -7,8 +7,9 @@ preview imports Torch/Qt, allocates tensors, trains, changes global preferences
 or infers bindings from data. Compilation/training still use ordinary constrained
 run admission. Immutable family/specialization records now live in `.vtw` v7;
 the existing Qt scientific browser can inspect/import them. This checkpoint now
-adds [typed owned family authoring](typed-family-sessions.md), but no automatic
-family sweep axis, tied-weight or recurrent execution semantics.
+adds [typed owned family authoring](typed-family-sessions.md),
+[explicit experiment axes](family-experiment-axes.md) and version-2
+[shared finite uses](shared-parameters.md). Runtime recurrence remains separate.
 
 ## Family document version 1
 
@@ -87,13 +88,16 @@ An ingress from a router retains its explicit `from_port`. A downstream Concat
 source is rewritten in place, preserving feature packing. Bodies cannot overlap
 or nest in version 1. Consecutive repeat bodies are supported.
 
-Only `mode: "independent"` is implemented. `tied`, `recurrent`, or any unknown
-mode fails explicitly, never becoming independent copies. `count` is a positive
+Version1 supports only `mode: "independent"`. Version2 additionally accepts
+`tied` and explicit local template `share_with` ownership; see
+[shared-parameters.md](shared-parameters.md). `recurrent` and unknown modes fail
+explicitly, never becoming independent copies. `count` is a positive
 integer expression; zero is not silently treated as a valid identity operation.
 Occurrence node IDs are `repeat-id/index/template-node-id`. Prefix collisions
 with any existing node are rejected. Retained indices have stable local paths
 when depth changes; changing the binding still creates a distinct specialization.
-Every Module occurrence constructs a fresh module under the current compiler.
+An independent Module occurrence constructs a fresh module unless explicit
+local ownership ties its complete subtree to another occurrence.
 Copies of equal values or reuse of a template reference do not tie parameters.
 
 Expansion counts are checked before copies are materialized. The current concrete
@@ -157,14 +161,14 @@ current experiments, rendered/inspected and exported without family-runtime code
 The family, resolved bindings and frozen model are retained automatically inside
 `.vtw`. Editing the concrete instance does not update any of those immutable
 records. Typed owned GUI editing and [family sweep axes](family-experiment-axes.md)
-are now implemented; deliberate sharing, runtime-spatial
+are now implemented, as are [explicit finite tied uses](shared-parameters.md); runtime-spatial
 guards and recurrent state/length/mask contracts are subsequent Stage D work.
 An H/W family specialization currently fixes H/W; testing two specializations
 does not claim one executable instance accepts arbitrary spatial dimensions.
 
 ### Retained records and exact stored preview
 
-`family` uses the version-1 grammar above, with only the optional verified registry
+`family` uses version1 or the explicit sharing extension in version2, with only the optional verified registry
 `revision` added. Its revision is the external definition's original digest.
 Unbound families may be retained as drafts; retaining them does not compile or
 materialize a model. A `specialization` has exactly `version:1`, `id`, `name`,
@@ -223,7 +227,7 @@ The pinned nepr symbolic specification motivates this construction. PyTorch's
 [Module documentation](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html)
 documents actual module/parameter identity and duplicate removal: independent
 copies and tied modules must not be treated as the same operation. That distinction
-is preserved here by rejecting unsupported sharing rather than implying it from
+is preserved here by explicit owner identity, never implying it from
 equal widths or template reuse. Numerical claims above are tested locally, not
 inferred from documentation.
 

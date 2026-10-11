@@ -69,7 +69,7 @@ def change(collection,key,value):
 
 def add(collection):
     js('(()=>{const s=[...document.querySelectorAll("#science-family-cards details")].find(s=>s.querySelector("summary").textContent==='+
-       json.dumps({'symbols':'Scoped integer symbols','assignments':'Derived field assignments','repeats':'Independent finite repeats'}[collection])+
+       json.dumps({'symbols':'Scoped integer symbols','assignments':'Derived field assignments','repeats':'Finite repeats · independent or tied'}[collection])+
        ');[...s.querySelectorAll("button")].find(b=>b.textContent.startsWith("Add ")).click();})()')
     until('document.querySelectorAll('+json.dumps('[data-family-card="'+collection+'"]')+').length===1')
 

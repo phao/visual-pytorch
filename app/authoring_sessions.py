@@ -175,7 +175,7 @@ class Sessions:
 
     def _publish(self, workspace, token, row, document):
         versions = (row['draft']['document']['version'],)
-        if row['draft']['kind'] == 'experiment' and versions == (1,): versions = (1, 2)
+        if row['draft']['kind'] in ('experiment', 'family') and versions == (1,): versions = (1, 2)
         _require(isinstance(document, dict) and document.get('id') == row['draft']['id'] and
                  type(document.get('version')) is int and document['version'] in versions and 'revision' not in document,
                  'Draft patches must preserve stable document ID/version and cannot forge a revision.')

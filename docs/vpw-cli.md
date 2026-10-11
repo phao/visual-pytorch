@@ -19,6 +19,13 @@ specified in [typed-family-sessions.md](typed-family-sessions.md).
 See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
 
+Explicit shared parameter owners use ordinary `set-node` values containing
+`share_with`; `remove_fields:["share_with"]` explicitly detaches. `freeze-model`
+preserves version2 sharing semantics and unique checkpoint paths. Family v2
+accepts tied finite repeats; .vtw v9 is required. `parameter-counts` attributes
+newly owned parameters once to the canonical block and zero to its aliases.
+Complete ownership/constructor/CLI/export rules: [shared-parameters.md](shared-parameters.md).
+
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic
 `apply` batch accepts `{"op":"panel-layout","value": <preset-or-null>}`.
 The closed CSS-pixel preset, validation ranges, missing/default behavior and

@@ -94,6 +94,8 @@ def parameter_schema(models, mid, prefix='', stable_prefix=None):
     stable_prefix=mid if stable_prefix is None else stable_prefix
     schema={}
     for i,node in enumerate(operation_nodes(models[mid])):
+        if 'parameter_owner' in contract['shapes'][node['id']]:
+            continue
         path=prefix+f'layer_{i}'
         stable=stable_prefix+'/'+node['id']
         if node['type']=='Module':

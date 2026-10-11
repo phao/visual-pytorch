@@ -17,7 +17,7 @@ PROPERTIES = {
     'repeats': ('id', 'model', 'nodes', 'count', 'mode'),
     'templates': ('id', 'name', 'graph'),
 }
-ROOTS = ('name', 'root')
+ROOTS = ('name', 'root', 'version')
 MAX_TEXT = 2000
 
 

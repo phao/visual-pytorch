@@ -25,7 +25,7 @@ retained objects; it does not persist Qt tokens or unfinished text.
 
 ## Documents versus browsing heads
 
-`spec_revisions` stores immutable, content-addressed version-1 documents. The
+`spec_revisions` stores immutable, content-addressed versioned documents. The
 implemented kinds are `dataset`, `experiment`, `family`, `model`, `report`, `run`,
 `specialization`, `task`. Dataset/task shapes
 and transform syntax are specified in [dataset-task-contract.md](dataset-task-contract.md).
@@ -33,7 +33,9 @@ Task storage validates intrinsic syntax independently of any model or dataset;
 execution validates the selected dataset/model shapes and field/port meaning.
 Storing a TaskSpec is not proof that every combination is compatible.
 
-Every object has string `id`, `name` and integer `version: 1`. A document's
+Every object has string `id`, `name` and integer `version`. Version1 remains
+supported; experiment/run v2 adds explicit family coordinates (container≥8),
+and family/model v2 adds explicit sharing (container≥9). A document's
 `revision` is SHA-256 of UTF-8 encoded JSON using Python `json.dumps` with
 `sort_keys=True`, `separators=(',', ':')`, `allow_nan=False`, and default
 `ensure_ascii=True`, excluding its own `revision` field. Ordered arrays remain
@@ -54,6 +56,8 @@ field, tensor, input-port and transform ordering is never sorted.
 ## Frozen models
 
 ModelRevision keys: `version`, `id`, `name`, `root`, `models`, `architecture_hash`,
+with version1 for independent captures or version2 for explicit local sharing,
+as specified in [shared-parameters.md](shared-parameters.md), plus
 optional verified `revision`. `root` equals `id`. `models` contains exactly the
 reachable reference closure, each entry with its original `id`, `name`, `graph`.
 Frozen graphs privately pin input packing and normalize versioned operator
@@ -111,17 +115,18 @@ history. Idempotent storage/reselection of a retained old revision remains valid
 
 ## Migration and history
 
-New files/saves use `PRAGMA user_version=7`. Readers accept v1–7. Opening an older
+New files/saves use `PRAGMA user_version=9`. Readers accept v1–9. Opening an older
 file backs it up into memory, preserves the old tables/data/run/checkpoint bytes,
 performs the already-defined v1/2 packing migration when needed, then adds empty
-revision tables/guards when absent and sets the working version to 7. Existing
+revision tables/guards when absent and sets the working version to 9. Existing
 v5 tables are validated, not recreated. The source file stays
 unchanged until explicit Save. Legacy `dataset.x/y` is not guessed into a typed
 ontology or rebound. A header-lowered fixture containing revision objects is
 accepted only for the v5 dataset/task/model semantics, if its complete existing
 revision schema and content pass the same checks. New experiment/run/report
 semantics require at least a v6 header; family/specialization semantics require
-v7. Content is not silently discarded. Partial schemas fail. Versions above 7 fail.
+v7; experiment/run v2 requires v8, explicit sharing and family/model v2 require
+v9. Content is not silently discarded. Partial schemas fail. Versions above9 fail.
 
 Save validates revision integrity before the existing atomic, revision-checked
 file replacement. Session undo/redo restores mutable authoring state and heads

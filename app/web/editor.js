@@ -306,8 +306,9 @@
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
       const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(note,4.9,14));
-      noteText.append(svgElement('title',{},note));group.append(noteText);
+      const sharingNote=n.share_with?(['Linear','Conv2d'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+note:note;
+      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
+      noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
@@ -318,7 +319,7 @@
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
         if(['Linear','Conv2d'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
-        group.append(svgElement('title',{},label+' · '+line+' · '+note));
+        group.append(svgElement('title',{},label+' · '+line+' · '+sharingNote));
       }
       for (const output of [false, true]) {
         for (const peer of G.slots(n, output)) {
@@ -476,7 +477,7 @@
       ids.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + '</span>' + (n.type === "Splitter" ? '<input data-split-size="' + i + '" type="number" min="1" value="' + n.parts[i].features + '"' + (busy() ? ' disabled' : '') + '>' : '<small>full tensor</small>') + '</div>');
       html += '<button id="add-output-port"' + (busy() ? ' disabled' : '') + '>+ Output port</button>';
     } else if (n.type === "Module") {
-      html += '<div class="contract-card">reference<br>' + esc(state.models[n.ref]?.name || "missing") + '<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">This block refers to a named architecture in this workspace. Editing that architecture updates every referring graph. Each occurrence has independent trainable parameters.</p><div class="inspect-actions"><button id="open-reference">Open details</button><button id="tab-reference">Open in new tab ↗</button></div>';
+      html += '<div class="contract-card">reference<br>' + esc(state.models[n.ref]?.name || "missing") + '<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">This block refers to a named architecture in this workspace. Editing that architecture updates every referring graph. Occurrences are independent unless explicit sharing is selected below.</p><div class="inspect-actions"><button id="open-reference">Open details</button><button id="tab-reference">Open in new tab ↗</button></div>';
       const signature = description?.interfaces?.[n.id];
       if (signature) html += '<div class="contract-card">Declared inputs<br>' + signature.input_groups.map(g => esc(g.name) + ' [' + g.features + ']').join('<br>') + '<br>Declared outputs<br>' + signature.output_groups.map(g => esc(g.name) + ' [' + g.features + ']').join('<br>') + '</div><p class="inspect-note">This prototype connects references through packed tensors; the named boundaries remain part of the reusable architecture contract.</p>';
     } else {
@@ -485,7 +486,13 @@
     if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
     if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
+    if(['Linear','Conv2d','Module'].includes(n.type)){
+      const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
+      if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
+      html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
+    }
     content.innerHTML = html;
+    if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};
     content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
       if(busy())return;
       try{n[input.dataset.opField]=T.parse(n.type,input.dataset.opField,input.type==='checkbox'?input.checked:input.value);invalidateRun();persist();}

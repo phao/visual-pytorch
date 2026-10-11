@@ -2,7 +2,7 @@
 (() => {
   let root,api,saved,state=null,pending=false,epoch=0,controlling=false,flushing=false;
   const $=id=>root.getElementById(id),el=(tag,text)=>{const n=root.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  const collections={templates:'Concrete templates',symbols:'Scoped integer symbols',assignments:'Derived field assignments',repeats:'Independent finite repeats'};
+  const collections={templates:'Concrete templates',symbols:'Scoped integer symbols',assignments:'Derived field assignments',repeats:'Finite repeats · independent or tied'};
   const args=()=>({session:state.header.session,sequence:state.header.sequence});
   const live=(owner,ticket)=>state===owner&&!owner.stale&&ticket===epoch&&owner.header.workspace_id===api.workspace();
   const issue=e=>{$(state?'science-family-status':'science-family-instance-status').textContent=e.message;api.toast(e.message,true);};
@@ -61,7 +61,14 @@
   }
   function control(d,target,readOnly=false){
     const key=d.key,wrapper=el('label',key),json=['value','count','nodes','graph'].includes(key),
-      numeric=['default','minimum','maximum'].includes(key),n=el(json?'textarea':'input');
+      numeric=['default','minimum','maximum','version'].includes(key),n=el(key==='mode'?'select':json?'textarea':'input');
+    if(key==='mode'){
+      const current=d.present?JSON.parse(d.text):'independent';
+      for(const value of [...new Set(['independent','tied',current])].sort()){
+        const option=el('option',value);option.value=value;n.append(option);
+      }
+      n.title='Independent: fresh parameters per use. Tied: one shared parameter set across finite uses; family version 2.';
+    }
     n.dataset.familyControl='';n.dataset.key=key;const large=d.present&&d.text===null;
     n.dataset.large=String(large);n.dataset.readOnly=String(readOnly);
     if(large)n.placeholder='Large '+d.summary.type+' · '+d.summary.size+' · staged editing';
@@ -72,6 +79,7 @@
       else if(json||numeric){text=n.value;JSON.parse(text);
         if(numeric&&!/^-?(0|[1-9][0-9]*)$/.test(text))throw Error('Enter an exact decimal integer, or blank for an absent default/bound.');
       }else text=JSON.stringify(n.value);
+      if(key==='mode'&&n.value==='tied')enqueue({kind:'document'},'version','2',n);
       enqueue(target,key,text,n);
     }catch(e){n.dataset.invalid='';n.setAttribute('aria-invalid','true');issue(e);}};
     wrapper.append(n);if(!readOnly&&d.path&&(large||json))wrapper.append(button('Edit staged JSON…',()=>raw(d.path,key)));

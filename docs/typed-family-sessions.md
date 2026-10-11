@@ -9,8 +9,9 @@ revisions, using the existing owner/sequence/origin/head safeguards.
 
 This is executable typed family authoring, not full D acceptance or publication.
 The grammar is [architecture-families.md](architecture-families.md). Independent
-finite chains are implemented; tied weights and recurrence are not aliases for
-copies. Explicit family experiment axes remain future work.
+and explicitly [tied finite chains](shared-parameters.md) are implemented;
+runtime recurrence is not finite copies. [Explicit experiment axes](family-experiment-axes.md)
+are implemented, not automatically inferred from symbol ranges.
 
 ## User workflow
 
@@ -23,8 +24,10 @@ copies. Explicit family experiment axes remain future work.
    expression ASTs or arrays of expressions for shapes/pairs. Examples:
    {"symbol":"width-id"} or {"op":"mul","args":[2,{"symbol":"width-id"}]}.
    No Python text is executed.
-5. Add independent repeats: stable repeat ID, model ID, ordered node-ID array,
-   count expression and explicit mode "independent". Current unary-chain
+5. Add finite repeats: stable repeat ID, model ID, ordered node-ID array,
+   count expression and explicit mode "independent" or "tied". Selecting tied
+   explicitly upgrades the owned family document to version2 in the same edit
+   batch; v2 downgrade is denied. Current unary-chain
    ingress/egress/no-crossing constraints still apply.
 6. Preview with a JSON stable-symbol-ID binding map. Omitted values use defaults.
    Conditional/incompatible results explain missing/invalid choices. Preview
@@ -70,7 +73,8 @@ Collections: templates, symbols, assignments, repeats. Pages require nonnegative
 exact offsets, 1..6 cards and explicit totals/next offsets. Responses pin
 workspace/object/session/sequence/collection/cursor with scope owned-family-page.
 Scalar descriptors return complete text or a large summary/path, never clipped
-JSON masquerading as a complete value. Root properties are name/root. Template
+JSON masquerading as a complete value. Root properties are name/root/version;
+version uses exact numeric text. Template
 graph/name may be edited explicitly; template ID is read-only.
 
 Edits are 1..25 ordered operations, published once after all succeed: property

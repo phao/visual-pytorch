@@ -3,6 +3,34 @@ import math
 from .operators import TENSOR_OPERATORS, LAYER_TYPES, axes_for, describe
 
 
+def parameter_owners(model):
+    """Local explicit module identity, independent of wire/topological order.
+
+    Only whole Linear/Conv2d/Module reuse is supported. Chained aliases resolve
+    to one existing owner; constructor compatibility is checked by contract.
+    """
+    from .core import GraphError
+    nodes = {n['id']: n for n in model['graph']['nodes']}
+    owners = {}
+    for nid, node in nodes.items():
+        if 'share_with' not in node:
+            continue
+        target = node['share_with']
+        if node['type'] not in {'Linear', 'Conv2d', 'Module'} or not isinstance(target, str) or not target:
+            raise GraphError('share_with requires a Linear, Conv2d or Module block and an existing local block ID.')
+        if target not in nodes or nodes[target]['type'] != node['type']:
+            raise GraphError('Shared parameter owner is missing or has a different block type: ' + nid + '.')
+    for nid in nodes:
+        visited, current = set(), nid
+        while 'share_with' in nodes[current]:
+            if current in visited:
+                raise GraphError('Shared parameter ownership contains a cycle: ' + nid + '.')
+            visited.add(current)
+            current = nodes[current]['share_with']
+        owners[nid] = current
+    return owners
+
+
 def topology(model):
     from .core import GraphError
     nodes, edges = model['graph']['nodes'], model['graph']['edges']
@@ -77,6 +105,7 @@ def contract(models, mid, ancestry=(), cache=None):
         return cache[mid]
     model = models[mid]
     order = topology(model)
+    owners = parameter_owners(model)
     lookup = {n['id']: n for n in order}
     inputs = [n for n in order if n['type'] == 'Input']
     groups = boundary_groups(inputs, [math.prod(input_shape(n)) for n in inputs])
@@ -93,6 +122,7 @@ def contract(models, mid, ancestry=(), cache=None):
     max_width = max_input = total_in
     affine, matrix_affine = True, True
     operation_index = 0
+    parameter_counts = {}
 
     def source(edge):
         src = edge['from']
@@ -108,6 +138,7 @@ def contract(models, mid, ancestry=(), cache=None):
 
     for n in order:
         kind, nid = n['type'], n['id']
+        previous_params = params
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
         if kind == 'Concat':
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
@@ -209,6 +240,28 @@ def contract(models, mid, ancestry=(), cache=None):
         elif kind in {'Concat', 'Splitter', 'Replicator'}:
             ops += 1
         plan.append(item)
+        parameter_counts[nid] = params - previous_params
+
+    layers = {item['id']: item['layer'] for item in plan if 'layer' in item}
+    for item in plan:
+        nid, owner = item['id'], owners[item['id']]
+        if nid == owner:
+            continue
+        node, canonical = lookup[nid], lookup[owner]
+        a, b = shapes[nid], shapes[owner]
+        kind = node['type']
+        if kind == 'Linear':
+            same = (a['input'], a['output'], node.get('bias', True)) == (b['input'], b['output'], canonical.get('bias', True))
+        elif kind == 'Conv2d':
+            same = a['operator']['kwargs'] == b['operator']['kwargs']
+        else:
+            same = node['ref'] == canonical['ref']
+        if not same:
+            raise GraphError('Shared block ' + nid + ' must have the same constructor/reference as owner ' + owner + '.')
+        params -= parameter_counts[nid]
+        item['layer'] = layers[owner]
+        item['parameter_owner'] = owner
+        shapes[nid]['parameter_owner'] = owner
 
     terminals = [n for n in order if n['type'] == 'Output']
     out_groups = boundary_groups(terminals, [math.prod(shapes[n['id']]['output_shape']) for n in terminals])

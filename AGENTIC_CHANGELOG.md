@@ -4,6 +4,22 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 07:04 -03:00 — Genuine shared parameter ownership
+
+Added explicit local Linear/Conv2d/Module owners and family v2 finite tied uses,
+because equal-width copies cannot express parameter identity. The canonical
+registered module is reused by the plan; checkpoint/optimizer/count/export
+semantics store its parameters once while charging every execution/activation.
+Fixed affine composition to follow repeated occurrences. Qt Inspector and owned
+family mode/version controls reuse existing history/session fences; .vtw v9 and
+ModelRevision v2 prevent old readers from ignoring sharing. Old independent hashes
+and portable24-file runtime remain. Added a runnable tied-depth family example,
+16 pure tests, independent forward/gradient/Adam/worker/export/kernel tests and
+actual sandboxed Qt sharing/upgrade/undo/reload evidence; synchronized specs.
+Failed probes retained and fixture connections closed rather than warnings hidden.
+Final evidence and limits are in docs/development.md and campaign handoff. D/E
+remain unfinished/local, with no publication or user app/config/workspace changes.
+
 ## 2026-10-11 06:40 -03:00 — Explicit family experiment axes and terminal recovery
 
 Added lazy ordered fixed/binding-axis family choices to experiment/run version2,

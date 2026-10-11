@@ -1,8 +1,8 @@
 """Concrete-first family specialization, without Torch, Qt, eval or a solver.
 
 An external family is a checked template closure plus scoped integer assignments
-and independent finite chain repeats. It resolves into ordinary v6 architectures.
-Tied weights and runtime recurrence are NOT approximated by independent copies.
+and independent or explicitly tied finite chain repeats. Runtime recurrence is
+not approximated by finite copies; sharing is explicit local module identity.
 """
 import copy
 
@@ -127,7 +127,7 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats'))
-    require(type(doc['version']) is int and doc['version'] == 1, 'Family supports integer version 1.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2), 'Family supports integer version 1 or 2.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -142,6 +142,8 @@ def validate_family(doc):
             for node in model['graph']['nodes']:
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
+                require(doc['version'] == 2 or 'share_with' not in node,
+                        'Explicit shared templates require family version 2.')
                 require('op_version' not in node or (type(node['op_version']) is int and node['op_version'] == 1),
                         'Block ' + node['id'] + ': unsupported operator version.')
                 require(node['type'] != 'Activation' or node['activation'] == 'Softmax' or 'dim' not in node,
@@ -207,8 +209,8 @@ def validate_family(doc):
     for repeat in doc['repeats']:
         keys(repeat, ('id', 'model', 'nodes', 'count', 'mode'), where='Family repeat')
         require(identifier(repeat['id']) and repeat['id'] not in repeat_ids, 'Repeat ID must be unique.')
-        require(repeat['mode'] == 'independent',
-                'Repeat ' + repeat['id'] + ': only independent occurrences are implemented; tied weights/recurrence are not copies.')
+        require(repeat['mode'] == 'independent' or (doc['version'] == 2 and repeat['mode'] == 'tied'),
+                'Repeat ' + repeat['id'] + ': tied mode requires family version 2; runtime recurrence/unknown modes are not copies.')
         mid = repeat['model']
         require(isinstance(mid, str) and mid in models, 'Repeat needs an existing model scope.')
         _chain(models[mid], repeat)
@@ -243,10 +245,13 @@ def _expanded(models, repeats, bindings):
             for nid in repeat['nodes']:
                 clone = copy.deepcopy(lookup[nid])
                 clone['id'] = ids[nid]
-                # Each occurrence is explicitly independent, including Module refs.
+                if 'share_with' in clone and clone['share_with'] in body:
+                    clone['share_with'] = rid + '/' + str(0 if repeat['mode'] == 'tied' else index) + '/' + clone['share_with']
+                elif repeat['mode'] == 'tied' and index and clone['type'] in {'Linear', 'Conv2d', 'Module'} and 'share_with' not in clone:
+                    clone['share_with'] = rid + '/0/' + nid
                 clones.append(clone)
                 occurrences.append({'model': mid, 'repeat': rid, 'index': index,
-                                    'template_node': nid, 'node': ids[nid], 'mode': 'independent'})
+                                    'template_node': nid, 'node': ids[nid], 'mode': repeat['mode']})
             wires.extend({'from': ids[a], 'to': ids[b]} for a, b in zip(repeat['nodes'], repeat['nodes'][1:]))
             if index:
                 wires.append({'from': rid + '/' + str(index - 1) + '/' + repeat['nodes'][-1],
@@ -261,6 +266,9 @@ def _expanded(models, repeats, bindings):
         model['graph']['edges'] = [e for e in model['graph']['edges'] if e['from'] not in body and e['to'] not in body] + [ingress] + wires + [egress]
         insertion = min(i for i, n in enumerate(model['graph']['nodes']) if n['id'] in body)
         retained = [n for n in model['graph']['nodes'] if n['id'] not in body]
+        for node in retained:
+            if node.get('share_with') in body:
+                node['share_with'] = rid + '/0/' + node['share_with']
         model['graph']['nodes'] = retained[:insertion] + clones + retained[insertion:]
     return occurrences
 

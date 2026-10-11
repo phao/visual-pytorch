@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 8
+VERSION = 9
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -273,6 +273,8 @@ def check_document(doc):
             raise GraphError("A wire refers to a missing block.")
         if 'from_port' in edge and not isinstance(edge['from_port'], str):
             raise GraphError('Wire from_port must be a declared string port ID.')
+    from .graph import parameter_owners
+    parameter_owners(doc)
     json.dumps(doc, allow_nan=False)
 
 
@@ -559,7 +561,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, 3, 4, 5, 6, 7, VERSION} or magic != (FORMAT,):
+            if version not in set(range(1, VERSION + 1)) or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -595,6 +597,13 @@ class Workspace:
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
                     if _parse(text)['version'] == 2:
                         raise GraphError('Version-2 experiment/run revisions require a version-8 container.')
+            if version < 9:
+                from .revisions import _parse
+                if any('share_with' in n for doc in loaded.values() for n in doc['graph']['nodes']):
+                    raise GraphError('Explicit shared parameters require a version-9 container.')
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','model')"):
+                    if _parse(text)['version'] == 2:
+                        raise GraphError('Version-2 family/model revisions require a version-9 container.')
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:
@@ -692,6 +701,8 @@ def generate_code(models, model_id):
             "    def __init__(self):", "        super().__init__()",
         ])
         for index, node in enumerate(order):
+            if 'parameter_owner' in contract['shapes'][node['id']]:
+                continue
             if node["type"] == "Linear":
                 s = contract["shapes"][node["id"]]
                 op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
@@ -742,6 +753,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
 
     layers = OrderedDict()
     for index, node in enumerate(operation_nodes(models[mid])):
+        if 'parameter_owner' in contract['shapes'][node['id']]:
+            continue
         if node["type"] == "Linear":
             shape = contract["shapes"][node["id"]]
             layer = nn.Linear(shape["input"], shape["output"], bias=node.get("bias", True),
@@ -796,6 +809,8 @@ def layer_descriptions(models, mid, prefix="", stable_prefix=None):
     layers = []
     stable_prefix=mid if stable_prefix is None else stable_prefix
     for i, node in enumerate(operation_nodes(models[mid])):
+        if 'parameter_owner' in contract['shapes'][node['id']]:
+            continue
         path = prefix + f"layer_{i}"
         if node["type"] == "Module":
             layers.extend(layer_descriptions(models, node["ref"], path + ".",stable_prefix+'/'+node['id']))
@@ -874,9 +889,14 @@ def affine_summary(model, contract):
     if not contract['matrix_affine']:
         return {'status':'unavailable','reason':'Nonlinear, branching or tensor geometry is outside the serial-vector analyzer.'}
     effective_a=effective_b=None
+    def occurrences(current):
+        for item in current.contract['plan']:
+            if item['type'] == 'Linear':
+                yield getattr(current, item['layer'])
+            elif item['type'] == 'Module':
+                yield from occurrences(getattr(current, item['layer']))
     with torch.no_grad():
-        for layer in model.modules():
-            if not isinstance(layer,torch.nn.Linear):continue
+        for layer in occurrences(model):
             bias=layer.bias if layer.bias is not None else layer.weight.new_zeros(layer.out_features)
             if effective_a is None:effective_a,effective_b=layer.weight.detach(),bias.detach()
             else:effective_a,effective_b=layer.weight @ effective_a,layer.weight @ effective_b+bias
