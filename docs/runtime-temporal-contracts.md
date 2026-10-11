@@ -1,5 +1,10 @@
 # Runtime temporal contracts — Stage D execution foundation
 
+This document specifies temporal-v1, whose LSTM refusal remains unchanged.
+The separately selected [native temporal-v2](runtime-temporal-v2.md) now supports
+LSTM shape proof/execution and concrete standalone source. Its retained family/
+task/experiment/GUI/CLI routes are unfinished; it does not upgrade this policy.
+
 `app/temporal_shapes.py` defines the separate, explicit `runtime-temporal-v1`
 policy. It is not an upgrade of `runtime-spatial-v1`, a constructor repeat,
 hidden between-call state, or finite copying. The ordinary graph remains concrete
