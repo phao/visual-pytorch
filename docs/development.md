@@ -15,6 +15,26 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### 2026-10-11 02:35 -03:00 — Sole development returned to the canonical checkout
+
+After the user confirmed no other product agent is active and highlighted hidden
+staging clutter, the clean canonical `visual-pytorch/` checkout now owns
+`task/stage-c-experiments` at the native-preview checkpoint e21cf94. The old
+stage-c-experiments.JwUxVN/product worktree was clean and removed through Git,
+including only regenerable ignored Python caches. Source/history remain in the
+shared repository; private evidence/receipts and other worktrees are preserved.
+The switch and retirement were serialized with the integration advisory lock.
+`main` remains2f14f49 and remote/public release remain unchanged: a branch checkout
+is not integration or publication. Existing desktop registration already points
+to the canonical run.py and now launches this development version on its next
+normal launch; no installer/config/user app restart occurred. Continue sole
+product editing here, not in a hidden staging worktree or campaign source copy.
+Relocated-checkout verification passes24 focused equivalence/projection tests
+(1.410 s), CLI help/startup and actual sandboxed Qt fit/retry/report/notebook-
+generation/save-reload/failed-admission/recovery-export workflow, with no host
+Torch/console errors. No full-suite rerun is claimed merely from this relocation;
+the source content is the already-verified checkpoint plus documentation.
+
 ### 2026-10-11 02:34 -03:00 — Request-local native preview preparation
 
 Native preview now reuses only successful exact dependency/contract/compatibility/

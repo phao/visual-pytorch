@@ -15,3 +15,13 @@ identical-wire preview measurement gives16.25× on the recorded fixture, not a
 universal performance claim. Specifications and detailed limits are in
 `docs/preview-resolution.md` and `docs/development.md`. C remains local/incomplete;
 D/E and public publication are not claimed.
+
+## 2026-10-11 02:35 -03:00 — Canonical development checkout and targeted retirement
+
+The user confirmed sole product development and found hidden staging inconvenient.
+After a clean verified source checkpoint, switched the canonical visible checkout
+to `task/stage-c-experiments` and removed its redundant clean staging worktree
+through Git. Source/history and test evidence remain; other worktrees, public
+refs, user files/config and running app were not changed. The existing desktop
+launcher targets this visible checkout without re-registration. This changes the
+local launchable version, not Stage C integration or public release status.
