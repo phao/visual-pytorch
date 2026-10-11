@@ -33,7 +33,7 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('memory', 'operators', 'activations', 'graph', 'families')}
+               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math
@@ -114,7 +114,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'families'):
+            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'families', 'runtime_shapes'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:
@@ -163,7 +163,7 @@ class ArchitectureFamily(nn.Module):
     Invalid grammar/types/shapes/sharing/budgets fail BEFORE parameter allocation.
     None policy values use the explicitly captured workspace export policy.
     """
-    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None):
+    def __init__(self, *, bindings=None, constrained=None, memory_limit_percent=None, runtime_inputs=None):
         super().__init__()
         runtime = _runtime(); source = family_definition()
         resolved = runtime.families.specialize(source, bindings)
@@ -172,13 +172,14 @@ class ArchitectureFamily(nn.Module):
         percentage = policy['memory_limit_percent'] if memory_limit_percent is None else memory_limit_percent
         # compile_model performs the whole-model preflight before any nn layer.
         self.network = runtime.core.compile_model(resolved['models'], resolved['root'], constrained,
-                                                   memory_limit_percent=percentage)
+                                                   memory_limit_percent=percentage, runtime_inputs=runtime_inputs)
         self._resolved = copy.deepcopy(resolved)
         self._semantic = _semantic_schema(runtime, resolved, source)
         self._provenance = export_metadata()
         self._provenance.update(bindings=copy.deepcopy(resolved['bindings']),
                                 constructor_contexts=copy.deepcopy(resolved.get('instances', [])),
                                 architecture_hash=resolved['architecture_hash'],
+                                runtime_inputs=copy.deepcopy(runtime_inputs),
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
 
     @classmethod
@@ -196,6 +197,16 @@ class ArchitectureFamily(nn.Module):
 
     def semantic_parameter_schema(self):
         return copy.deepcopy(self._semantic)
+
+    def runtime_specification(self):
+        if self._provenance['runtime_inputs'] is None:
+            return None
+        return self.network.runtime_specification()
+
+    def preview_shapes(self, shapes, *, batch_size=1, gradients=True, dtype_bytes=4):
+        if self._provenance['runtime_inputs'] is None:
+            raise ValueError('Construct with explicit runtime_inputs before previewing runtime shapes.')
+        return self.network.preview_shapes(shapes, batch_size=batch_size, gradients=gradients, dtype_bytes=dtype_bytes)
 
     def forward(self, x):
         return self.network(x)

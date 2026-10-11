@@ -49,7 +49,8 @@ y = model(x)
 Constructor signature:
 
 ```python
-ArchitectureFamily(*, bindings=None, constrained=None, memory_limit_percent=None)
+ArchitectureFamily(*, bindings=None, constrained=None, memory_limit_percent=None,
+                   runtime_inputs=None)
 ```
 
 `bindings` maps stable symbol IDs to exact integers, booleans or enum strings.
@@ -79,13 +80,22 @@ Tensor/ordered named-input and output dictionary contracts match the concrete
 compiler. `forward_tensor` and `intermediate_values` retain its packed-output and
 diagnostic conventions, not a separate diagram interpretation.
 
+Optional `runtime_inputs` explicitly enables the checked H/W domain described in
+[runtime spatial contracts](runtime-spatial-contracts.md). It defaults to the
+ordinary fixed-shape path; no input data infers constructor bindings. Runtime
+specification/shape previews and instance provenance retain the explicit domain.
+Persisted declarations/typed GUI authoring and variable-resolution task datasets
+are not yet implemented. Warm starts transfer compatible weights, not a promised
+runtime-domain continuation.
+
 ## Captured runnable closure and provenance
 
-The source contains the exact family definition and an isolated seven-module
-runtime: activations, core, evidence, families, graph, memory and operators.
+The source contains the exact family definition and an isolated eight-module
+runtime: activations, core, evidence, families, graph, memory, operators and
+runtime_shapes.
 Core/evidence are selected AST declarations covering the reachable resolver,
 contracts, compiler and semantic schema, not the Workspace/SQLite/training/UI
-machinery. Other five files are captured unchanged. No application installation,
+machinery. Other six files are captured unchanged. No application installation,
 Qt, database, dataset observations, sidecar package or executable user expression
 is required. Resolution/compiler behavior is reused, not reimplemented from a
 visually similar drawing. The private package is initialized lazily under a lock

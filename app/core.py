@@ -660,7 +660,13 @@ def _graph_values(module, x, contract):
             value = x if len(contract['input_groups']) == 1 else x[:, g['start']:g['stop']].reshape(x.shape[0], *g['shape'])
         elif 'layer' in item:
             layer = getattr(module, item['layer'])
-            value = layer.forward_tensor(parts[0]) if kind == 'Module' else layer(parts[0])
+            if kind == 'Module' and 'runtime_contract' in item:
+                child = item['runtime_contract']
+                value = _graph_tensor(_graph_values(layer, parts[0], child), child)
+            elif kind == 'Reshape' and 'runtime_reshape' in item:
+                value = layer(parts[0], shape=item['runtime_reshape'])
+            else:
+                value = layer.forward_tensor(parts[0]) if kind == 'Module' else layer(parts[0])
         elif kind == 'Concat':
             value = torch.cat([p.flatten(start_dim=1) for p in parts] if item['flatten'] else parts,
                               dim=1 if item['flatten'] else -1)
@@ -741,7 +747,12 @@ def generate_code(models, model_id):
     return "\n".join(lines)
 
 
-def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
+def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
+                  runtime_inputs=None):
+    if runtime_inputs is not None:
+        from .runtime_shapes import compile_runtime_model
+        return compile_runtime_model(models, mid, runtime_inputs, constrained=constrained,
+                                     memory_limit_percent=memory_limit_percent)
     preflight(models, mid, constrained, memory_limit_percent=memory_limit_percent)
     import torch
     import torch.nn as nn
@@ -751,8 +762,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             super().__init__()
             self.shape = tuple(shape)
 
-        def forward(self, x):
-            return x.reshape(x.shape[0], *self.shape)
+        def forward(self, x, *, shape=None):
+            return x.reshape(x.shape[0], *(self.shape if shape is None else shape))
 
     class Permute(nn.Module):
         def __init__(self, dims):

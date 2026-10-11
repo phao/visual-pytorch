@@ -1,5 +1,60 @@
 # Development state and roadmap
 
+## 2026-10-11 08:50 -03:00 — Stage D: runtime spatial backend/API
+
+Native compile_model and checked exported ArchitectureFamily now accept explicit
+root-Input-ID runtime_inputs declarations for H/W, with fixed C/rank/parameter
+shapes. Allocation-free dependency propagation proves that Linear widths and
+Conv channels do not depend on runtime axes; fixed Flatten heads fail at the
+affected node with a binding/adaptive-reduction repair. Actual-call plans reuse
+operator-owned shape/axis/product/Concat/router rules, nested Module contexts and
+explicit sharing. No layer/weight/optimizer is recreated. Baseline contracts,
+scientific source/view/RNG stay unchanged. Source and declaration copies are private.
+
+Current full-batch CPU RAM admission charges actual image/activation/workspace/
+packing/parameter sizes, dtype and gradient headroom before packing or any network
+tensor computation. Unknown RAM fails closed; explicit unconstrained execution
+still checks shapes and types. Named inputs can travel through shared encoders
+at distinct resolutions; packed multi-input dynamic shapes are explicitly denied.
+Inferred Reshape executes actual targets, preserving operator hooks. Static and
+actual plans have64-context limits including pending nested parent reservations.
+These are ordinary eager CPU float32/64 contracts, not GPU/tracing/torch.compile
+certification or an allocator/OOM guarantee. Exact spec:
+[runtime-spatial-contracts.md](runtime-spatial-contracts.md).
+
+Checked exports now capture8 isolated runtime modules; notebook bundles capture
+25 files. A missing runtime_shapes.py dependency in new source fails before kernel
+launch; original earlier closures remain compatible without rewriting inputs.
+No .vtw schema change: retained families/specializations, owned typed runtime
+authoring, task datasets and worker experiments still specify concrete H/W.
+Persisted/typed runtime declarations are the next D integration, not falsely
+claimed as implemented. Recurrence/state/length/mask/reset/mixed composition and
+E remain. D is branch-only/local/incomplete, full goal active, no roadmap re-audit.
+
+Focused final23 system-Python pure/native tests0.563s and24 numerical4.835s pass.
+The23 include the three native export cases skipped in numerical Python. New
+runtime tests cover the179-parameter adaptive head at24 pure spatial cases and
+independent functional outputs/input/parameter gradients at multiple resolutions;
+non-square pooling/Permute, shared nested calls, named inputs, variable outputs,
+inferred Reshape, strict pre-layer/RAM rejection, stable Adam identities across3
+updates, private source/spec copies and fresh app-free3-update exported execution.
+293 JS1194.775594ms and real sandboxed Qt export byte equality/unchanged SQL/
+retention/reload pass without host Torch or console errors.
+
+Final full824 tests266.423s passed:821 PASS/3 Qt-only environment skips, with those
+three native cases separately passing in system Python. No final ResourceWarnings.
+Existing actual notebook/worker/legacy closure regressions pass; current new
+bundles include25 runtime files. Earlier full823 tests265.856s passed (820 PASS/
+3 same skips) before the pending-context reservation regression. First added pooling
+fixtures incorrectly fed logical[C,W,H] to NCHW pooling; pure and numerical
+validators correctly rejected them. Fixed fixtures with explicit restoring
+Permute and added negative assertions; retained failed logs. The nested fan-out
+review found pending parent plans were not counted by completed-cache length;
+explicit reservation now rejects before the65th context, verified separately.
+
+No main integration/publication, installer/real user app/config/workspace mutation,
+new dependency install or source fork. Earlier entries remain historical.
+
 ## 2026-10-11 08:30 -03:00 — Stage D: checked standalone family export
 
 An exact retained family revision now exports one standalone Python file exposing

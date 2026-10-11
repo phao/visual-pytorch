@@ -74,8 +74,12 @@ validates these without regenerating splits. Execution policy records
 `cpu-float32-v1`, constrained mode, RAM percentage and optional worker timeout.
 Generation records Python/platform. There are no absolute private source paths.
 
-New bundles include `activations.py`, `families.py`, `family_records.py` and
-`family_axes.py` in that copied closure. Prior complete 23-file runtimes are
+New bundles include `activations.py`, `families.py`, `family_records.py`,
+`family_axes.py` and `runtime_shapes.py` in the25-file copied closure. Prior
+complete24-file runtimes are supported only when core does not import
+runtime_shapes.py; incomplete new source is rejected before kernel launch.
+This captures the [runtime spatial API](runtime-spatial-contracts.md), not a new
+variable-resolution dataset/report protocol. Prior complete 23-file runtimes are
 supported only when their source does not import family_axes.py; omitting it
 from new source is rejected before launch. [Family experiments](family-experiment-axes.md)
 capture lazy ordered binding coordinates and exact derived run provenance,

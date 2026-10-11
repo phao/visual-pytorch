@@ -93,7 +93,7 @@ def topology(model):
     return order
 
 
-def contract(models, mid, ancestry=(), cache=None):
+def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtime_contexts=None):
     from .core import (GraphError, feature_count, input_shape, tensor_shape,
                        reshape_shape, activation_name, boundary_groups)
     if mid in ancestry:
@@ -101,16 +101,27 @@ def contract(models, mid, ancestry=(), cache=None):
     if mid not in models:
         raise GraphError('A referenced architecture is missing.')
     cache = {} if cache is None else cache
-    if mid in cache:
-        return cache[mid]
+    cache_key = mid if input_shapes is None else (mid, tuple(sorted((k, tuple(v)) for k, v in input_shapes.items())))
+    if cache_key in cache:
+        return cache[cache_key]
+    if input_shapes is not None and len(cache) >= 64:
+        raise GraphError('Runtime shape plan exceeds 64 distinct Module contexts; reduce call fan-out.')
+    if input_shapes is not None:
+        _runtime_contexts = set() if _runtime_contexts is None else _runtime_contexts
+        if cache_key not in _runtime_contexts and len(_runtime_contexts) >= 64:
+            raise GraphError('Runtime shape plan exceeds 64 distinct Module contexts; reduce call fan-out.')
+        _runtime_contexts.add(cache_key)
     model = models[mid]
     order = topology(model)
     owners = parameter_owners(model)
     lookup = {n['id']: n for n in order}
     inputs = [n for n in order if n['type'] == 'Input']
-    groups = boundary_groups(inputs, [math.prod(input_shape(n)) for n in inputs])
+    if input_shapes is not None and set(input_shapes) != {n['id'] for n in inputs}:
+        raise GraphError('Runtime shape plan must bind every input ID exactly once.')
+    effective = {n['id']: input_shape(n) if input_shapes is None else tensor_shape(input_shapes[n['id']]) for n in inputs}
+    groups = boundary_groups(inputs, [math.prod(effective[n['id']]) for n in inputs])
     for g, n in zip(groups, inputs):
-        g['shape'] = input_shape(n)
+        g['shape'] = effective[n['id']]
         axes = axes_for(n, len(g['shape']))
         if axes is not None:
             g['axes'] = axes
@@ -143,7 +154,7 @@ def contract(models, mid, ancestry=(), cache=None):
         if kind == 'Concat':
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
         resolved = [source(e) for e in incoming]
-        before = resolved[0][1] if resolved else input_shape(n)
+        before = resolved[0][1] if resolved else effective[nid]
         current = list(before)
         axes = shapes[resolved[0][0]['node']]['output_axes'] if resolved else axes_for(n, len(before))
         operator = None
@@ -167,6 +178,8 @@ def contract(models, mid, ancestry=(), cache=None):
             origin = (nid, None)
         elif kind == 'Reshape':
             current = reshape_shape(before, n.get('shape'))
+            if input_shapes is not None:
+                item['runtime_reshape'] = list(current)
             axes = None
             origin = (nid, None)
         elif kind in TENSOR_OPERATORS:
@@ -179,7 +192,15 @@ def contract(models, mid, ancestry=(), cache=None):
             matrix_affine = matrix_affine and operator['matrix_affine']
             origin = (nid, None)
         elif kind == 'Module':
-            ref = contract(models, n['ref'], (*ancestry, mid), cache)
+            child_shapes = None
+            if input_shapes is not None:
+                child_inputs = [v for v in topology(models[n['ref']]) if v['type'] == 'Input']
+                child_shapes = ({child_inputs[0]['id']: before} if len(child_inputs) == 1 else
+                                {v['id']: input_shape(v) for v in child_inputs})
+            ref = contract(models, n['ref'], (*ancestry, mid), cache, input_shapes=child_shapes,
+                           _runtime_contexts=_runtime_contexts)
+            if input_shapes is not None:
+                item['runtime_contract'] = ref
             if before != ref['input_shape']:
                 raise GraphError(f"{models[n['ref']]['name']} needs {ref['inputs']} features with sample shape {ref['input_shape']}; incoming shape {before}. Use Reshape.")
             if ref['input_axes'] is not None and axes != ref['input_axes']:
@@ -325,5 +346,5 @@ def contract(models, mid, ancestry=(), cache=None):
               'convolution_workspace_elements': convolution_workspace_elements,
               'input_groups': groups, 'output_groups': out_groups, 'output_mode': mode,
               'plan': plan, 'tensor_source': tensor_source}
-    cache[mid] = result
+    cache[cache_key] = result
     return result

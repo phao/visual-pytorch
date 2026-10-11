@@ -333,7 +333,7 @@ write_no_training_audit()
             archive.extractall(legacy)
         run=self.trial('legacy-failed',python='/missing/legacy-notebook-python')
         recipe=self.recipe('result-report',[run['reference']]);before=self.w.db.serialize()
-        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py', 'family_axes.py'))
+        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py'))
         with patch('app.notebooks.RUNTIME',old_runtime),patch('app.notebooks.__file__',str(legacy/'app/notebooks.py')):
             exported=create_bundle(self.w,recipe,self.root/'legacy-bundle')
         root,manifest,notebook=verify_bundle(exported['path'])
@@ -360,7 +360,7 @@ write_no_training_audit()
             archive.extractall(legacy)
         run = self.trial('pre-family-failed', python='/missing/pre-family-python')
         recipe = self.recipe('result-report', [run['reference']]); before = self.w.db.serialize()
-        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py', 'family_axes.py'))
+        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py'))
         with patch('app.notebooks.RUNTIME', old_runtime), patch('app.notebooks.__file__', str(legacy / 'app/notebooks.py')):
             exported = create_bundle(self.w, recipe, self.root / 'pre-family-bundle')
         root, manifest, _ = verify_bundle(exported['path'])
@@ -384,6 +384,18 @@ write_no_training_audit()
         (root / 'manifest.json').write_text(json.dumps(manifest))
         with patch('app.notebooks._jupyter', side_effect=AssertionError('must reject before kernel')):
             with self.assertRaisesRegex(GraphError, 'requires its captured family'):
+                execute_bundle(root)
+        self.assertFalse((root / 'executions').exists())
+
+    def test_new_runtime_cannot_omit_runtime_shapes_even_if_fixed_execution_requested(self):
+        exported = create_bundle(self.w, self.recipe(), self.root / 'incomplete-runtime-shapes')
+        root = Path(exported['path']); manifest = json.loads((root / 'manifest.json').read_text())
+        relative = 'runtime/app/runtime_shapes.py'
+        self.assertIn(relative, manifest['files'])
+        manifest['files'].pop(relative); (root / relative).unlink()
+        (root / 'manifest.json').write_text(json.dumps(manifest))
+        with patch('app.notebooks._jupyter', side_effect=AssertionError('must reject before kernel')):
+            with self.assertRaisesRegex(GraphError, 'requires its captured runtime_shapes.py'):
                 execute_bundle(root)
         self.assertFalse((root / 'executions').exists())
 

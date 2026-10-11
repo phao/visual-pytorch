@@ -4,6 +4,29 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 08:50 -03:00 — Explicit eager runtime spatial contracts
+
+Added root Input H/W declarations to native/checked exported constructors because
+runtime image size must not be confused with constructor symbols or reallocated
+weights. Static dependency rules reject parameter-dependent axes with actionable
+paths; actual-case operator/DAG plans and current full-batch CPU RAM guards run
+before input packing/layers. Nested independent/shared calls reuse their weights
+at different resolutions without mutable stored contracts. Inferred Reshape uses
+actual targets; shapes/dtypes/names/axes/batches remain explicit. Added64-context
+reservations including pending parents after a nested fan-out review. Captured
+export/report closures include the actual new module with legacy dependency gates.
+
+23 pure/native0.563s and24 numerical4.835s pass: independent functional gradients,
+shared encoders, variable boundaries/Reshape/pooling/Permute, pre-operation refusal,
+stable Adam and fresh app-free3-update execution.293 JS1194.775594ms and actual
+sandboxed Qt export bytes/unchanged SQL/reload pass. Final824-test run266.423s
+passes (821 PASS/3 environment Qt skips, separately native-verified), with no final
+ResourceWarnings and actual notebook/worker/old closure regressions. Earlier823
+run remains history. Pooling fixture failures are retained/corrected, not
+weakened axis rules. Specs distinguish this implemented API from pending persisted/
+typed runtime authoring and concrete-only tasks. D/E/full goal remain unfinished/
+active, no publication or real user-state changes. See docs/development.md.
+
 ## 2026-10-11 08:30 -03:00 — Checked family source and semantic warm starts
 
 Added standalone checked family constructors because concrete-only export cannot
