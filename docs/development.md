@@ -1,5 +1,29 @@
 # Development state and roadmap
 
+## 2026-10-11 — Explicit panel preset and interaction preferences
+
+[panel-workspace.md](panel-workspace.md) specifies the optional `.vtw`
+`panel_layout` preset, shared pure/CLI validation, ephemeral instance and expected
+preset guards, small native acknowledgement/broadcast and preservation outside
+computational undo. This is explicit Save current arrangement, not per-drag
+autosaving. Global Display `grid_snap` defaults false and Ctrl inverts it for
+movement/resize; native Preview/Cancel/Save remains transactional. Shift keeps
+menu-layer translation. Plain page Find is removed. Architectures-list opens
+clear selection/hide menus in same/new tabs, without rewriting the preset.
+
+Full601 Python tests (194.481s) and254 JS tests (1868.517ms) pass. Private native
+preferences/context/preset checks, actual sandboxed WebEngine panel storage,
+same-UUID reload/second-view restoration, real default/Ctrl-inverse mouse
+movement/resize, six font/window adaptation samples, same-tab/new-tab clean opens
+and broad old Qt UI/Softmax checks pass with no final console errors or host
+Torch import. An outdated four-activation assertion and Find action expectation
+were corrected because those features intentionally changed. Test-harness
+coordinate-selector/modifier/initial-load probes are retained as failures, not
+hidden or counted as passes. No arbitrary desktop zoom or whole-window gate is
+inferred. Parameter-relative layout and session-only viewport are the next user
+requests, not delivered by this checkpoint. Stage C remains local/incomplete;
+main/public refs and user application/workspaces/configuration are unchanged.
+
 The canonical source repository is https://github.com/phao/visual-pytorch,
 with integration branch `main`. Local research campaigns are separate from this
 public source tree. Do not maintain a second live application fork in a campaign.

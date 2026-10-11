@@ -252,6 +252,22 @@ class UIContractTests(unittest.TestCase):
         self.assertNotIn('drag=',right_click)
         self.assertIn('selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));}',js)
 
+    def test_grid_preference_uses_one_inverse_rule_without_reassigning_shift(self):
+        js=(ROOT/'app/web/editor.js').read_text()
+        self.assertIn("dataset.gridSnap=String(state.display?.grid_snap===true)",js)
+        self.assertIn('G.snapPosition(drag.x + dx, drag.y + dy, snapEnabled(event))',js)
+        self.assertIn('drag.height+dy,snapEnabled(event))',js)
+        self.assertIn('snapEnabled(event));',(ROOT/'app/web/editor.js').read_text())
+        self.assertIn("clearMenus:true",js)
+        self.assertIn("event.kind==='navigateClean'",js)
+        self.assertIn("get('menus')==='hidden'",js)
+
+    def test_plain_page_find_is_removed_from_all_entry_points(self):
+        for path in ('app/desktop.py','app/context_menu.py','app/web/editor.js','app/web/index.html'):
+            text=(ROOT/path).read_text()
+            for obsolete in ('Ctrl+F','Find…','findText(', 'id="find"', 'safe("find")'):
+                self.assertNotIn(obsolete,text,path)
+
     def test_renderer_policy_precedes_application_and_window_creation(self):
         tree = ast.parse((ROOT / "app/desktop.py").read_text())
         main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")

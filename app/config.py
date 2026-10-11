@@ -8,7 +8,7 @@ from pathlib import Path
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent
 from .themes import resolve_theme
 
-DEFAULTS = {'ui_zoom': 1.15, 'font_size': 14, 'memory_limit_percent': DEFAULT_MEMORY_LIMIT_PERCENT, 'theme':'dark','spacing':4,'box_spacing':35}
+DEFAULTS = {'ui_zoom': 1.15, 'font_size': 14, 'memory_limit_percent': DEFAULT_MEMORY_LIMIT_PERCENT, 'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False}
 
 
 class Config:
@@ -45,6 +45,8 @@ class Config:
         box=values.get('box_spacing',DEFAULTS['box_spacing'])
         if isinstance(box,bool) or not isinstance(box,int) or not 1<=box<=100:
             raise ValueError('NN box spacing must be an integer from 1 to 100.')
+        if type(values.get('grid_snap', DEFAULTS['grid_snap'])) is not bool:
+            raise ValueError('Snap to grid by default must be a boolean.')
 
     def save(self, **changes):
         if 'layout' in changes:

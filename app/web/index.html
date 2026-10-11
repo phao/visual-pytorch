@@ -48,7 +48,7 @@
     <div class="navigation"><button id="back" class="icon" title="Back · Alt+Left">‹</button><button id="forward" class="icon" title="Forward · Alt+Right">›</button><button id="new-tab" class="icon" title="Open architecture in a new tab · Ctrl+T">↗</button></div>
     <div class="workspace-label"><span id="file-name">Welcome</span><span id="save-state" class="muted">No workspace open</span></div>
     <div class="canvas-toolbar" hidden><div><span class="eyebrow">ARCHITECTURE</span><h2 id="model-title">Linear regression</h2></div><div class="canvas-tools"><button id="rename-model" title="Rename architecture">Rename</button><button id="fit">Fit</button><button id="zoom-out" class="icon">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="icon">+</button><button id="validate" class="validate">Validate</button><button id="reset-panels" title="Restore panel positions and sizes">Panels ↺</button></div></div>
-    <div class="actions"><label class="safety-toggle" title="Limit runs, not architecture specifications"><input id="constrained-mode" type="checkbox" checked disabled>Constrained</label><button id="open-workspace">Open…</button><button id="save-workspace">Save workspace</button><button id="find" class="icon" title="Find · Ctrl+F">⌕</button></div>
+    <div class="actions"><label class="safety-toggle" title="Limit runs, not architecture specifications"><input id="constrained-mode" type="checkbox" checked disabled>Constrained</label><button id="open-workspace">Open…</button><button id="save-workspace">Save workspace</button></div>
   </header>
 
   <main id="welcome" class="welcome">
@@ -82,7 +82,7 @@
       <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>
       <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button>
       <button id="add-replicator" class="palette compact-palette"><span class="type-symbol amber-text">⇉</span><span><b>Replicator</b><small>Expose the full tensor on two ports without copying it</small></span></button></div>
-      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl-drag snaps blocks to the grid. Named boundaries define a reusable architecture's interface.</p></div>
+      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl reverses the grid-snapping default set in Display preferences. Named boundaries define a reusable architecture's interface.</p></div>
       </div>
     </aside>
 
@@ -117,6 +117,7 @@
           </div>
         </details>
         <div class="layout-footer"><p class="tiny">Settings belong to this workspace; Save workspace keeps them on disk. Spacing is in model units, independent of interface zoom. Each action is one undoable visual edit. Ports remain on the left/right in both directions.</p><button id="save-layout-preferences">Save layout preferences</button></div>
+        <details class="layout-section" id="panel-arrangement-section"><summary>Floating panel arrangement</summary><div class="layout-options"><p class="tiny">Save panel positions, sizes, visibility and stacking as this workspace's opening preset. Ordinary moves remain local; this preset does not affect the network or undo history. Save workspace to keep it on disk.</p><button id="save-panel-arrangement">Save current arrangement</button><button id="restore-panel-arrangement">Restore saved arrangement</button></div></details>
       </div>
     </aside>
 

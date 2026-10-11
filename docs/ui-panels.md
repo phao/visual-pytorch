@@ -22,16 +22,21 @@ initial geometry and closes menus without destroying their contents.
 
 Normal empty-canvas drag pans the graph. Shift + primary-button drag on stage
 translates the menu layer, including hidden ordinary menu positions, excluding
-full-stage expanded menus and text-input interactions. Ctrl-drag snaps a menu's
-top-left to the 24-unit stage grid; Ctrl-resize snaps bottom-right, preserving
-top-left/minimum size where feasible. Ctrl+Shift snaps the pack anchor and applies
-one shared delta. Normal box Ctrl-drag uses the separate 24-unit world grid.
+full-stage expanded menus and text-input interactions. Snap to grid by default is
+a user Display preference (default off); Ctrl inverts it during movement/resize.
+Snapped menu drags use top-left in the 24-unit stage grid; resizes use bottom-right,
+preserving top-left/minimum size where feasible. Shift layer movement snaps the
+pack anchor when snapping is active and applies one shared delta. Blocks use a
+separate 24-unit world grid. [Workspace presets](panel-workspace.md) save panel
+geometry/visibility/stacking explicitly in `.vtw`, independently of global display.
 
 Menus have overlay scrollbars, with hover/focus/scroll reveal and drag/keyboard
 control. Architectures is no longer nested in Building blocks. Its
 model list has natural height and no inner scrollbar or collapsible subsection;
-the outer menu
-scrolls if necessary. Building blocks retains the separate reusable-architecture
+the outer menu scrolls if necessary. Opening a model from that list clears selection and collapses the PANELS pack,
+hiding all menus after a successful open (same tab, tab hint, Ctrl/Meta or double
+click). Saved presets are not rewritten; other navigation keeps its own behavior.
+Building blocks retains the separate reusable-architecture
 selector. No Create MLP button/dialog is present.
 Architectures' title owns +; its non-collapsible Currently open card precedes
 the list and shows name/counts/shape/parameter information or draft status.
@@ -72,7 +77,7 @@ self-links/cycles, blank releases, Escape, pointer cancellation/lost capture and
 window blur cancel without a graph/history edit. Successful release is one
 undoable computational edit and invalidates current learned results. Tensor
 shape errors may still create a saveable non-runnable draft; no shape is guessed.
-Every diagram block has a bottom-right resize grip: Ctrl snaps that corner to the
+Every diagram block has a bottom-right resize grip: active snapping aligns it to the
 24-unit world grid, preserving top-left and readable minimums. Focused grips use
 8-unit arrow steps, or 24 with Shift/Ctrl. The block context menu's Automatic size
 removes custom dimensions; Inspector exposes no dimension/removal controls.

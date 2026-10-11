@@ -136,6 +136,21 @@ class CLIConfigTests(unittest.TestCase):
                 with self.assertRaises(ValueError):c.save(spacing=value)
                 self.assertEqual(path.read_bytes(),before)
 
+    def test_grid_default_is_boolean_persistent_and_legacy_read_is_nonmutating(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'config.json'
+            path.write_text(json.dumps({'font_size':18,'future_key':'kept'}))
+            before=path.read_bytes();c=Config(path)
+            self.assertFalse(c.values['grid_snap']);self.assertEqual(path.read_bytes(),before)
+            for enabled in (True,False):
+                c.save(grid_snap=enabled)
+                self.assertIs(Config(path).values['grid_snap'],enabled)
+                self.assertEqual(Config(path).values['future_key'],'kept')
+            for invalid in (0,1,'true',None,[],{}):
+                before=path.read_bytes()
+                with self.assertRaises(ValueError):c.save(grid_snap=invalid)
+                self.assertEqual(path.read_bytes(),before)
+
     def test_legacy_menu_choices_migrate_in_memory_until_explicit_save(self):
         with tempfile.TemporaryDirectory() as td:
             path=Path(td)/'config.json'

@@ -19,7 +19,7 @@ pending=[]
 view=View()
 window=SimpleNamespace(workspace=SimpleNamespace(models=lambda:{"model":{}}),
     save_workspace=lambda:called.append("save-workspace"),
-    open_tab=lambda mid:called.append("tab:"+mid),find=lambda:called.append("find"))
+    open_tab=lambda mid:called.append("tab:"+mid))
 configure_context_menu(view,window)
 assert view.contextMenuPolicy()==Qt.ContextMenuPolicy.CustomContextMenu
 menu=build_context_menu(view,window)
@@ -64,7 +64,7 @@ actions["Layout panel"].trigger()
 assert called[-1]=='window.loom && window.loom.perform("layout");'
 actions["Save workspace"].trigger();assert called[-1]=="save-workspace"
 actions["Open architecture in new tab"].trigger();assert called[-1]=="tab:model"
-actions["Find…"].trigger();assert called[-1]=="find"
+assert 'Find…' not in actions
 view.customContextMenuRequested.emit(QPoint(135,270))
 assert called[-1]=='window.loom && window.loom.contextAt(100.0,200.0);'
 assert not hasattr(view,'app_context_menu'),"Menu must wait for selection callback"

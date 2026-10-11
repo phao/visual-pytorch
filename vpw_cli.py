@@ -57,6 +57,10 @@ def apply_edits(workspace, edits):
             workspace.set_layout_preferences(edit['value'])
             results.append({'op': kind, 'value': workspace.layout_preferences})
             continue
+        elif kind == 'panel-layout':
+            workspace.set_panel_layout(edit['value'])
+            results.append({'op': kind, 'value': workspace.panel_layout})
+            continue
         elif kind == 'delete':
             workspace.delete(edit['id'])
             results.append({'op': kind, 'id': edit['id']})
@@ -247,6 +251,7 @@ def main(argv=None):
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],
                          'constrained_mode': workspace.constrained_mode,
                          'layout_preferences': workspace.layout_preferences,
+                         'panel_layout': workspace.panel_layout,
                          'architectures': [{'id':d['id'],'name':d['name'],'nodes':len(d['graph']['nodes'])} for d in sorted(workspace.models().values(),key=lambda d:(d['name'].casefold(),d['id']))],
                          'specifications': workspace.list_specs(),
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}

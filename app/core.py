@@ -315,6 +315,28 @@ class Workspace:
         self.dirty = False
         self.disk_revision = None
         self.disk_stamp = None
+        self.panel_scope = uuid.uuid4().hex  # Ephemeral UI owner; never stored in .vtw.
+
+    @property
+    def panel_layout(self):
+        from .presentation import validate_panel_layout
+        row = self.db.execute("SELECT value FROM metadata WHERE key='panel_layout'").fetchone()
+        try:
+            return validate_panel_layout(json.loads(row[0]) if row else None)
+        except (ValueError, TypeError) as error:
+            raise GraphError('Invalid workspace panel_layout metadata: ' + str(error)) from error
+
+    def set_panel_layout(self, value):
+        from .presentation import validate_panel_layout
+        value = validate_panel_layout(value)
+        if value != self.panel_layout:
+            with self.db:
+                if value is None:
+                    self.db.execute("DELETE FROM metadata WHERE key='panel_layout'")
+                else:
+                    self.db.execute("INSERT OR REPLACE INTO metadata VALUES ('panel_layout', ?)",
+                                    (json.dumps(value, sort_keys=True, allow_nan=False),))
+            self.dirty = True
 
     @property
     def layout_preferences(self):
@@ -556,6 +578,7 @@ class Workspace:
                     raise GraphError('Architecture row ID/name does not match its document.')
             w.constrained_mode
             w.layout_preferences
+            w.panel_layout
             if version<3:
                 # Working-copy migration only; the disk snapshot stays untouched until Save.
                 for doc in loaded.values():w.put(doc)

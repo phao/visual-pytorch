@@ -36,8 +36,8 @@ not a prohibition on improving the design.
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |
 | --- | --- | --- | --- |
-| Canvas world | Model/world units | Box positions and graph view | Free block drag; Ctrl snaps; empty drag pans |
-| Floating menus | CSS viewport units relative to editing stage | No; per-view session | Menu drag; Shift-drag translates menu layer |
+| Canvas world | Model/world units | Box positions and graph view | Block drag; Ctrl inverts snap default; empty drag pans |
+| Floating menus | CSS viewport units relative to editing stage | Explicit workspace preset; ordinary moves tab-local | Menu drag; Shift-drag translates menu layer |
 | Whole interface | Qt WebEngine zoom | App config JSON | Ctrl+/Ctrl−; not canvas zoom |
 
 Canvas transforms are translate(view.x,view.y) followed by scale(view.zoom).
@@ -111,10 +111,13 @@ when the title is offstage. It does not guarantee the whole title remains visibl
 
 Grid rules:
 
-- Ctrl + menu/pack drag: snap its **top-left** point to nearest 24-unit grid point.
-- Ctrl + resize: snap **bottom-right**, preserving top-left where feasible.
+- User Display preference `grid_snap` defaults false; Ctrl inverts it per event.
+  Preview/Cancel/Save behave like other display preferences. Shift retains its
+  menu-layer role; group selection remains deferred.
+- Snapped menu/pack drag: align its **top-left** to the nearest 24-unit grid point.
+- Snapped resize: align **bottom-right**, preserving top-left where feasible.
   Choose a grid-aligned corner satisfying minimum size.
-- Ctrl + Shift layer-drag: snap pack top-left as the shared anchor; preserve
+- Shift layer-drag with snapping active: snap pack top-left as the shared anchor; preserve
   relative positions by applying the same delta to ordinary menus, including hidden ones.
 - Visibility constraints can override exact snapping at stage extremes. Expanded
   menus do not move/resize and are excluded from layer translation until restored.
@@ -123,6 +126,27 @@ On stage resize, refit expanded menus and constrain moved ordinary rectangles/pa
 Closed menus need no immediate painted layout; when measuring one, briefly remove
 hidden synchronously and restore it before the next paint. Never interpret a
 display:none zero rectangle as its stored geometry.
+
+### Explicit workspace panel preset
+
+Layout → Floating panel arrangement saves the current ordinary rectangles,
+visibility, expansion flags, pack location/collapse and bottom-to-top order to
+`metadata.panel_layout`. Save workspace commits the draft to `.vtw`. New tabs and
+workspace opens initialize from it; Restore saved arrangement reapplies it.
+Ordinary gestures remain tab-local and create no history steps. Other open tabs
+receive updated preset metadata without immediately moving. Reset is local.
+Opening from the Architectures list clears selection/hides all panels/collapses
+the pack after success, including tab-hint/Ctrl/Meta/double-click opens. A new tab
+suppresses preset visibility once at initial load; ordinary navigation is unchanged.
+Failed opens do not hide the layer. The saved preset is not rewritten.
+Font/viewport adaptation keeps readable minima and a 24-unit recoverable slice,
+without rewriting the saved geometry. Capture expanded panels' ordinary restore
+rectangle, not full-stage bounds. Presets are outside computational undo/redo;
+restoring a historical graph must preserve the current preset.
+
+The precise closed JSON schema, CLI operation, stale-write guards and global
+snap-default distinction are in [panel-workspace.md](panel-workspace.md). Treat
+these as app storage bindings: a different product may use its own equivalent.
 
 ## 5. Gesture priority and event ownership
 
@@ -278,10 +302,10 @@ remain independently tuneable when adopting larger readable defaults.
 
 Every box has a 14×14 bottom-right SVG resize target with two diagonal marks,
 nwse-resize cursor, accessible label/disabled state and keyboard focus. Drag in
-inverse canvas/world coordinates; do not change top-left. Ctrl snaps bottom-right
+inverse canvas/world coordinates; do not change top-left. Active snapping aligns bottom-right
 to the 24-unit world grid, raising a snapped corner as necessary to satisfy the
 minimum. Arrow keys change a focused grip by 8 units; Shift or Ctrl uses 24, and
-Ctrl also snaps. The Inspector has no removal or diagram width/height controls.
+Ctrl inverts the global snap default. The Inspector has no removal or diagram width/height controls.
 The block context menu's Automatic size deletes both size preferences, preserving
 position, folding and computation. It is undoable and disabled during training;
 the dispatcher rechecks the captured model/block IDs and busy state. Repeating
@@ -512,6 +536,9 @@ Domain history is session-only SQLite snapshots (50 steps/128 MiB combined),
 not floating-menu/display preferences. No history edits during training;
 preserve run evidence for surviving restored architectures. A different product
 must choose its own transactional history implementation, not blindly reuse .vtw.
+
+The plain browser-page Find button, context-menu entry and Ctrl+F binding are
+removed; no replacement architecture search is claimed.
 
 Group selection is explicitly NOT implemented. The owner is considering ordinary
 selection versus Ctrl-selection/drag; a future decision may replace current Ctrl

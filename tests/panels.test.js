@@ -65,12 +65,12 @@ class Element {
       width:parseFloat(this.style.width)||this.rect.width,height:parseFloat(this.style.height)||this.rect.height};
   }
 }
-function fixture(){
+function fixture(snapDefault=()=>false){
   global.ResizeObserver=class{constructor(fn){this.fn=fn;}observe(){}};
   global.MutationObserver=class{constructor(fn){this.fn=fn;}observe(){}};
   const editor=new Element("editor",{x:0,y:0,width:1000,height:700});
   editor.clientWidth=1000;
-  const panels=["library-panel","inspector-panel","experiment-dock","architectures-panel"].map(id=>{
+  const panels=["library-panel","inspector-panel","experiment-dock","architectures-panel","layout-panel"].map(id=>{
     const p=new Element(id);p.hidden=true;
     for(const selector of ["[data-fold-panel]","[data-expand-panel]","[data-drag-handle]",".scrollport"]){
       const e=new Element();e.isButton=selector.includes("panel]");p.selectors[selector]=e;
@@ -87,7 +87,7 @@ function fixture(){
     getElementById:id=>all.find(e=>e.id===id),createElement:()=>new Element(),
     documentElement:new Element(),getSelection:()=>({removeAllRanges:()=>doc.selectionCleared=true}),
   };
-  return {api:P.initialize(doc),editor,panels,pack,toggle,menus,heading,openers,doc};
+  return {api:P.initialize(doc,snapDefault),editor,panels,pack,toggle,menus,heading,openers,doc};
 }
 test("All menus initially closed; pack buttons open/hide independent panels",()=>{
   const f=fixture();assert.ok(f.panels.every(p=>p.hidden));assert.equal(f.menus.hidden,false);
@@ -160,6 +160,39 @@ test("Shift-drag pans the menu layer, including closed menus, not the drawing",(
 
 const pointer=(type,target,x,y,extra={})=>({type,target,button:0,pointerId:1,clientX:x,clientY:y,
   preventDefault(){},stopPropagation(){},...extra});
+test('Ctrl inverts either grid default; Shift does not change the snap decision',()=>{
+  for(const enabled of [false,true])for(const ctrlKey of [false,true])for(const shiftKey of [false,true])
+    assert.equal(P.snapEnabled({ctrlKey,shiftKey},enabled),enabled!==ctrlKey);
+});
+test('Snapped default applies to panel/pack/layer movement and corner resize; Ctrl frees each',()=>{
+  let enabled=true;const f=fixture(()=>enabled),p=f.panels[0],heading=p.selectors['[data-drag-handle]'];
+  f.api.open(p.id);
+  for(const ctrlKey of [false,true]) {
+    p.style.left='0px';p.style.top='0px';p.style.width='240px';p.style.height='400px';
+    heading.dispatchEvent(pointer('pointerdown',heading,0,0));
+    heading.dispatchEvent(pointer('pointermove',heading,50,70,{ctrlKey}));
+    heading.dispatchEvent(pointer('pointerup',heading,50,70));
+    assert.equal(p.style.left,ctrlKey?'50px':'48px');assert.equal(p.style.top,ctrlKey?'70px':'72px');
+    const grip=p.children.find(e=>e.className==='panel-resize');
+    grip.dispatchEvent(pointer('pointerdown',grip,0,0));
+    grip.dispatchEvent(pointer('pointermove',grip,17,13,{ctrlKey}));
+    grip.dispatchEvent(pointer('pointerup',grip,17,13));
+    if(ctrlKey){assert.equal(p.style.width,'257px');assert.equal(p.style.height,'413px');}
+    else {assert.equal((parseFloat(p.style.left)+parseFloat(p.style.width))%24,0);assert.equal((parseFloat(p.style.top)+parseFloat(p.style.height))%24,0);}
+    f.pack.style.left='0px';f.pack.style.top='0px';
+    f.heading.onpointerdown(pointer('pointerdown',f.heading,0,0));
+    f.heading.onpointermove(pointer('pointermove',f.heading,50,70,{ctrlKey}));
+    f.heading.dispatchEvent(pointer('pointerup',f.heading,50,70));
+    assert.equal(f.pack.style.left,ctrlKey?'50px':'48px');
+    f.pack.style.left='0px';f.pack.style.top='0px';
+    f.editor.dispatchEvent(pointer('pointerdown',f.editor,0,0,{shiftKey:true}));
+    f.editor.dispatchEvent(pointer('pointermove',f.editor,50,70,{shiftKey:true,ctrlKey}));
+    f.editor.dispatchEvent(pointer('pointerup',f.editor,50,70));
+    assert.equal(f.pack.style.top,ctrlKey?'70px':'72px');
+  }
+  enabled=false;
+  assert.equal(P.snapEnabled({},enabled),false); // provider follows live Preview/Cancel updates.
+});
 test("Dragging suppresses selection temporarily and releases the hand cursor on cancel",()=>{
   const f=fixture(),p=f.panels[0],heading=p.selectors['[data-drag-handle]'];
   heading.dispatchEvent(pointer('pointerdown',heading,0,0));
@@ -208,4 +241,59 @@ test("Ctrl+Shift snaps the pack anchor while preserving relative menu positions"
   f.editor.dispatchEvent(pointer("pointermove",target,17,9,{shiftKey:true,ctrlKey:true}));
   assert.equal(f.pack.style.left,"24px");assert.equal(f.pack.style.top,"0px");
   assert.equal(f.panels[0].style.left,"24px");assert.equal(f.panels[0].style.top,"0px");
+});
+
+test('Preset captures hidden panels, CSS rectangles, ordering and pack state with defensive copies',()=>{
+  const f=fixture();f.api.open('library-panel');f.api.open('inspector-panel');
+  f.panels[0].style.left='-150.25px';f.panels[0].style.width='310.5px';f.pack.style.left='23px';
+  const value=f.api.capture();assert.equal(value.panels['library-panel'].x,-150.25);
+  assert.equal(value.panels['library-panel'].width,310.5);assert.equal(value.pack.x,23);
+  assert.equal(value.panels['architectures-panel'].visible,false);assert.equal(value.order.at(-1),'inspector-panel');
+  value.panels['library-panel'].x=999;assert.equal(f.api.capture().panels['library-panel'].x,-150.25);
+});
+test('Capturing an expanded panel keeps its ordinary rectangle and does not change visible UI',()=>{
+  const f=fixture(),p=f.panels[0];f.api.open(p.id);p.style.left='100px';p.style.top='80px';p.style.width='350px';p.style.height='450px';
+  p.selectors['[data-expand-panel]'].onclick();const css=p.style.cssText;
+  const value=f.api.capture();assert.equal(value.panels[p.id].width,350);assert.equal(value.panels[p.id].x,100);
+  assert.ok(value.panels[p.id].expanded&&value.panels[p.id].visible);assert.equal(p.style.cssText,css);
+  assert.ok(p.classList.contains('expanded'));
+});
+test('Applying a preset restores flags and stacking; closing expanded panels restores ordinary geometry',()=>{
+  const a=fixture();a.api.open('library-panel');a.panels[0].style.width='390px';
+  a.panels[0].selectors['[data-expand-panel]'].onclick();a.api.open('inspector-panel');const value=a.api.capture();
+  const b=fixture();b.api.apply(value);assert.ok(b.panels[0].classList.contains('expanded')&&!b.panels[0].hidden);
+  assert.equal(b.panels[0].style.width,'968px');assert.ok(Number(b.panels[1].style.zIndex)>Number(b.panels[0].style.zIndex));
+  b.panels[0].selectors['[data-fold-panel]'].onclick();assert.ok(b.panels[0].hidden);assert.equal(b.panels[0].style.width,'390px');
+  assert.deepEqual(value,a.api.capture());
+});
+test('Collapsed pack presets restore no visible panels and clear old workspace geometry on null',()=>{
+  const a=fixture();a.api.open('library-panel');a.toggle.onclick();const value=a.api.capture();
+  const b=fixture();b.api.open('inspector-panel');b.api.apply(value);
+  assert.ok(b.pack.classList.contains('collapsed')&&b.panels.every(p=>p.hidden));
+  b.api.apply(null);assert.ok(!b.pack.classList.contains('collapsed')&&b.panels.every(p=>p.hidden));
+  assert.equal(b.pack.style.left,undefined);assert.equal(b.panels[0].style.left,undefined);
+});
+test('Preset validation rejects malformed state before touching current controls',()=>{
+  const f=fixture();f.api.open('library-panel');const before=f.api.capture();
+  for(const mutate of [v=>v.version=2,v=>v.pack.x=NaN,v=>v.pack.x=true,v=>v.panels['library-panel'].width=0,
+    v=>v.panels['library-panel'].css='color:red',v=>v.order[0]=v.order[1],v=>v.panels['unknown']=v.panels['library-panel'],
+    v=>v.panels['architectures-panel'].expanded=true,v=>v.pack.collapsed=true]) {
+    const bad=structuredClone(before);mutate(bad);assert.throws(()=>f.api.apply(bad));assert.deepEqual(f.api.capture(),before);
+  }
+  const copy=P.validatePreset(before);copy.order.reverse();assert.notDeepEqual(copy.order,before.order);
+});
+test('Off-stage presets retain a recoverable slice and cannot shrink below readable minima',()=>{
+  const f=fixture(),value=f.api.capture();value.pack.x=1000000;value.pack.y=-1000000;
+  value.panels['library-panel']={x:-1000000,y:1000000,width:1,height:1,visible:true,expanded:false};
+  f.api.apply(value);assert.equal(f.pack.style.left,'976px');assert.equal(f.pack.style.top,'-136px');
+  assert.equal(f.panels[0].style.left,'-196px');assert.equal(f.panels[0].style.top,'676px');
+  assert.equal(f.panels[0].style.width,'220px');assert.equal(f.panels[0].style.height,'140px');
+  assert.equal(value.panels['library-panel'].width,1);
+});
+test('Applying a workspace preset cancels an active menu gesture without retaining old movement',()=>{
+  const f=fixture(),p=f.panels[0],heading=p.selectors['[data-drag-handle]'];
+  f.api.open(p.id);const value=f.api.capture();heading.dispatchEvent(pointer('pointerdown',heading,0,0));
+  heading.dispatchEvent(pointer('pointermove',heading,72,48));assert.ok(f.doc.documentElement.classList.contains('loom-dragging'));
+  f.api.apply(value);heading.dispatchEvent(pointer('pointermove',heading,400,400));
+  assert.equal(p.style.left,'0px');assert.ok(!f.doc.documentElement.classList.contains('loom-dragging'));
 });

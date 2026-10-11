@@ -29,7 +29,7 @@ from PyQt6.QtCore import QObject, QSettings, QThread, QTimer, QUrl, Qt, pyqtSign
 from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont
 from PyQt6.QtWidgets import (QApplication, QFileDialog, QInputDialog, QMainWindow,
                             QMessageBox, QTabWidget, QDialog, QFormLayout, QDoubleSpinBox,
-                            QSpinBox, QDialogButtonBox, QComboBox)
+                            QSpinBox, QDialogButtonBox, QComboBox, QCheckBox)
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, qWebEngineVersion
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -195,7 +195,6 @@ class Window(QMainWindow):
             ("Back", "Alt+Left", lambda: self.current_view().back()),
             ("Forward", "Alt+Right", lambda: self.current_view().forward()),
             ("Open current architecture in new tab", "Ctrl+T", self.duplicate_tab),
-            ("Find…", "Ctrl+F", self.find),
         ]:
             action = QAction(title, self)
             action.setShortcut(QKeySequence(key))
@@ -216,7 +215,7 @@ class Window(QMainWindow):
     def current_view(self):
         return self.tabs.currentWidget()
 
-    def open_tab(self, mid=None):
+    def open_tab(self, mid=None, *, clear_menus=False):
         view = QWebEngineView()
         view.mid = mid
         configure_context_menu(view, self)
@@ -229,6 +228,7 @@ class Window(QMainWindow):
         page.setWebChannel(channel)
         view.bridge, view.channel = bridge, channel
         url = QUrl.fromLocalFile(str(Path(__file__).parent / "web" / "index.html"))
+        if clear_menus:url.setQuery('menus=hidden')
         if mid:
             url.setFragment("model=" + mid)
         view.setUrl(url)
@@ -272,7 +272,7 @@ class Window(QMainWindow):
             self.apply_theme();self.broadcast()
 
     def display_options(self):
-        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing')}
+        original={key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False}.get(key)) for key in ('ui_zoom','font_size','theme','spacing','box_spacing','grid_snap')}
         dialog = QDialog(self)
         dialog.setWindowTitle(APP_NAME+' — Display preferences')
         dialog.setMinimumWidth(max(480, self.config.values['font_size'] * 30))
@@ -298,11 +298,16 @@ class Window(QMainWindow):
         boxes.setRange(1,100);boxes.setValue(self.config.values.get('box_spacing',35))
         boxes.setToolTip('Independent of menu spacing. 1 is densest, 100 roomiest; text size is unchanged.')
         layout.addRow('NN box spacing (1–100)',boxes)
+        snap=QCheckBox('Snap to grid by default',dialog)
+        snap.setObjectName('display-grid-snap')
+        snap.setChecked(self.config.values.get('grid_snap',False))
+        snap.setToolTip('Ctrl temporarily inverts snapping for block/panel movement and resizing. Shift-drag still moves the menu layer.')
+        layout.addRow(snap)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         preview=buttons.addButton('Preview',QDialogButtonBox.ButtonRole.ActionRole)
         preview.setObjectName('preview-display')
         preview.setToolTip('Try these settings without saving; Cancel restores the previous appearance.')
-        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value()}
+        def values():return {'ui_zoom':zoom.value(),'font_size':font.value(),'theme':theme.currentData(),'spacing':spacing.value(),'box_spacing':boxes.value(),'grid_snap':snap.isChecked()}
         def preview_now():
             self.set_display(persist=False,**values())
             dialog.setMinimumWidth(max(480,self.config.values['font_size']*30))
@@ -312,7 +317,7 @@ class Window(QMainWindow):
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
         accepted=dialog.exec()==QDialog.DialogCode.Accepted
         if accepted and self.set_display(**values()):return
-        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35}.get(key)) for key in original}!=original:
+        if {key:self.config.values.get(key,{'theme':'dark','spacing':4,'box_spacing':35,'grid_snap':False}.get(key)) for key in original}!=original:
             self.set_display(persist=False,**original)
 
     def safety_options(self):
@@ -404,11 +409,6 @@ class Window(QMainWindow):
     def duplicate_tab(self):
         self.open_tab(self.current_view().mid)
 
-    def find(self):
-        text, ok = QInputDialog.getText(self, "Find in current page", "Text:")
-        if ok:
-            self.current_view().findText(text)
-
     def recent_files(self):
         raw = self.settings_store.value("recentFiles", "[]")
         try:
@@ -446,6 +446,8 @@ class Window(QMainWindow):
             "rendering": self.rendering,
             "constrained_mode": self.workspace.constrained_mode if self.workspace else True,
             "layout_preferences": self.workspace.layout_preferences if self.workspace else None,
+            "panel_layout": self.workspace.panel_layout if self.workspace else None,
+            "panel_scope": self.workspace.panel_scope if self.workspace else None,
             "memory_limit_percent": self.config.values['memory_limit_percent'] if hasattr(self, 'config') else DEFAULT_MEMORY_LIMIT_PERCENT,
             "display": {k: v for k, v in self.config.values.items() if k != 'layout'} if hasattr(self, 'config') else {'font_size':14,'ui_zoom':1.15},
         }
@@ -608,9 +610,6 @@ class Window(QMainWindow):
         if action == "home":
             bridge.send("navigate", None)
             return True
-        if action == "find":
-            self.find()
-            return True
         if action == 'setLayoutPreferences':
             if not self.workspace:
                 raise ValueError('Open a workspace before saving its layout preferences.')
@@ -621,6 +620,20 @@ class Window(QMainWindow):
             return self.workspace.layout_preferences
         if not self.workspace:
             raise ValueError("Create or open a workspace first.")
+        if action == 'setPanelLayout':
+            if set(req) != {'action', 'workspace_id', 'panel_scope', 'expected', 'layout'}:
+                raise ValueError('Panel arrangement request has missing or unsupported fields.')
+            from .presentation import validate_panel_layout
+            wid=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; review its panel arrangement before saving.')
+            if validate_panel_layout(req['expected']) != self.workspace.panel_layout:
+                raise ValueError('Saved panel arrangement changed; restore or review it before overwriting.')
+            self.workspace.set_panel_layout(req['layout'])
+            result={'workspace_id':wid,'panel_scope':self.workspace.panel_scope,
+                    'layout':self.workspace.panel_layout,'dirty':self.workspace.dirty}
+            self.broadcast('panelLayout',result)
+            return result
         from .desktop_experiments import ACTIONS, dispatch as science_dispatch
         if action in ACTIONS: return science_dispatch(self, req, bridge)
         models = self.workspace.models()
@@ -635,9 +648,10 @@ class Window(QMainWindow):
             if mid not in models:
                 raise ValueError("That architecture no longer exists.")
             if req.get("newTab"):
-                self.open_tab(mid)
+                if req.get('clearMenus') is True:self.open_tab(mid,clear_menus=True)
+                else:self.open_tab(mid)
             else:
-                bridge.send("navigate", mid)
+                bridge.send('navigateClean' if req.get('clearMenus') is True else 'navigate',mid)
             return True
         if action == "newModel":
             if job_busy(self.job):

@@ -5,11 +5,14 @@
   const G = window.LoomGraph;
   const L = window.LoomLayout;
   const T = window.LoomTensorOperators;
-  const floating = window.LoomPanels.initialize(document);
+  const snapEnabled = event => window.LoomPanels.snapEnabled(event,document.documentElement.dataset.gridSnap==='true');
+  const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.gridSnap==='true');
   const activationInfo = window.LoomActivations.info;
   let host, state = {models: {}, recent: []}, doc = null, description = null;
   let selected = null, selectedPort = null, selectedWire = null, connecting = null, drag = null, panel = "experiment";
   let syncQueue = Promise.resolve(), describeGeneration = 0;
+  let panelWorkspace, panelSavePending=false;
+  let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
   const clone = obj => JSON.parse(JSON.stringify(obj));
@@ -50,6 +53,7 @@
   }
 
   function header() {
+    document.documentElement.dataset.gridSnap=String(state.display?.grid_snap===true);
     document.documentElement.dataset.theme=state.theme || 'dark';
     document.documentElement.dataset.spacing=String(state.display?.spacing ?? 4);
     document.documentElement.style.setProperty('--menu-unit',(state.display?.spacing ?? 4)+'px');
@@ -68,6 +72,12 @@
     $("runtime").textContent = (state.binding || "Qt webview") + " · SQLite workspace" +
       (state.rendering?.mode === "software" ? " · software webview" : "");
     for(const id of ['minimize-all','expand-all'])$(id).disabled=!doc || busy();
+    $('save-panel-arrangement').disabled=!doc||panelSavePending;
+    $('restore-panel-arrangement').disabled=!doc||panelSavePending;
+  }
+  function restoreWorkspacePanels(force=false) {
+    if(!doc||!state.workspace_id)return;
+    if(force||panelWorkspace!==state.panel_scope){floating.apply(state.panel_layout??null);panelWorkspace=state.panel_scope;}
   }
 
   function recentFiles() {
@@ -95,6 +105,7 @@
     connecting = null;
     selectedWire = null;
     header();
+    restoreWorkspacePanels();
     recentFiles();
     if (!doc) {
       $("status").textContent = "Open a workspace to start building";
@@ -103,6 +114,7 @@
     selected = doc.graph.nodes.find(n => n.type === "Linear" || n.type === "Module")?.id || doc.graph.nodes[0]?.id;
     document.title = doc.name + " · Visual PyTorch";
     render();
+    if(clearMenusOnRoute){clearMenusOnRoute=false;selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}
     await describe();
     if (!doc.view.fitted) requestAnimationFrame(() => { if (doc?.id === id) fit(); });
   }
@@ -121,6 +133,7 @@
       navigate(null);
     }
     header();
+    restoreWorkspacePanels();
     recentFiles();
   }
 
@@ -133,8 +146,9 @@
       button.className = "model-row" + (doc?.id === model.id ? " selected" : "");
       const refCount = model.graph.nodes.filter(n => n.type === "Module").length;
       button.innerHTML = '<span class="model-glyph">▣</span><span><b>' + esc(model.name) + '</b><small>' + model.graph.nodes.length + ' blocks' + (refCount ? ' · ' + refCount + ' reference' + (refCount > 1 ? 's' : '') : model.graph.nodes.some(n => n.type === "Activation") ? ' · nonlinear graph' : ' · affine graph') + '</small></span><span class="tab-hint">↗</span>';
-      button.onclick = event => safe("openModel", {id: model.id, newTab: event.ctrlKey || event.metaKey || Boolean(event.target.closest(".tab-hint"))});
-      button.ondblclick = () => safe("openModel", {id: model.id, newTab: true});
+      const open=async newTab=>{if(await safe('openModel',{id:model.id,newTab,clearMenus:true})){selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}};
+      button.onclick = event => open(event.ctrlKey || event.metaKey || Boolean(event.target.closest(".tab-hint")));
+      button.ondblclick = () => open(true);
       $("model-list").append(button);
     }
     const current = $("reference-select").value;
@@ -311,7 +325,7 @@
       const grip=svgElement('g',{class:'node-resize',transform:'translate('+(m.width-14)+','+(height-14)+')',tabindex:busy()?-1:0,role:'button','aria-label':'Resize '+label+' block','aria-disabled':String(busy())});
       grip.append(svgElement('path',{d:'M0 0H14V14H0Z',fill:'transparent',stroke:'none'}));
       grip.append(svgElement('path',{d:'M3 11L11 3M7 11L11 7',class:'resize-mark',fill:'none'}));
-      grip.append(svgElement('title',{},'Drag to resize · Ctrl snaps bottom-right · arrow keys resize'));if(!n.collapsed)group.append(grip);
+      grip.append(svgElement('title',{},'Drag to resize · Ctrl inverts grid snapping · arrow keys resize'));if(!n.collapsed)group.append(grip);
       $("nodes").append(group);
     }
     // Above the boxes, but just outside their input sockets. Every destination
@@ -866,13 +880,13 @@
       $('pending-wire').setAttribute('d',wirePath(portPoint(node(drag.edge.from),true,drag.edge.from_port || null),point));
       $('status').textContent='Reconnect destination · drop on an empty input socket · Escape cancels';
     } else if (drag.kind === 'resize') {
-      G.resizeBlock(node(drag.id),drag.width+dx,drag.height+dy,event.ctrlKey);
-      $("status").textContent=event.ctrlKey?'Resize · bottom-right snaps to grid':'Resize block · hold Ctrl to snap';
+      G.resizeBlock(node(drag.id),drag.width+dx,drag.height+dy,snapEnabled(event));
+      $("status").textContent=snapEnabled(event)?'Resize · bottom-right snaps to grid · Ctrl for free resizing':'Free resize · Ctrl to snap';
       renderGraph();
     } else if (drag.kind === "node") {
-      const position = G.snapPosition(drag.x + dx, drag.y + dy, event.ctrlKey);
+      const position = G.snapPosition(drag.x + dx, drag.y + dy, snapEnabled(event));
       Object.assign(node(drag.id), position);
-      $("status").textContent = event.ctrlKey ? "Snap to grid · 24 model units" : "Free drag · hold Ctrl to snap";
+      $("status").textContent = snapEnabled(event) ? "Snap to grid · 24 model units · Ctrl for free drag" : "Free drag · Ctrl to snap";
       renderGraph();
     } else {
       doc.view.x = drag.x + dx;
@@ -940,7 +954,7 @@
     const grip=event.target.closest('.node-resize'),delta={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[event.key];
     if(grip && delta && doc && !busy()){
       event.preventDefault();const n=node(grip.closest('.node').dataset.id),factor=event.shiftKey || event.ctrlKey?3:1;
-      G.resizeBlock(n,G.width(n)+delta[0]*factor,G.height(n)+delta[1]*factor,event.ctrlKey);
+      G.resizeBlock(n,G.width(n)+delta[0]*factor,G.height(n)+delta[1]*factor,snapEnabled(event));
       persist().then(()=>document.querySelector('.node[data-id="'+CSS.escape(n.id)+'"] .node-resize')?.focus());return;
     }
     if(!editing && !event.altKey && (event.ctrlKey || event.metaKey)) {
@@ -980,7 +994,6 @@
   $("back").onclick = () => history.back();
   $("forward").onclick = () => history.forward();
   $("new-tab").onclick = () => doc && safe("openModel", {id: doc.id, newTab: true});
-  $("find").onclick = () => safe("find");
   $("new-workspace").onclick = () => safe("newWorkspace");
   $("open-workspace").onclick = $("welcome-open").onclick = () => safe("openWorkspace");
   $("save-workspace").onclick = async () => { await syncQueue; const ok = await safe("save"); if (ok) toast("Workspace saved."); };
@@ -994,6 +1007,19 @@
     header();
   };
   $("reset-panels").onclick = () => {floating.reset();toast("Panels hidden and menu pack restored. Choose a menu to open it.");};
+  $('restore-panel-arrangement').onclick=()=>{restoreWorkspacePanels(true);toast('Saved workspace panel arrangement restored.');};
+  $('save-panel-arrangement').onclick=async()=>{
+    if(!doc||panelSavePending)return;
+    const workspace_id=state.workspace_id,panel_scope=state.panel_scope,expected=clone(state.panel_layout??null);
+    panelSavePending=true;header();
+    try {
+      const result=await call('setPanelLayout',{workspace_id,panel_scope,expected,layout:floating.capture()});
+      if(state.workspace_id!==workspace_id||state.panel_scope!==panel_scope)return;
+      state.panel_layout=result.layout;state.dirty=result.dirty;
+      toast('Panel arrangement saved in this workspace draft. Save workspace to keep it on disk.');
+    } catch(error){if(state.workspace_id===workspace_id&&state.panel_scope===panel_scope)toast(error.message,true);}
+    finally{panelSavePending=false;header();}
+  };
   $("resume-workspace").onclick = () => safe("openModel", {id: Object.keys(state.models)[0]});
   $("add-model").onclick = async () => { const name = await nameDialog("New architecture"); if (name) safe("newModel", {name}); };
   $("rename-model").onclick = async () => { const name = await nameDialog("Rename architecture", doc.name, "Rename"); if (name) { doc.name = name; await persist(); renderLibrary(); } };
@@ -1046,8 +1072,10 @@
     const event = JSON.parse(raw);
     window.LoomScience?.event(event);
     if (event.kind === "state") hydrate(event.payload);
+    else if(event.kind==='panelLayout'&&event.payload.workspace_id===state.workspace_id&&event.payload.panel_scope===state.panel_scope){state.panel_layout=event.payload.layout;state.dirty=event.payload.dirty;header();}
     else if(event.kind==='history'){state.history=event.payload;if(event.payload.notice)toast(event.payload.notice,true);}
     else if (event.kind === "navigate") navigate(event.payload);
+    else if(event.kind==='navigateClean'){clearMenusOnRoute=true;navigate(event.payload);}
     else if (event.kind === "progress" && doc?.id === event.payload.id) {
       const point = event.payload;
       liveHistories[doc.id] ||= [];
@@ -1064,7 +1092,7 @@
       }
       toast(event.payload.result.stopped ? "Training stopped; partial result recorded." : "Training complete. Inspect Learned parameters and predictions.");
     } else if (event.kind === "trainingError" || event.kind === "externalConflict") toast(event.payload, true);
-    else if (event.kind === "externalReload") toast(event.payload);
+    else if (event.kind === "externalReload") {restoreWorkspacePanels(true);toast(event.payload);}
   }
 
   async function initialize() {
@@ -1141,5 +1169,5 @@
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-replicator','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));
   $("dots").querySelector("circle").setAttribute("cy", 0);
-  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: snap · wheel: zoom · empty drag: pan · Shift-drag: menus";
+  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: invert snapping · wheel: zoom · empty drag: pan · Shift-drag: menus";
 })();

@@ -5,6 +5,26 @@
   else root.LoomPanels = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
+  const snapEnabled = (event, defaultEnabled=false) => Boolean(defaultEnabled) !== Boolean(event.ctrlKey);
+  const panelIDs=['architectures-panel','experiment-dock','inspector-panel','layout-panel','library-panel'];
+  function validatePreset(value) {
+    if(value===null)return null;
+    const keys=(o,names)=>{if(!o||typeof o!=='object'||Array.isArray(o)||Object.keys(o).length!==names.length||names.some(k=>!Object.hasOwn(o,k)))throw Error('Panel arrangement has missing or unsupported fields.');};
+    const number=(v,lo,hi)=>{if(typeof v!=='number'||!Number.isFinite(v)||v<lo||v>hi)throw Error('Panel arrangement coordinates/sizes must be finite numbers in range.');};
+    keys(value,['version','pack','panels','order']);if(value.version!==1)throw Error('Panel arrangement requires version 1.');
+    keys(value.pack,['x','y','collapsed']);number(value.pack.x,-1000000,1000000);number(value.pack.y,-1000000,1000000);
+    if(typeof value.pack.collapsed!=='boolean')throw Error('Panel pack collapsed must be a boolean.');
+    keys(value.panels,panelIDs);
+    for(const p of Object.values(value.panels)) {
+      keys(p,['x','y','width','height','visible','expanded']);number(p.x,-1000000,1000000);number(p.y,-1000000,1000000);
+      number(p.width,1,100000);number(p.height,1,100000);
+      if(typeof p.visible!=='boolean'||typeof p.expanded!=='boolean')throw Error('Panel visibility/expansion must be booleans.');
+      if(p.expanded&&!p.visible)throw Error('A hidden panel cannot be expanded.');
+      if(value.pack.collapsed&&p.visible)throw Error('A collapsed menu pack cannot contain visible panels.');
+    }
+    if(!Array.isArray(value.order)||value.order.length!==panelIDs.length||new Set(value.order).size!==panelIDs.length||value.order.some(id=>!panelIDs.includes(id)))throw Error('Panel order must contain each supported panel exactly once.');
+    return JSON.parse(JSON.stringify(value));
+  }
   function shortcutPanel(event) {
     if(event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.target?.isContentEditable ||
        event.target?.closest('input,textarea,select,[contenteditable]'))return null;
@@ -40,7 +60,7 @@
       }
     return best;
   }
-  function initialize(document) {
+  function initialize(document, snapDefault=()=>false) {
     function dragVisual(active,resizing=false) {
       document.documentElement?.classList.toggle('loom-dragging',active);
       document.documentElement?.classList.toggle('loom-resizing',active && resizing);
@@ -53,6 +73,7 @@
     const packToggle = document.getElementById("pack-toggle");
     const openers = [...pack.querySelectorAll("[data-open-panel]")];
     let z = 3;
+    const cancelGestures=[];
     const bounds = () => editor.getBoundingClientRect();
     const relative = panel => {
       const hidden=panel.hidden;
@@ -172,17 +193,18 @@
           const dx=event.clientX-start.px,dy=event.clientY-start.py;
           const min=minimum(panel);
           let width=Math.max(min.width,start.width+dx),height=Math.max(min.height,start.height+dy);
-          if(resizing && event.ctrlKey) {
+          if(resizing && snapEnabled(event,snapDefault())) {
             const corner=snap(start.x+width,start.y+height,true);
             width=Math.max(Math.ceil((start.x+min.width)/24)*24,corner.x)-start.x;
             height=Math.max(Math.ceil((start.y+min.height)/24)*24,corner.y)-start.y;
           }
           place(panel, resizing ?
             {...start,width,height} :
-            {...start,...snap(start.x+dx,start.y+dy,event.ctrlKey)});
+            {...start,...snap(start.x+dx,start.y+dy,snapEnabled(event,snapDefault()))});
           panel.dispatchEvent(new Event("panelresize"));
         });
         const finish = () => { if(start){start=null;dragVisual(false);} };
+        cancelGestures.push(finish);
         handle.addEventListener("pointerup", finish);
         handle.addEventListener("pointercancel", finish);
         handle.addEventListener("lostpointercapture", finish);
@@ -230,6 +252,7 @@
         scroll.scrollTop=dragging.offset+(event.clientY-dragging.y)/Math.max(1,g.travel)*g.max;
       });
       const finishScroll=()=>{if(dragging){dragging=null;dragVisual(false);}};
+      cancelGestures.push(finishScroll);
       for (const name of ["pointerup","pointercancel","lostpointercapture"]) rail.addEventListener(name,finishScroll);
       document.defaultView?.addEventListener('blur',finishScroll);
       thumb.onkeydown = event => {
@@ -246,6 +269,7 @@
       controls(panel);
     });
     function reset() {
+      cancelGestures.forEach(cancel=>cancel());
       panels.forEach(p => {
         delete p.restoreStyle; p.classList.remove("expanded"); p.removeAttribute("style"); p.hidden=true; controls(p);
       });
@@ -299,9 +323,10 @@
     };
     packHeading.onpointermove=event=>{
       if (!packDrag) return;
-      place(pack,{...packDrag,...snap(packDrag.x+event.clientX-packDrag.px,packDrag.y+event.clientY-packDrag.py,event.ctrlKey)});
+      place(pack,{...packDrag,...snap(packDrag.x+event.clientX-packDrag.px,packDrag.y+event.clientY-packDrag.py,snapEnabled(event,snapDefault()))});
     };
     const finishPack=()=>{if(packDrag){packDrag=null;dragVisual(false);}};
+    cancelGestures.push(finishPack);
     for (const name of ["pointerup","pointercancel","lostpointercapture"]) packHeading.addEventListener(name,finishPack);
     document.defaultView?.addEventListener('blur',finishPack);
     let layerDrag=null;
@@ -316,7 +341,7 @@
     editor.addEventListener("pointermove",event=>{
       if (!layerDrag) return;
       let dx=event.clientX-layerDrag.px,dy=event.clientY-layerDrag.py;
-      if(event.ctrlKey){const r=layerDrag.items[0].r,anchor=snap(r.x+dx,r.y+dy,true);dx=anchor.x-r.x;dy=anchor.y-r.y;}
+      if(snapEnabled(event,snapDefault())){const r=layerDrag.items[0].r,anchor=snap(r.x+dx,r.y+dy,true);dx=anchor.x-r.x;dy=anchor.y-r.y;}
       layerDrag.items.forEach(({p,r})=>place(p,{...r,x:r.x+dx,y:r.y+dy}));
       event.preventDefault();event.stopPropagation();
     },true);
@@ -324,11 +349,45 @@
       if (layerDrag) {layerDrag=null;dragVisual(false);event.stopPropagation();}
     },true);
     document.defaultView?.addEventListener('blur',()=>{if(layerDrag){layerDrag=null;dragVisual(false);}});
+    cancelGestures.push(()=>{layerDrag=null;dragVisual(false);});
+    function capture() {
+      if(bounds().width<=0||bounds().height<=0)throw Error('Open an architecture before saving its panel arrangement.');
+      const round=v=>Math.round(v*1000)/1000,items={};
+      for(const p of panels) {
+        // Read ordinary geometry, never save full-stage expanded bounds as it.
+        const expanded=p.classList.contains('expanded'),style=p.style.cssText;
+        let r;
+        try {
+          if(expanded){p.classList.remove('expanded');p.style.cssText=p.restoreStyle;}
+          r=relative(p);
+        } finally {
+          if(expanded){p.style.cssText=style;p.classList.add('expanded');}
+        }
+        items[p.id]={...Object.fromEntries(Object.entries(r).map(([k,v])=>[k,round(v)])),visible:!p.hidden,expanded};
+      }
+      const r=relative(pack);
+      return validatePreset({version:1,pack:{x:round(r.x),y:round(r.y),collapsed:pack.classList.contains('collapsed')},panels:items,
+        order:[...panels].sort((a,b)=>(parseFloat(a.style.zIndex)||0)-(parseFloat(b.style.zIndex)||0)).map(p=>p.id)});
+    }
+    function apply(value) {
+      value=validatePreset(value); // Reject first: malformed presets cannot partly change the UI.
+      reset();
+      if(value===null)return;
+      for(const id of value.order) {
+        const p=panels.find(p=>p.id===id),r=value.panels[id],min=minimum(p);
+        place(p,{...r,width:Math.max(min.width,r.width),height:Math.max(min.height,r.height)});
+        p.hidden=!r.visible;p.style.zIndex=++z;
+        if(r.expanded){p.restoreStyle=p.style.cssText;p.classList.add('expanded');place(p,{x:16,y:16,width:bounds().width-32,height:bounds().height-32});}
+        controls(p);
+      }
+      pack.classList.toggle('collapsed',value.pack.collapsed);packControls();
+      place(pack,{...relative(pack),x:value.pack.x,y:value.pack.y});
+    }
     packControls();
     new ResizeObserver(onResize).observe(editor);
     new ResizeObserver(onResize).observe(pack);
-    return {reset,open,hideAll:shrink,toggle(id){const p=panels.find(p=>p.id===id);if(p){if(p.hidden)open(id);else close(p);}}, available: () => availableRect(bounds(),
+    return {reset,open,capture,apply,hideAll:shrink,toggle(id){const p=panels.find(p=>p.id===id);if(p){if(p.hidden)open(id);else close(p);}}, available: () => availableRect(bounds(),
       [...panels.filter(p=>!p.hidden),pack].map(relative))};
   }
-  return {constrain,scrollbar,availableRect,initialize,shortcutPanel};
+  return {constrain,scrollbar,availableRect,initialize,shortcutPanel,validatePreset,snapEnabled};
 });

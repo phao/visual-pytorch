@@ -55,7 +55,6 @@ def build_context_menu(view, window, block=None):
         action.triggered.connect(lambda checked=False,c=command:
             view.page().runJavaScript("window.loom && window.loom.perform("+json.dumps(c)+");"))
     menu.addSeparator()
-    menu.addAction("Find…").triggered.connect(lambda:window.find())
     tab=menu.addAction("Open architecture in new tab")
     tab.setEnabled(has_model)
     tab.triggered.connect(lambda:window.open_tab(view.mid))

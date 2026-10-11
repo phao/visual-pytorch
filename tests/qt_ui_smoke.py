@@ -114,7 +114,7 @@ with tempfile.TemporaryDirectory() as td:
     assert js('!document.body.textContent.includes("Tensor Loom")')
     assert js('JSON.stringify([...document.querySelectorAll("#model-list b")].map(e=>e.textContent))') == json.dumps(['Alpha','Linear regression','zeta'],separators=(',',':'))
     assert js('JSON.stringify([...document.getElementById("reference-select").options].map(e=>e.textContent))') == '["Alpha","zeta"]'
-    assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Tanh"]'
+    assert js('JSON.stringify([...document.getElementById("activation-select").options].map(e=>e.textContent))') == '["GELU","ReLU","Sigmoid","Softmax","Tanh"]'
     assert js('document.getElementById("activation-select").value') == 'ReLU'
     assert js('JSON.stringify([...document.querySelectorAll("#pack-menus button")].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()))') == '["Architectures","Building blocks","Experiment","Inspector","Layout"]'
     assert js('JSON.stringify([...document.querySelectorAll("#library-scroll .palette b")].map(e=>e.textContent))') == '["Activation","AdaptiveAvgPool2d","Architecture reference","AvgPool2d","Concat","Conv2d","Flatten","Linear","MaxPool2d","Permute","Reshape","Input part","Output","Replicator","Splitter"]'

@@ -4,6 +4,21 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 03:58 -03:00 — Panel presets, snap defaults and clean architecture opens
+
+Implemented explicit workspace-owned panel arrangements, with strict portable
+geometry, CLI parity, instance/CAS guards and computational-history preservation.
+Added the user grid-snap default with Ctrl inversion for block/panel gestures,
+Preview/Cancel/Save persistence and unchanged Shift menu-layer behavior. Removed
+the plain page Find command. Architectures-list opens clear selection and hide
+the layer in both current/new tabs without overwriting saved presets.
+Full601 Python/254 JS tests, native preferences/presets, actual sandboxed panel
+save/reload/new-tab/snap checks and the broader Qt UI/Softmax regression pass.
+Failed test probes are retained in the private campaign; an obsolete Softmax
+choice assertion and removed Find action expectation were updated explicitly.
+New parameter-relative layout and session-only viewport changes are not part of
+this checkpoint yet. Stage C is still local/incomplete, not publicly published.
+
 ## 2026-10-11 03:28 -03:00 — Small frames for related palette controls
 
 Grouped activation choice/add and architecture choice/add with subtle rounded

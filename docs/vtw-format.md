@@ -126,6 +126,7 @@ original meaning and existing APIs; no automatic typed-data interpretation occur
 | name | Workspace display name; initially Untitled workspace |
 | constrained_mode | Text true or false; absent legacy key means true |
 | layout_preferences | Optional finite JSON, closed layout profile version 1; absent means independent defaults. See [layout.md](layout.md). |
+| panel_layout | Optional closed floating-panel preset version 1, CSS-pixel ordinary rectangles/flags/stacking; not computational history. See [panel-workspace.md](panel-workspace.md). |
 
 Unknown metadata keys are preserved, not executed. Timestamps are write/run
 evidence, not graph order or semantic versions. SQLite rowid determines the
@@ -480,7 +481,9 @@ history with a notice; history is not a durable recovery/backup facility.
 
 User settings are separate: ~/.tensorloon/config.json stores ui_zoom (0.5–3),
 font_size (integer 12–28), theme, spacing (integer 1–10), box_spacing (integer
-1–100) and memory_limit_percent. Defaults are 1.15, 14, dark, 4, 35 and 10.
+1–100), memory_limit_percent and grid_snap (strict boolean). Defaults are 1.15,
+14, dark, 4, 35, 10 and false. Ctrl inverts grid_snap during block/panel movement
+and resize; Shift retains menu-layer movement. See [panel-workspace.md](panel-workspace.md).
 Older string spacing values compact/spaced load as 4/10 in memory, without a
 file write; the next explicit preference Save writes numeric spacing. New
 preference changes accept only integers in range, not strings, floats or booleans.
