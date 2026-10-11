@@ -1,5 +1,41 @@
 # Development state and roadmap
 
+## 2026-10-11 18:06 -03:00 — Runtime-T LSTM native v2 checkpoint
+
+Added a separate explicit runtime_temporal_v2 API, version-2 dependency proof,
+whole-current-B/T RAM admission and concrete standalone source because varying
+sequence lengths must reuse owners, not rebuild fixed-T specializations.
+The old temporal-v1/spatial closure refusal is unchanged. Constructor, supplied
+state and frame widths stay fixed; aliases/nested LSTM calls charge actual work.
+Inference retains conservative owner/backward allowance. Exact semantics and
+remaining route limits are in [the v2 contract](runtime-temporal-v2.md).
+
+30 dedicated pure/numerical tests pass:64 bounded constructor points at3 times,
+16 numerical constructor combinations through native/export at3 times, all
+input/state/parameter gradients, empty/NaN padding, nested full-BPTT, shared
+owners,35 variable-time Adam updates and fresh app-free checkpoint inference.
+354 JS/48 native-pure checks and actual sandboxed Family7 edit/export/history/
+reload pass. Exact old-v1 comparison agrees5 proofs/15 actual shapes/30 memory
+cases; old family1–6 agree26 resolution/record points. Final full1193 Python
+397.820s passes (1190 executed;3 Qt-only skips covered by48 native/pure1.185s),
+354 JS1424.369562ms and final97 focused checks11.666s pass. A separate manual
+six-case native/export probe verifies independent-T branches sharing156 parameters,
+all input/state/owner gradients and unchanged ownership. It is not six extra
+unittest discovery cases.
+
+The first full1193 run387.592s exposed two genuine notebook export failures:
+the shared exporter required temporal_shapes_v2.py but generated notebook
+bundles did not capture it. Added the helper to capture/verification, extended
+the missing-dependency refusal before kernel start, and preserved original
+historical fixture runtime selections. Five dedicated real-kernel/dependency/
+legacy checks31.072s and the full fresh rerun pass. Earlier pure/numerical
+fixture mistakes and missing Qt PYTHONPATH remain recorded, not hidden.
+
+This is an incomplete D route checkpoint, not Family8/TaskBundle4 support or
+D/E completion. Retained grammars/container18 unchanged; scientific v2 families,
+Qt/CLI, workers/checkpoints and real notebook parity are next. No main/public,
+user workspace/configuration or app restart. Future reports remain deferred.
+
 ## 2026-10-11 17:33 -03:00 — Fixed-T LSTM architecture families
 
 Family7 admits explicit integer hidden-size/layer/projection and boolean

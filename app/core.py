@@ -840,7 +840,13 @@ def generate_code(models, model_id):
 
 
 def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
-                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None):
+                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None, runtime_temporal_v2=None):
+    if runtime_temporal_v2 is not None:
+        if runtime_inputs is not None or runtime_temporal is not None:
+            raise GraphError('Spatial and versioned temporal runtime policies are distinct; select exactly one.')
+        from .temporal_shapes_v2 import compile_temporal_model
+        return compile_temporal_model(models, mid, runtime_temporal_v2, constrained=constrained,
+                                      memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
     if runtime_temporal is not None:
         if runtime_inputs is not None:
             raise GraphError('Spatial and temporal runtime policies are distinct; select exactly one.')

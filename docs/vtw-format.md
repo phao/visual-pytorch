@@ -23,6 +23,10 @@ version-7 container; they add no SQL table or sidecar. The
 Its [guarded Qt/CLI authoring](lstm-authoring.md) adds no container/revision
 version or SQL table; it writes the same concrete operator and stable sockets.
 [Explicit fixed-T LSTM families](lstm-families.md) require version18.
+[Native runtime-temporal-v2](runtime-temporal-v2.md) adds an explicit backend API
+and concrete standalone source, not a retained .vtw policy. Current families,
+tasks, experiments, GUI and CLI still refuse that newer runtime selection;
+their next versioned route extension is unfinished. Container18 remains unchanged.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility

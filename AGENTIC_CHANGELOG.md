@@ -4,6 +4,27 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 18:06 -03:00 — Separate native runtime-T LSTM grammar
+
+Implemented explicit runtime-temporal-v2 proof/API and concrete standalone
+export, preserving temporal-v1/spatial refusal and retained container18 meanings.
+Variable T reuses fixed learned owners and explicit supplied states. Whole-tree
+current-RAM admission includes aliases, Module descendants and outer-unrolled
+LSTMs; inference keeps conservative parameter/backward storage.
+
+30 dedicated pure/numerical checks,354 JS,48 native/pure, actual sandboxed Family7
+editor/export/history/reload and exact old-v1/family comparisons pass.35
+variable-time Adam updates match an independent gate teacher/student. Initial
+invalid fixtures and missing Qt PYTHONPATH are retained. First full1193 run found
+two real missing captured-helper notebook failures. Added temporal_shapes_v2.py
+to captured/verified closures and extended pre-kernel refusal while preserving
+historical runtimes. Five dedicated checks31.072s and final full1193
+397.820s pass;3 Qt skips covered by48 native/pure. Six manual independent-T
+shared-branch native/export cases pass, separate from discovery counts.
+Retained family/task/Qt/CLI/kernel v2 routes are next, not implemented by a native
+keyword. Full D/E and goal remain active, no public/user-state changes.
+See docs/runtime-temporal-v2.md and docs/development.md.
+
 ## 2026-10-11 17:33 -03:00 — Explicit fixed-T LSTM families verified locally
 
 Added Family7/Specialization6/.vtw18 and closed typed integer selections because
