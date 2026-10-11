@@ -101,6 +101,7 @@ def retain_recovery(window, job, result, error):
 
 
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
+         'scienceBrowse', 'scienceSummary', 'scienceInspect',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
          'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
@@ -134,6 +135,18 @@ def dispatch(window, req):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action in {'scienceBrowse', 'scienceSummary', 'scienceInspect'}:
+        from . import science_browser
+        from .authoring import workspace_id
+        if req.get('workspace_id') != workspace_id(workspace):
+            raise ValueError('Scientific selection belongs to another workspace. Refresh its choices.')
+        if action == 'scienceBrowse':
+            return science_browser.index_page(workspace, req['kind'], offset=req.get('offset', 0),
+                limit=req.get('limit', 25), query=req.get('query', ''), preferred=req.get('preferred'),
+                heads_only=req.get('heads_only', False))
+        if action == 'scienceSummary': return science_browser.summary(workspace, req['reference'])
+        return science_browser.inspect_page(workspace, req['reference'], path=req.get('path'),
+            part=req.get('part', 'value'), offset=req.get('offset', 0), limit=req.get('limit', 25))
     if action in {'scienceRunPredictor', 'scienceExportRunPredictor'}:
         from .authoring import workspace_id
         from .run_export import predictor_source, write_new_predictor

@@ -14,6 +14,14 @@ head. Refresh retains the exact selection, even after retry creates a newer one;
 select the new head explicitly. Creating/importing selects the returned exact
 revision. Changing workspace clears stale selections and candidate cards.
 
+Read-only browsing now uses searchable 25-row metadata pages, retains historical
+selections outside a page as a marked pin, and displays a typed summary rather
+than eagerly transferring the complete object. Specification/evidence opens an
+explicit paged tree, including long tensor values and dictionary keys. Pending
+and stale replies are guarded, including a notified disk reload with unchanged
+UUID. These are projection/DOM bounds, not lazy storage or registry-cost bounds.
+See [scientific-browser.md](scientific-browser.md) for exact schemas and CLI parity.
+
 Freeze architecture captures the normalized drawing closure, not trained weights.
 Import specification reads strict finite JSON from a native chooser into the
 chosen registry kind; dependencies must already exist. Invalid imports fail.
@@ -47,8 +55,9 @@ blocks paging/save rather than being discarded on a rerender.
 
 Field definitions/columns page by six; observations page by twenty. Hidden values
 remain in the draft, not truncated. This bounds rendered cell count, NOT transport
-or draft size: scienceShow still loads the complete inline document. External/lazy
-storage, bounded metadata transport and richer diagnostics are still open work.
+or draft size: authoring still loads the complete inline document into its draft.
+The bounded read browser above does not bound authoring context/draft transport.
+External/lazy storage and richer diagnostics are still open work.
 Validate draft is read-only, without fitting/transforms/RNG/execution. Retain
 revision invokes normal strict registry admission and selects the exact result;
 explicit Save workspace is still required to persist the working copy to disk.

@@ -86,11 +86,13 @@ Stage C release acceptance remains open because the user requested an actual
 practical/didactic GUI and synchronized agent interface, not merely a backend.
 These concrete gaps are observable in the current code:
 
-- `scienceIndex` returns every retained metadata row; selectors repeat these
-  rows without a bounded query/page. `scienceShow` returns entire documents and
-  `science.js` eagerly stringifies them into the webview, including inline data,
-  histories/weights and captured manifests. `scienceReport` similarly transfers
-  complete materialized reports although structured result pages already exist.
+- The main read browser now uses bounded `scienceBrowse` metadata pages,
+  `scienceSummary` typed summaries and explicit `scienceInspect` container/scalar
+  pages, shared with CLI. Historical pins, unchanged-UUID notified reload and
+  stale delivery guards are tested. Complete legacy `scienceIndex`/`scienceShow`/
+  `scienceReport` reads remain available; authoring contexts still use complete
+  metadata/documents. Session recovery and terminal-completion transports also
+  remain unbounded. Main browsing projection bounds are not those other bounds.
 - `scienceAuthorBegin/Check/Save/Preview` currently transfer complete drafts.
   Dataset authoring displays six fields × twenty observations but can stringify
   a huge tensor cell/metadata/vocabulary. This is a control-count limit, not a
@@ -109,15 +111,15 @@ These concrete gaps are observable in the current code:
   actual authoring and fit/export/report/kernel UI flows. An unmerged checkpoint
   is not the version currently launched by the desktop entry.
 
-The next implementation unit is a bounded **read-only exact-revision scientific
-browser**, shared by GUI and CLI: paged metadata choices, typed summaries instead
-of eager complete documents, explicit paged inspection of data/metadata/manifest
-trees and long scalar values, and stale workspace/selection delivery rejection.
-It must not silently truncate identities, masquerade partial previews as complete
+The bounded **read-only exact-revision scientific browser** is now implemented
+on the retained branch; [scientific-browser.md](scientific-browser.md) specifies
+the byte encoding, ordinal/cursor/selection contracts and their cost limits.
+It does not silently truncate identities, masquerade partial previews as complete
 JSON, change record/port ordering or regenerate evidence. Existing complete CLI
-reads/explicit exports remain available. Authoring transport needs its own owned
-draft paging/admission design after this browsing boundary; hiding the full JSON
-in a collapsed panel is not a fix.
+reads/explicit exports remain available. The next implementation unit is owned
+authoring draft/context paging/admission and long-cell editing, preserving
+incomplete text and exact identity rather than transferring whole drafts. Hiding
+the full JSON in a collapsed panel is not a fix.
 
 After these concrete C convergence items and the integration audit, proceed to
 the unchanged D family/recurrent and E durable batch/distributed requirements.
@@ -127,11 +129,18 @@ remote jobs as C features merely because notebook execution is available.
 ## Reproduction and evidence status
 
 The production figure checkpoint passed 445 Python and 94 JavaScript tests.
-With the two subsequent kernel-fence tests, the current full suite passes
+With the two subsequent kernel-fence tests, that checkpoint passed
 447 Python tests (169.871 s) and 94 JavaScript tests (547 ms). The focused
 kernel-fence pair passes in 4.599 s. Details and the exact limits are in
 [development.md](development.md); do not substitute these totals for the
 requirement-level evidence above or the remaining convergence items.
+
+The bounded scientific browsing checkpoint passes 457 Python tests (172.967 s)
+and 103 JavaScript tests (535 ms), including ten new backend/CLI and nine new
+asynchronous browser tests. The actual Qt 1250 × 512 inline-data fixture verifies
+historical selection, page/key/value traversal, same-UUID reload, scoped font/
+theme geometry, no complete-document main-browser reads and unchanged SQL bytes.
+These checks do not certify authoring/resource costs or full C integration.
 
 ```sh
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests

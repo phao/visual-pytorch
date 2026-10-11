@@ -64,6 +64,8 @@ dialog{border:1px solid #456177;border-radius:12px;background:#142333;color:#e4e
 .science-evidence-table{max-width:100%;overflow:auto}.science-evidence-table table{border-collapse:collapse;min-width:100%;font-size:inherit}
 .science-evidence-table :is(th,td){padding:var(--menu-unit,4px);text-align:left;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap;overflow-wrap:normal}
 .science-evidence-table caption{text-align:left;color:var(--muted);padding:var(--menu-unit,4px) 0}
+#science-tree-rows td{white-space:pre-wrap;overflow-wrap:anywhere;min-width:100px;max-width:320px}#science-tree-rows button{white-space:nowrap}#science-tree-path,#science-tree-status{overflow-wrap:anywhere}.science-scalar{font-size:inherit;white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto}
+#science-document[data-projection=summary]{max-height:9em;font-size:inherit}
 #science-report-composer{border:1px solid var(--line);border-radius:7px;padding:calc(2 * var(--menu-unit,4px));margin:var(--menu-unit,4px) 0}
 .science-report-choice{display:flex;flex-wrap:wrap;align-items:center;gap:calc(2 * var(--menu-unit,4px));margin:var(--menu-unit,4px) 0}
 .science-report-choice span{overflow-wrap:anywhere}

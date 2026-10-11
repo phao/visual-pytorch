@@ -58,6 +58,16 @@ explicit split/manifest/RAM settings; it never reads mutable heads as execution
 references. `spec-show` may read a browsing head when --revision is omitted;
 `spec-list --all-revisions` includes archived/unselected immutable documents.
 
+For bounded reads, use `spec-page KIND [--query TEXT] [--offset N] [--limit 1..25]
+[--heads-only]`, `spec-summary KIND ID REVISION`, or `spec-inspect KIND ID
+REVISION [--path JSON_ORDINAL_ARRAY] [--part value|key] [--offset N]
+[--limit 1..25]`. Summary/inspection require an exact retained revision. Follow
+returned `next_offset`; pages can be shortened by their compact 65536-byte
+projection limit. Scalar chunks use at most 2000 Unicode code points. Complete
+legacy reads remain available, not silently truncated. See
+[scientific-browser.md](scientific-browser.md) for scope/identity/order, byte
+encoding, CLI-envelope and backend-cost limits. All three commands are read-only.
+
 `train-stored` executes the same exact-reference selection in an isolated worker,
 requiring explicit TrainingProtocol JSON and one split protocol or saved manifest.
 The CLI/GUI host still imports no Torch; `--torch-python` selects the numerical

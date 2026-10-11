@@ -667,6 +667,22 @@ Train-free draft preview pages 25 coordinates with no Run buttons, clears on edi
 and returns exact decimal Cartesian counts. Retain first, then run explicitly.
 All experiment axis cards currently render; paging is not a metadata/transport or
 RAM bound. Full C convergence remains unfinished.
+
+For read-only retained objects, reuse a separate bounded inspection surface,
+not the mutable authoring draft or a collapsed copy of the entire JSON. Metadata
+choices page alphabetically and preserve an exact historical pin outside the
+current page/search. Typed summaries must declare their projection scope, never
+masquerade as a complete editable specification. Tree navigation uses immutable
+member ordinals, preserves scientific array order, marks partial keys/values and
+provides explicit full-key/scalar paging. Show actual cursor/range and retain
+visited offsets; byte-limited pages need not have the requested row count.
+Use literal text nodes and local table/scalar overflow with theme/base fonts.
+Disable/guard duplicate pending navigation. Fence late success AND error delivery
+by workspace and selection/generation; a notified same-UUID reload must also
+invalidate pending contents. Verify returned revision/path/part/offset before
+display. Scope limits to response/DOM bytes/counts; full registry validation and
+draft transport are separate costs. The Visual PyTorch realization and reusable
+contract are in [scientific-browser.md](scientific-browser.md).
 See [the executable experiment GUI contract](experiment-gui.md) for action schemas,
 precise scoped compatibility, failure behavior and actual Qt test evidence.
 

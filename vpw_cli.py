@@ -137,6 +137,19 @@ def main(argv=None):
     show_spec.add_argument('kind', choices=KINDS)
     show_spec.add_argument('id')
     show_spec.add_argument('--revision')
+    browse = sub.add_parser('spec-page', help='Bounded alphabetic scientific metadata page; no documents or execution')
+    browse.add_argument('kind', choices=KINDS)
+    browse.add_argument('--query', default='')
+    browse.add_argument('--offset', type=int, default=0)
+    browse.add_argument('--limit', type=int, default=25)
+    browse.add_argument('--heads-only', action='store_true')
+    for command in ('spec-summary', 'spec-inspect'):
+        p = sub.add_parser(command, help='Bounded read of an exact scientific revision; never an implicit head')
+        p.add_argument('kind', choices=KINDS); p.add_argument('id'); p.add_argument('revision')
+        if command == 'spec-inspect':
+            p.add_argument('--path', default='[]', help='JSON array of stored member/array ordinals')
+            p.add_argument('--part', choices=('value', 'key'), default='value')
+            p.add_argument('--offset', type=int, default=0); p.add_argument('--limit', type=int, default=25)
     preview = sub.add_parser('preview-dataset', help='Bounded typed dataset diagnostics; does not change the workspace')
     preview.add_argument('dataset', help='DatasetSpec JSON file')
     preview.add_argument('--limit', type=int, default=20)
@@ -227,6 +240,16 @@ def main(argv=None):
                 value = workspace.list_specs(args.kind, args.all_revisions)
             elif args.command == 'spec-show':
                 value = workspace.get_spec(args.kind, args.id, args.revision)
+            elif args.command in ('spec-page', 'spec-summary', 'spec-inspect'):
+                from app import science_browser
+                if args.command == 'spec-page':
+                    value = science_browser.index_page(workspace, args.kind, offset=args.offset,
+                        limit=args.limit, query=args.query, heads_only=args.heads_only)
+                else:
+                    ref = {'kind': args.kind, 'id': args.id, 'revision': args.revision}
+                    value = science_browser.summary(workspace, ref) if args.command == 'spec-summary' else \
+                        science_browser.inspect_page(workspace, ref, path=json.loads(args.path),
+                            part=args.part, offset=args.offset, limit=args.limit)
             elif args.command == 'preview-experiment':
                 from app.experiment_objects import preview_experiment
                 value = preview_experiment(workspace.get_spec('experiment', args.id, args.revision), workspace.get_spec,

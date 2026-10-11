@@ -136,6 +136,12 @@ GUI integration remains pending. Notebook export consumes exact revisions withou
 changing SQLite bytes; see [notebook-reports.md](notebook-reports.md). Filesystem revision polling continues
 to use the existing protocol.
 
+The GUI/CLI [scientific read browser](scientific-browser.md) adds metadata pages,
+typed summaries and ordinal tree/scalar inspection of exact existing revisions.
+These are non-document projections, not a v7 schema or partial-spec admission
+format. Registry/dependency validation remains unchanged. Complete legacy reads
+and explicit exports are retained; source arrays/ports/observations retain order.
+
 ## References
 
 [SQLite composite foreign keys](https://www.sqlite.org/foreignkeys.html) informed

@@ -82,10 +82,10 @@ with tempfile.TemporaryDirectory() as directory:
         assert js('document.getElementById("science-stop").getClientRects().length>0'), 'Stop must remain visible in run history'
         until('!window.loom.state.experiment_job && document.getElementById("toast-message").textContent.includes("attempt 2")')
         run=h.workspace.get_spec('run',runs[0]['id']);assert len(run['attempts'])==2
-        until('document.getElementById("science-object").options.length===2')
-        assert js('JSON.parse(document.getElementById("science-document").textContent).attempts.length')==1
+        until('document.getElementById("science-object").options.length===2 && JSON.parse(document.getElementById("science-document").textContent||"{}").attempt_count===1')
+        assert js('JSON.parse(document.getElementById("science-document").textContent).attempt_count')==1
         js('const choices=document.getElementById("science-object");choices.value=[...choices.options].find(o=>o.textContent.includes("current head")).value;choices.dispatchEvent(new Event("change"));')
-        until('JSON.parse(document.getElementById("science-document").textContent).attempts.length===2')
+        until('JSON.parse(document.getElementById("science-document").textContent||"{}").attempt_count===2')
         js('document.getElementById("science-make-report").click()')
         until('!document.getElementById("science-report").hidden')
         assert js('document.getElementById("science-report-mode").textContent.includes("no training")')

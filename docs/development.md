@@ -15,6 +15,57 @@ checkpoint descriptions and test counts are historical, not statements that
 later capabilities are absent.
 Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
 
+### Bounded scientific read browser — retained C branch
+
+GUI and CLI now share searchable metadata pages, typed exact-revision summaries,
+and explicit container/scalar/key inspection. Metadata SQL fetches no documents.
+Each compact ASCII JSON projection is at most 65536 bytes; row pages are at most
+25, scalar chunks 2000 Unicode code points, key/value previews 128. Pages can be
+shortened by their byte budget; previous/next retain actual server offsets.
+Historical selections remain pinned outside a query/page instead of following a
+new head. No v7 schema, alternative persistence or scientific-array sorting.
+
+Pending read actions are guarded, and responses/errors cannot overwrite a newer
+selection/workspace. A notified same-UUID disk reload explicitly invalidates
+content/generations; tree replies additionally check exact reference/path/part/
+offset. Nine JavaScript probes caught and repaired a same-turn double-navigation
+race. Literal HTML-looking content stays text. Summary JSON has a short local
+scroll area so contents do not disappear below a tall eager-document display.
+CLI adds read-only `spec-page`, `spec-summary`, `spec-inspect`; complete legacy
+reads/exports remain available. [scientific-browser.md](scientific-browser.md)
+and the reusable UI/registry/CLI handoffs specify the exact contracts.
+
+Ten backend/CLI tests pass on a fresh stdlib-only host, including all six kinds,
+byte-shortened Unicode pages, full-key/question reconstruction, ordered tensor
+contents, historical pins and unchanged SQL/file/RNG. Nine asynchronous browser
+tests pass. The actual sandboxed Qt fixture inspects 1250 × 512 inline values,
+62 dataset revisions, long Unicode keys/values, old/head pins and same-UUID reload
+with font 14/18/28 in dark/GitHub/Math. Its 33 successful read projections peak
+at 24407 bytes; SQL bytes remain unchanged, with no raw whole-document browser
+reads, numerical worker, host Torch/nbclient or console errors. The fixture waits
+for the inherited asynchronous initial canvas-fit write before its read-only
+snapshot; a prematurely taken snapshot correctly exposed that initialization,
+not a scientific read mutation. A polling-expression empty-JSON console error
+in the test itself was corrected rather than filtered out.
+
+These are bounded projection/DOM claims, not lazy inline storage, full registry/
+SQLite cost, authoring/recovery/completion transport or universal RAM guarantees.
+Remaining C work: owned draft/context paging and long cells, richer in-app figures,
+large-font/window geometry and integrated acceptance. D/E remain unchanged and
+open. Product main/public/user app/config/workspaces are not changed by this
+checkpoint. The full suite passes 457 Python tests (172.967 s) and 103 JavaScript
+tests (535 ms); prior checkpoint totals remain historical. Native dataset/task/
+experiment authoring, eight-candidate actual GUI fits and all split protocols,
+saved evidence/predictor export/standalone inference, actual retry/recovery and
+notebook generation regressions also pass, without host Torch or console errors.
+Final actual notebook GUI saved/eight-rerun execution, failure/timeout/Stop,
+kernel shutdown, SQL isolation, inspection/native confirmation and artifact/origin
+guards pass with no host Torch/nbclient or console errors. Ten native notebook
+lifecycle tests pass (4.015 s). Final native browser capture was visually inspected;
+the shorter summary leaves navigation/status/table reachable without the prior
+420-pixel summary block. This is scoped presentation review, not certification of
+all fonts/windows or an unbounded data engine.
+
 ## Initial source import
 
 ### UI refinements after the initial prerelease (local implementation)

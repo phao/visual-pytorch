@@ -101,7 +101,7 @@
         selection=H().add(selection,current.reference);$('science-report-composer').open=true;selectionView();});
       $('science-comparison-create').onclick=()=>act(create);
       $('science-evidence-read').onclick=()=>act(()=>{attempt=window.LoomExperimentAuthoring.number($('science-evidence-attempt').value,
-        {integer:true,minimum:1,maximum:current.document.attempts.length});runOffset=0;return read();});
+        {integer:true,minimum:1,maximum:current.document.attempt_count});runOffset=0;return read();});
       $('science-metrics-prev').onclick=()=>act(()=>{runOffset=Math.max(0,runOffset-25);return read();});
       $('science-metrics-next').onclick=()=>act(()=>{runOffset=page.metrics.next_offset;return read();});
       $('science-report-prev').onclick=()=>act(()=>{reportOffset=Math.max(0,reportOffset-5);return read();});
