@@ -123,7 +123,7 @@ DRAFT_ACTIONS = {'scienceDraftOpen', 'scienceDraftDescribe', 'scienceDraftOrigin
                  'scienceDraftCheck', 'scienceDraftCommit', 'scienceDraftClose',
                  'scienceDraftValueStart', 'scienceDraftValueRead', 'scienceDraftValueSplice',
                  'scienceDraftValueFinish', 'scienceDraftValueDiscard'}
-ACTIONS = READS | EDITS | DRAFT_ACTIONS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'} | NOTEBOOK_ACTIONS
+ACTIONS = READS | EDITS | DRAFT_ACTIONS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor', 'scienceExportFamily'} | NOTEBOOK_ACTIONS
 
 
 def dispatch(window, req, source=None):
@@ -269,6 +269,26 @@ def dispatch(window, req, source=None):
         window.broadcast()
         return {'path': value['exported_to'], 'status': 'recovery-evidence-exported'}
     if action == 'scienceIndex': return experiment_ui.index(workspace)
+    if action == 'scienceExportFamily':
+        from .authoring import workspace_id
+        from .authoring_sessions import _json
+        from .datasets import _keys
+        from .family_export import stored_source, write_new_family
+        req = _json(req)
+        _keys(req, ('action', 'workspace_id', 'family'), ('output',), context='Exact family source export')
+        if req['workspace_id'] != workspace_id(workspace):
+            raise ValueError('Family export belongs to another workspace. Select its exact revision again.')
+        captured = stored_source(workspace, req['family'], memory_limit_percent=window.state()['memory_limit_percent'])
+        path = req.get('output')
+        if path is not None and (not isinstance(path, str) or not path.strip()):
+            raise ValueError('Family export destination must be a nonempty path.')
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(window, 'Export checked architecture family',
+                                                 'architecture-family.py', 'Python source (*.py)')
+        if not path: return None
+        if window.workspace is not workspace or req['workspace_id'] != workspace_id(window.workspace) or job_busy(window.job):
+            raise ValueError('Workspace or active work changed while choosing a destination. Nothing exported; try again.')
+        return write_new_family(captured, path)
     if action == 'scienceFamilyResolve':
         from .authoring import workspace_id
         from .authoring_sessions import _json

@@ -160,9 +160,10 @@ qt_scoped_constructors_smoke.py. This is bounded local evidence, not broad OS or
 hostile-file certification.
 
 Runtime-variable spatial axes/guards, recurrent state/length/masks/reset, dynamic
-loops and an exported family class with checked constructor arguments are NOT
-implemented by this checkpoint. Concrete export remains the supported executable
-interpretation. Full Stage D and Stage E remain unfinished.
+loops are NOT implemented by this checkpoint. A subsequent
+[checked family export](checked-family-export.md) now emits standalone PyTorch
+classes with constructor guards and semantic warm starts, alongside concrete
+export. Full Stage D and Stage E remain unfinished.
 
 Primary reference: [PyTorch Module](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html),
 particularly registered children and duplicate module/parameter traversal. This

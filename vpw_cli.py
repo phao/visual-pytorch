@@ -152,6 +152,10 @@ def main(argv=None):
     stored_family = sub.add_parser('preview-stored-family', help='Resolve an EXACT stored family revision without execution or edits')
     stored_family.add_argument('id'); stored_family.add_argument('revision')
     stored_family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
+    export_family = sub.add_parser('export-family', help='Export an EXACT retained family as a checked standalone PyTorch class; no model construction or training')
+    export_family.add_argument('id'); export_family.add_argument('revision')
+    export_family.add_argument('--output', required=True, help='New Python file; never overwrite')
+    export_family.add_argument('--memory-limit-percent', type=float)
     for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
@@ -275,6 +279,11 @@ def main(argv=None):
                 from app.family_records import preview_stored
                 value = preview_stored(workspace, {'kind':'family','id':args.id,'revision':args.revision},
                                        None if args.bindings is None else read_json(args.bindings))
+            elif args.command == 'export-family':
+                from app.family_export import stored_source, write_new_family
+                source = stored_source(workspace, {'kind': 'family', 'id': args.id, 'revision': args.revision},
+                                       memory_limit_percent=ram_percentage(args.memory_limit_percent))
+                value = write_new_family(source, args.output)
             elif args.command == 'inspect':
                 value = {'path': str(path), 'revision': workspace.disk_revision,
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],

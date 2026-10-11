@@ -129,6 +129,12 @@ semantics. Agents may edit JSON and apply atomic CAS-protected batches; Qt reloa
 observes the retained revisions. Transient Qt tokens are not another SQLite or
 CLI persistence format.
 
+**Export checked family…** beside Create concrete instance exports the selected
+exact retained family as a standalone guarded PyTorch class, without creating a
+model, retaining a new object or using the instance-bindings textarea. It requires
+a new file; cancellation/late workspace changes cannot claim completion. The
+native source remains off the bridge. See [checked-family-export.md](checked-family-export.md).
+
 ## Controller and verification boundaries
 
 The form uses the existing floating panel, palette tokens and menu spacing.

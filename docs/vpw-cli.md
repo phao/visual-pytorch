@@ -21,6 +21,12 @@ these same CLI operations, with no agent-only schema shortcuts. See
 [scoped-constructors.md](scoped-constructors.md) and
 examples/families/scoped-branches.json. Required child arguments may be supplied
 per call without global defaults; complete canonical context provenance is retained.
+`export-family ID REVISION --output NEW_PYTHON_FILE [--memory-limit-percent P]`
+exports the exact retained family as a checked standalone PyTorch class without
+instantiating or training. Captures workspace constrained mode and the read-only
+user RAM percentage unless overridden. It leaves the .vtw unchanged, refuses
+overwrite/final symlinks and returns compact source hash/provenance, not code.
+See [checked-family-export.md](checked-family-export.md).
 See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
 

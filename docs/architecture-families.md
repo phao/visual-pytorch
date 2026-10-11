@@ -14,6 +14,8 @@ adds [typed owned family authoring](typed-family-sessions.md),
 typed retained bindings and experiment axes. Version4 supports per-Module
 [scoped constructor bindings](scoped-constructors.md) and required child arguments
 without global defaults. Runtime recurrence remains separate.
+All four family grammars now support [checked standalone class export](checked-family-export.md),
+with exact constructor guards/provenance and semantic shape-aware warm starts.
 
 ## Family document version 1
 

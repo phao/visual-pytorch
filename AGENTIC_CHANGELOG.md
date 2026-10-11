@@ -4,6 +4,28 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 08:30 -03:00 — Checked family source and semantic warm starts
+
+Added standalone checked family constructors because concrete-only export cannot
+preserve a reusable constructor family. Exact retained revisions capture the
+actual seven-module resolver/compiler closure; generation is allocation-free and
+SQLite-read-only. CLI/owned Qt export share new-file refusal, current policy/RAM
+capture and cancellation/workspace/busy fences. Independent CPU float32 instances
+retain explicit internal sharing, normal PyTorch hooks and multi-input/output
+contracts. Semantic snapshots reproduce source bindings/schema before matching
+stable typed identities and exact shapes/dtypes; complete validation and current
+RAM admission precede copies. Strict failure leaves weights unchanged. No
+optimizer/RNG resume or cross-family migration claim; specs document boundaries.
+
+Final797-test run263.649s passes with3 environment Qt skips, separately verified
+in system Python (11 focused0.507s);293 JS1128.904157ms and11 focused numerical
+2.821s pass. Independent gradients, moved-head warm starts, malformed/low-RAM
+rejection and fresh app-free3-update training pass. Actual sandboxed Qt export
+bytes/unchanged SQLite/reload/upgrade/scalar regressions and capture reviewed.
+The later meta-default test is in focused11, not counted in full797. An early
+fixture filename failure is recorded. D/E remain unfinished/local; no public or
+real user-state changes. See docs/development.md for exact evidence and limits.
+
 ## 2026-10-11 08:00 -03:00 — Scoped reusable Module constructors
 
 Added family v4 direct-child bindings because reusable branches must have distinct

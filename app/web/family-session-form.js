@@ -17,6 +17,7 @@
       const selected=$('science-kind').value==='family'&&Boolean($('science-object').value);
       $('science-family-instance').hidden=!selected||active();
       $('science-family-create').disabled=pending||api.busy()||Boolean(other)||!selected;
+      $('science-family-export').disabled=$('science-family-create').disabled;
       for(const id of ['science-family-instance-bindings','science-family-materialize'])$(id).disabled=$('science-family-create').disabled;
       if(state){
         for(const id of ['preview','check','save','raw','retry'])$('science-family-'+id).disabled=blocked()||(['preview','check','save'].includes(id)&&state.failed);
@@ -176,6 +177,11 @@
         const result=await api.call('scienceFamilyResolve',{workspace_id:identity,family,bindings:JSON.parse($('science-family-instance-bindings').value),materialize:$('science-family-materialize').checked});
         if(identity!==api.workspace())return;$('science-family-instance-status').textContent='Retained specialization '+result.specialization.revision+' · '+(result.parameters_exact??result.parameters)+' parameters · '+(result.materialized?'editable drawing added':'registry only');
         api.toast('Concrete instance retained. Save workspace to persist it.');});
+      $('science-family-export').onclick=()=>act(async()=>{const identity=api.workspace(),family=JSON.parse($('science-object').value);
+        if(family.kind!=='family')throw Error('Select an exact retained family revision.');
+        const result=await api.call('scienceExportFamily',{workspace_id:identity,family});
+        if(!result||identity!==api.workspace())return;
+        api.toast('Checked family source exported (not instantiated or trained): '+result.path);});
       controls();
     },
     stateChanged(){if(!api)return;if(state&&state.header.workspace_id!==api.workspace()&&!state.stale){state.stale=true;epoch++;$('science-family-status').textContent='Workspace changed. Draft text is retained; discard/reopen to edit the intended working copy.';}controls();},

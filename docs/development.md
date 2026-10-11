@@ -1,5 +1,51 @@
 # Development state and roadmap
 
+## 2026-10-11 08:30 -03:00 — Stage D: checked standalone family export
+
+An exact retained family revision now exports one standalone Python file exposing
+ArchitectureFamily(bindings=...). The captured seven-module resolver/compiler
+closure supports grammars1–4, local constructors and explicit sharing, without
+requiring this app at execution time. Generation creates no model or tensors and
+does not specialize, train, mutate SQLite or select a mutable family head. Native
+CLI export-family and the retained-family Qt button use the same implementation;
+exclusive new-file writes refuse existing paths. Captured workspace policy and
+user RAM percentage are explicit. Constructors validate and admit whole-model
+memory before allocating ordinary CPU float32 PyTorch layers.
+
+Semantic snapshots/warm starts match typed family/template/call/owner/parameter
+identities and exact shapes/dtypes, rather than layer-list positions. The source
+bindings/schema are reproduced before tensor inspection; source/target RAM
+admission uses the target policy. Complete validation precedes copies. Partial
+matching is reported; strict incompatible loading changes nothing. These are
+same-family/revision/runtime warm starts, not optimizer or RNG continuation,
+cross-family migration, authentication, or device-copy rollback guarantees.
+Specification: [checked-family-export.md](checked-family-export.md).
+
+Final full run:797 tests in263.649s,794 passed and3 Qt-only environment skips.
+Those native tests pass explicitly in system Python (11 focused tests,0.507s).
+JavaScript293/293 passes1128.904157ms. Final focused numerical11/11 passes2.821s,
+including a later added CPU/float32 check under double/meta process defaults;
+that extra test is not counted in the797 full run. Independent branched/CNN/
+multi-input/split-output forward and gradient oracles, native parity, hooks,
+independent/tied Adam state, semantic moved-head/shape/dtype/forgery checks and
+RAM rejection before layers/tensor finiteness checks pass. Fresh app-free source
+execution performs3 Adam updates and strict warm start with equal predictions.
+Existing notebook/worker regressions pass in the full suite; no new exported-class
+Jupyter kernel claim. Numeric runs were serial/one-threaded, with no final
+ResourceWarnings. First full run796 also passed; one early pure fixture named a
+nonexistent example and was corrected without weakening assertions.
+
+Actual sandboxed Qt export/edit/upgrade and scalar regression paths pass with
+private workspace/config/profile, no host Torch or console errors. The selected
+exact revision's written source matches native generation byte-for-byte, with
+unchanged SQL and no instance creation. Cancellation, changed workspace and
+pending terminal ownership are rejected. Real1440×1000 capture reviewed.
+
+D remains local/branch-only/incomplete: runtime-spatial guards and structured
+recurrence/state/length/mask/reset/mixed composition remain; E follows. No main
+integration/publication, installer/user app/config/workspace change or source
+fork. Full goal remains active; no roadmap re-audit. Older entries are historical.
+
 ## 2026-10-11 08:00 -03:00 — Stage D: scoped Module constructors
 
 Family v4 adds direct-child constructor bindings evaluated in each parent's local

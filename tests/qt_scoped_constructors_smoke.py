@@ -6,6 +6,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 from PyQt6.QtCore import QObject, QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWebChannel import QWebChannel
@@ -107,6 +108,20 @@ with tempfile.TemporaryDirectory() as td:
         saved = h.workspace.get_spec('family', h.family_ref['id'])
         assert saved['version'] == 4 and len(saved['constructors']) == (1 if os.environ.get('VTW_SCOPED_UPGRADE') else 6)
         until('!document.getElementById("science-family-create").disabled && JSON.parse(document.getElementById("science-object").value).revision==='+json.dumps(saved['revision']))
+        if os.environ.get('VTW_FAMILY_EXPORT'):
+            from app.family_export import stored_source
+            exported = folder / 'architecture-family.py'; before_export = h.workspace.db.serialize()
+            with patch('app.desktop_experiments.QFileDialog.getSaveFileName', return_value=(str(exported), '')):
+                click('science-family-export')
+                until('!document.getElementById("science-family-export").disabled && document.getElementById("toast").textContent.includes("Checked family source exported")')
+            export_request = next(r for r in reversed(h.requests) if r['action'] == 'scienceExportFamily')
+            assert export_request['family']['revision'] == saved['revision']
+            expected_source = stored_source(h.workspace, export_request['family'], memory_limit_percent=h.config.values['memory_limit_percent'])
+            assert exported.read_text() == expected_source['code']
+            assert h.workspace.db.serialize() == before_export
+            if os.environ.get('VTW_FAMILY_EXPORT_CAPTURE'):
+                loop = QEventLoop(); QTimer.singleShot(150, loop.quit); loop.exec()
+                assert view.grab().save(os.environ['VTW_FAMILY_EXPORT_CAPTURE'])
         click('science-family-create'); until('document.getElementById("science-family-instance-status").textContent.includes("'+str(expected)+' parameters")')
         instance = h.workspace.list_specs('specialization')[0]
         assert h.workspace.get_spec('specialization', instance['id'])['version'] == 3
@@ -120,6 +135,7 @@ with tempfile.TemporaryDirectory() as td:
         finally: reopened.db.close()
         assert not errors, errors; assert 'torch' not in sys.modules
         print(json.dumps({'ok': True, 'actual_scoped_constructor_cards': True, 'explicit_upgrade': bool(os.environ.get('VTW_SCOPED_UPGRADE')),
+            'checked_family_export': bool(os.environ.get('VTW_FAMILY_EXPORT')),
             'invalid_value_retained': not bool(os.environ.get('VTW_SCOPED_UPGRADE')),
             'parameters': expected, 'no_preview_sql_writes': True, 'save_reload': True, 'host_torch': False, 'console_errors': errors}))
     finally:

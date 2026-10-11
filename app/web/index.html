@@ -154,7 +154,7 @@
             <p class="tiny">Create from the selected exact retained family revision. Default bindings are explicit in the retained specialization. This never trains or overwrites an existing drawing.</p>
             <label>Instance bindings · stable symbol IDs<textarea id="science-family-instance-bindings" spellcheck="false">{}</textarea></label>
             <label><input id="science-family-materialize" type="checkbox" checked> Add editable drawings</label>
-            <button id="science-family-create">Create concrete instance</button><p id="science-family-instance-status" role="status" class="tiny"></p>
+            <div class="inline-actions"><button id="science-family-create">Create concrete instance</button><button id="science-family-export" title="Export this exact retained family as a checked standalone PyTorch class. Does not instantiate or train it.">Export checked family…</button></div><p id="science-family-instance-status" role="status" class="tiny"></p>
           </section>
           <section id="science-value-editor" hidden aria-label="Chunked draft value editor">
             <h3>Edit exact value · staged draft</h3><p id="science-value-identity" class="tiny"></p>

@@ -187,3 +187,24 @@ test('invalid constructor JSON is retained and cannot issue preview requests',as
   await f.click('science-family-preview');assert.equal(f.requests.length,6);
   assert.ok('invalid' in f.field('constructors','value').dataset);
 });
+
+test('checked family export pins exact retained selection without bindings or creating an instance',async()=>{
+  const f=fixture(),done=f.click('science-family-export');await tick();
+  assert.equal(f.requests[0].action,'scienceExportFamily');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[0].args)),{workspace_id:'one',family:ref});
+  f.requests[0].resolve({path:'/private/family.py',status:'checked-family-source-exported; not-instantiated-or-trained'});await done;
+  assert.match(f.toasts.at(-1)[0],/not instantiated or trained/);assert.equal(f.requests.length,1);
+});
+
+test('cancelled or stale family export cannot claim source completion in another workspace',async()=>{
+  const f=fixture(),cancel=f.click('science-family-export');await tick();f.requests[0].resolve(null);await cancel;
+  assert.equal(f.toasts.length,0);const done=f.click('science-family-export');await tick();
+  f.state.workspace='two';f.form.stateChanged();f.requests[1].resolve({path:'/private/family.py'});await done;
+  assert.equal(f.toasts.length,0);
+});
+
+test('checked source export remains disabled while any scientific draft is open',async()=>{
+  const f=await opened(fixture());assert.equal(f.get('science-family-export').disabled,true);
+  const cancel=f.click('science-family-cancel');await tick();f.requests[6].resolve({closed:true});await cancel;
+  assert.equal(f.get('science-family-export').disabled,false);
+});
