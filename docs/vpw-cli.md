@@ -168,6 +168,12 @@ workspace is still required as CLI context, but the bundle's exact inputs, not i
 current heads/drafts, determine execution. Manual Jupyter execution works from
 the bundle directory without the product checkout; install its requirements.
 See [notebook-reports.md](notebook-reports.md), including trusted-code and replay limits.
+The GUI now offers explicit asynchronous bundle inspection/execution with the
+same notebook/receipt grammar, separate from generation and RunRecord admission.
+Its runner uses the chosen interpreter for the optional Jupyter stack; the CLI
+adapter still requires those optional execution packages in its invoking
+environment. See [notebook-gui-execution.md](notebook-gui-execution.md). No new
+SQLite objects, implicit fits during reads or optimizer-resume command is added.
 
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every

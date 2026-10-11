@@ -7,6 +7,12 @@ Campaigns can record product commits, research notes and frozen experimental
 snapshots. Concurrent product writers use separate worktrees and serialize
 integration as described in AGENTS.md; campaign locks alone are insufficient.
 
+Current development checkpoint: A and the bounded B CNN slice are integrated;
+C remains local on `task/stage-c-experiments`. The latest C checkpoint below adds
+explicit GUI notebook inspection/execution. Earlier checkpoint descriptions and
+test counts are historical, not statements that later capabilities are absent.
+Neither full C nor D/E is complete, and the initial public prerelease is unchanged.
+
 ## Initial source import
 
 ### UI refinements after the initial prerelease (local implementation)
@@ -288,6 +294,64 @@ Partial C remains unmerged/unpublished, main/user state unchanged. Next explicit
 GUI notebook execution, report figures, complete transport/metadata/rendering
 bounds and pinned C exit audit, then D/E. General same-UUID/ABA/crash/detached and
 large-font whole-header convergence are not established by this checkpoint.
+
+### Explicit GUI notebook inspection/execution — local task branch only
+
+The accepted floating Experiments & history panel now inspects notebook bundles
+asynchronously in the selected report environment, without launching a kernel.
+Generation still creates files only. Explicit execution names saved-result versus
+fresh-training rerun behavior, requires a native plaintext confirmation with
+default Cancel and complete captured identities, and uses the real Jupyter kernel
+adapter. The Qt host imports neither Torch nor the execution stack. Requested
+notebook bytes are captured and rechecked before creating an attempt; changed
+input closure/selection never silently becomes another report head.
+
+Notebook work shares the native busy/queued-terminal fence: edits, replacement,
+competing work and close cannot outrun terminal evidence admission. Inspection
+results are scoped to the actual origin working-copy object, including replacement
+by a different connection with the same UUID. Session execution history is
+external to `.vtw`; explicit reads recheck retained receipt and artifact hashes.
+Literal themed cards retain readable fonts and wrap full paths/hashes; their exact
+artifact ledger is collapsed by default. GUI, file, CLI, worker and reusable UI
+specifications describe the same behavior without adding SQLite tables.
+
+Cooperative Stop interrupts the actual kernel through the asynchronous client and
+retains requested/executed notebooks, available partial artifacts and a cancelled
+receipt after cleanup. Independent kernel death and cell timeout remain failures.
+Stop during startup waits for an identifiable managed kernel rather than abandoning
+a pending launch. Forced termination/cleanup/protocol failures without verified
+receipts are labelled honestly. Normal owned Linux kernel and numerical-child
+shutdown is tested during a real gradient-updating fit; arbitrary descendants,
+crash-safe/detached execution and hostile-code isolation are not established.
+
+All 437 Python tests pass (165.229 s), and all 94 JavaScript tests pass. Twelve new
+Python tests exercise actual saved/rerun kernels, running-cell and actual-fit Stop,
+pre-launch Stop, independent kernel death, requested-byte preparation races,
+identity/receipt/artifact corruption, timeout policy and a stdlib-only host.
+Two transport tests verify cooperative cancellation and callback-failure reaping;
+four JS tests pin copied selections, mode labels and execution policy. Ten new
+native Qt lifecycle tests cover pending terminal admission, chooser/confirmation
+origin and busy guards, read-only history, duplicate/invalid evidence, async
+inspection and same-UUID origin replacement.
+
+Actual sandboxed WebEngine exercises saved execution, eight fresh rerun fits,
+real failing cells, per-cell timeout, running-cell Stop, retained evidence reads,
+generation-only then inspection, late inspection delivery and corrupted artifact
+reads. Full source SQL/file isolation, literal DOM, actual confirmation and
+Dark/GitHub/Math fonts 14/18/28 with menu spacing 1/4/10 pass; the real capture was
+inspected. Saved results/predictor preview/export, dataset/task/experiment forms
+and their real fits, inherited fit/retry/report/generation/recovery/editor and
+11 existing native experiment-lifecycle checks also pass. No GUI console errors,
+host numerical execution stack, disabled Chromium sandbox or user file/config/app
+changes are involved. See [the exact notebook GUI contract](notebook-gui-execution.md).
+
+This is still unmerged/unpublished partial C. Full inline/metadata/data/manifest
+transport and task/experiment presentation bounds, richer report figures,
+rendered notebook/figure review and the complete pinned C exit audit remain next,
+before D/E. Session history is not reopen/discovery of arbitrary prior executions;
+verified hashes are not an atomic filesystem snapshot or authenticity. General
+ABA/crash/detached safety, whole-header large-font convergence and remaining
+workspace-specific floating-panel geometry are still open.
 
 ### First executable checkpoint — not Stage C completion
 

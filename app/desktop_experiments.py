@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QFileDialog
 from .core import Workspace
 from . import experiment_ui
 from .job_state import job_busy
+from .desktop_notebooks import READS as NOTEBOOK_READS, ACTIONS as NOTEBOOK_ACTIONS
 
 
 class ExperimentJob(QThread):
@@ -102,15 +103,18 @@ def retain_recovery(window, job, result, error):
 READS = {'scienceIndex', 'scienceShow', 'sciencePreview', 'scienceReport',
          'scienceRecoveries', 'scienceRecoveryShow', 'scienceAuthorBegin', 'scienceAuthorCheck',
          'scienceTaskContext', 'scienceTaskCompatibility', 'scienceAuthorPreview',
-         'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'}
+         'scienceRunEvidence', 'scienceReportEvidence', 'scienceRunPredictor'} | NOTEBOOK_READS
 EDITS = {'sciencePut', 'scienceFreeze', 'scienceSelect', 'scienceResultReport', 'scienceImport', 'scienceAuthorSave'}
-ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'}
+ACTIONS = READS | EDITS | {'scienceTrain', 'scienceGenerateNotebook', 'scienceExportRecovery', 'scienceExportRunPredictor'} | NOTEBOOK_ACTIONS
 
 
 def dispatch(window, req):
     action = req['action']; workspace = window.workspace
     if action not in READS and job_busy(window.job):
         raise ValueError('Stop the current run before changing scientific objects or starting another action.')
+    if action in NOTEBOOK_ACTIONS:
+        from .desktop_notebooks import dispatch as notebook_dispatch
+        return notebook_dispatch(window, req)
     if action == 'scienceRecoveries': return recovery_rows(window)
     if action in {'scienceRecoveryShow', 'scienceExportRecovery'}:
         value = getattr(window, 'experiment_recoveries', {}).get(req.get('id'))

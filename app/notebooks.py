@@ -4,6 +4,7 @@ Optional Jupyter imports are lazy. Generation never trains or executes cells.
 Export takes only exact revisions; execution never overwrites requested bytes.
 """
 import hashlib
+import asyncio
 import html
 import json
 import math
@@ -236,21 +237,43 @@ def verify_bundle(root):
     return root, manifest, notebook
 
 
-def execute_bundle(directory, *, python=sys.executable, timeout=600):
+class NotebookCancelled(Exception):
+    """An explicit Stop request, after actual kernel cleanup, not a cell timeout."""
+
+
+def execute_bundle(directory, *, python=sys.executable, timeout=600, cancel=None, progress=None,
+                   expected=None):
     """Real kernel execution only; preserve both notebook bytes and partial failure."""
     _require(type(timeout) is int and timeout > 0, 'Cell timeout must be a positive integer.')
     root, manifest, notebook = verify_bundle(directory)
+    if expected is not None:
+        from .notebook_execution import bundle_identity
+        _require(bundle_identity(root, manifest, notebook) == expected,
+                 'Notebook bundle changed after inspection. Inspect it again; nothing executed.')
     nbformat = _jupyter('nbformat'); nbclient = _jupyter('nbclient')
     kernelspec = _jupyter('jupyter_client.kernelspec'); manager = _jupyter('jupyter_client.manager')
     python = str(Path(python).expanduser().resolve())
     _require(Path(python).is_file() and os.access(python, os.X_OK), 'Kernel interpreter must be an executable file.')
+    requested_raw = (root / 'requested.ipynb').read_bytes()
+    _require(hashlib.sha256(requested_raw).hexdigest() == manifest['requested_notebook']['sha256'],
+             'Requested notebook changed during preparation. Nothing executed.')
     attempt_id = uuid.uuid4().hex; attempt = root / 'executions' / attempt_id
     _require(not (root / 'executions').is_symlink(), 'Execution directory must not be a symlink.')
     attempt.mkdir(parents=True, exist_ok=False)
-    new_file(attempt / 'requested.ipynb', (root / 'requested.ipynb').read_bytes())
+    new_file(attempt / 'requested.ipynb', requested_raw)
     started = timestamp(); start = time.monotonic(); error = None; status = 'failed'
     interrupt = None
+    def emit(stage, cell_index=None, cell=None, **extra):
+        if progress:
+            progress({'version': 1, 'attempt_id': attempt_id, 'stage': stage,
+                'cell_index': cell_index, 'cell_count': len(notebook.cells),
+                'section': cell.metadata.get('visual_pytorch', {}).get('section') if cell is not None else None,
+                **extra})
+    def requested_stop():
+        return cancel is not None and cancel.is_set()
     try:
+        if requested_stop():
+            raise NotebookCancelled('Stop requested before kernel launch; no cells executed.')
         with tempfile.TemporaryDirectory(prefix='vpw-kernel-') as td:
             scratch = Path(td); specdir = scratch / 'kernels' / 'visual-pytorch-report'; specdir.mkdir(parents=True)
             environment = {'VPW_NOTEBOOK_ATTEMPT': attempt_id, 'PYTHONPATH': str(root / 'runtime'),
@@ -266,14 +289,58 @@ def execute_bundle(directory, *, python=sys.executable, timeout=600):
             client = nbclient.NotebookClient(notebook, km=km, kernel_name='visual-pytorch-report', timeout=timeout,
                 resources={'metadata': {'path': str(root)}}, allow_errors=False, force_raise_errors=True,
                 raise_on_iopub_timeout=True, store_widget_state=False)
-            try:
-                client.execute(cleanup_kc=True)
-                status = 'completed'
-            finally:
-                if km.has_kernel:
-                    _jupyter('jupyter_core.utils').run_sync(km.shutdown_kernel)(now=True)
+            def cell_start(cell, cell_index):
+                if requested_stop():
+                    raise NotebookCancelled('Stop requested before the next cell.')
+                emit('cell-running', cell_index, cell)
+            def cell_done(cell, cell_index, execute_reply):
+                emit('cell-replied', cell_index, cell,
+                     reply_status=execute_reply.get('content', {}).get('status'))
+            client.on_cell_execute = cell_start
+            client.on_cell_executed = cell_done
+            async def run():
+                execution = None; watcher = None; stop_admitted = False
+                async def watch():
+                    nonlocal stop_admitted
+                    while not execution.done():
+                        # Do not abandon a pending launch with an unidentified
+                        # child. Cancellation is admitted once the manager's
+                        # ready future resolves; startup retains its own timeout.
+                        if requested_stop() and km.ready.done():
+                            stop_admitted = True
+                            execution.cancel()
+                            return
+                        await asyncio.sleep(.05)
+                try:
+                    emit('kernel-starting')
+                    execution = asyncio.create_task(client.async_execute(cleanup_kc=True))
+                    watcher = asyncio.create_task(watch())
+                    await execution
+                except asyncio.CancelledError as exc:
+                    raise NotebookCancelled('Stop requested; interrupted cell may be incomplete.') from exc
+                except nbclient.exceptions.DeadKernelError as exc:
+                    # nbclient translates cancellation of its shell polling
+                    # task into DeadKernelError. Only our admitted cancellation
+                    # is Stop; an independently dead kernel remains a failure.
+                    if not stop_admitted:
+                        raise
+                    raise NotebookCancelled('Stop requested; interrupted cell may be incomplete.') from exc
+                finally:
+                    if watcher is not None:
+                        watcher.cancel()
+                        await asyncio.gather(watcher, return_exceptions=True)
+                    # async_setup_kernel can fail before its context-manager
+                    # yield; keep an independent shutdown path for that case.
+                    if km.has_kernel:
+                        await km.shutdown_kernel(now=True)
+                    if km.has_kernel:
+                        raise GraphError('Notebook kernel shutdown could not be verified.')
+            asyncio.run(run())
+            status = 'completed'
     except BaseException as exc:
         error = {'type': type(exc).__name__, 'message': str(exc)}
+        if isinstance(exc, NotebookCancelled):
+            status = 'cancelled'
         if isinstance(exc, (KeyboardInterrupt, SystemExit)):
             interrupt = exc; status = 'cancelled'
     notebook.metadata['visual_pytorch']['state'] = status

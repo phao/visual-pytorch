@@ -25,6 +25,8 @@
   <script src="evidence-view.js" defer></script>
   <script src="science-results.js" defer></script>
   <script src="science-author.js" defer></script>
+  <script src="notebook-selection.js" defer></script>
+  <script src="science-notebooks.js" defer></script>
   <script src="science.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
@@ -162,6 +164,7 @@
           </div>
           <details id="science-report-composer"><summary id="science-report-selection-label">Compare exact saved runs · 0 selected</summary><p class="tiny">Selection is transient. Create a recipe, then Save workspace. No training is launched. Revisions/retries of one logical run cannot be counted as extra runs.</p><div id="science-report-selection"></div><div class="science-author-grid"><label>Report name<input id="science-comparison-name" value="Saved run comparison" maxlength="200"></label><label>Research question<input id="science-comparison-question" value="How do these exact saved trials compare?" maxlength="20000"></label></div><button id="science-comparison-create">Create saved comparison recipe</button></details>
           <div id="science-report" hidden><p id="science-report-mode" class="tiny"></p><button id="science-generate" title="Creates a new complete notebook directory. Does not execute or train.">Generate notebook bundle…</button><div class="inline-actions"><button id="science-report-prev">‹ Saved runs</button><span id="science-report-page" class="tiny"></span><button id="science-report-next">Saved runs ›</button></div><div id="science-report-evidence"></div></div>
+          <details id="science-notebook"><summary>Notebook execution · explicit</summary><p class="tiny">Inspect a complete trusted bundle, then explicitly run it. Saved-result notebooks do not train; rerun notebooks launch fresh fits. Generated runs remain external artifacts, not workspace runs. Input hashes are not a sandbox.</p><div class="science-author-grid"><label>Report / kernel Python<input id="science-notebook-python" placeholder="/absolute/path/to/python" spellcheck="false"></label><label>Timeout per cell (seconds)<input id="science-notebook-timeout" type="number" min="1" value="600"></label></div><div class="inline-actions"><button id="science-notebook-inspect">Inspect bundle…</button><button id="science-notebook-execute" disabled>Run saved-result notebook…</button><button id="science-notebook-stop" hidden>Stop notebook</button></div><p id="science-notebook-selection" class="tiny">No bundle inspected. Generation does not run cells.</p><p id="science-notebook-status" role="status" class="tiny"></p><div class="inline-actions"><label>Session executions<select id="science-notebook-history" aria-label="Session notebook executions"></select></label><button id="science-notebook-refresh">Read execution receipts</button></div><div id="science-notebook-evidence"></div></details>
           <details id="science-details"><summary>Specification / evidence · exact revision</summary><pre id="science-document"></pre></details>
         </div>
         </div>

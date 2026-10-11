@@ -196,6 +196,29 @@ while True: time.sleep(.01)
         self.assertEqual(processes[0].returncode, -signal.SIGKILL)
         self.assertLess(time.monotonic()-started, 2)
 
+    def test_explicit_cooperative_cancel_hook_runs_once_and_can_preserve_result(self):
+        cancel = threading.Event(); calls = []
+        with tempfile.TemporaryDirectory() as folder:
+            marker = os.path.join(folder, 'stop')
+            def stop(process):
+                calls.append(process.pid)
+                with open(marker, 'x', encoding='utf-8') as stream: stream.write('stop')
+            result = self.run_child('''
+import json,sys,time,os
+r=json.load(sys.stdin)
+print('{"kind":"progress","payload":{"ready":true}}',flush=True)
+while not os.path.exists(r['marker']): time.sleep(.005)
+print('{"kind":"result","payload":{"stopped":true}}',flush=True)
+''', {'marker':marker}, cancel=cancel, on_progress=lambda p:cancel.set(), on_cancel=stop)
+        self.assertEqual(result, {'stopped':True}); self.assertEqual(len(calls),1)
+
+    def test_cancel_hook_failure_reaps_worker_and_does_not_fabricate_result(self):
+        cancel = threading.Event()
+        def fail(process): raise RuntimeError('private-stop-hook-failure')
+        with self.assertRaisesRegex(RuntimeError, 'private-stop-hook-failure'):
+            self.run_child("import sys,time;sys.stdin.read();print('{\"kind\":\"progress\",\"payload\":{}}',flush=True);time.sleep(20)",
+                           cancel=cancel,on_progress=lambda p:cancel.set(),on_cancel=fail)
+
     def test_input_failure_is_not_ignored(self):
         with self.assertRaisesRegex(WorkerError, 'input failed'):
             self.run_child('import os,time;os.close(0);time.sleep(20)',

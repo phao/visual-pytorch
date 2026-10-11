@@ -374,7 +374,12 @@ captured snapshot before entering current/history storage.
 Notebook bundles use `.ipynb` v4 plus a closed version-1 input manifest and exact
 revision closure, outside the SQLite container. Generation and actual-kernel
 execution are distinct explicit commands; neither writes the source workspace.
-See [notebook-reports.md](notebook-reports.md) for exact contracts and limitations.
+The GUI's inspected bundle selection, active job and session receipt history are
+not SQLite tables/revisions. Durable requested/executed notebooks and execution
+receipts live in external bundle attempt directories; rerun results are not
+automatically admitted as workspace RunRecords. No v6/schema change is introduced
+by explicit GUI execution. See [notebook-reports.md](notebook-reports.md) and
+[notebook-gui-execution.md](notebook-gui-execution.md) for exact contracts and limits.
 
 ## 7. Run policy is not graph meaning
 

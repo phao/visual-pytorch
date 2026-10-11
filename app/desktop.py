@@ -432,7 +432,10 @@ class Window(QMainWindow):
             "dirty": bool(self.workspace and self.workspace.dirty),
             "models": models, "recent": self.recent_files(),
             "training_id": self.job.mid if job_busy(self.job) else None,
-            "experiment_job": self.job.snapshot['run_id'] if job_busy(self.job) and hasattr(self.job, 'snapshot') else None,
+            "experiment_job": self.job.snapshot.get('run_id') if job_busy(self.job) and hasattr(self.job, 'snapshot') else None,
+            "notebook_job": {**{k: self.job.snapshot[k] for k in ('id', 'workspace_id', 'selection')},
+                             'operation': self.job.snapshot.get('operation', 'execute')} if job_busy(self.job)
+                and hasattr(self.job, 'snapshot') and 'selection' in self.job.snapshot and 'timeout' in self.job.snapshot else None,
             "experiment_recoveries": recovery_rows(self),
             "torch_python": self.torch_python,
             "rendering": self.rendering,
@@ -771,7 +774,7 @@ class Window(QMainWindow):
         if getattr(self.job, 'awaiting_terminal', False):
             # Do not block the GUI event loop that must admit queued evidence.
             self.job.stop()
-            self.broadcast('externalConflict', 'Stopping experiment; close again after its terminal evidence has been retained.')
+            self.broadcast('externalConflict', 'Stopping active work; close again after its terminal evidence has been retained.')
             event.ignore()
             return
         from .desktop_experiments import recovery_rows

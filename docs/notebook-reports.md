@@ -2,7 +2,9 @@
 
 This contract describes executable code on `task/stage-c-experiments`, not the
 initial public release. A bounded [experiment GUI](experiment-gui.md) now browses
-selection/history and generates bundles; full Stage C gates remain open.
+selection/history, generates bundles and explicitly inspects/executes them;
+full Stage C gates remain open. [GUI notebook execution](notebook-gui-execution.md)
+specifies asynchronous origin/busy/Stop and receipt presentation.
 The CLI and helpers generate reports from exact stored
 ReportRecipe revisions; browsing heads never substitute for those revisions.
 
@@ -102,8 +104,12 @@ On completion, timeout or cell failure it shuts down the kernel and retains:
   engine (`nbclient-real-ipykernel`), interpreter, cell_timeout_seconds,
   executed_code_cells and an artifact byte/hash index.
 
-The root requested notebook is never rewritten. KeyboardInterrupt/SystemExit
-preserves cancelled evidence before reraising. Receipt artifacts exclude the
+The root requested notebook is never rewritten. Explicit Stop supports a cancel
+event with asynchronous cleanup and partial-output retention; actual timeout or
+independent kernel death stays failed. Kernel Stop before launch retains zero-cell
+evidence. Stop during startup waits for manager readiness rather than abandoning
+an unidentified process. KeyboardInterrupt/SystemExit preserves cancelled evidence
+before reraising. Receipt artifacts exclude the
 receipt itself. A completed notebook means cells completed, not that every
 training candidate succeeded. Per-run statuses remain authoritative. Manual
 Jupyter execution writes numerical artifacts but does not automatically save
@@ -128,17 +134,20 @@ captions identify transformed target loss, retained/discarded history and run.
 
 ## Verification and limits
 
-Sixteen notebook tests include actual kernels for both modes, all eight bounded
+The original portable-bundle checkpoint's sixteen notebook tests include actual kernels for both modes, all eight bounded
 2×2×2 fits and exact local replay, portable closure and standalone inference,
 real failing cells/timeouts, corruption gates, exclusions/incompatible rows,
 failed metrics, captured split reads/retry-substitution rejection and independent
-SVG-coordinate/CSV checks. The full branch has passed 342 Python tests and
+SVG-coordinate/CSV checks. At that historical checkpoint the branch passed 342 Python tests and
 57 JavaScript tests plus native Qt and sandboxed WebEngine layout/history checks.
+Later GUI execution and cancellation evidence is recorded in
+[development.md](development.md) and [notebook-gui-execution.md](notebook-gui-execution.md).
 These are fixture/environment-specific results, not cross-platform bitwise promises.
 
 Bundle execution runs trusted Python. Integrity checks are not a hostile-code
 sandbox, signatures, remote job receipts or optimizer resume. Source workspaces
 remain read-only and generated runs are bundle artifacts, not automatically
-imported into the lab workspace. GUI notebook execution, richer report UI, remote
-execution and full Stage C completion are not claimed. Numerical SVG tests do
+imported into the lab workspace. Explicit local GUI notebook inspection/execution
+is implemented separately; richer report UI, remote execution and full Stage C
+completion are not claimed. Numerical SVG tests do
 not substitute for a final rendered-figure review before publication.

@@ -238,8 +238,15 @@ Generate notebook bundle creates a new complete directory via a native chooser,
 without executing cells or overwriting files. Install optional
 `requirements-report.txt` in the GUI interpreter for authoring; the numerical
 worker may use another Python. Missing optional dependencies fail clearly before
-output creation. Notebook execution remains explicit CLI/Jupyter work, not a GUI
-action. Review inline observations/weights for privacy before sharing bundles.
+output creation. The Notebook execution disclosure also asynchronously inspects
+existing/generated bundles and explicitly runs trusted notebooks through a real
+kernel in the chosen report/numerical environment, not the Qt process. Its
+mode-aware native confirmation defaults to Cancel; Stop, timeout/failure and
+verified external receipts stay distinct. Rerun outputs are never auto-imported
+into the source workspace. Review inline observations/weights for privacy before
+sharing bundles. See [notebook-gui-execution.md](notebook-gui-execution.md) for
+exact selection, progress/terminal events, dependency/origin/queued-busy guards,
+receipt presentation and remaining lifecycle/transport limits.
 
 ## Bridge and state
 
@@ -269,12 +276,19 @@ a null hash is rejected, not interpreted as a mutable head.
 | scienceResultReport | runs, question, optional id/name/workspace_id | Reading recipe over exact runs; supplied workspace UUID checked before admission |
 | scienceTrain | experiment reference, coordinates, optional run_id/name/retry | Explicit isolated fit/retry |
 | scienceGenerateNotebook | report reference, optional output/offset/limit/allow_partial | Generate, never execute |
+| scienceNotebookInspect | workspace_id, optional directory/python/request_id | Async input inspection, no kernel; selection via terminal event |
+| scienceExecuteNotebook | workspace_id, exact inspected selection, optional python/timeout | Explicit confirmation, async actual kernel, new external artifacts |
+| scienceNotebookHistory | none | Read copied session notebook execution rows |
+| scienceNotebookEvidence | id | Read/revalidate retained receipt/artifact bytes; never execute |
 
 Scientific mutations join the undo wrapper; immutable revisions survive head
 undo. Modal choosers recheck workspace identity and active work after returning.
 Reads do not change workspace bytes. Save workspace explicitly to persist edits
 and terminal evidence. State has a separate experiment_job ID: it does not imply
 that the legacy drawing/latest-result is the executing scientific revision.
+Notebook inspection/execution has its own notebook_job state, not an invented
+experiment RunRecord. Its durable receipts are external; session history is not
+stored in the workspace or domain undo stack.
 
 `scienceTaskContext` returns version 1, model/dataset references, input_ports,
 output_ports, fields and record_count. `scienceTaskCompatibility` returns version

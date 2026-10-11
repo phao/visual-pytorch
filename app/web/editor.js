@@ -21,7 +21,7 @@
   const esc = str => String(str).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const modelID = () => location.hash.startsWith("#model=") ? location.hash.slice(7) : null;
   const node = id => doc?.graph.nodes.find(n => n.id === id);
-  const busy = () => Boolean(state.training_id || state.experiment_job);
+  const busy = () => Boolean(state.training_id || state.experiment_job || state.notebook_job);
   const shapeText = s => "[B, " + (s?.join(", ") || "?") + "]";
   function prepareModel(value) {
     value.view={x:0,y:0,zoom:1,...(value.view || {})};
@@ -629,7 +629,7 @@
     $("rebind-data").hidden = !admission?.can_rebind;
     $("rebind-data").disabled = busy();
     if(doc.dataset && admission?.allowed===false)$("dataset-bindings").open=true;
-    $("training-state").textContent = state.training_id === doc.id ? "Training…" : busy() ? "Training another model" : verified ? (doc.result.stopped ? "Stopped · current checkpoint" : "Complete · current checkpoint") : legacy ? "Unverified legacy result" : doc.result ? "Checkpoint not current" : admission?.allowed===false && doc.dataset ? "Dataset blocked" : "Ready when data is loaded";
+    $("training-state").textContent = state.training_id === doc.id ? "Training…" : state.notebook_job ? (state.notebook_job.operation==='inspect'?'Inspecting notebook':'Executing notebook') : busy() ? "Training another model" : verified ? (doc.result.stopped ? "Stopped · current checkpoint" : "Complete · current checkpoint") : legacy ? "Unverified legacy result" : doc.result ? "Checkpoint not current" : admission?.allowed===false && doc.dataset ? "Dataset blocked" : "Ready when data is loaded";
     $("loss-value").textContent = (verified || legacy) && Number.isFinite(doc.result?.mse) ? (legacy?"Unverified · ":"")+doc.result.mse.toExponential(2) : "—";
     for (const id of ["epochs", "learning-rate", "seed", "sample-count", "noise"]) $(id).disabled = busy();
     const safety = description?.run_safety;
@@ -1062,7 +1062,8 @@
       host = channel.objects.host;
       host.event.connect(onEvent);
       state = await call("state");
-      window.LoomScience.mount(document, {call, toast, busy, model:()=>doc?.id, workspace:()=>state.workspace_id});
+      window.LoomScience.mount(document, {call, toast, busy, model:()=>doc?.id, workspace:()=>state.workspace_id,
+        python:()=>state.torch_python,notebookJob:()=>state.notebook_job});
       window.loom = {call, get document() { return clone(doc); }, get state() { return clone(state); }, fit,
         selectAt(x,y){return selectContextBox(document.elementFromPoint(x,y));},
         contextAt(x,y){

@@ -723,3 +723,29 @@ them. A file-write receipt identifies actual source hash and origin, not executi
 or crash-safe recovery. Metadata/learned states may be sensitive even if record
 payloads are omitted. In Visual PyTorch, app/run_export.py reuses the existing
 inference lowering; see [saved-predictor-export.md](saved-predictor-export.md).
+
+### Explicit asynchronous external work
+
+The Notebook execution disclosure reuses the floating panel rather than adding
+another native-window layout. Separate generation, input inspection and actual
+execution: labels must describe which work can train or change external files.
+An inspected selection pins exact input hashes; it does not stand in for a mutable
+current object. Native confirmation defaults to Cancel, uses plain text and
+preserves the full human app/action title. Put long technical identities in Show
+Details instead of allowing them to dominate the dialog width.
+
+Busy spans queued terminal delivery as well as the live worker. Inspection also
+runs off the GUI thread. Stopping inspection has no execution receipt; stopping
+real work retains actual partial evidence when cleanup succeeds, not a fabricated
+success. Display replied/started steps separately from completed work. Reads stay
+available, while edits and competing work have native admission guards.
+
+Readable receipt cards use theme tokens, base fonts, wrapping local paths/hashes
+and a collapsed byte/hash ledger. Use literal DOM text, not trusted-looking HTML
+from artifacts. Clear a previous verified card before a read that may fail due to
+changed bytes. Workspace/request-generation fences prevent late inspection from
+selecting a new origin. External artifacts and session history are not domain
+undo or file Save; preserve those distinctions when adapting this pattern.
+Visual PyTorch's exact actions/events and verified scope are specified in
+[notebook-gui-execution.md](notebook-gui-execution.md), not a generic promise of
+detached recovery or safe execution of arbitrary code.
