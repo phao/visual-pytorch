@@ -190,6 +190,7 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
+                require(node['type'] != 'LSTM', 'Family versions 1–6 do not support LSTM templates; use a concrete graph.')
                 require(node['type'] != 'Recurrent' or doc['version'] == 6,
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],

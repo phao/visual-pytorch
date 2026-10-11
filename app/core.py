@@ -22,7 +22,7 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 16
+VERSION = 17
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -223,9 +223,9 @@ def check_document(doc):
         if not isinstance(node.get("id"), str) or node["id"] in ids:
             raise GraphError("Block IDs must be unique strings.")
         ids.add(node["id"])
-        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Recurrent", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
+        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Recurrent", "LSTM", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
             raise GraphError("Unsupported block type.")
-        if node['type'] in TENSOR_OPERATORS | {'Recurrent'}:
+        if node['type'] in TENSOR_OPERATORS | {'Recurrent', 'LSTM'}:
             normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
@@ -627,6 +627,13 @@ class Workspace:
                 for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
                     if _parse(text)['version'] >= 3:
                         raise GraphError('Recurrent ModelRevisions require a version-14 container.')
+            if version < 17:
+                from .revisions import _parse
+                if any(n['type'] == 'LSTM' for m in w.models().values() for n in m['graph']['nodes']):
+                    raise GraphError('LSTM graph blocks require a version-17 container.')
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
+                    if _parse(text)['version'] >= 4:
+                        raise GraphError('LSTM ModelRevisions require a version-17 container.')
             if version < 16:
                 from .revisions import _parse
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
@@ -690,6 +697,8 @@ def _graph_values(module, x, contract):
             if kind == 'Recurrent':
                 # The app-free emitter captures this helper under the same name.
                 value = _recurrent_graph_forward(layer, parts, item['recurrent'])
+            elif kind == 'LSTM':
+                value = _lstm_graph_forward(layer, parts, item['lstm'])
             elif kind == 'Module' and 'runtime_contract' in item:
                 child = item['runtime_contract']
                 value = _graph_tensor(_graph_values(layer, parts[0], child), child)
@@ -712,6 +721,11 @@ def _graph_values(module, x, contract):
 
 def _recurrent_graph_forward(layer, parts, plan):
     from .recurrent_nodes import graph_forward
+    return graph_forward(layer, parts, plan)
+
+
+def _lstm_graph_forward(layer, parts, plan):
+    from .lstm_nodes import graph_forward
     return graph_forward(layer, parts, plan)
 
 
@@ -754,6 +768,21 @@ def generate_code(models, model_id):
             lines.append(_helper_source(helper))
         lines.append('_recurrent_graph_forward = graph_forward')
 
+    def has_lstm(mid, seen):
+        if mid in seen: return False
+        seen.add(mid)
+        return any(n['type'] == 'LSTM' or
+                   (n['type'] in REFERENCE_TYPES and has_lstm(n['ref'], seen))
+                   for n in models[mid]['graph']['nodes'])
+    if has_lstm(model_id, set()):
+        from .lstm_nodes import graph_forward as lstm_forward, lstm_memory_report
+        from .task_execution import _helper_source
+        from .memory import MIB
+        lines.extend(['from pathlib import Path', 'import math', f'MIB = {MIB!r}'])
+        for helper in (memory_percent, available_memory, format_bytes, lstm_memory_report, lstm_forward):
+            lines.append(_helper_source(helper))
+        lines.append('_lstm_graph_forward = graph_forward')
+
     def cname(mid):
         return "Architecture_" + str(uuid.uuid5(uuid.NAMESPACE_URL, mid)).replace("-", "")[:12]
 
@@ -783,6 +812,10 @@ def generate_code(models, model_id):
                 op = constructor_code(contract['shapes'][node['id']]['operator'])
             elif node['type'] == 'Recurrent':
                 op = f'_runner_class(nn)({cname(node["ref"])}(), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
+            elif node['type'] == 'LSTM':
+                kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
+                kwargs.pop('dtype')
+                op = f'nn.LSTM(**{kwargs!r}, dtype=torch.float32)'
             else:
                 op = f'{cname(node["ref"])}()'
             lines.append(f"        self.layer_{index} = {op}")
@@ -842,7 +875,7 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         if current in seen:
             return False
         seen.add(current)
-        return any(n['type'] == 'Recurrent' or
+        return any(n['type'] in {'Recurrent', 'LSTM'} or
                    (n['type'] == 'Module' and recurrent_reference(n['ref'], seen))
                    for n in models[current]['graph']['nodes'])
 
@@ -872,6 +905,12 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             layer = _runner_class(nn)(compile_model(models, node['ref'], constrained=constrained,
                                                      memory_limit_percent=memory_limit_percent), c,
                                       constrained=constrained, memory_limit_percent=memory_limit_percent)
+        elif node['type'] == 'LSTM':
+            kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
+            kwargs['dtype'] = torch.float32
+            layer = nn.LSTM(**kwargs)
+            layer.constrained = constrained
+            layer.memory_limit_percent = memory_limit_percent
         else:
             layer = compile_model(models, node["ref"],
                                   constrained=constrained and recurrent_reference(node['ref']),
@@ -921,7 +960,7 @@ def layer_descriptions(models, mid, prefix="", stable_prefix=None):
             layers.append({"path": path, "node_id": node["id"], "architecture": models[mid]["name"],
                            "stable_id":stable_prefix+'/'+node['id'],
                            "type": node.get("activation", node["type"]),
-                           **({'bias': node.get('bias', True)} if node['type'] in {'Linear', 'Conv2d'} else {}),
+                           **({'bias': node.get('bias', True)} if node['type'] in {'Linear', 'Conv2d', 'LSTM'} else {}),
                            **contract["shapes"][node["id"]]})
     return layers
 

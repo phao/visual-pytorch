@@ -18,7 +18,7 @@ from .memory import memory_percent
 CORE = ('GraphError', 'feature_count', 'tensor_shape', 'input_shape', 'reshape_shape',
         'ordered_nodes', 'operation_nodes', 'boundary_groups', 'validate_model',
         'safety_report', 'preflight', 'check_document', '_pack_inputs', '_graph_values',
-        '_graph_tensor', '_recurrent_graph_forward', 'compile_model')
+        '_graph_tensor', '_recurrent_graph_forward', '_lstm_graph_forward', 'compile_model')
 EVIDENCE = ('digest', 'legacy_input_order', 'pin_input_order', 'graph_signature',
             'identity', 'parameter_schema')
 
@@ -33,7 +33,7 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes')}
+               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math

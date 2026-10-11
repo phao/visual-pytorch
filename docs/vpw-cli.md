@@ -7,7 +7,7 @@ in-place builder as Qt, preserves stable nodes/ports/wires, and validates affect
 paths without replacing unrelated drafts. Exact transport/options, no-op,
 rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container16). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container17). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
@@ -384,6 +384,16 @@ and op_version=1. Normal apply checks grouped channel divisibility, layout and
 positive output sizes without importing Torch. Invalid batches leave disk bytes
 unchanged. A structured dataset adapter mismatch is not repaired by rebind-dataset.
 See [the CNN example](cnn-workflow.md) for a runnable workspace generator.
+
+Concrete LSTM v1 uses the same explicit graph create/replace/add-node/set-node
+and wire operations, with named sequence/hidden/cell bindings and return ports.
+Container17/ModelRevision4 fence its grammar; no family1–6 upgrade is inferred.
+Generate a pure-host example with `python examples/projected_lstm.py example.vtw`,
+then use normal inspect/revision-check/apply/validate/export workflows. Normal
+apply refuses incompatible state widths or ambiguous port bindings before
+Torch allocation. Graph editing does not supply initial-state or length data.
+There is no special LSTM authoring command yet. See the exact
+[LSTM contract](lstm-graph-contract.md).
 
 Example layout repair (substitute actual IDs):
 

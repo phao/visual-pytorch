@@ -9,7 +9,7 @@ TENSOR_OPERATORS = frozenset({
     'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute',
 })
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
-LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent'}
+LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
 COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version', 'share_with'}
 FIELDS = {
     'Conv2d': {'out_channels', 'kernel_size', 'stride', 'padding', 'dilation', 'groups', 'bias', 'padding_mode'},
@@ -41,6 +41,9 @@ def normalized(node):
     """Explicit defaults/pairs for new operators only; preserve legacy documents."""
     from .core import GraphError
     kind = node['type']
+    if kind == 'LSTM':
+        from .lstm_nodes import normalized as lstm_normalized
+        return lstm_normalized(node)
     if kind == 'Recurrent':
         from .recurrent_nodes import normalized as recurrent_normalized
         return recurrent_normalized(node)
