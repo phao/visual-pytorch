@@ -20,6 +20,8 @@ version-7 container; they add no SQL table or sidecar. The
 [retained temporal families](temporal-families.md) require version15;
 [explicit temporal experiment execution](temporal-task-execution.md) requires version16;
 [projected/bidirectional LSTM ports](lstm-graph-contract.md) require version17.
+Its [guarded Qt/CLI authoring](lstm-authoring.md) adds no container/revision
+version or SQL table; it writes the same concrete operator and stable sockets.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility

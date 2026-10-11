@@ -333,6 +333,10 @@ adapter still requires those optional execution packages in its invoking
 environment. See [notebook-gui-execution.md](notebook-gui-execution.md). No new
 SQLite objects, implicit fits during reads or optimizer-resume command is added.
 
+All JSON file/stdin input uses one strict reader: duplicate keys, NaN/Infinity
+and finite-looking floats overflowing the host (such as `1e309`) are rejected.
+Exact integer tokens remain integers. There is no separate lax authoring parser.
+
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
 graph, including affected references. --allow-invalid explicitly permits semantic
@@ -351,6 +355,8 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | add-node | id, node object | Explicit new block |
 | add-recurrent | token with id/ref/root_graph/transition; options | Guarded append of an explicit sequence/state/control branch using the same pure builder as Qt; existing work is preserved. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity). |
 | edit-recurrent | token with id/ref/node/root_graph/root_model/transition; options | Guarded in-place interface change; no new boundaries or guessed outgoing rewiring. See [interface editing](recurrent-interface-editing.md). |
+| add-lstm | token with id/root_graph/root_model; options | Guarded append of explicit sequence/hidden/cell inputs and three returned ports; optional supplied lengths. See [LSTM authoring](lstm-authoring.md). |
+| edit-lstm | token with id/node/root_graph/root_model; options | Guarded constructor/bindings/owner edit, preserving IDs/outgoing wires; no implicit resize of initial states or downstream work. |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
 | connect | id, edge object | Append explicit wire; update ordered Concat sources separately |
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
@@ -392,8 +398,12 @@ Generate a pure-host example with `python examples/projected_lstm.py example.vtw
 then use normal inspect/revision-check/apply/validate/export workflows. Normal
 apply refuses incompatible state widths or ambiguous port bindings before
 Torch allocation. Graph editing does not supply initial-state or length data.
-There is no special LSTM authoring command yet. See the exact
-[LSTM contract](lstm-graph-contract.md).
+`prepare-lstm PARENT_ID` reads a creation token/defaults;
+`prepare-lstm-edit PARENT_ID BLOCK_ID` reads the exact edit token/options/source
+catalog. Atomic `add-lstm` / `edit-lstm` use the same pure builder as Qt's typed
+modal. Read-only preparation never changes disk or allocates Torch layers.
+See [LSTM authoring](lstm-authoring.md) for closed requests, affected-path proof,
+stale guards and no-op behavior, and the exact [forward contract](lstm-graph-contract.md).
 
 Example layout repair (substitute actual IDs):
 

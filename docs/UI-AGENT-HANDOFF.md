@@ -513,10 +513,17 @@ three output sockets are sequence/hidden/cell. Inspector must distinguish cell
 and projected hidden widths and show the explicit state batch-axis adapter.
 Both expanded and folded blocks always disclose bias. Compact icons remain
 draggable, all sockets remain distinct, and selected-port insertions use that
-port's shape. This checkpoint's example/CLI can author a drawing; it has no LSTM
-palette creation form yet. Preserve the existing panels/typing/history behavior
-rather than adding a separate recurrence UI. Exact semantics and unsupported
-family/runtime extensions: [LSTM graph contract](lstm-graph-contract.md).
+port's shape. Its standalone palette action opens a typed creation modal;
+Inspector opens an in-place constructor/source/owner editor. Preview distinguishes
+hidden `[B,L*D,Q]` from cell `[B,L*D,H]`; initial states/lengths are explicit.
+Preserve existing IDs/outgoing wires rather than guess compatible replacements.
+Unproven source shapes are labelled, native errors keep editable field values,
+and workspace-instance/graph/reference/generation guards fence stale responses.
+Only one prepare/apply is pending; a true no-op leaves bytes/history unchanged.
+Cancel fences UI delivery, not rollback of a previously authorized native write.
+Keep existing panels/typing/history behavior rather than add a separate recurrence
+UI. Exact closed routes/options and remaining concrete-only limits:
+[LSTM authoring](lstm-authoring.md) and [forward contract](lstm-graph-contract.md).
 
 ## 8. Visual system and accessibility
 

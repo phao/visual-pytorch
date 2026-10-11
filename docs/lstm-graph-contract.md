@@ -105,7 +105,11 @@ and frozen revision without Torch, refusing overwrite. Open it in the desktop;
 the Inspector explains all states/adapters/shapes and named sockets. Existing
 wire editing, output insertion, folding, compact-icon drag, resizing and history
 apply. CLI `validate`, `export` and atomic explicit graph edit batches support it.
-There is not yet an LSTM palette creation form or guarded constructor editor.
+Building blocks now has a typed LSTM branch-creation form, and Inspector has a
+guarded constructor/source/owner editor. CLI `prepare-lstm` / `prepare-lstm-edit`
+and atomic `add-lstm` / `edit-lstm` call the same allocation-free builders.
+See [authoring contract](lstm-authoring.md) for exact options, token/instance
+guards, affected-path proof, preservation and no-op/history semantics.
 
 Family versions 1–6 and runtime-spatial/temporal-v1 deliberately do not admit this
 new operator. Extending symbolic/runtime LSTM authoring requires a new explicit
@@ -124,6 +128,11 @@ and actual sandboxed desktop gestures; the desktop fixture is not a creation for
 `tests/test_lstm_task_execution.py` checks a 60-update masked task fit, exact real
 worker history/checkpoints, explicit unavailable supervision, app-free trained
 prediction and real saved/rerun kernels with the captured LSTM runtime closure.
+
+Dedicated `test_lstm_authoring`, `test_lstm_authoring_execution` and
+`lstm-authoring.test.js` add pure/serialized CLI, independent authored forward/
+gradient/fitting and mounted-modal lifecycle checks. `qt_lstm_authoring_native_smoke`
+and `qt_lstm_authoring_smoke` exercise real dispatch and actual sandboxed forms.
 
 Primary reference: [PyTorch LSTM documentation](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LSTM.html),
 reviewed 2026-10-11. Reference shape/gate semantics were checked against installed

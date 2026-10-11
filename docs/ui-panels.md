@@ -49,6 +49,10 @@ That selector also supplies Recurrent transition: a guarded form creates a
 separate explicit sequence/state/control branch, and the same floating Inspector
 explains its roles/ports and opens transition details. It does not create a new
 menu scheme or infer hidden initial state. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity).
+Standalone LSTM opens a typed concrete constructor modal; Inspector opens its
+in-place source/owner editor. The form previews distinct hidden/cell widths,
+preserves existing drawing/IDs and refuses stale or incompatible applies. It
+does not infer state data, masks or task heads. See [LSTM authoring](lstm-authoring.md).
 The former “A LITTLE GUIDANCE” section is removed; per-block About and hover
 descriptions remain available.
 Architectures' title owns +; its non-collapsible Currently open card precedes

@@ -278,4 +278,12 @@ footer>div{min-width:0;max-width:100%}footer :is(#status,#runtime){min-width:0;o
 #toast{z-index:100001}
 .science-value-text{display:block;width:100%;min-height:8em;max-height:14em;resize:vertical;font:inherit;font-family:monospace}
 #science-value-identity{overflow-wrap:anywhere}
+#lstm-dialog{width:min(760px,calc(100vw - 48px));max-width:calc(100vw - 48px);min-width:min(360px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
+#lstm-dialog fieldset{min-width:0;border:1px solid var(--line);border-radius:7px;margin:12px 0;padding:10px;display:grid;gap:6px}
+#lstm-dialog fieldset[hidden]{display:none}
+#lstm-dialog :is(input:not([type=checkbox]),select){width:100%;min-width:0;margin:0 0 6px}
+#lstm-dialog .checkbox{display:flex;align-items:center;gap:6px}
+#lstm-dialog input[type=checkbox]{width:auto;margin:0}
+#lstm-shapes{white-space:pre-wrap;overflow-wrap:anywhere;font-size:inherit}
+#lstm-error{color:var(--pink);overflow-wrap:anywhere}
 .validation-chip{left:auto;right:16px;top:12px;max-width:calc(100% - 32px)}

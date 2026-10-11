@@ -9,7 +9,7 @@
   const names={
     'add-linear':'Linear','add-activation':'Activation','add-reshape':'Reshape',
     'add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
-    'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter',
+    'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter','add-lstm':'LSTM',
   };
   const activations=A.info;
   function describe(id,context={}){
@@ -48,6 +48,10 @@
         'The referenced graph supplies the computation. Each occurrence has its own learned parameters; this is not weight sharing between occurrences.',
         'Open details from the Inspector to edit that architecture. Updates affect its instances in the workspace; validation rejects cycles or incompatible shapes.',
         'The current prototype connects architecture references through packed tensors. Named inputs and outputs describe the interface; do not assume arbitrary independent multi-input calling conventions.'];break;
+      case 'add-lstm':paragraphs=['Adds a separate concrete LSTM branch with sequence data, supplied initial hidden/cell states and three named outputs. Existing work is preserved.',
+        'Choose cell width, stacked layers, bidirectionality, projection and biases. Hidden width is the projection width when nonzero; cell width is always H. States have shape [B,layers × directions,width].',
+        'Optional supplied lengths are exact integers in [0,T]. Empty sequences return their initial states and zero sequence values. Lengths control execution, not loss masks; no state is carried between calls.',
+        'Edit an existing block through Inspector’s constructor/bindings form. Shape changes require explicit compatible source shapes. Family/runtime-T LSTM is not yet supported.'];break;
       case 'add-recurrent':paragraphs=['Repeats the selected transition architecture across a concrete sequence length T, with one shared set of learned parameters. This is recurrence, not independent copies of a layer.',
         'Assign every transition Input to supplied sequence data [B, T, …step shape] or an explicit initial state [B, …state shape]. Each state must name a next-state Output with exactly the same shape and axis names.',
         'Choose returned sequence ports and optional exact integer lengths or exact 0/1 active/reset masks. A masked step holds state and returns zero; reset restores the supplied initial state before an active step. Execution masks are not loss masks.',

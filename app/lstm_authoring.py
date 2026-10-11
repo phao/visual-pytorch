@@ -184,6 +184,11 @@ def build_edit(models, token, options):
             graph['edges'].append(edge)
     from .recurrent_reconfiguration import _affected_contract
     _affected_contract(models, doc, node['id'])
+    # Prefilling explicit defaults is not an edit to an otherwise identical
+    # stored node. Prove the proposed paths first, then keep its original bytes.
+    original = models[doc['id']]
+    if options == info['options'] and label == info['options']['label'] and graph['edges'] == original['graph']['edges']:
+        return copy.deepcopy(original), node['id']
     if doc != models[doc['id']]:
         doc.update(dataset=None, result=None)
     return doc, node['id']

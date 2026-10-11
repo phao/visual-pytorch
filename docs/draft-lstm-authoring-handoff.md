@@ -1,4 +1,31 @@
-# Incomplete LSTM authoring checkpoint
+# LSTM authoring handoff
+
+## Resumed implementation — 2026-10-11
+
+Creation/editing forms, the strict shared CLI input seam and dedicated pure/
+serialized/numerical/mounted-form/native checks now exist on this child branch.
+See [authoring specification](lstm-authoring.md). Tests exposed and repaired a
+real default-prefill no-op mutation; exact SQL/history now remain unchanged.
+Preserve the historical draft failures below as evidence, not current defects.
+Full1132 Python tests pass (3 Qt-only skips separately covered), as do352 JS and
+actual sandboxed forms. This bounded authoring result is ready for integration
+into retained D only; actual commit/integration evidence is in the private
+campaign handoff. The historical checkpoint below is not the current tip.
+
+The first full1132-case run had one obsolete broad UI cap assertion: LSTM's
+64-layer grammar was mistaken for an old constrained-run limit. The test now
+allows only that explicitly identified stack-depth field, retaining refusal of
+caps on other size controls. The original failure is kept. Actual form captures
+also exposed retained dialog scroll hiding the reopened title; open resets it.
+Current tests cover real native Apply/Cancel/no-op/refusal/stale/history/reload,
+all authored/native/exported input/parameter gradients against an independent
+gate scan and35-update fitting. No user workspace/configuration is used.
+
+Remaining: explicit new LSTM family/runtime-T grammars and original D acceptance,
+then E. LoRA/MS-VAR report requests remain deferred; no policy/init/likelihood
+semantics have been smuggled into the existing operator. Public A–C is unchanged.
+
+## Historical initial incomplete checkpoint
 
 Status: draft, not accepted or integrated. Branch `task/stage-d-lstm-authoring`
 starts at `720d7db0fd7f0393e1fb7781382c723d4d50455e` (retained local D).

@@ -8,7 +8,14 @@ from app.core import Workspace, default_model, generate_code, generate_predictor
 
 
 def read_json(path):
-    return json.load(sys.stdin) if path == '-' else json.loads(Path(path).read_text())
+    """One strict serialized input seam for every CLI JSON document."""
+    from app.revisions import _parse
+    text = sys.stdin.read() if path == '-' else Path(path).read_text()
+    document = _parse(text)
+    # JSON's finite-looking exponent can overflow the host float (e.g. 1e309).
+    # parse_constant covers NaN/Infinity tokens, not that numeric overflow.
+    json.dumps(document, allow_nan=False)
+    return document
 
 
 def ram_percentage(override):
@@ -462,9 +469,7 @@ def main(argv=None):
                     value['references'] = {kind: {'kind': kind, 'id': values[0], 'revision': values[1]}
                                            for kind, values in (('model', args.model), ('dataset', args.dataset), ('task', args.task))}
             elif args.command == 'apply':
-                from app.revisions import _parse
-                text = sys.stdin.read() if args.edits == '-' else Path(args.edits).read_text()
-                results = apply_edits(workspace, _parse(text))
+                results = apply_edits(workspace, read_json(args.edits))
                 if not args.allow_invalid:
                     models = workspace.models()
                     for mid in models:
