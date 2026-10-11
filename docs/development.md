@@ -1,5 +1,24 @@
 # Development state and roadmap
 
+## 2026-10-11 18:32 -03:00 — Runtime-v2 family acceptance
+
+Fresh final full suite1221 Python430.877s passes:1218 executed/3 Qt-only skips
+independently covered by66 native/pure3.219s.356 JS1372.117225ms,116 focused
+Python13.977s and actual sandboxed Qt fixed-T/explicit7→8 variants pass.
+Implementation checkpointbdfb4b8fa03578a794e0d3ea3a49368b9694c0dd stayed frozen
+through final acceptance; subsequent product changes are documentation only.
+Exact26 family1–6/32 Family7 resolution/record comparisons and5 temporal-v1
+proofs/15 actual shapes/30 memory reports agree with pinned committed modules.
+Typed v2 task selection still demonstrably refuses before allocation/SQL writes.
+
+Initial1217-case full run434.054s also passes but overlaps the host upgrade repair
+and precedes four added regressions; it is not used as final acceptance. Failed
+fixtures/actual Qt host defect and all logs/captures are retained in campaign
+evidence/stage-d-lstm-retained-v2-20261011. Acceptance is for local retained D,
+not publication or completion: task/experiment/worker/kernel v2 routes and full
+original D gates still precede E. User app/workspace/config and public A–C stay
+untouched. Git/campaign records identify the subsequent actual local integration.
+
 ## 2026-10-11 18:25 -03:00 — Retained runtime-T family implementation checkpoint
 
 Implemented explicit Family8/Specialization7/resolution6 and container19 because

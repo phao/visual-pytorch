@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 18:32 -03:00 — Retained runtime-v2 family acceptance verified
+
+Fresh1221 Python430.877s passes (1218 executed/3 native-covered Qt skips),356 JS,
+66 native/pure,116 focused and actual sandboxed fixed-T/explicit7→8 Qt editors
+pass. The implementation stayed frozen frombdfb4b8; final edits are documentation
+only.26 old-family and32 Family7 receipts/records plus5/15/30 old temporal checks
+agree with committed pins. Unsupported typed runtime-v2 tasks still refuse.
+Initial overlapping1217 run and every first failure remain evidence, not final
+acceptance substitutes. Accepted only for local retained D; no public push or
+user-state changes. Full D/E and report-request implementation remain unfinished.
+
 ## 2026-10-11 18:25 -03:00 — Retained runtime-T family implementation
 
 Added closed Family8/Specialization7/resolution6 and container19, checked native/
