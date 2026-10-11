@@ -5,6 +5,10 @@ It does not complete D, add runtime-T LSTM, change ModelRevision4, or implement
 LoRA/MS-VAR. Family1–6 and runtime-temporal-v1 keep their original meanings and
 reject LSTM; old spatial runtime policies reject it too.
 
+This document specifies the preserved fixed-T grammar. The later
+[Family8 runtime-T extension](runtime-temporal-v2-families.md) is separate;
+it does not reinterpret Family7 or complete D/E.
+
 ## Closed grammar and constructor-dependent shapes
 
 Family7 keeps Family6's required nullable `runtime_policy` and optional scoped
@@ -19,7 +23,7 @@ fields. Boolean constructor assignments admit existing `bidirectional` and
 `bias`. Node/source/port IDs are not inferred from labels or diagram geometry.
 The family's ordinary scoped symbol/constructor-context rules still apply.
 
-Only Family7 adds this integer expression form:
+Family7 introduces this integer expression form, also preserved in Family8:
 
 ```json
 {"select": {"symbol": "directions"}, "then": 2, "else": 1}
@@ -71,7 +75,10 @@ No SQL table, task/experiment/protocol grammar or sidecar is introduced.
 
 New architecture family from a concrete LSTM drawing seeds Family7/null policy.
 Owned cards and staged JSON preserve its version7 acknowledgement; editing an
-existing older family may explicitly upgrade but not downgrade or forge version8.
+existing older family may explicitly upgrade but not downgrade or forge a version.
+The v2 runtime-policy edit explicitly queues Family8 before retaining that policy;
+it still requires an admitted v2 closure and explicit removal of fixed Output
+annotations if those are incompatible with the desired actual T.
 Preview does not allocate/train/write. Retention and concrete materialization use
 the same guarded services as CLI, with collision refusal and atomic rollback.
 Undo may remove a browsing head/drawing but preserves immutable retained rows;

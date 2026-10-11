@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 18
+# Visual Torch Workspace (.vtw): format specification, version 19
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -23,19 +23,20 @@ version-7 container; they add no SQL table or sidecar. The
 Its [guarded Qt/CLI authoring](lstm-authoring.md) adds no container/revision
 version or SQL table; it writes the same concrete operator and stable sockets.
 [Explicit fixed-T LSTM families](lstm-families.md) require version18.
-[Native runtime-temporal-v2](runtime-temporal-v2.md) adds an explicit backend API
-and concrete standalone source, not a retained .vtw policy. Current families,
-tasks, experiments, GUI and CLI still refuse that newer runtime selection;
-their next versioned route extension is unfinished. Container18 remains unchanged.
+[Runtime-temporal-v2](runtime-temporal-v2.md) has an explicit backend API and
+concrete standalone source. [Family8/Specialization7](runtime-temporal-v2-families.md)
+retain this policy in container19, through shared CLI/owned Qt services and checked
+family exports. Typed tasks/experiments still refuse that execution choice;
+their next versioned route extension is unfinished.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 18. The current reader accepts versions 1–18; opening
-an older file copies it into memory and upgrades the working version to 18.
-Opening alone never rewrites the source; explicit Save writes version 18.
+PRAGMA user_version = 19. The current reader accepts versions 1–19; opening
+an older file copies it into memory and upgrades the working version to 19.
+Opening alone never rewrites the source; explicit Save writes version 19.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -112,7 +113,15 @@ runtime witness. Fixed LSTM families require a null policy; temporal-v1/spatial
 policies still reject LSTM. No SQL tables or model/task/experiment/protocol
 versions change. Earlier headers carrying Family7/Specialization6 refuse even
 without concrete materialization. See [LSTM families](lstm-families.md).
-Older binaries are not expected to open version 18;
+Version19 introduces Family8's required nullable policy: null for fixed shapes,
+or exact version2/kind runtime-temporal-v2/root Input declarations. Specialization7
+retains the exact version3 temporal-v2 witness, bindings and constructor contexts;
+resolution6 carries dependency proof2 and its hash. ModelRevision4 stays unchanged.
+Earlier headers carrying Family8/Specialization7 refuse even without materialized
+graphs. No SQL table, TaskBundle/TaskSpec/DatasetSpec/ExperimentSpec/RunRecord,
+operator version or report recipe change. Old family1–7 and temporal-v1 semantics
+remain unchanged. See [runtime-v2 families](runtime-temporal-v2-families.md).
+Older binaries are not expected to open version 19;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 

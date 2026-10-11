@@ -7,7 +7,7 @@ in-place builder as Qt, preserves stable nodes/ports/wires, and validates affect
 paths without replacing unrelated drafts. Exact transport/options, no-op,
 rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container18). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container19). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
@@ -38,6 +38,14 @@ They require `.vtw18`, null runtime policy for LSTM, and retain ModelRevision4.
 No unsupported runtime-T LSTM is inferred from changing a time symbol. The
 stdlib example is `examples/lstm_family.py NEW.vtw [--bindings JSON_FILE]`.
 See [LSTM families](lstm-families.md) for closed grammar and all route limits.
+Family8/Specialization7 use the same preview/specialize/export commands for exact
+nullable/runtime-temporal-v2 policy in `.vtw19`. No separate CLI-only schema or
+implicit upgrade is admitted. The pure example is
+`examples/runtime_lstm_family.py NEW.vtw [--bindings JSON_FILE]`; it explicitly
+removes the fixed sequence Output annotation, supplies states/length roles and
+retains proof2. Existing `apply` imports validate/retain these same documents.
+Typed runtime-v2 tasks/experiments and associated worker/notebook choices remain
+unsupported. See [runtime-v2 families](runtime-temporal-v2-families.md).
 Family v4 scoped Module call bindings and specialization v3 local contexts use
 these same CLI operations, with no agent-only schema shortcuts. See
 [scoped-constructors.md](scoped-constructors.md) and

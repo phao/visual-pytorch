@@ -1,8 +1,9 @@
 # Runtime-variable T with explicit LSTM states: version 2
 
-Status: bounded native/backend and concrete standalone-export implementation on
-retained D. **Not yet admitted by architecture families, typed TaskBundles,
-ExperimentSpecs, GUI runtime-policy forms or the CLI.** Those routes require
+Status: native/backend and concrete standalone-export implementation on retained D.
+[Family8/Specialization7](runtime-temporal-v2-families.md) explicitly retain v2
+through CLI/owned Qt family services and checked family exports in container19.
+**Not yet admitted by typed TaskBundles or ExperimentSpecs.** Those routes require
 separate explicit version fences and remain the next implementation work.
 This is not full Stage D or E completion.
 
@@ -20,8 +21,8 @@ explicit-eager-runtime-temporal-v2-contract. Root Input IDs explicitly declare
 the exact list [0], with leading semantic axis T. All undeclared dimensions,
 all ranks and every supplied state dimension stay fixed. The existing LSTM
 operator remains op_version: 1; no operator or SQLite field is reinterpreted.
-Container18, ModelRevision4, Family7 and Specialization6 are unchanged.
-Their current policies still refuse runtime-T LSTM.
+ModelRevision4, Family7 and Specialization6 are unchanged; their policies still
+refuse runtime-T LSTM. Container19/Family8/Specialization7 separately admit it.
 
 ## Computation and proof
 
