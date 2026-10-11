@@ -3,8 +3,9 @@
 Status: native/backend and concrete standalone-export implementation on retained D.
 [Family8/Specialization7](runtime-temporal-v2-families.md) explicitly retain v2
 through CLI/owned Qt family services and checked family exports in container19.
-**Not yet admitted by typed TaskBundles or ExperimentSpecs.** Those routes require
-separate explicit version fences and remain the next implementation work.
+[TaskBundle4](runtime-temporal-v2-tasks.md) admits exact typed training, worker
+and standalone predictor routes. **Not yet admitted by ExperimentSpecs.** Their
+retained execution/authoring/notebook routes remain the next versioned work.
 This is not full Stage D or E completion.
 
 ## Selection and backward compatibility
@@ -96,11 +97,13 @@ Calling with different T reuses the same state-dict and optimizer owners.
 Generated notebook runtime closures also capture the new helper, so existing
 spatial/temporal-v1 family exporters keep working in fresh kernels. Omitting a
 required helper is refused before a kernel starts; genuine old bundles retain
-their own captured code. This does not admit a v2 TaskBundle.
+their own captured code. Typed v2 tasks use their separately admitted TaskBundle4
+contract, not implicit admission from the presence of this source helper.
 
-This is not a checked-family source, typed scientific experiment export or a
-notebook rerun. Those routes must gain supported versioned contracts before
-claiming parity. Existing fixed-T families and temporal-v1 exports remain usable.
+Concrete source alone is not a checked-family source, typed scientific experiment
+export or notebook rerun. Checked-family and direct typed task routes have their
+own explicit contracts; retained v2 experiment/notebook routes remain unfinished.
+Existing fixed-T families and temporal-v1 exports remain usable.
 
 ## Verification and research
 

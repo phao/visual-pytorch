@@ -44,8 +44,11 @@ implicit upgrade is admitted. The pure example is
 `examples/runtime_lstm_family.py NEW.vtw [--bindings JSON_FILE]`; it explicitly
 removes the fixed sequence Output annotation, supplies states/length roles and
 retains proof2. Existing `apply` imports validate/retain these same documents.
-Typed runtime-v2 tasks/experiments and associated worker/notebook choices remain
-unsupported. See [runtime-v2 families](runtime-temporal-v2-families.md).
+Direct backend TaskBundle4 and exact task-v4 workers are admitted, but CLI retained
+runtime-v2 experiment/run/notebook choices remain unsupported. No CLI-only
+execution shortcut bypasses the pending experiment grammar. See
+[runtime-v2 families](runtime-temporal-v2-families.md) and
+[direct task execution](runtime-temporal-v2-tasks.md).
 Family v4 scoped Module call bindings and specialization v3 local contexts use
 these same CLI operations, with no agent-only schema shortcuts. See
 [scoped-constructors.md](scoped-constructors.md) and

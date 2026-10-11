@@ -26,8 +26,9 @@ version or SQL table; it writes the same concrete operator and stable sockets.
 [Runtime-temporal-v2](runtime-temporal-v2.md) has an explicit backend API and
 concrete standalone source. [Family8/Specialization7](runtime-temporal-v2-families.md)
 retain this policy in container19, through shared CLI/owned Qt services and checked
-family exports. Typed tasks/experiments still refuse that execution choice;
-their next versioned route extension is unfinished.
+family exports. Direct [TaskBundle4](runtime-temporal-v2-tasks.md) execution is
+admitted without a new SQL/container grammar. Retained experiment/run choices
+still refuse v2; their next versioned route extension is unfinished.
 Runtime recurrent execution is not implied by finite tied uses.
 
 ## 1. Container, versioning and compatibility

@@ -1,5 +1,35 @@
 # Development state and roadmap
 
+## 2026-10-11 18:48 -03:00 — Direct runtime-v2 task implementation checkpoint
+
+TaskBundle4 now admits exact frozen Family8/Specialization7/proof2 provenance,
+actual rectangular/padded/fitted fields, shared v2 compilation, whole-case
+task/data/evidence plus LSTM-gate RAM admission, worker task-v4, checkpoints and
+standalone saved prediction. RunIdentity4 is distinct; existing1–3 contracts
+remain closed. The native QThread adapter had hardcoded task-v1; it now validates
+the bundle and sends its exact admitted kind, with failures signalled before
+worker creation. UI tooltip accurately separates backend tasks from retained
+experiment support. No SQL/container or experiment/run version change.
+
+20 new pure/numerical checks20.893s pass, including16 independent gate/Adam
+constructor fits, exact real-worker/local checkpoints/metrics/progress for four
+supervision/data cases, variable-T saved and fresh app-free predictors, explicit
+pad/derived-length versus loss masks, fitted-transform guards, independent RAM
+component validation, cancellation and pre-allocation refusals. Real Qt three
+data adapters pass with no host Torch/NumPy; existing task-v1 native adapter
+passes240 updates. Three old spatial bundle/identity points plus6 shape cases
+and four temporal bundle/identity/preparation/RAM points plus12 shape cases
+match pinned committed modules exactly. Full fresh acceptance is still pending;
+the initial running regression overlaps the native adapter/tooltip/test-name
+updates and is not the final frozen-source acceptance gate.
+
+Contract: [runtime-v2 tasks](runtime-temporal-v2-tasks.md). Next explicitly admit
+ExperimentSpec/RunRecord6, later container fence, owned experiment sessions,
+retained worker/result/report routes and actual saved/rerun notebook kernels.
+Neither that next route nor original D/E completion is claimed. Public A–C,
+user workspaces/config and app process remain unchanged; reports stay deferred.
+
+
 ## 2026-10-11 18:32 -03:00 — Runtime-v2 family acceptance
 
 Fresh final full suite1221 Python430.877s passes:1218 executed/3 Qt-only skips

@@ -4,6 +4,20 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-11 18:48 -03:00 — Explicit direct runtime-v2 typed task checkpoint
+
+Implemented TaskBundle4/RunIdentity4 with exact retained v2 family provenance,
+actual-case compiler/RAM gates, isolated task-v4 worker and saved/native/app-free
+predictors because a retained family alone did not make scientific tasks runnable.
+Loss masks remain explicit and distinct from execution lengths; old1–3 identities
+are preserved. Native Qt task adapter now validates/selects the exact kind instead
+of hardcoded task-v1.20 focused cases pass, including16 independent constructor
+fits and actual workers; native Qt three adapter cases and240-update task-v1
+regression pass. Pinned old spatial/temporal identity/preparation/RAM comparisons
+pass. Fresh frozen full acceptance is pending; no retained ExperimentSpec6,
+container change, public push, user-state mutation or D/E completion claimed.
+
+
 ## 2026-10-11 18:32 -03:00 — Retained runtime-v2 family acceptance verified
 
 Fresh1221 Python430.877s passes (1218 executed/3 native-covered Qt skips),356 JS,

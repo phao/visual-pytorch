@@ -18,11 +18,16 @@ def proof(family, specialization, model, *, execution='runtime-spatial-v1'):
     from .revisions import frozen_document
     f=frozen_document('family',family);s=frozen_document('specialization',specialization)
     m=frozen_document('model',model)
-    _require(execution in ('runtime-spatial-v1','runtime-temporal-v1'),'Unknown explicit runtime task execution policy.')
-    temporal=execution=='runtime-temporal-v1'
-    _require(f['version']==(6 if temporal else 5) and s['version']==(5 if temporal else 4) and s['runtime'] is not None,
-             'Temporal runtime execution needs family6 and a nonnull specialization5 witness.' if temporal else
-             'Runtime task execution needs an exact family5 declaration and specialization4 witness.')
+    _require(execution in ('runtime-spatial-v1','runtime-temporal-v1','runtime-temporal-v2'),
+             'Unknown explicit runtime task execution policy.')
+    if execution=='runtime-temporal-v2':
+        _require(f['version']==8 and s['version']==7 and s['runtime'] is not None,
+                 'Temporal-v2 execution needs exact family8 and a nonnull specialization7 witness.')
+    else:
+        temporal=execution=='runtime-temporal-v1'
+        _require(f['version']==(6 if temporal else 5) and s['version']==(5 if temporal else 4) and s['runtime'] is not None,
+                 'Temporal runtime execution needs family6 and a nonnull specialization5 witness.' if temporal else
+                 'Runtime task execution needs an exact family5 declaration and specialization4 witness.')
     records={('family',f['id'],f['revision']):f,('model',m['id'],m['revision']):m}
     def resolve(kind,sid,revision):
         _require((kind,sid,revision) in records,'Runtime task references another frozen family/model.')
@@ -35,12 +40,15 @@ def contract(model,dataset,task,runtime, *, execution=None):
     """Plan the dataset's actual shapes, then ordinary task checks validate meaning."""
     _keys(runtime,('family','specialization'),context='Runtime task provenance')
     if execution is None:
-        execution='runtime-temporal-v1' if runtime['specialization'].get('version')==5 else 'runtime-spatial-v1'
+        sv=runtime['specialization'].get('version')
+        execution='runtime-temporal-v2' if sv==7 else 'runtime-temporal-v1' if sv==5 else 'runtime-spatial-v1'
     value=proof(runtime['family'],runtime['specialization'],model,execution=execution)
     _require(digest(value)==digest(runtime),'Runtime task provenance must retain exact frozen revisions.')
     models=model['models'];root=model['root'];decl=value['specialization']['runtime']['inputs']
-    temporal=execution=='runtime-temporal-v1'
-    if temporal:
+    temporal=execution in ('runtime-temporal-v1','runtime-temporal-v2')
+    if execution=='runtime-temporal-v2':
+        from .temporal_shapes_v2 import specification as make_spec, shape_contract as plan
+    elif temporal:
         from .temporal_shapes import specification as make_spec, shape_contract as plan
     else:make_spec,plan=specification,shape_contract
     spec=make_spec(models,root,decl);fields={f['id']:f for f in dataset['fields']}
@@ -61,9 +69,10 @@ def contract(model,dataset,task,runtime, *, execution=None):
 
 def input_policy(bundle):
     model=bundle['model'];baseline=validate_model(model['models'],model['root'])
-    if bundle['version']==3:
-        actual=contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],execution='runtime-temporal-v1')
-        return {'kind':'runtime-temporal-v1','runtime_temporal':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
+    if bundle['version'] in (3,4):
+        kind='runtime-temporal-v2' if bundle['version']==4 else 'runtime-temporal-v1'
+        actual=contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],execution=kind)
+        return {'kind':kind,'runtime_temporal':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
                 'baseline_input_groups':copy.deepcopy(baseline['input_groups']),
                 'fitted_input_shapes':{g['id']:g['shape'] for g in actual['input_groups']}}
     return {'runtime_inputs':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
@@ -77,7 +86,7 @@ def record_shapes(input_spec,records):
     a different image size must not silently reinterpret a saved feature vector.
     """
     _require(isinstance(records,list) and records,'Runtime inference needs a nonempty rectangular record batch.')
-    policy=input_spec['runtime_policy'];temporal=policy.get('kind')=='runtime-temporal-v1'
+    policy=input_spec['runtime_policy'];temporal=policy.get('kind') in ('runtime-temporal-v1','runtime-temporal-v2')
     decl=policy['runtime_temporal'] if temporal else policy['runtime_inputs']
     groups={g['id']:g for g in policy['baseline_input_groups']}
     fields={f['id']:f for f in input_spec['dataset']['fields']}
