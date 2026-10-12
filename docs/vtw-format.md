@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 20
+# Visual Torch Workspace (.vtw): format specification, version 23
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,9 +36,11 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 20. The current reader accepts versions 1–20; opening
-an older file copies it into memory and upgrades the working version to 20.
-Opening alone never rewrites the source; explicit Save writes version 20.
+PRAGMA user_version = 23. The current reader accepts versions 1–20 and 23;
+opening an older supported file copies it into memory and upgrades the working
+version to 23. Opening alone never rewrites the source; explicit Save writes
+version 23. Versions 21/22 belong to the deliberately deferred execution branch
+and are not accepted by this reader. They must not be reinterpreted or reused.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -130,7 +132,15 @@ The same owned editor/CLI/worker and captured notebook routes use the shared
 compiler and exact proof; no SQL tables, model/data/task/protocol/report recipe
 or operator version change. Old1–5 experiment/run identities and source archives
 remain unchanged. See [runtime-v2 experiments](runtime-temporal-v2-experiments.md).
-Older binaries are not expected to open version 20;
+Version23 adds closed version1 `Add` and fixed `Scale` operators, ModelRevision5,
+Family9 and Specialization8, without changing SQLite tables. Earlier supported
+headers containing either arithmetic drawing or any of these new retained
+document versions refuse, including unmaterialized family records. Family1–8
+and ModelRevision1–4 do not silently acquire arithmetic semantics. Family9's
+nullable runtime policy uses fixed shapes or the existing explicit temporal-v2
+policy; Specialization8 re-proves the exact witness. Existing task/data/protocol/
+experiment/run/report grammars are unchanged. See [arithmetic blocks](arithmetic-blocks.md).
+Older binaries are not expected to open version 23;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 

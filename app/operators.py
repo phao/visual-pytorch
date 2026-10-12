@@ -10,9 +10,11 @@ TENSOR_OPERATORS = frozenset({
 })
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
 LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
-BLOCK_TYPES = LAYER_TYPES | {'Input', 'Output', 'Concat', 'Splitter', 'Replicator'}
+ARITHMETIC_OPERATORS = frozenset({'Add', 'Scale'})
+BLOCK_TYPES = LAYER_TYPES | ARITHMETIC_OPERATORS | {'Input', 'Output', 'Concat', 'Splitter', 'Replicator'}
 COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version', 'share_with'}
 FIELDS = {
+    'Add': {'sources'}, 'Scale': {'coefficient'},
     'Conv2d': {'out_channels', 'kernel_size', 'stride', 'padding', 'dilation', 'groups', 'bias', 'padding_mode'},
     'AvgPool2d': {'kernel_size', 'stride', 'padding', 'ceil_mode', 'count_include_pad'},
     'MaxPool2d': {'kernel_size', 'stride', 'padding', 'dilation', 'ceil_mode'},
@@ -42,6 +44,27 @@ def normalized(node):
     """Explicit defaults/pairs for new operators only; preserve legacy documents."""
     from .core import GraphError
     kind = node['type']
+    if kind in ARITHMETIC_OPERATORS:
+        if type(node.get('op_version', 1)) is not int or node.get('op_version', 1) != 1:
+            raise GraphError(kind + ' supports integer op_version 1.')
+        if set(node) - COMMON - FIELDS[kind] or 'share_with' in node:
+            raise GraphError(kind + ' has unsupported fields; it owns no shareable parameters.')
+        n = dict(node, op_version=1)
+        if kind == 'Add':
+            values = n.get('sources')
+            if not isinstance(values, list) or any(type(s) is not str or not s or s != s.strip() for s in values) or len(set(values)) != len(values):
+                raise GraphError('Add requires ordered unique nonempty source keys. Connect at least two to execute.')
+            n['sources'] = list(values)
+        else:
+            value = n.get('coefficient')
+            from .core import MAX_INTEGER
+            if (type(value) not in (int, float) or
+                    (type(value) is int and abs(value) > MAX_INTEGER) or
+                    not math.isfinite(value) or abs(value) > 3.4028234663852886e38 or
+                    (float(value).is_integer() and abs(value) > MAX_INTEGER)):
+                raise GraphError('Scale coefficient must be finite, float32-range and editor-representable, not boolean.')
+            n['coefficient'] = float(value)
+        return n
     if kind == 'LSTM':
         from .lstm_nodes import normalized as lstm_normalized
         return lstm_normalized(node)

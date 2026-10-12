@@ -136,6 +136,7 @@
     if(layoutChanged)renderLayoutPreferences();
     if (doc && state.models[doc.id]) {
       doc = prepareModel(clone(state.models[doc.id]));
+      if(selectedPort!==null && (!node(selected) || !G.appendTarget(node(selected),selected,selectedPort)))selectedPort=null;
       doc.view=viewport || {x:0,y:0,zoom:1};
       render();
       describe().then(()=>{if(!viewport&&doc)fit();});
@@ -269,6 +270,7 @@
     if (["Module","Recurrent"].includes(n.type)) return state.models[n.ref]?.name || "Missing architecture";
     if (n.type === "Activation") return n.activation;
     if (n.type === "Concat") return "Join branches";
+    if (n.type === "Add") return "Add branches";
     return n.type;
   }
   const portPoint = G.portPoint;
@@ -316,7 +318,8 @@
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
       const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):note;
+      const arithmeticNote=n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
+      const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):arithmeticNote;
       const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
       const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
       noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
@@ -336,9 +339,11 @@
         for (const peer of G.slots(n, output)) {
           const p = portPoint(n, output, peer);
           const circle = svgElement("circle", {cx: p.x - n.x, cy: p.y - n.y, r: 5,
-            class: "port " + (output ? "port-out" : "port-in") + (connecting?.id === n.id && connecting?.peer === peer ? " armed" : ""), "data-id": n.id});
+            class: "port " + (output ? "port-out" : "port-in") + (connecting?.id === n.id && connecting?.peer === peer ? " armed" : "") + (output && G.appendTarget(n,selected,selectedPort) && selectedPort===peer ? " append-target" : ""), "data-id": n.id});
           if (peer) circle.dataset.peer = peer;
-          circle.append(svgElement("title", {}, R.multiport(n)?R.portTitle(n,output,peer)+' · '+shapeText(output?s?.ports?.[peer]:sourceShape(peer)):peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor"));
+          const portTitle=R.multiport(n)?R.portTitle(n,output,peer)+' · '+shapeText(output?s?.ports?.[peer]:sourceShape(peer)):peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor";
+          circle.append(svgElement("title", {},portTitle+(output&&G.multiOutput(n)?' · Ctrl-click: choose insertion output':'')));
+          if(output)circle.setAttribute('aria-label',portTitle+(circle.classList.contains('append-target')?' · Selected insertion output':''));
           group.append(circle);
         }
       }
@@ -479,8 +484,8 @@
         const resolved=rank?((dim%rank)+rank)%rank:null;
         html+='<label class="inspect-label" for="softmax-dim">Normalization axis · sample dimensions</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+(busy()?' disabled':'')+'><p class="inspect-note">Axis numbers exclude batch B. Default −1 is the last axis; 0 is the first sample axis.'+(resolved===null?' Connect the input to validate this axis.':' PyTorch dim = '+(resolved+1)+(s?.output_axes?.[resolved]?' ('+esc(s.output_axes[resolved])+')':'')+'.')+'</p>';
       }
-    } else if (n.type === "Concat") {
-      html += '<label class="inspect-bias"><input id="flatten-concat" type="checkbox"'+(n.flatten!==false?' checked':'')+(busy()?' disabled':'')+'>Flatten each sample before joining</label><p class="inspect-note">Connect branch outputs to this box. Checked: flatten and concatenate sample values. Unchecked: concatenate the last axis, requiring equal other dimensions. Port order determines concatenation order.</p>';
+    } else if (["Concat","Add"].includes(n.type)) {
+      html += n.type==='Add'?'<p class="inspect-note">Ordered coordinatewise sum. Connect at least two inputs with identical shapes and axes. No broadcasting, flattening or learned parameters.</p>':'<label class="inspect-bias"><input id="flatten-concat" type="checkbox"'+(n.flatten!==false?' checked':'')+(busy()?' disabled':'')+'>Flatten each sample before joining</label><p class="inspect-note">Connect branch outputs to this box. Checked: flatten and concatenate sample values. Unchecked: concatenate the last axis, requiring equal other dimensions. Port order determines concatenation order.</p>';
       n.sources.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + ' · ' + (node(nid)?.features || "?") + '</span><button data-move-input="' + i + '"' + (!i || busy() ? ' disabled' : '') + '>↑</button></div>');
     } else if (["Splitter", "Replicator"].includes(n.type)) {
       const ids = n.type === "Splitter" ? n.parts.map(p => p.output) : n.outputs;
@@ -589,6 +594,10 @@
       $('equation').textContent=T.definitions[n.type].equation;
       window.LoomMath.set($('equation'),T.definitions[n.type].tex).catch(()=>{});
     }
+    if(n.type==='Add'){
+      $('equation').textContent='y = x₁ + … + xₙ';
+      window.LoomMath.set($('equation'),'y=\\sum_i x_i').catch(()=>{});
+    }
     $("contract-explanation").textContent = n.type === "Linear" ? "Linear mixes the last axis: y = x @ A.T"+(n.bias!==false?" + b.":". Bias is off.")+" All preceding sample dimensions and B are preserved." : "Ports carry float32 tensors [B, …sample dimensions]. Splits use the last axis; reshapes preserve B. Wires name their source ports.";
     if(T.types.includes(n.type))$('contract-explanation').textContent=T.definitions[n.type].explanation;
     if(n.type==='Recurrent'){
@@ -620,7 +629,7 @@
     else if (type === "Activation") {block.activation = $("activation-select").value;if(block.activation==='Softmax')block.dim=-1;}
     else if (type === "Reshape") block.shape = sourceShape || [-1];
     else if(T.types.includes(type))Object.assign(block,T.defaults(type,sourceShape));
-    else if (type === "Concat") {block.sources=[port?after.id+"@"+port:after.id];block.flatten=true;}
+    else if (["Concat","Add"].includes(type)) {block.sources=[port?after.id+"@"+port:after.id];if(type==='Concat')block.flatten=true;else block.op_version=1;}
     else block.ref = ref;
     if (next) {
       const move = next.x < block.x + 230 ? block.x + 230 - next.x : 0;
@@ -749,6 +758,7 @@
     // Selection must not replace the hit SVG element between consecutive
     // clicks: Chromium otherwise cannot deliver a wire/box double-click.
     document.querySelectorAll('.node').forEach(el=>el.classList.toggle('selected',el.dataset.id===selected));
+    document.querySelectorAll('.port-out').forEach(el=>el.classList.toggle('append-target',!!node(el.dataset.id)&&G.appendTarget(node(el.dataset.id),selected,selectedPort)&&el.dataset.peer===selectedPort));
     document.querySelectorAll('.wire[data-from],.wire-end').forEach(el=>{
       const active=G.sameWire(wireFromElement(el),selectedWire);
       el.classList.toggle('selected-wire',active);
@@ -972,8 +982,10 @@
     if (target.classList.contains("port-out")) {
       selectedWire=null;
       selected=target.dataset.id;selectedPort=target.dataset.peer || null;renderInspector();
-      connecting = {id: target.dataset.id, peer: target.dataset.peer || null};
+      connecting = event.ctrlKey ? null : {id: target.dataset.id, peer: target.dataset.peer || null};
+      if(event.ctrlKey)$("pending-wire").setAttribute("hidden", "");
       renderGraph();
+      event.preventDefault();
       event.stopPropagation();
       return;
     }
@@ -1183,6 +1195,7 @@
   $("add-linear").onclick = () => insertBlock("Linear");
   $("add-reshape").onclick = () => insertBlock("Reshape");
   $("add-concat").onclick = () => insertBlock("Concat");
+  $("add-add").onclick = () => insertBlock("Add");
   $("add-activation").onclick = () => insertBlock("Activation");
   $("add-reference").onclick = () => insertBlock("Module", $("reference-select").value);
   $('add-recurrent').onclick = recurrentDialog;
@@ -1337,7 +1350,7 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-add')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));

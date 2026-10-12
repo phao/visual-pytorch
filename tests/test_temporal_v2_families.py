@@ -118,7 +118,9 @@ class TemporalV2FamilyTests(unittest.TestCase):
         bad=record_definition(self.record(result['specialization']));bad['version']=6
         bad['runtime']=None
         with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
-        for version in (True,8):
+        bad['version']=8
+        with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
+        for version in (True,9):
             bad['version']=version
             with self.assertRaises(GraphError):validate_specialization(bad)
 

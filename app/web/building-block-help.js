@@ -8,7 +8,7 @@
 })(typeof globalThis!=="undefined"?globalThis:this,(T,A)=>{
   const names={
     'add-linear':'Linear','add-activation':'Activation','add-reshape':'Reshape',
-    'add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
+    'add-add':'Add','add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
     'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter','add-lstm':'LSTM',
   };
   const activations=A.info;
@@ -29,6 +29,9 @@
           'For n incoming features and k outputs, A has shape [k, n] and b has shape [k]. There are k × n weights and, with bias enabled, k more parameters.',
           'The new block initially has bias enabled and uses the incoming last-axis width as its output width. Change output features or bias in the Inspector. Consecutive Linear layers without nonlinear activations still compose to an affine map.'];
         equation='y = x Aᵀ + b';tex='y=xA^{\\mathsf T}+b';break;
+      case 'add-add':paragraphs=['Adds an ordered coordinatewise sum of at least two independent branches.',
+        'Every input must have identical sample shape and axis names; batch B is preserved. No broadcasting or flattening is performed.',
+        'The block learns no parameters and never detaches its inputs. Gradients flow into each contributing branch. The extra empty input socket adds another source.'];equation='y = x₁ + … + xₙ';tex='y=\\sum_i x_i';break;
       case 'add-activation':{
         const kind=activations[context.activation]?context.activation:'ReLU';
         paragraphs=['Adds the selected '+kind+' activation'+(kind==='Softmax'?', normalizing a slice along one sample axis':', applied independently to each tensor value')+'. The shape is unchanged and no weights are learned.',

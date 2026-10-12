@@ -65,6 +65,7 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 .node.Module .node-type-icon,.node.Recurrent .node-type-icon,.node.LSTM .node-type-icon,.node.Splitter .node-type-icon,.node.Replicator .node-type-icon{stroke:var(--amber)}
 .node.Activation .node-type-icon,.node.Output .node-type-icon,.node.Reshape .node-type-icon{stroke:var(--mint)}
 .port{fill:var(--input);stroke:var(--blue)}.port:hover,.port.armed{fill:var(--amber);stroke:var(--amber)}
+.port.append-target{fill:var(--mint);stroke:var(--ink);stroke-width:3}
 #loss-plot text{fill:var(--muted)}
 /* Math favours book-like typography; explicit code/tensor monospace is retained. */
 :root[data-theme=math] body{font-family:"STIX Two Text","STIX","Noto Serif","DejaVu Serif","Liberation Serif","Georgia",serif}

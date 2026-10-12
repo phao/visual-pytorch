@@ -104,7 +104,7 @@ class LSTMFamilyTests(unittest.TestCase):
         for mutation in ('missing', 'unknown', 'boolean', 'spatial'):
             doc = definition()
             if mutation == 'missing': doc.pop('runtime_policy')
-            elif mutation == 'unknown': doc['version'] = 9
+            elif mutation == 'unknown': doc['version'] = 10
             elif mutation == 'boolean': doc['version'] = True
             else: doc['runtime_inputs'] = {'sequence': [1]}
             with self.subTest(mutation=mutation), self.assertRaises(GraphError): validate_family(doc)

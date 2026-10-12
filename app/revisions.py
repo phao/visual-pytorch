@@ -112,7 +112,8 @@ def model_document(models, mid):
     shared = any('share_with' in n for m in closure.values() for n in m['graph']['nodes'])
     recurrent = any(n['type'] == 'Recurrent' for m in closure.values() for n in m['graph']['nodes'])
     lstm = any(n['type'] == 'LSTM' for m in closure.values() for n in m['graph']['nodes'])
-    result = {'version': 4 if lstm else 3 if recurrent else 2 if shared else 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
+    arithmetic = any(n['type'] in {'Add', 'Scale'} for m in closure.values() for n in m['graph']['nodes'])
+    result = {'version': 5 if arithmetic else 4 if lstm else 3 if recurrent else 2 if shared else 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
               'architecture_hash': identity(closure, mid)['architecture']}
     validate_model_document(result)
     return result
@@ -120,7 +121,7 @@ def model_document(models, mid):
 
 def validate_model_document(doc):
     _keys(doc, ('version', 'id', 'name', 'root', 'models', 'architecture_hash'), ('revision',), 'ModelRevision')
-    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4), 'ModelRevision supports integer versions 1–4.')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5), 'ModelRevision supports integer versions 1–5.')
     _require(_identifier(doc['id']) and _identifier(doc['name']) and doc['root'] == doc['id'] and
              isinstance(doc['models'], dict) and doc['root'] in doc['models'], 'Frozen model needs a root and reachable closure.')
     closure = doc['models']
@@ -138,6 +139,8 @@ def validate_model_document(doc):
              'Recurrent graph references require ModelRevision version 3.')
     _require(doc['version'] >= 4 or not any(n['type'] == 'LSTM' for m in closure.values() for n in m['graph']['nodes']),
              'LSTM graph blocks require ModelRevision version 4.')
+    _require(doc['version'] >= 5 or not any(n['type'] in {'Add', 'Scale'} for m in closure.values() for n in m['graph']['nodes']),
+             'Add/Scale graph blocks require ModelRevision version 5.')
     _require(closure[doc['root']]['name'] == doc['name'], 'Frozen root name does not match document.')
     reachable = set()
     def visit(mid):

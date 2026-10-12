@@ -39,7 +39,7 @@ import json
 import math
 from collections import OrderedDict
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory, estimate_memory, format_bytes
-from .operators import BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
+from .operators import ARITHMETIC_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
 from .activations import activation_name, normalize_activation, softmax_axis
 MAX_INTEGER = 2**53 - 1''')
     sources['evidence'] = _selected(folder / 'evidence.py', EVIDENCE, '''import hashlib
@@ -59,7 +59,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
                   'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
-                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8) else {}),
+                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9) else {}),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -184,9 +184,9 @@ class ArchitectureFamily(nn.Module):
             raise ValueError('Temporal family construction requires an explicit family6/7 grammar.')
         if source['version'] in (6,7) and runtime_temporal is None and source['runtime_policy'] is not None:
             runtime_temporal = source['runtime_policy']['inputs']
-        if runtime_temporal_v2 is not None and source['version'] != 8:
+        if runtime_temporal_v2 is not None and source['version'] not in (8,9):
             raise ValueError('Runtime temporal-v2 requires an explicit family8 grammar.')
-        if source['version'] == 8:
+        if source['version'] in (8,9):
             expected = None if source['runtime_policy'] is None else source['runtime_policy']['inputs']
             if runtime_inputs is not None or runtime_temporal is not None or (runtime_temporal_v2 is not None and _digest(runtime_temporal_v2) != _digest(expected)):
                 raise ValueError('Family8 execution must match its exact retained runtime policy; no implicit policy override.')
@@ -206,7 +206,7 @@ class ArchitectureFamily(nn.Module):
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
         if source['version'] in (6,7):
             self._provenance['runtime_temporal'] = copy.deepcopy(runtime_temporal)
-        if source['version'] == 8:
+        if source['version'] in (8,9):
             self._provenance['runtime_temporal_v2'] = copy.deepcopy(runtime_temporal_v2)
             self._initial_shapes = copy.deepcopy(initial_shapes) if initial_shapes is not None else {
                 g['id']:copy.deepcopy(g['shape']) for g in resolved['contract']['input_groups']}
@@ -216,7 +216,7 @@ class ArchitectureFamily(nn.Module):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
                 'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
-                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8) else {}),
+                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9) else {}),
                 'policy': export_metadata()['policy']}
 
     @property

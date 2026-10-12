@@ -1,5 +1,47 @@
 # Development state and roadmap
 
+## 2026-10-12 16:22 -03:00 — Arithmetic and selected-output checkpoint
+
+Implemented closed Add/fixed Scale with `.vtw23`, Model5/Family9/Spec8, preserving
+the deliberately reserved E21/22 meanings. No SQL table, old operator meaning,
+task/data/protocol or experiment/run/report grammar is repurposed. Concrete,
+family, native/CLI/worker/export routes share the same source and graph proof.
+The explicitly authorized single read-only reviewer found four real defects in
+family-session upgrades, arithmetic drawing seeds and scalar validation; they
+were fixed with regression coverage. Specification: [arithmetic blocks](arithmetic-blocks.md).
+Full LoRA freezing/initial values and latent MS-VAR likelihood remain unimplemented.
+
+The user's Ctrl-click output insertion anchor is implemented separately from
+wiring: a filled theme-aware socket selects the exact branch; selection is not
+a workspace edit. Other branches and source-port identities are preserved.
+Help/tooltips/reusable GUI specification describe the gesture. Actual sandboxed
+Qt clicks verify no wire/write from Ctrl-click, exact branch insertion and normal
+socket wiring, plus arithmetic editing/undo/redo/save/reload without host Torch
+or console errors. 365 JS cases and34 actual native/UI contract cases pass.
+
+10 arithmetic pure cases pass;6 numerical cases10.868s include all independent
+input/weight/bias gradients, repeated independent/tied Module arithmetic at T1/T5,
+and four real task-v4 worker/local exact checkpoint/history comparisons. Two
+fresh-source/actual saved-rerun kernel cases9.753s pass with app-free exports,
+exact checkpoints/predictions/metrics and unchanged source workspace. Earlier
+38 affected execution cases57.887s pass. Initial fixture/Qt event/import-selector
+failures are retained, not silently replaced. A broad pre-final suite ran1302
+cases566.985s (three native-covered skips) and failed one old fixture that still
+called now-supported Family9 unknown; corrected its unknown version to10. That
+run overlaps later review/source changes and is not frozen final acceptance.
+Fresh frozen full acceptance and integration remain pending at this checkpoint.
+
+User-reported slow Ctrl+Z was diagnosed, not fixed without a change request.
+Undo snapshots the complete database and revalidates both complete retained
+registries synchronously on the GUI thread. Private four-dataset fixtures with
+10,000 rows each took923–956ms to restore; empty-registry fixtures took0.55–1.89ms.
+The profile attributes most time to retained document validation/copy/hash, not
+SQLite backup. Full state broadcast and per-tab description add further work;
+the synthetic measurement is not a timing of the user's file or browser. Keep
+safe immutable-evidence preservation while considering incremental validation/
+history and less redundant refresh later. No user workspace/config/app restart,
+undo behavior change, E work or new public push occurs here.
+
 ## 2026-10-12 — Shared discovery first slice for LoRA/MS-VAR
 
 Added allocation-free application capability/operator/SQLite-schema descriptions

@@ -77,6 +77,7 @@
       <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button></div>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
+      <button id="add-add" class="palette"><span class="type-symbol blue-text">+</span><span><b>Add</b><small>Sum identical-shape branches coordinatewise; no broadcasting</small></span><span>+</span></button>
       <button id="add-lstm" class="palette"><span class="type-symbol amber-text">↻</span><span><b>LSTM</b><small>Add a concrete stacked/projected/bidirectional LSTM with supplied initial states and three returned ports.</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
       <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
@@ -150,7 +151,8 @@
               <tr><th scope="row">Ctrl+Z</th><td>Undo a workspace edit; text fields keep text undo.</td></tr>
               <tr><th scope="row">Ctrl+Shift+Z / Ctrl+Y</th><td>Redo a workspace edit.</td></tr>
               <tr><th scope="row">Drag block</th><td>Move it, including a compact block's icon.</td></tr>
-              <tr><th scope="row">Drag socket</th><td>Connect a source output to a destination input.</td></tr>
+              <tr><th scope="row">Click output, then input socket</th><td>Connect a source output to a destination input.</td></tr>
+              <tr><th scope="row">Ctrl+click output socket</th><td>Choose a multioutput branch for new blocks without starting a wire. Its socket is filled and outlined.</td></tr>
               <tr><th scope="row">Drag arrow end</th><td>Reconnect an existing connection to another input.</td></tr>
               <tr><th scope="row">Drag empty canvas</th><td>Pan the diagram; the workspace does not become unsaved.</td></tr>
               <tr><th scope="row">Mouse wheel</th><td>Zoom the diagram around the pointer.</td></tr>

@@ -48,6 +48,24 @@ routes use the same frozen contract. See
 [runtime-v2 families](runtime-temporal-v2-families.md) and
 [runtime-v2 experiments](runtime-temporal-v2-experiments.md).
 
+Arithmetic extension: Add has ordered same-shape input sockets, distinct from
+Concat's optional flattening. Fixed Scale edits a finite coefficient, owns no
+parameters, and preserves shape/axes. Both have top-right type icons, compact
+summaries and About help, and use ordinary drag/resize/history/wire-end gestures.
+Creating an owned family from an arithmetic drawing explicitly seeds Family9
+with null runtime policy; its version can be edited upward through9 but not
+silently downgraded. Exact contracts and compatibility are in
+[arithmetic blocks](arithmetic-blocks.md), not inferred from the visual style.
+
+For any multioutput block, Ctrl-click an output socket to choose the insertion
+branch without arming a wire or dragging. Its circle is filled with the theme's
+accent and an ink outline. The anchor is tab-local selection state, not a saved
+graph edit; ordinary canvas panning preserves it and Escape clears it. The next
+palette insertion uses that exact source-port identity and its tensor shape,
+preserving unrelated branches. Insertion selects the new block, permitting a
+chain of subsequent additions. Normal output clicks still arm wiring. This
+applies equally to Splitter/Replicator and Recurrent/LSTM named outputs.
+
 ## 2. Coordinate systems and stacking
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |

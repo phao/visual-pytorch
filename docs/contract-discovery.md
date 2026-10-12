@@ -1,7 +1,7 @@
 # Shared application and graph discovery
 
-Read-only development commands for agent/user authoring, not new LoRA arithmetic,
-weight-freezing, latent filtering or losses. JSON envelopes use version1 tags.
+Read-only development commands for agent/user authoring, not weight-freezing,
+latent filtering or losses. JSON envelopes use version1 tags.
 This is an application-description contract, **not** a JSON Schema dialect or a
 replacement for actual validators.
 
@@ -34,7 +34,9 @@ describes the current editable graph, not an implicitly chosen frozen revision.
 ## Shared sources and validated witnesses
 
 `app.operators.BLOCK_TYPES` is the accepted registry used by `check_document`
-and discovery. Its members are unchanged: no new grammar or container bump.
+and discovery. The registry now includes closed `Add` and fixed `Scale`:
+[arithmetic blocks](arithmetic-blocks.md) require container23 and explicit retained
+document versions. This extension is not silently valid in older containers.
 Shared tensor/Recurrent/LSTM field sets and normalizers supply constructor
 metadata/defaults. Legacy descriptions state permissive-extra-field limitations:
 accepting `trainable:false` does not mean training implements it. Softmax's
@@ -84,6 +86,6 @@ feature request is declared complete by these commands.
 Tests cover real frozen-model/workspace round trips, shared fields/defaults,
 malformed refusals, no mutation/heavy imports, fresh `-I -S -B` CLI queries without
 a workspace, named multiports/reference interfaces and unequal ordered heads.
-All17 examples match native/exported PyTorch outputs after strict state-dict
+All19 examples match native/exported PyTorch outputs after strict state-dict
 loading. Existing family export and CNN/recurrent worker/kernel tests exercise
 the shared registry's complete captured-source closure, not only its names.

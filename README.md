@@ -69,6 +69,10 @@ this public source. LoRA and neural MS-VAR are requested future additions, not
 implemented capabilities. These are development
 capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
+The current local development checkpoint adds [ordered Add and fixed Scale](docs/arithmetic-blocks.md),
+shared CLI contract discovery and Ctrl-click output branch selection for insertion.
+These primitives are not complete LoRA or neural MS-VAR support. New saves use
+`.vtw23`; the deferred execution branch's21/22 files are not accepted by this reader.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
 ![Real application: a completed saved-result notebook, with exact recipe, input index and retained artifact receipts](assets/screenshots/notebook-evidence.png)
