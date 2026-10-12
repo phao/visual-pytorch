@@ -229,7 +229,6 @@
     $("validation-message").classList.toggle("warning", blocked);
     if (description.valid && blocked) $("validation-message").textContent += " · runs blocked by safety";
     $("code").textContent = description.valid ? description.code : description.error;
-    $("parameter-count").textContent = description.valid ? description.contract.parameters.toLocaleString() + " trainable parameters" : "Resolve graph errors before compiling";
     $("status").textContent = description.valid ? "Graph valid · " + description.contract.parameters.toLocaleString() + " parameters · " + (blocked ? "constrained runs blocked" : "PyTorch ready") : description.error;
     render();
   }

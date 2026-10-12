@@ -35,6 +35,18 @@ def declarations(selector):
 
 
 class UIContractTests(unittest.TestCase):
+    def test_inspector_omits_architecture_total_without_removing_local_layer_contracts(self):
+        html = (ROOT / 'app/web/index.html').read_text()
+        js = (ROOT / 'app/web/editor.js').read_text()
+        inspector = re.search(r'<aside id="inspector-panel".*?</aside>', html, re.S)[0]
+        self.assertNotIn('parameter-count', html)
+        self.assertNotIn('parameter-count', js)
+        for identifier in ('inspector-content', 'equation', 'contract-explanation'):
+            self.assertIn('id="' + identifier + '"', inspector)
+        self.assertIn('description.contract.parameters.toLocaleString()', js)
+        self.assertIn('0 trainable parameters', js)
+        self.assertIn("s?.lstm?.parameters", js)
+
     def test_help_is_a_closed_floating_hub_and_not_a_canvas_caption(self):
         html=(ROOT/'app/web/index.html').read_text()
         js=(ROOT/'app/web/editor.js').read_text()

@@ -313,6 +313,11 @@ widths, not flattened sample counts. Earlier axes reuse the same weights. Inspec
 shows A [d_out,d_in], and either b [d_out] or Bias off · no b. Do not imply that
 non-bias operations contain bias or collapse a module's heterogeneous internals
 into one misleading bias flag.
+
+Inspector is a selected-block view: its forward-contract footer must not display
+the whole architecture's parameter total. Keep relevant selected-layer contracts
+and local counts. Architecture totals belong in architecture bookkeeping and the
+status bar, not a misleading global statistic beneath the selected block.
 Distinct 20-unit vector type icons occupy top-right, scaled from 24-unit paths.
 They are accessible, focusable folding controls. Clicking an expanded box's
 icon collapses the box to a compact icon-and-summary body; clicking a compact icon selects it

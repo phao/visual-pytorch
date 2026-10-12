@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 15:08 -03:00 — Retain requested Inspector cleanup in A–D
+
+Carried the exact presentation-only change fromb1f9d67 onto accepted A–D without
+its E ancestry, so deferring execution work does not undo the user's Inspector
+request. The selected layer keeps its contract/local counts; global totals remain
+in architecture bookkeeping/status. Fresh31 UI/359 JS and real sandboxed Qt
+Inspector/sharing/family/history/save/reload pass, with no host Torch/errors.
+Prior A–D one-flock checks passed14 numerical/pure cases84.226s,30 UI/359 JS and
+actual Qt CNN-recurrent three-update training/reload. Numerical source is unchanged.
+Main integration/push of this final presentation adjustment remain pending here.
+
 ## 2026-10-12 15:03 -03:00 — Prepare accepted A–D public source without E
 
 The user explicitly authorized an A–D GitHub push while deferring E on separate

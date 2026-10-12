@@ -98,6 +98,9 @@ Every diagram block has a bottom-right resize grip: active snapping aligns it to
 24-unit world grid, preserving top-left and readable minimums. Focused grips use
 8-unit arrow steps, or 24 with Shift/Ctrl. The block context menu's Automatic size
 removes custom dimensions; Inspector exposes no dimension/removal controls.
+Inspector also omits the whole architecture's parameter total. Its selected-
+layer contracts/local counts remain; architecture bookkeeping and the status
+bar retain architecture-wide totals.
 Sizes persist in .vtw, follow undo/redo, update wires/
 Fit and never change tensor shapes, datasets or learned weights. Linear footers
 always start Bias on/off; counts and weight dimensions use only the last axis.
