@@ -628,6 +628,13 @@ restored architectures is preserved; merged run row IDs need not remain stable.
 Training completion is not a workspace edit-history step. Oversized edits clear
 history with a notice; history is not a durable recovery/backup facility.
 
+Undo validation may reuse an in-memory, eight-entry exact-registry proof cache.
+It is not a `.vtw` field/table or persisted trust marker. Open/save always perform
+full independent-revision validation; schema/guards/heads are checked on every
+reuse. Changed content/metadata/row membership requires full proof. Hidden or
+generated columns in revision/head tables are refused. The retained union is
+validated before restore commits. See [revision-store.md](revision-store.md).
+
 User settings are separate: ~/.tensorloon/config.json stores ui_zoom (0.5–3),
 font_size (integer 12–28), theme, spacing (integer 1–10), box_spacing (integer
 1–100), memory_limit_percent, grid_snap and menu_grid_snap (strict booleans).
