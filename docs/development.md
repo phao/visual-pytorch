@@ -1,5 +1,26 @@
 # Development state and roadmap
 
+## 2026-10-12 20:35 -03:00 — Review corrections before renewed frozen regression
+
+The frozen d100aac full gate completed:1368 invocations542.618s, two failures/
+three errors/three native-covered skips. Original log is retained. Two historical
+notebook fixtures tried copying new policy files absent from their immutable ZIPs;
+their historical file lists now exclude these files without touching ZIP bytes.
+Temporal-v2 refusal tests used newly admitted Family10/Spec9 as "future" values;
+unknown-version witnesses move to11/10 without weakening old exact dependency
+matching or downgrade checks.
+
+Independent read-only review found three real gaps: unbounded owner inventory
+before admission, ancestor selectors across descendant repeats, and runtime
+construction missing policy preparation RAM. Added memoized structural bounds,
+shape-only constrained admission before inventory, structural descendant selector
+translation and actual-runtime construction allowance. Five bounded reproductions
+mock enumeration/allocation, never create billion-owner structures.40 affected
+cases6.948s pass; actual old pre-family/pre-Softmax kernels plus new policy saved/
+rerun kernels pass3 cases15.630s (new saved7/rerun8 cells), same checkpoint/outputs.
+A fixture SyntaxError in the initial review-case file was corrected before these
+successful checks; retained separately. Renewed full frozen gate remains required.
+
 ## 2026-10-12 20:15 -03:00 — Versioned persisted parameter-policy routes
 
 Admitted graph-scoped policy1 with canonical relative JSON-component selectors,

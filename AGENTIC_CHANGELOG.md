@@ -4,6 +4,16 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 20:35 -03:00 — Bound policy discovery and close repeat/RAM gaps
+
+Fixed three reviewer-derived issues with bounded reproductions: pre-admission
+owner expansion, ancestor policies through descendant repeats and runtime policy
+initialization RAM charging.40 affected cases and four actual kernel executions
+within3 tests pass. Corrected historical fixture file lists/future-version values
+without changing old archives or semantics. Preserved failed d100aac1368-case
+regression and initial fixture SyntaxError. New full gate/integration still needed;
+GUI/base-source/showcase/MS-VAR remain unfinished, E deferred.
+
 ## 2026-10-12 20:15 -03:00 — Persisted scoped policy backend routes
 
 Implemented explicit graph policy1 and component identities, model6/family10/

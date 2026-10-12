@@ -8,6 +8,39 @@ import json
 from .core import GraphError
 from .parameter_policy import _keys, _require, initializer, resolve
 
+MAX_OWNERS = 65536
+MAX_OCCURRENCES = 262144
+
+
+def expansion_bound(models, mid):
+    """Count reference DAG expansion with memoization before enumerating owners.
+
+    Feature dimensions are not capped here. These are metadata/structure limits,
+    independent of constrained numerical execution. Shared owners count once;
+    logical occurrences include aliases because selector traversal visits them.
+    """
+    from .graph import parameter_owners, contract as shape_contract
+    memo = {}
+    def visit(current):
+        if current in memo: return memo[current]
+        contract = shape_contract(models, current); aliases = parameter_owners(models[current])
+        owners, occurrences = 0, len(models[current]['graph']['nodes'])
+        for node in models[current]['graph']['nodes']:
+            kind = node['type']
+            if kind in {'Module', 'Recurrent'}:
+                child_owners, child_occurrences = visit(node['ref'])
+                occurrences += child_occurrences
+                if aliases[node['id']] == node['id']: owners += child_owners
+            elif aliases[node['id']] == node['id']:
+                if kind in {'Linear', 'Conv2d'}: owners += 1 + int(node.get('bias', True))
+                elif kind == 'LSTM': owners += len(contract['shapes'][node['id']]['lstm']['parameter_shapes'])
+            _require(owners <= MAX_OWNERS and occurrences <= MAX_OCCURRENCES,
+                     'expanded parameter inventory exceeds structural limits before owner enumeration.')
+        memo[current] = (owners, occurrences)
+        return memo[current]
+    owners, occurrences = visit(mid)
+    return {'owners': owners, 'occurrences': occurrences}
+
 
 def owner_key(parts):
     return json.dumps(parts, separators=(',', ':'), ensure_ascii=True)
@@ -48,6 +81,7 @@ def plan(models, mid):
     """
     from .evidence import parameter_schema
     from .parameter_policy import graph_aliases
+    expansion_bound(models, mid)
     schema = parameter_schema(models, mid)
     aliases = graph_aliases(models, mid)
     owners = {entry['id']: entry for entry in schema.values()}

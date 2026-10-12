@@ -59,7 +59,9 @@ a repeated template node applies to **all** expanded copies. Independent repeats
 own separate Parameters; tied copies resolve to the same canonical owner.
 Initializer shape checks occur against the resolved constructor, not a caption.
 Selectors are translated as components; generated occurrence IDs are not split
-on `/`. Older Family1–9 and Specialization1–8 never gain these policy semantics.
+on `/`. This includes ancestor selections through repeats in descendant
+architectures, not only a repeated model's own declarations. Older Family1–9 and
+Specialization1–8 never gain these policy semantics.
 
 ## Execution and provenance
 
@@ -91,6 +93,12 @@ memory. RAM admission conservatively retains existing whole-model terms and adds
 256 bytes per stored parameter element plus4096 per unique owner for policy
 preparation/provenance. This is an admission allowance, not measured peak RSS.
 Task RAM evidence reproduces this component and its owner counts exactly.
+Actual runtime-shape construction charges the same allowance before its native
+baseline constructor. Constrained whole-model admission uses shape-only counts
+before preparing the owner inventory. Metadata discovery has fixed bounds:
+65536 unique parameter owners and262144 logical block occurrences, counted on
+the reference DAG with memoization before expansion. These prototype structural
+limits apply independently of constrained mode; they are not feature-width limits.
 
 Native, real worker, plain app-free source, captured family runtime, checkpoint
 restoration and actual saved/rerun notebook kernels have bounded checks. Captured

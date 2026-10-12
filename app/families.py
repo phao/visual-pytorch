@@ -469,6 +469,35 @@ class _UnresolvedConstructor(GraphError):
                          ': ' + ', '.join(m['id'] for m in missing) + '.')
 
 
+def _translate_descendant_policies(models, mid, occurrences):
+    """Follow resolved references and repeat origins as structural components."""
+    from .policy_graph import owner_key, expansion_bound
+    import json
+    expansion_bound(models, mid)
+    graph = models[mid]['graph']
+    if 'parameter_policy' not in graph: return
+    by_model = {}
+    for row in occurrences:
+        by_model.setdefault(row['model'], {}).setdefault(row['template_node'], []).append(row['node'])
+    def translate(current, parts):
+        lookup = {node['id']: node for node in models[current]['graph']['nodes']}
+        ids = [parts[0]] if parts[0] in lookup else by_model.get(current, {}).get(parts[0], [parts[0]])
+        result = []
+        for nid in dict.fromkeys(ids):
+            node = lookup.get(nid)
+            if len(parts) > 2 and node is not None and node['type'] in {'Module', 'Recurrent'}:
+                result.extend([[nid, *tail] for tail in translate(node['ref'], parts[1:])])
+            else: result.append([nid, *parts[1:]])
+        return result
+    declarations = {}
+    for selector, entry in graph['parameter_policy']['parameters'].items():
+        for parts in translate(mid, json.loads(selector)):
+            key = owner_key(parts)
+            require(key not in declarations or declarations[key] == entry, 'Conflicting descendant repeat policy translation.')
+            declarations[key] = copy.deepcopy(entry)
+    graph['parameter_policy']['parameters'] = declarations
+
+
 def _scoped_specialize(doc, symbols, supplied):
     """Resolve model specs by local constructor context, NOT parameter instances.
 
@@ -525,6 +554,8 @@ def _scoped_specialize(doc, symbols, supplied):
         if repeats or any('x' not in n or 'y' not in n for n in model['graph']['nodes']): _initial_layout(model)
         model['id'] = rid
         resolved[rid] = model
+        if doc['version'] >= 10:
+            _translate_descendant_policies(resolved, rid, occurrences)
         try:
             check_document(model)
             validate_model(resolved, rid)

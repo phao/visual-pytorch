@@ -177,7 +177,8 @@ def safety_report(models, mid, constrained=True, *, samples=None, epochs=None,
     """No tensor allocations: compare the whole-run estimate to current RAM."""
     if not isinstance(constrained, bool):
         raise GraphError("Constrained mode must be true or false.")
-    c = validate_model(models, mid)
+    from .graph import contract as shape_contract
+    c = shape_contract(models, mid)
     percentage = memory_percent(memory_limit_percent)
     if samples is not None:
         if isinstance(samples, bool) or not isinstance(samples, int) or not 2 <= samples <= MAX_INTEGER:
@@ -186,16 +187,20 @@ def safety_report(models, mid, constrained=True, *, samples=None, epochs=None,
         feature_count(epochs)
     memory = estimate_memory(c, samples=samples, training=epochs is not None, kind=kind)
     no_trainable = False
-    from .policy_graph import present, plan
+    from .policy_graph import present, plan, expansion_bound
     if present(models, mid):
-        policy = plan(models, mid)['resolved']
-        memory['parameter_policy_initialization_bytes'] = 256 * policy['counts']['stored'] + 4096 * len(policy['owners'])
+        bound = expansion_bound(models, mid)
+        memory['parameter_policy_initialization_bytes'] = 256 * c['parameters'] + 4096 * bound['owners']
         memory['estimated_bytes'] += memory['parameter_policy_initialization_bytes']
-        memory['parameter_counts'] = policy['counts']
-        no_trainable = epochs is not None and policy['counts']['trainable'] == 0
     available = available_memory()
     budget = math.floor(available * percentage / 100) if available is not None else None
     memory.update(available_bytes=available, budget_bytes=budget, limit_percent=percentage)
+    # Admission precedes potentially large owner/alias inventories. A blocked
+    # report does not pretend to have validated every initializer/selector.
+    if present(models, mid) and (not constrained or budget is not None and memory['estimated_bytes'] <= budget):
+        policy = plan(models, mid)['resolved']
+        memory['parameter_counts'] = policy['counts']
+        no_trainable = epochs is not None and policy['counts']['trainable'] == 0
     violations = []
     if no_trainable:
         violations.append({'rule': 'trainable_owners', 'actual': 0, 'limit': 1,

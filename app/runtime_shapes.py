@@ -229,13 +229,22 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
         from .temporal_shapes_v2 import admission as temporal_admission
         initial = shape_contract(models, mid, spec, initial_shapes if initial_shapes is not None else
                                  {g['id']:g['shape'] for g in spec['baseline_input_groups']})
-        temporal_admission(models, mid, initial, 1, constrained=constrained,
+        construction_report = temporal_admission(models, mid, initial, 1, constrained=constrained,
                            memory_limit_percent=memory_limit_percent, gradients=False)
     elif initial_shapes is None:
         preflight(models,mid,constrained,memory_limit_percent=memory_limit_percent)
     else:
         initial = shape_contract(models,mid,spec,initial_shapes)
-        admission(initial,1,constrained=constrained,memory_limit_percent=memory_limit_percent,gradients=False)
+        construction_report = admission(initial,1,constrained=constrained,memory_limit_percent=memory_limit_percent,gradients=False)
+    if temporal_v2 or initial_shapes is not None:
+        from .policy_graph import present, expansion_bound
+        if present(models, mid):
+            bound = expansion_bound(models, mid)
+            memory = construction_report['memory']
+            memory['components']['parameter_policy_initialization'] = 256 * initial['parameters'] + 4096 * bound['owners']
+            memory['estimated_bytes'] = sum(memory['components'].values())
+            if constrained and (memory['budget_bytes'] is None or memory['estimated_bytes'] > memory['budget_bytes']):
+                raise GraphError('Constrained mode blocked runtime parameter-policy initialization before construction.')
     frozen = {}
     def capture(key):
         if key in frozen: return
