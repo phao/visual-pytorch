@@ -255,6 +255,8 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
         def __init__(self):
             super().__init__(OrderedDict(baseline.named_children()))
             self._runtime_spec = copy.deepcopy(spec)
+            if hasattr(baseline, 'parameter_policy_receipt'):
+                self.parameter_policy_receipt = copy.deepcopy(baseline.parameter_policy_receipt)
 
         def runtime_specification(self): return copy.deepcopy(self._runtime_spec)
 

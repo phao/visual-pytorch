@@ -70,7 +70,7 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
               'manifest': copy.deepcopy(manifest), 'protocol': validate_protocol(protocol)}
     if runtime is not None:
         sv=runtime['specialization'].get('version')
-        result.update(version=4 if sv in (7,8) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
+        result.update(version=4 if sv in (7,8,9) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
     validate_bundle(result)
     return result
 
@@ -94,6 +94,10 @@ def validate_bundle(bundle):
     validate_task(bundle['task'], bundle['dataset'], contract)
     check_manifest(bundle['dataset'], bundle['manifest'])
     _require(contract['parameters'] > 0, 'Task training requires trainable parameters.')
+    from .policy_graph import present, plan
+    if present(model['models'], model['root']):
+        _require(plan(model['models'], model['root'])['resolved']['counts']['trainable'] > 0,
+                 'Task training has no trainable parameter owners; inference remains allowed.')
     return contract
 
 
@@ -109,6 +113,10 @@ def run_identity(bundle):
         result.update(version=3,compiler='native-runtime-temporal-v1',runtime=digest(bundle['runtime']))
     elif bundle['version']==4:
         result.update(version=4,compiler='native-runtime-temporal-v2',runtime=digest(bundle['runtime']))
+    if bundle['model']['version'] >= 6:
+        from .policy_graph import plan
+        result['parameter_policy'] = plan(bundle['model']['models'], bundle['model']['root'])['resolved']['identity']
+        result['compiler'] += '-parameter-policy-v1'
     return result
 
 
@@ -141,6 +149,12 @@ def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available
     size = min(bundle['protocol']['batch_size'], len(prepared['populations']['train']['observation_ids']))
     memory = estimate_memory(contract, samples=math.ceil(size / .8), training=True)
     memory['components']['typed_preparation'] = prepared['preparation_estimate']['estimated_bytes']
+    from .policy_graph import present, plan
+    model_spec = bundle['model']
+    if present(model_spec['models'], model_spec['root']):
+        policy = plan(model_spec['models'], model_spec['root'])['resolved']
+        memory['components']['parameter_policy_initialization'] = 256 * policy['counts']['stored'] + 4096 * len(policy['owners'])
+        memory['parameter_counts'] = policy['counts']
     # Curves carry exact evaluated IDs per head/checkpoint. Charge their bounded
     # retention too: an enormous requested curve must not evade run admission.
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
@@ -172,15 +186,26 @@ def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available
 def checkpoint_for(bundle, fitted, model):
     """No optimizer-resume claim; inference state includes the fitted transform."""
     spec = bundle['model']; schema = parameter_schema(spec['models'], spec['root'])
-    return {'version': 1, 'kind': 'task-predictor', 'identity': run_identity(bundle),
+    result = {'version': 2 if hasattr(model, 'parameter_policy_receipt') else 1,
+            'kind': 'task-predictor', 'identity': run_identity(bundle),
             'fitted': copy.deepcopy(fitted), 'parameter_ids': {k: v['id'] for k, v in schema.items()},
             'weights': {key: value.detach().tolist() for key, value in model.state_dict().items()}}
+    if hasattr(model, 'parameter_policy_receipt'):
+        result['parameter_policy_receipt'] = copy.deepcopy(model.parameter_policy_receipt)
+    return result
 
 
 def check_task_checkpoint(bundle, checkpoint, *, constrained=True, memory_limit_percent=10.):
     """Pure structural/identity validation; not proof of training origin."""
-    _keys(checkpoint, ('version', 'kind', 'identity', 'fitted', 'parameter_ids', 'weights'), context='Task checkpoint')
-    _version(checkpoint, 'Task checkpoint')
+    from .policy_graph import present
+    policy = present(bundle['model']['models'], bundle['model']['root'])
+    _keys(checkpoint, ('version', 'kind', 'identity', 'fitted', 'parameter_ids', 'weights') +
+          (('parameter_policy_receipt',) if policy else ()), context='Task checkpoint')
+    _require(type(checkpoint['version']) is int and checkpoint['version'] == (2 if policy else 1),
+             'Task checkpoint version must match its parameter policy.')
+    if policy:
+        from .parameter_execution import check_receipt
+        check_receipt(bundle['model']['models'], bundle['model']['root'], checkpoint['parameter_policy_receipt'])
     _require(checkpoint['kind'] == 'task-predictor' and digest(checkpoint['identity']) == digest(run_identity(bundle)), 'Task checkpoint identity mismatch.')
     prepared, _ = resolve_run(bundle, constrained=constrained, memory_limit_percent=memory_limit_percent)
     _require(digest(checkpoint['fitted']) == digest(prepared['fitted']), 'Task checkpoint fitted preprocessing mismatch.')

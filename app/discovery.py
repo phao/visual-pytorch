@@ -179,15 +179,30 @@ def capabilities():
     schemas = [operator_schema(kind) for kind in sorted(operators.BLOCK_TYPES)]
     return _header('capabilities', container_version=VERSION, operators=[s['type'] for s in schemas],
         activations=sorted(ACTIVATIONS), tensor_dtype='float32', device='cpu',
+        parameter_policy={'graph_field': 'parameter_policy', 'version': 1, 'model_revision_version': 6,
+            'family_version': 10, 'specialization_version': 9,
+            'selectors': 'canonical JSON component arrays relative to each architecture',
+            'trainability': 'per unique owner, requires_grad and selected optimizer membership',
+            'initializers': ['constructor', 'normal', 'uniform', 'values', 'zeros']},
         unavailable={'Constant': 'not implemented', 'TrainableParameter': 'not implemented',
-            'per_parameter_freezing': 'not implemented; graph revision freezing is different',
-            'explicit_initial_parameter_values': 'not implemented for new training runs',
+            'retained_checkpoint_initialization_binding': 'not implemented; explicit values supported',
             'latent_sequence_likelihood': 'not implemented; supervised heads are not filtering',
             'optimizer_resume': 'deferred Stage E, not part of this source'},
         limitations=['Shapes alone do not establish output representation or loss compatibility.',
             'Current cross-entropy expects logits; the checker does not prove an upstream tensor is logits.',
             'Schema examples are construction witnesses, not datasets, training fits or statistical benchmarks.'],
-        commands=['capabilities', 'format-schema', 'operator-schema', 'ports'])
+        commands=['capabilities', 'format-schema', 'operator-schema', 'parameter-policy', 'ports'])
+
+
+def parameter_contract(models, mid):
+    from .policy_graph import present, plan
+    check_document(models[mid])
+    value = plan(models, mid)
+    return {'version': 1, 'kind': 'visual-pytorch-parameter-policy',
+            'scope': 'read-current-graph-contract-only; no allocation, initialization or training',
+            'id': mid, 'explicit': present(models, mid),
+            'identity_encoding': 'json-components-v2' if present(models, mid) else 'legacy-slash-v1',
+            **value['resolved']}
 
 
 def port_contract(models, mid):

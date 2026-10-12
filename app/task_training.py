@@ -23,7 +23,8 @@ def train_task(bundle, progress=None, cancel=None, *, constrained=True,
         torch.manual_seed(config['seeds']['initialization'])
         model = compile_task_model(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     settings = config['optimizer']
-    optimizer = torch.optim.Adam(model.parameters(), lr=settings['lr'], betas=tuple(settings['betas']),
+    from .parameter_execution import trainable_parameters
+    optimizer = torch.optim.Adam(trainable_parameters(model), lr=settings['lr'], betas=tuple(settings['betas']),
                                  eps=settings['eps'], weight_decay=settings['weight_decay'], foreach=False, fused=False)
     rng = random.Random(config['seeds']['shuffle'])
     heads = task['heads']; size = config['batch_size']; budget = config['budget']

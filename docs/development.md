@@ -1,5 +1,27 @@
 # Development state and roadmap
 
+## 2026-10-12 20:15 -03:00 — Versioned persisted parameter-policy routes
+
+Admitted graph-scoped policy1 with canonical relative JSON-component selectors,
+Model6/Family10/Spec9/container24 fences and policy checkpoint2 receipts. Old
+metadata/IDs/versions retain their meaning. Structural aliases combine explicit
+fields and reject conflicts; repeat declarations cover every copy, tied copies
+count once. Core/task/native workers/restore/plain exports/captured families use
+the same initialization/freezing and selected optimizer membership. Added pure
+CLI owner discovery/set-policy edits and captured runtime dependencies. All-frozen
+inference remains valid while training refuses; whole-model RAM charges storage
+plus conservative policy preparation and validates counts/components.
+
+20 focused new-route tests/17.089s pass, including real workers and actual saved/
+rerun Jupyter kernels (eight cells each), exact checkpoint/prediction replay and
+untouched workspace. Earlier export missing-math defect, closed RAM-evidence
+rejection and fixture assumptions (history API, CLI envelope, predictor wrapper,
+legacy normalization, formerly unsupported24 header) are preserved in campaign
+evidence. A broader frozen regression and independent review are next; no main
+integration/public push or completed LoRA/MS-VAR claim. Dedicated GUI policy
+controls, exact retained-base binding, the requested showcase/comparisons and
+MS-VAR probabilistic/task/CLI work remain. Contract: [parameter policy](parameter-policy.md).
+
 ## 2026-10-12 19:46 -03:00 — Internal native parameter-policy numerical proof
 
 Added structural graph occurrence-alias inventory and explicit CPU float32 native

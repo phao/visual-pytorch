@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 20:15 -03:00 — Persisted scoped policy backend routes
+
+Implemented explicit graph policy1 and component identities, model6/family10/
+specialization9/container24 fences, checkpoint2 initialization receipts, selected
+optimizer owners, safe repeat translation and capture dependencies, because LoRA
+must mean the same thing after save/load/export/worker/notebook execution. Old
+semantics and E21/22 remain unchanged.20 new-route cases pass, including two
+actual kernels/eight cells each and exact checkpoint/predictions. Fixed actual
+missing-math export and closed RAM-admission gaps; retained failed logs. GUI
+controls/base-source binding/showcase/full regression and integration remain.
+
 ## 2026-10-12 19:46 -03:00 — Internal native initialization/freezing proof
 
 Added structural alias inventory and atomic explicit CPU float32 initialization,

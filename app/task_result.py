@@ -156,8 +156,11 @@ def validate_result(bundle, result):
     _require(digest(result['sampler']) == digest({'kind': 'finite-epoch-python-mt19937-v1', 'replacement': False,
         'seed': bundle['protocol']['seeds']['shuffle'], 'partial_batch': 'retained'}), 'Sampler metadata mismatch.')
     memory = result['memory_admission']
+    from .policy_graph import present, plan
+    model_spec = bundle['model']; policy = present(model_spec['models'], model_spec['root'])
     _keys(memory, ('version', 'operation', 'batch', 'parameter_bytes', 'components', 'estimated_bytes',
-                  'actual_batch_size', 'limit_percent', 'available_bytes'), context='RAM evidence')
+                  'actual_batch_size', 'limit_percent', 'available_bytes') +
+          (('parameter_counts',) if policy else ()), context='RAM evidence')
     _require(type(memory['version']) is int and memory['version'] == 2 and memory['operation'] == 'training' and
              type(memory['actual_batch_size']) is int and memory['actual_batch_size'] == size and
              _integer(memory['batch'], size) and type(memory['parameter_bytes']) is int and
@@ -169,6 +172,10 @@ def validate_result(bundle, result):
     from .memory import estimate_memory
     expected = estimate_memory(prepared['contract'], samples=math.ceil(size / .8), training=True)
     expected['components']['typed_preparation'] = prepared['preparation_estimate']['estimated_bytes']
+    if policy:
+        resolved = plan(model_spec['models'], model_spec['root'])['resolved']
+        _require(digest(memory['parameter_counts']) == digest(resolved['counts']), 'RAM owner counts do not match the parameter policy.')
+        expected['components']['parameter_policy_initialization'] = 256 * resolved['counts']['stored'] + 4096 * len(resolved['owners'])
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     expected['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (8192 + 512 * point_rows * len(bundle['task']['heads']))
     if bundle['version'] in (3,4):

@@ -74,8 +74,8 @@ def begin(workspace, kind, *, base=None, sid=None, model=None, seed_admit=None):
             document.update(root='', models={}, symbols=[], assignments=[], repeats=[])
             if model is not None:
                 concrete = drawing_seed(workspace, model, seed_admit)
-                document['version'] = {3:6,4:7,5:9}.get(concrete['version'],concrete['version'])
-                if document['version'] in (6,7,9): document['runtime_policy'] = None
+                document['version'] = {3:6,4:7,5:9,6:10}.get(concrete['version'],concrete['version'])
+                if document['version'] in (6,7,9,10): document['runtime_policy'] = None
                 document.update(root=concrete['root'], models=concrete['models'])
         else:
             document.update(question='', models=[], data_tasks=[], splits=[], initialization_seeds=[],

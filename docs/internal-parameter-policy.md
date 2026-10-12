@@ -1,5 +1,12 @@
 # Internal parameter-policy foundation — not yet workspace semantics
 
+**Historical foundation below.** The development branch now admits explicit
+scoped policies through new Model6/Family10/Spec9/container24 semantics, not by
+changing ignored node fields. See [the new contract](parameter-policy.md).
+Native/worker/plain/family/actual-kernel checks exist; GUI controls, retained-base
+bindings, showcase delivery and full integration remain. This supersedes the
+older "no persisted grammar" statements below without relabeling their tests.
+
 `app.parameter_policy.resolve(schema, policy, aliases=...)` is an internal pure
 normalizer, not a persisted graph field or automatic compile/train hook. Existing
 workspace versions, compilers, optimizers, exports and GUI behavior are unchanged.

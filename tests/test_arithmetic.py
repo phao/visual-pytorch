@@ -117,9 +117,9 @@ class ArithmeticContractTests(unittest.TestCase):
         finally: w.db.close()
 
     def test_vtw23_refuses_old_arithmetic_headers_and_reserved_E_without_rewriting(self):
-        self.assertEqual(VERSION, 23); self.assertNotIn(21, SUPPORTED_VERSIONS); self.assertNotIn(22, SUPPORTED_VERSIONS)
+        self.assertGreaterEqual(VERSION, 23); self.assertNotIn(21, SUPPORTED_VERSIONS); self.assertNotIn(22, SUPPORTED_VERSIONS)
         with tempfile.TemporaryDirectory() as td:
-            for version in (20, 21, 22, 24):
+            for version in (20, 21, 22, VERSION + 1):
                 path = Path(td) / (str(version) + '.vtw'); w = Workspace(); w.put(model()); w.save(path); w.db.close()
                 with sqlite3.connect(path) as db: db.execute('PRAGMA user_version=' + str(version))
                 before = path.read_bytes()
@@ -133,7 +133,7 @@ class ArithmeticContractTests(unittest.TestCase):
             with sqlite3.connect(path) as db: db.execute('PRAGMA user_version=20')
             before = path.read_bytes(); loaded = Workspace.load(path)
             try:
-                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0], 23)
+                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0], VERSION)
                 self.assertEqual(path.read_bytes(), before); self.assertFalse(loaded.dirty)
             finally: loaded.db.close()
 

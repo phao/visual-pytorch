@@ -22,8 +22,8 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 23
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23}
+VERSION = 24
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -164,7 +164,12 @@ def boundary_groups(nodes, widths):
 
 def validate_model(models, model_id, ancestry=(), _cache=None):
     from .graph import contract
-    return contract(models, model_id, ancestry, _cache)
+    value = contract(models, model_id, ancestry, _cache)
+    if not ancestry:
+        from .policy_graph import present, plan
+        if present(models, model_id):
+            value = dict(value, parameter_counts=plan(models, model_id)['resolved']['counts'])
+    return value
 
 
 def safety_report(models, mid, constrained=True, *, samples=None, epochs=None,
@@ -180,17 +185,28 @@ def safety_report(models, mid, constrained=True, *, samples=None, epochs=None,
     if epochs is not None:
         feature_count(epochs)
     memory = estimate_memory(c, samples=samples, training=epochs is not None, kind=kind)
+    no_trainable = False
+    from .policy_graph import present, plan
+    if present(models, mid):
+        policy = plan(models, mid)['resolved']
+        memory['parameter_policy_initialization_bytes'] = 256 * policy['counts']['stored'] + 4096 * len(policy['owners'])
+        memory['estimated_bytes'] += memory['parameter_policy_initialization_bytes']
+        memory['parameter_counts'] = policy['counts']
+        no_trainable = epochs is not None and policy['counts']['trainable'] == 0
     available = available_memory()
     budget = math.floor(available * percentage / 100) if available is not None else None
     memory.update(available_bytes=available, budget_bytes=budget, limit_percent=percentage)
     violations = []
+    if no_trainable:
+        violations.append({'rule': 'trainable_owners', 'actual': 0, 'limit': 1,
+                           'message': 'No trainable parameter owners; inference remains allowed.'})
     if available is None:
         violations.append({'rule': 'memory_unavailable', 'actual': None, 'limit': None,
                            'message': 'Available RAM could not be measured; constrained runs are blocked.'})
     elif memory['estimated_bytes'] > budget:
         violations.append({'rule': 'memory', 'actual': memory['estimated_bytes'], 'limit': budget,
                            'message': f"Estimated {memory['operation']} memory {format_bytes(memory['estimated_bytes'])} exceeds {percentage:g}% of available RAM ({format_bytes(budget)} of {format_bytes(available)})."})
-    return {"constrained": constrained, "allowed": not constrained or not violations,
+    return {"constrained": constrained, "allowed": not no_trainable and (not constrained or not violations),
             "violations": violations, "memory": memory}
 
 
@@ -199,6 +215,8 @@ def preflight(models, mid, constrained=True, *, samples=None, epochs=None,
     report = safety_report(models, mid, constrained, samples=samples, epochs=epochs,
                            memory_limit_percent=memory_limit_percent, kind=kind)
     if not report["allowed"]:
+        if any(v['rule'] == 'trainable_owners' for v in report['violations']):
+            raise GraphError('No trainable parameter owners; inference remains allowed.')
         raise GraphError("Constrained mode blocked this run. " +
                          " ".join(v["message"] for v in report["violations"]) +
                          " Reduce the run, change the user RAM percentage in Options, or uncheck Constrained mode. The architecture is unchanged.")
@@ -213,6 +231,9 @@ def check_document(doc):
     graph = doc.get("graph", {})
     if not isinstance(graph.get("nodes"), list) or not isinstance(graph.get("edges"), list):
         raise GraphError("A graph needs node and edge lists.")
+    if 'parameter_policy' in graph:
+        from .policy_graph import declaration
+        declaration(graph['parameter_policy'])
     if not 2 <= len(graph["nodes"]) <= 64 or len(graph["edges"]) > 128:
         raise GraphError("This prototype accepts 2–64 blocks.")
     ids = set()
@@ -593,6 +614,13 @@ class Workspace:
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 24:
+                from .revisions import _parse
+                if any('parameter_policy' in m['graph'] for m in loaded.values()):
+                    raise GraphError('Parameter policies require a version-24 container.')
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model': 6, 'family': 10, 'specialization': 9}[kind]:
+                        raise GraphError('Parameter-policy model/family contracts require a version-24 container.')
             if version < 23:
                 from .revisions import _parse
                 if any(n['type'] in ARITHMETIC_OPERATORS for m in loaded.values() for n in m['graph']['nodes']):
@@ -773,6 +801,8 @@ def _graph_tensor(values, contract):
 
 def generate_code(models, model_id):
     validate_model(models, model_id)
+    from .policy_graph import present, plan
+    parameter_plan = plan(models, model_id) if present(models, model_id) else None
     lines = ["import torch", "from torch import nn", "", inspect.getsource(_pack_inputs),
              inspect.getsource(_graph_values), inspect.getsource(_graph_tensor),
              "class _Reshape(nn.Module):", "    def __init__(self, shape):",
@@ -863,11 +893,25 @@ def generate_code(models, model_id):
 
     emit(model_id)
     lines.extend([f"model = {cname(model_id)}()", ""])
+    if parameter_plan is not None:
+        from . import parameter_policy, parameter_execution
+        from .evidence import digest
+        from .task_execution import _helper_source
+        helpers = (digest, parameter_policy._require, parameter_policy._keys, parameter_policy._number,
+                   parameter_policy._tensor, parameter_policy.initializer, parameter_policy.resolve,
+                   parameter_execution.configure, parameter_execution.trainable_parameters)
+        runtime = 'import copy, hashlib, json, math\n' + '\n'.join(_helper_source(h) for h in helpers)
+        lines.extend(['# Closed captured policy implementation, not executable user text.',
+                      f'_policy_namespace = {{"GraphError": ValueError, "FLOAT32_MAX": {parameter_policy.FLOAT32_MAX!r}, "MAX_SEED": {parameter_policy.MAX_SEED!r}}}',
+                      f'exec({runtime!r}, _policy_namespace)',
+                      f'model.parameter_policy_receipt = _policy_namespace["configure"](model, {parameter_plan["schema"]!r}, {parameter_plan["policy"]!r})',
+                      'trainable_parameters = _policy_namespace["trainable_parameters"]', ''])
     return "\n".join(lines)
 
 
 def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
-                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None, runtime_temporal_v2=None):
+                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None, runtime_temporal_v2=None,
+                  _apply_parameters=True):
     if runtime_temporal_v2 is not None:
         if runtime_inputs is not None or runtime_temporal is not None:
             raise GraphError('Spatial and versioned temporal runtime policies are distinct; select exactly one.')
@@ -941,7 +985,7 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             from .recurrent import _runner_class
             c = contract['shapes'][node['id']]['recurrent']['contract']
             layer = _runner_class(nn)(compile_model(models, node['ref'], constrained=constrained,
-                                                     memory_limit_percent=memory_limit_percent), c,
+                                                     memory_limit_percent=memory_limit_percent, _apply_parameters=False), c,
                                       constrained=constrained, memory_limit_percent=memory_limit_percent)
         elif node['type'] == 'LSTM':
             kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
@@ -952,7 +996,7 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         else:
             layer = compile_model(models, node["ref"],
                                   constrained=constrained and recurrent_reference(node['ref']),
-                                  memory_limit_percent=memory_limit_percent)
+                                  memory_limit_percent=memory_limit_percent, _apply_parameters=False)
         layers[f"layer_{index}"] = layer
 
     class GraphModule(nn.Module):
@@ -980,7 +1024,18 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
                 return values[groups[0]['id']]
             return {g["name"]: values[g["id"]] for g in groups}
 
-    return GraphModule(layers)
+    model = GraphModule(layers)
+    if _apply_parameters:
+        _parameter_setup(models, mid, model)
+    return model
+
+
+def _parameter_setup(models, mid, model):
+    from .policy_graph import present, plan
+    if present(models, mid):
+        from .parameter_execution import configure
+        policy = plan(models, mid)
+        model.parameter_policy_receipt = configure(model, policy['schema'], policy['policy'])
 
 
 def layer_descriptions(models, mid, prefix="", stable_prefix=None):
@@ -1146,7 +1201,8 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
     training_indices, test_indices = indices[:train_rows], indices[train_rows:]
     x_train, y_train = x[training_indices], y[training_indices]
     x_test, y_test = x[test_indices], y[test_indices]
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    from .parameter_execution import trainable_parameters
+    optimizer = torch.optim.Adam(trainable_parameters(model), lr=lr)
     history = []
     stopped = False
     completed=0
@@ -1200,7 +1256,7 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
         "stop_reason":"cancelled" if stopped else "budget_completed",
         "metric_protocol":{"loss":"MSE","timing":"post-update","mode":"eval","dtype":"float32"},
         "split_indices":{"train":training_indices.tolist(),"held_out":test_indices.tolist()},
-        "identity":identity(models,mid),"checkpoint_version":1,
+        "identity":identity(models,mid),"checkpoint_version":2 if hasattr(model, 'parameter_policy_receipt') else 1,
         "preprocessing":{"kind":"identity","input_adapter":"declared-row-major","binding":doc.get('dataset_binding')},
         "parameter_ids":{item['path']+'.'+parameter:item['stable_id']+'/'+parameter
                          for item in layer_descriptions(models,mid) for parameter in ('weight','bias')
@@ -1214,6 +1270,10 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
         "train_rows": train_rows, "test_rows": len(x_test),
         "split": "seeded shuffled 80/20",
     }
+    if hasattr(model, 'parameter_policy_receipt'):
+        from .evidence import parameter_schema
+        result['parameter_ids'] = {path: entry['id'] for path, entry in parameter_schema(models, mid).items()}
+        result['parameter_policy_receipt'] = copy.deepcopy(model.parameter_policy_receipt)
     try:
         analysis=affine_summary(model,contract)
         if analysis['status']=='available':

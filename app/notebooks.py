@@ -29,6 +29,7 @@ RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.
            'report_runtime.py', 'revisions.py', 'task_execution.py', 'task_result.py',
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
 RUNTIME += ('recurrent.py', 'recurrent_nodes.py', 'temporal_shapes.py', 'lstm_nodes.py', 'temporal_shapes_v2.py')
+RUNTIME += ('parameter_policy.py', 'policy_graph.py', 'parameter_execution.py')
 FORMAT = 'visual-pytorch-report-bundle'
 
 
@@ -288,6 +289,8 @@ def verify_bundle(root):
     sets=sets+tuple(v-{'runtime/app/runtime_shapes.py'} for v in sets)
     for dependency in ('runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','lstm_nodes.py','temporal_shapes_v2.py'):
         sets=sets+tuple(v-{'runtime/app/'+dependency} for v in sets)
+    policy_paths = {'runtime/app/' + n for n in ('parameter_policy.py', 'policy_graph.py', 'parameter_execution.py')}
+    sets = sets + tuple(v - policy_paths for v in sets)
     _require(set(manifest['files']) in sets,
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
@@ -329,7 +332,7 @@ def verify_bundle(root):
         _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                          n.module == 'runtime_shapes' for n in ast.walk(tree)),
                  'This report runtime requires its captured runtime_shapes.py dependency.')
-    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2'):
+    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution'):
         if 'runtime/app/'+dependency+'.py' not in manifest['files']:
             import ast
             for relative in manifest['files']:

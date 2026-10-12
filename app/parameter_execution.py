@@ -9,6 +9,34 @@ from .evidence import digest
 from .parameter_policy import resolve, _require
 
 
+def check_receipt(models, mid, receipt):
+    """Pure compatibility of initialization provenance, not authenticity of a fit."""
+    import re
+    from .policy_graph import plan
+    from .parameter_policy import _keys
+    resolved = plan(models, mid)['resolved']
+    _keys(receipt, ('version', 'policy_identity', 'initial_values_identity', 'counts',
+                    'addresses', 'runtime', 'training_state'))
+    _keys(receipt['counts'], ('stored', 'trainable', 'frozen'))
+    _require(all(type(v) is int and v >= 0 for v in receipt['counts'].values()), 'receipt counts must be nonnegative integers.')
+    _require(type(receipt['version']) is int and receipt['version'] == 1 and
+             receipt['policy_identity'] == resolved['identity'] and receipt['counts'] == resolved['counts'],
+             'initialization receipt does not match parameter policy.')
+    _require(isinstance(receipt['initial_values_identity'], str) and
+             re.fullmatch('[0-9a-f]{64}', receipt['initial_values_identity']) is not None,
+             'initial values identity must be a digest.')
+    expected = {sid: {'path': owner['path'], 'native_alias_paths': [owner['path']]}
+                for sid, owner in resolved['owners'].items()}
+    _require(receipt['addresses'] == expected, 'initialization addresses do not match graph owners.')
+    _keys(receipt['runtime'], ('library', 'version', 'device', 'dtype', 'random_rule'))
+    runtime = receipt['runtime']
+    _require(runtime['library'] == 'torch' and isinstance(runtime['version'], str) and
+             1 <= len(runtime['version']) <= 100 and runtime['device'] == 'cpu' and runtime['dtype'] == 'float32' and
+             runtime['random_rule'] == 'private-generator-explicit-seed-per-owner-v1' and
+             receipt['training_state'] == 'initial-parameters-only; not optimizer continuation',
+             'unsupported initialization execution provenance.')
+
+
 def configure(module, schema, policy=None, *, aliases=None):
     """Validate/prepare every unique owner, then atomically apply the policy.
 

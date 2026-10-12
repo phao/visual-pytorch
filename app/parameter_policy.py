@@ -20,15 +20,18 @@ def graph_aliases(models, mid):
     IDs. Existing ambiguous canonical or occurrence spellings refuse. This is
     not a family-export schema adapter or a new persisted identity convention.
     """
-    from .core import operation_nodes, validate_model
+    from .core import operation_nodes
     from .evidence import parameter_schema
-    from .graph import parameter_owners
+    from .graph import parameter_owners, contract as shape_contract
     schema = parameter_schema(models, mid)
+    from .policy_graph import owner_key, present
+    component_ids = present(models, mid)
+    def key(parts): return owner_key(parts) if component_ids else '/'.join(parts)
     canonical = resolve(schema)['owners']  # Also refuses old slash-ID collisions.
     aliases, occurrences = {}, {}
 
     def visit(current, occurrence_prefix, owner_prefix):
-        contract = validate_model(models, current)
+        contract = shape_contract(models, current)
         owners = parameter_owners(models[current])
         for node in operation_nodes(models[current]):
             occurrence = occurrence_prefix + [node['id']]
@@ -43,7 +46,7 @@ def graph_aliases(models, mid):
             else:
                 continue
             for name in names:
-                sid = '/'.join(occurrence + [name]); target = '/'.join(owner + [name])
+                sid = key(occurrence + [name]); target = key(owner + [name])
                 components = tuple(occurrence + [name])
                 _require(sid not in occurrences or occurrences[sid] == components,
                          'ambiguous occurrence identity; structural components collide.')

@@ -138,6 +138,14 @@ def apply_edits(workspace, edits):
                 check_adapter(doc['dataset'], contract)
                 doc['dataset_binding']=binding_for(contract)
                 doc['result']=None
+            elif kind == 'set-parameter-policy':
+                from app.datasets import _keys
+                from app.policy_graph import declaration, plan
+                _keys(edit, ('op', 'id', 'policy'), context='Set-parameter-policy edit')
+                if edit['policy'] is None: doc['graph'].pop('parameter_policy', None)
+                else: doc['graph']['parameter_policy'] = declaration(edit['policy'])
+                prospective = workspace.models(); prospective[edit['id']] = doc
+                plan(prospective, edit['id'])
             elif kind == 'set-node':
                 node = next(n for n in doc['graph']['nodes'] if n['id'] == edit['node'])
                 if set(edit['values']) & {'id', 'type'}:
@@ -189,6 +197,8 @@ def main(argv=None):
     operator.add_argument('type')
     ports = sub.add_parser('ports', help='Complete stable graph port/axis/packing and wire contracts; no execution or edits')
     ports.add_argument('id')
+    parameters = sub.add_parser('parameter-policy', help='Read unique owner policies/counts/initializers; no numerical allocation or training')
+    parameters.add_argument('id')
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -374,6 +384,9 @@ def main(argv=None):
             elif args.command == 'ports':
                 from app.discovery import port_contract
                 value = port_contract(workspace.models(), args.id)
+            elif args.command == 'parameter-policy':
+                from app.discovery import parameter_contract
+                value = parameter_contract(workspace.models(), args.id)
             elif args.command == 'parameter-counts':
                 from app.presentation import block_parameter_counts
                 models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)
