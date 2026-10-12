@@ -1,5 +1,29 @@
 # Development state and roadmap
 
+## 2026-10-12 17:32 -03:00 — Frozen undo regression accepted
+
+Exact b05a5bc source passed the fresh full suite:1317 invocations561.911s,
+1314 executed/three Qt-dependent skips covered separately by34 native/UI cases.
+46 focused pure tests1.155s and365 JavaScript tests1285.327ms pass. Actual
+private three-tab desktop keyboard/menu/typing, refresh, dispatcher history and
+large-data WebEngine keyboard tests pass on the same frozen source; keyboard
+samples36.293/44.051/52.007ms, no full frozen-document revalidation on warm undo.
+No running-user app/config/workspace mutation. Initial selector/harness/cleanup
+failures remain retained with corrections, not concealed as clean first attempts.
+
+Exact-source matched host fixture rerun after the full test process stopped,
+serial baseline ded2745→candidate b05a5bc, CPU0,2/system Python3.13/one thread:
+four10,000-row registry datasets/one tab925.410→7.948ms; legacy10,000 rows/
+three tabs106.638→61.297ms; both/three tabs1060.247→67.270ms. Three samples per
+case, median, host dispatch/encoding/describe only; browser painting excluded.
+Earlier alternating rounds and all samples are retained. This is bounded local
+performance evidence, not a universal latency bound.
+
+This child changes documentation only, preserving exact accepted executable/test
+bytes. Local integration/post-merge checks are next; public origin/main remains
+the pushed A–D a9af863. User is still writing new UI directions: no startup fix,
+Experiment/family redesign, labels, MathJax-label or routing change is included.
+
 ## 2026-10-12 17:22 -03:00 — Undo performance, exact-byte validation reuse
 
 The authorized undo fix keeps SQLite snapshot history and retained scientific

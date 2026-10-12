@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 17:32 -03:00 — Undo frozen acceptance
+
+Fresh exact b05a5bc full1317 cases561.911s passes (1314 executed/three native-
+covered skips), plus46 focused/365 JS/34 native-UI and actual three-tab/keyboard/
+menu/typing/data/save regressions. After terminal full completion, repeated the
+matched private baseline/candidate host timing on exact sources: combined case
+1060→67ms; actual keyboard renders36–52ms. Local performance skill influenced
+serial one-thread/CPU0,2 timing and separation of host versus render scope.
+This acceptance child changes documentation only; integration is next. No new
+UI redesign, app restart, user files/config or public push. User is still writing.
+
 ## 2026-10-12 17:22 -03:00 — Authorized undo performance fix
 
 Reuse bounded session-only proofs of unchanged immutable registry bytes; force
