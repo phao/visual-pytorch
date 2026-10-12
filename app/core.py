@@ -521,7 +521,7 @@ class Workspace:
     def save(self, path, *, require_new=False):
         from .file_sync import revision, save_lock, stamp
         from .revisions import validate_all
-        validate_all(self.db)
+        validate_all(self.db,cache=self.history.registry_validation,force=True)
         path = Path(path).expanduser().resolve()
         if path.suffix.lower() != ".vtw":
             path = path.with_suffix(".vtw")
@@ -592,7 +592,7 @@ class Workspace:
                 raise GraphError('Experiment/run/report revisions require a version-6 container.')
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
-            validate_all(w.db)
+            validate_all(w.db,cache=w.history.registry_validation,force=True)
             if version < 23:
                 from .revisions import _parse
                 if any(n['type'] in ARITHMETIC_OPERATORS for m in loaded.values() for n in m['graph']['nodes']):

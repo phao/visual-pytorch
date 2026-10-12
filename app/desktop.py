@@ -401,9 +401,10 @@ class Window(QMainWindow):
         if index >= 0:
             self.tabs.setTabText(index, self.tab_name(view.mid))
 
-    def tab_name(self, mid):
-        if self.workspace and mid in self.workspace.models():
-            return self.workspace.models()[mid]["name"]
+    def tab_name(self, mid, models=None):
+        models=(self.workspace.models() if self.workspace else {}) if models is None else models
+        if mid in models:
+            return models[mid]["name"]
         return "Home"
 
     def close_tab(self, index):
@@ -463,13 +464,14 @@ class Window(QMainWindow):
     def broadcast(self, kind="state", payload=None, exclude=None):
         self.update_history_actions()
         value = self.state() if kind == "state" else payload
+        models=value['models'] if kind=='state' else self.workspace.models() if self.workspace else {}
         for index in range(self.tabs.count()):
             bridge = self.tabs.widget(index).bridge
             if bridge != exclude:
                 bridge.send(kind, value)
         for index in range(self.tabs.count()):
             view = self.tabs.widget(index)
-            self.tabs.setTabText(index, self.tab_name(view.mid))
+            self.tabs.setTabText(index, self.tab_name(view.mid,models))
         self.update_title()
 
     def update_title(self):
@@ -859,6 +861,7 @@ class Window(QMainWindow):
     def describe(self, mid):
         models = self.workspace.models()
         try:
+            percentage=self.config.values['memory_limit_percent'] if hasattr(self,'config') else DEFAULT_MEMORY_LIMIT_PERCENT
             from .evidence import dataset_report, checkpoint_report
             contract=validate_model(models,mid)
             interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] in {"Module", "Recurrent"}}
@@ -867,11 +870,11 @@ class Window(QMainWindow):
                     'checkpoint_status':checkpoint_report(models,mid),
                     "code": generate_code(models, mid),
                     "model_safety": safety_report(models, mid, self.workspace.constrained_mode,
-                        memory_limit_percent=self.state()['memory_limit_percent']),
+                        memory_limit_percent=percentage),
                     "run_safety": safety_report(models, mid, self.workspace.constrained_mode,
                         samples=len(models[mid]["dataset"]["x"]) if models[mid].get("dataset") else None,
                         epochs=models[mid].get("training", {}).get("epochs", 400),
-                        memory_limit_percent=self.state()['memory_limit_percent'])}
+                        memory_limit_percent=percentage)}
         except Exception as exc:
             return {"valid": False, "error": str(exc)}
 

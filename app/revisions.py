@@ -4,8 +4,10 @@ Version-1 scientific object validators are closed, not arbitrary JSON records.
 Unknown future kinds fail explicitly until their own contract is implemented.
 """
 import copy
+import hashlib
 import json
 import re
+from collections import OrderedDict
 from datetime import datetime
 
 from .core import GraphError, check_document, timestamp, validate_model
@@ -70,7 +72,9 @@ def check_schema(db):
         'spec_heads': [('kind', 'TEXT', 1, 1), ('id', 'TEXT', 1, 2), ('revision', 'TEXT', 1, 0)],
     }
     for table, columns in expected_columns.items():
-        actual = [(r[1], r[2].upper(), r[3], r[5]) for r in db.execute('PRAGMA table_info(' + table + ')')]
+        info=list(db.execute('PRAGMA table_xinfo(' + table + ')'))
+        _require(all(r[6]==0 for r in info),'Independent revision table has hidden/generated columns: '+table+'.')
+        actual = [(r[1], r[2].upper(), r[3], r[5]) for r in info]
         _require(actual == columns, 'Independent revision table schema does not match v5: ' + table + '.')
     foreign = list(db.execute('PRAGMA foreign_key_list(spec_heads)'))
     expected_foreign = [(0, i, 'spec_revisions', key, key, 'NO ACTION', 'NO ACTION', 'NONE')
@@ -183,9 +187,50 @@ def frozen_document(kind, doc):
         raise GraphError('Revision document must be finite JSON.') from error
 
 
-def validate_all(db):
+class RegistryValidationCache:
+    """Bounded session-only proofs of exact immutable row bytes, never row IDs.
+
+    No documents/tensors are retained. Schema and browsing heads are checked on
+    every use; a changed byte, identity, timestamp or row set requires full proof.
+    """
+    def __init__(self, max_entries=8):
+        self.max_entries=max_entries
+        self._proofs=OrderedDict()
+
+    def contains(self, key):
+        if key not in self._proofs:return False
+        self._proofs.move_to_end(key)
+        return True
+
+    def remember(self, key):
+        self._proofs[key]=None;self._proofs.move_to_end(key)
+        while len(self._proofs)>self.max_entries:self._proofs.popitem(last=False)
+
+
+def _registry_fingerprint(db):
+    hasher=hashlib.sha256(b'visual-pytorch-registry-proof-v1\0')
+    for row in db.execute('SELECT * FROM spec_revisions ORDER BY kind,id,revision'):
+        _require(len(row)==6,'Immutable revision rows must contain exactly six fields.')
+        hasher.update(b'R')
+        for field in row:
+            _require(isinstance(field,str),'Immutable revision fields must be SQLite text.')
+            raw=field.encode('utf-8');hasher.update(len(raw).to_bytes(8,'big'));hasher.update(raw)
+    return hasher.digest()
+
+
+def _validate_heads(db):
+    for kind, sid, revision in db.execute('SELECT * FROM spec_heads'):
+        _kind(kind)
+        _require(db.execute('SELECT 1 FROM spec_revisions WHERE kind=? AND id=? AND revision=?', (kind, sid, revision)).fetchone(), 'Browsing head refers to a missing revision.')
+
+
+def validate_all(db, *, cache=None, force=False):
     """Verify relation, grammar and content meaning without tensor allocation."""
     check_schema(db)
+    fingerprint=_registry_fingerprint(db) if cache is not None else None
+    if cache is not None and not force and cache.contains(fingerprint):
+        _validate_heads(db)
+        return
     documents = {}
     for kind, sid, revision, name, text, created_at in db.execute('SELECT * FROM spec_revisions'):
         doc = frozen_document(kind, _parse(text))
@@ -210,9 +255,8 @@ def validate_all(db):
             length = min(len(doc['attempts']), len(other['attempts']))
             _require(digest(doc['selection']) == digest(other['selection']) and digest(doc['resolved']) == digest(other['resolved']) and
                      digest(doc['attempts'][:length]) == digest(other['attempts'][:length]), 'Retained run attempts diverge or rewrite prior evidence.')
-    for kind, sid, revision in db.execute('SELECT * FROM spec_heads'):
-        _kind(kind)
-        _require(db.execute('SELECT 1 FROM spec_revisions WHERE kind=? AND id=? AND revision=?', (kind, sid, revision)).fetchone(), 'Browsing head refers to a missing revision.')
+    _validate_heads(db)
+    if cache is not None:cache.remember(fingerprint)
 
 
 class RevisionStore:
@@ -290,12 +334,15 @@ class RevisionStore:
         return sorted(result, key=lambda r: (r['name'].casefold(), r['id'], r['revision'], r['kind']))
 
 
-def merge_retained(target, source):
+def merge_retained(target, source, *, cache=None):
     """Undo restores heads/drafts, NEVER removes newer retained revision bytes."""
-    validate_all(target); validate_all(source)
+    validate_all(target,cache=cache); validate_all(source,cache=cache)
     for row in source.execute('SELECT * FROM spec_revisions'):
         existing = target.execute('SELECT document FROM spec_revisions WHERE kind=? AND id=? AND revision=?', row[:3]).fetchone()
         if existing:
-            _require(_parse(existing[0]) == _parse(row[4]), 'History immutable revision conflict.')
+            _require(existing[0] == row[4] or _parse(existing[0]) == _parse(row[4]), 'History immutable revision conflict.')
         else:
             target.execute('INSERT INTO spec_revisions VALUES (?,?,?,?,?,?)', row)
+    # Separate valid registries may contain diverging runs. Prove the union too;
+    # the normal history union equals the already proven current source rows.
+    validate_all(target,cache=cache)

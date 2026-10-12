@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 17:22 -03:00 — Authorized undo performance fix
+
+Reuse bounded session-only proofs of unchanged immutable registry bytes; force
+full open/save validation and always check schema/heads. Prove retained unions
+before atomic restore. A read-only review exposed generated-column row splicing;
+added strict table_xinfo checks/framing and an adversarial regression. No reviewer
+writes. Avoid redundant model/state reads during desktop/tab refresh without
+changing visible text. Ten new pure regressions, native refresh, actual large-
+data Ctrl-Z and actual three-tab desktop keyboard/menu/typing tests pass.
+Matched combined fixture median1093→69ms excludes browser paint; observed actual
+keyboard render36–72ms. Full frozen regression/integration remain pending here.
+Labels/routing/E/user files/config/app/public refs stay untouched.
+
 ## 2026-10-12 16:22 -03:00 — Versioned arithmetic and output insertion anchor
 
 Implemented Add/fixed Scale, aligned `.vtw23`/Model5/Family9/Spec8/CLI/Qt/export

@@ -11,6 +11,8 @@ class History:
         self.undo_stack=[];self.redo_stack=[]
         self.max_steps=max_steps;self.max_bytes=max_bytes
         self.directory=None;self.notice=None
+        from .revisions import RegistryValidationCache
+        self.registry_validation=RegistryValidationCache()
 
     def summary(self):
         return {'undo':bool(self.undo_stack),'redo':bool(self.redo_stack),'notice':self.notice}
@@ -56,7 +58,7 @@ class History:
             with closing(sqlite3.connect(source[-1])) as snapshot:snapshot.backup(candidate)
             candidate.execute('PRAGMA foreign_keys=ON')
             from .revisions import merge_retained
-            merge_retained(candidate, workspace.db)
+            merge_retained(candidate, workspace.db,cache=self.registry_validation)
             # Saved floating-menu presets are outside computational edit history.
             # Preserve the current preset even across old whole-database snapshots.
             workspace.panel_layout  # Validate before changing either database.

@@ -58,6 +58,31 @@ field, tensor, input-port and transform ordering is never sorted.
 
 ## Frozen models
 
+### Transient undo validation proofs
+
+History may reuse a successful proof of the exact immutable registry within one
+workspace session. The LRU retains at most eight 32-byte SHA-256 keys, no decoded
+documents/data/tensors. The digest has a domain prefix and hashes the complete
+row set sorted by `(kind,id,revision)`, one row marker and six length-prefixed
+UTF-8 text fields per row. Identity, name, stored JSON bytes and UTC creation time
+all participate. This is separate from an object's semantic revision digest.
+
+Before every lookup, exact table columns/foreign keys/immutable triggers are
+checked. Hidden/generated columns are rejected using SQLite `table_xinfo`, which
+includes columns omitted by `table_info`; see the
+[official SQLite reference](https://sqlite.org/pragma.html#pragma_table_xinfo).
+Browsing heads are checked even on hits. A miss performs the original complete
+document/identity/dependency/retained-run validation before recording a key.
+Both inputs and the merged retained union must be proved before history restore.
+Two separately valid registries are not automatically a valid union.
+
+Load/save explicitly force full validation and can seed successful proofs.
+Opening/external reload starts a new cache with new edit history. Changed registry
+bytes or a new row set may incur full validation on the first undo. No schema,
+document version, CLI command, persistent trusted flag or validation exemption
+for external writers is introduced. Corrupt snapshot/union refusal leaves the
+working database, dirty flag and undo/redo stacks untouched.
+
 ModelRevision keys: `version`, `id`, `name`, `root`, `models`, `architecture_hash`,
 with version1 for independent captures or version2 for explicit local sharing,
 as specified in [shared-parameters.md](shared-parameters.md), plus
