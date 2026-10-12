@@ -1,5 +1,25 @@
 # Development state and roadmap
 
+## 2026-10-12 18:53 -03:00 — Pure parameter-policy foundation checkpoint
+
+User resumed LoRA/neural MS-VAR while deferring unfinished UI feedback, asking
+for careful PyTorch feasibility judgment. Added an internal, unexposed owner-aware
+policy normalizer: exact semantic schemas, explicit aliases, default constructor/
+trainability, finite typed initializer declarations and separate stored/frozen/
+trainable counts. Resolved equal integer/float declaration normalization so alias
+order cannot change semantic identity.15 new pure tests and74 focused foundation/
+arithmetic/discovery/history/revision checks pass (1.666s). No numerical imports
+for fresh pure discovery. Contract: [internal foundation](internal-parameter-policy.md).
+
+This is branch-only prerequisite work, not persisted policy semantics, faithful
+LoRA delivery, exact MS-VAR, worker/export/GUI parity, a full regression or main
+integration. No existing executable grammar/version/optimizer behavior changed.
+Next is actual owner/initializer/optimizer/gradient verification, then versioned
+route integration. User's Loss/Dataset/Optimizer workbench ideas are design input
+only; each must be thought of separately, not forced into one generic editor.
+One active editor at a time is navigation, not a common workbench type. No UI
+redesign, labels/routing, startup fix, user-state changes, public push or E work.
+
 ## 2026-10-12 17:32 -03:00 — Frozen undo regression accepted
 
 Exact b05a5bc source passed the fresh full suite:1317 invocations561.911s,

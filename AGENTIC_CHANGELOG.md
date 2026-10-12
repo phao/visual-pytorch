@@ -4,6 +4,18 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 18:53 -03:00 — Internal owner-aware policy foundation
+
+Added pure normalization of stable-owner policies and explicit alias conflicts,
+typed finite initializer declarations and stored/trainable/frozen counts. Fixed
+numeric alias normalization to avoid order-dependent identities.15 new pure/
+74 focused tests pass; fresh discovery imports no Torch/NumPy/Qt. This is an
+internal branch-only prerequisite, not new workspace grammar or automatic
+compile/train/export support. All existing execution versions remain unchanged.
+No faithful LoRA workspace, exact MS-VAR fit, numerical policy verification,
+GUI redesign/user files/push/E change is claimed. Documentation separates these
+remaining requirements from the implemented helper.
+
 ## 2026-10-12 17:32 -03:00 — Undo frozen acceptance
 
 Fresh exact b05a5bc full1317 cases561.911s passes (1314 executed/three native-
