@@ -13,6 +13,52 @@ FLOAT32_MAX = 3.4028234663852886e38
 MAX_SEED = 2147483647
 
 
+def graph_aliases(models, mid):
+    """Pure occurrence-ID -> canonical-owner-ID inventory for a concrete graph.
+
+    Traverse structural reference/ownership scopes; never parse slash-separated
+    IDs. Existing ambiguous canonical or occurrence spellings refuse. This is
+    not a family-export schema adapter or a new persisted identity convention.
+    """
+    from .core import operation_nodes, validate_model
+    from .evidence import parameter_schema
+    from .graph import parameter_owners
+    schema = parameter_schema(models, mid)
+    canonical = resolve(schema)['owners']  # Also refuses old slash-ID collisions.
+    aliases, occurrences = {}, {}
+
+    def visit(current, occurrence_prefix, owner_prefix):
+        contract = validate_model(models, current)
+        owners = parameter_owners(models[current])
+        for node in operation_nodes(models[current]):
+            occurrence = occurrence_prefix + [node['id']]
+            owner = owner_prefix + [owners[node['id']]]
+            if node['type'] in {'Module', 'Recurrent'}:
+                visit(node['ref'], occurrence, owner)
+                continue
+            if node['type'] == 'LSTM':
+                names = contract['shapes'][node['id']]['lstm']['parameter_shapes']
+            elif node['type'] in {'Linear', 'Conv2d'}:
+                names = ['weight'] + (['bias'] if node.get('bias', True) else [])
+            else:
+                continue
+            for name in names:
+                sid = '/'.join(occurrence + [name]); target = '/'.join(owner + [name])
+                components = tuple(occurrence + [name])
+                _require(sid not in occurrences or occurrences[sid] == components,
+                         'ambiguous occurrence identity; structural components collide.')
+                occurrences[sid] = components
+                _require(target in canonical, 'graph alias must resolve to a canonical owner.')
+                _require(sid not in canonical or sid == target,
+                         'graph alias cannot shadow a different canonical owner.')
+                if sid != target:
+                    _require(sid not in aliases or aliases[sid] == target,
+                             'graph alias has conflicting owners.')
+                    aliases[sid] = target
+    visit(mid, [mid], [mid])
+    return dict(sorted(aliases.items()))
+
+
 def _require(condition, message):
     if not condition:
         raise GraphError('Parameter policy: ' + message)

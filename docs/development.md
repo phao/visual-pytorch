@@ -1,5 +1,26 @@
 # Development state and roadmap
 
+## 2026-10-12 19:46 -03:00 — Internal native parameter-policy numerical proof
+
+Added structural graph occurrence-alias inventory and explicit CPU float32 native
+initialization/freezing, unique selected-optimizer owners and materialized value
+receipts. Preparing all owners before mutation preserves atomic refusal; private
+seeded generators do not consume global RNG. Frozen branches keep input gradients.
+Slash-component identity ambiguity and distinct-object storage sharing refuse.
+Nested shared Module/Recurrent/projected LSTM binding is checked. Six synthetic
+LoRA fits/ranks1/2/4/ordinary+temporal/200 updates match independent PyTorch
+formula values, adapter gradients/parameters and frozen base/Adam ownership.
+17 pure+14 numerical new-policy cases;106 focused cases2.062s pass. Earlier
+overflow-fixture seed and nonexistent test-module command errors are retained.
+
+This remains internal/unmerged product groundwork, not a new admitted document
+field, production training hook, route parity, full regression or completed LoRA/
+MS-VAR. Existing versions/behavior unchanged. Detailed contract:
+[internal parameter policy](internal-parameter-policy.md). The separate campaign
+contains the completed independent Loss workbench prototype; no product UI was
+changed. Next close stable owner/version/persistence/worker/export/notebook/CLI
+contracts. E deferred; no public push or user state changes.
+
 ## 2026-10-12 18:50 -03:00 — Pure parameter-policy foundation checkpoint
 
 User resumed LoRA/neural MS-VAR while deferring unfinished UI feedback, asking

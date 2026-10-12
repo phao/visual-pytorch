@@ -5,6 +5,47 @@ normalizer, not a persisted graph field or automatic compile/train hook. Existin
 workspace versions, compilers, optimizers, exports and GUI behavior are unchanged.
 This foundation does not deliver `lora.vtw` or exact neural MS-VAR.
 
+## Internal numerical application checkpoint
+
+`graph_aliases(models, mid)` now inventories concrete graph occurrence aliases
+by traversing reference and sharing scopes structurally. It does not split IDs.
+Canonical and occurrence slash-spelling collisions refuse instead of silently
+guessing ownership. This is not a standalone-family schema adapter: those use
+their own exact prefixes/component IDs. Nothing calls the helper automatically.
+
+`app.parameter_execution.configure(module, schema, policy, aliases=...)` applies
+the explicit internal policy to a freshly constructed, memory-admitted CPU
+float32 model before optimizer construction. It requires exact unique owner
+coverage, registered paths/shapes, ordinary contiguous leaf Parameters and no
+existing gradients. Native tied-object aliases count once; different objects
+sharing storage refuse. All initial values/receipt fields prepare before mutation,
+with rollback on application failure. Frozen weights use `requires_grad_(False)`;
+forward operations are not detached or put in `no_grad`.
+
+Private per-owner generators use the declared seed literally. Equal seeds/shapes
+can produce equal values; generator order/native paths do not own meaning. The
+actual Torch version and materialized owner-value digest are recorded. Float32
+rounding, not exact real arithmetic, defines realized values; std/bounds collapsing
+in that representation refuse. No global RNG is consumed by configuration.
+Constructor draws occurred earlier and are captured, not reconstructed from a
+policy seed. Receipt is initial parameters only, not optimizer continuation.
+
+`trainable_parameters(module)` selects unique trainable objects and refuses an
+empty training selection; all-frozen inference still works. The normal trainers
+do not yet call it. Frozen values still consume storage and can require activation
+memory for input/adapter gradients; trainable counts are not total RAM estimates.
+
+Seventeen pure policy cases and14 native numerical cases cover these additions;
+106 focused cases pass in2.062s. Six bounded LoRA fits (ranks1/2/4, ordinary and
+temporal inputs,200 updates) match an independent PyTorch expression, preserve
+frozen base values bitwise and have adapter-only Adam state. There is still no
+persisted policy grammar, automatic graph compile/train hook, full regression,
+native/family/export/worker/notebook/CLI policy parity or delivered LoRA workspace.
+An initial overflow fixture used a finite seed7 draw; changing the fixture to
+seed0 exercises the intended rejection. A focused command typo named a missing
+test module; the corrected106-case log is the acceptance evidence, not the failed
+command. Raw evidence is retained privately in the owning campaign.
+
 Input `schema` is the existing `parameter_schema` path-to-`{id,shape}` mapping.
 Stable IDs identify unique owners; paths are separately recorded execution
 addresses. Duplicate/ambiguous owner IDs refuse. Caller-supplied aliases must

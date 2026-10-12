@@ -6,7 +6,7 @@ import sys
 import unittest
 from app.core import GraphError, default_model
 from app.evidence import parameter_schema
-from app.parameter_policy import resolve
+from app.parameter_policy import graph_aliases, resolve
 
 
 class ParameterPolicyTests(unittest.TestCase):
@@ -130,3 +130,27 @@ class ParameterPolicyTests(unittest.TestCase):
         process = subprocess.run([sys.executable, '-c', source], capture_output=True, text=True, timeout=20)
         self.assertEqual(process.returncode, 0, process.stderr)
         self.assertEqual(json.loads(process.stdout), [])
+
+    def test_graph_alias_inventory_traverses_nested_scopes_and_sharing_chains(self):
+        from test_shared_parameters import serial
+        for kind in ('Linear', 'Module'):
+            models = serial(kind=kind); before = copy.deepcopy(models)
+            schema = parameter_schema(models, 'shared'); aliases = graph_aliases(models, 'shared')
+            self.assertEqual(models, before)
+            self.assertEqual(len(aliases), 4 if kind == 'Linear' else 10)
+            target = 'shared/use0/weight' if kind == 'Linear' else 'shared/use0/use0/weight'
+            occurrence = 'shared/use2/weight' if kind == 'Linear' else 'shared/use2/use1/weight'
+            self.assertEqual(aliases[occurrence], target)
+            result = resolve(schema, self.policy({occurrence: {'trainable': False}}), aliases=aliases)
+            self.assertFalse(result['owners'][target]['trainable'])
+            self.assertEqual(result['counts']['stored'], 6)
+
+    def test_slash_component_collision_refuses_instead_of_inferring_shared_owner(self):
+        inner = {'id': 'inner', 'name': 'Inner', 'graph': {'nodes': [
+            {'id': 'x', 'type': 'Input', 'features': 2}, {'id': 'b', 'type': 'Linear', 'features': 2},
+            {'id': 'y', 'type': 'Output'}], 'edges': [{'from': 'x', 'to': 'b'}, {'from': 'b', 'to': 'y'}]}}
+        root = {'id': 'root', 'name': 'Root', 'graph': {'nodes': [
+            {'id': 'x', 'type': 'Input', 'features': 2}, {'id': 'a/b', 'type': 'Linear', 'features': 2},
+            {'id': 'a', 'type': 'Module', 'ref': 'inner'}, {'id': 'y', 'type': 'Output'}],
+            'edges': [{'from': 'x', 'to': 'a/b'}, {'from': 'a/b', 'to': 'a'}, {'from': 'a', 'to': 'y'}]}}
+        with self.assertRaisesRegex(GraphError, 'unambiguous'): graph_aliases({'root': root, 'inner': inner}, 'root')

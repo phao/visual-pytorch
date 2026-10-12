@@ -4,6 +4,17 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 19:46 -03:00 — Internal native initialization/freezing proof
+
+Added structural alias inventory and atomic explicit CPU float32 initialization,
+materialized owner-value receipts and selected-parameter enumeration, because
+faithful LoRA needs frozen base values without cutting input gradients. Preserve
+ambiguous-ID refusal and distinct-object storage alias rejection.106 focused
+cases pass, including17 pure/14 numerical policy cases and six bounded independent
+LoRA formula fits. Nested Module/Recurrent/projected LSTM addresses checked.
+Still branch-only internal groundwork; no persisted field/compiler/trainer hook,
+full regression, worker/export/notebook/CLI parity, public push or E changes.
+
 ## 2026-10-12 18:50 -03:00 — Internal owner-aware policy foundation
 
 Added pure normalization of stable-owner policies and explicit alias conflicts,
