@@ -173,12 +173,22 @@ def apply_edits(workspace, edits):
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    discovery_commands = ('capabilities', 'format-schema', 'operator-schema')
+    if argv and argv[0] in discovery_commands:
+        argv.insert(0, '-')  # Application discovery requires no workspace file.
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', help='Path to a .vtw workspace')
     parser.add_argument('--expect-revision', help='Refuse if the file no longer has this SHA-256 revision')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
+    sub.add_parser('capabilities', help='Shared application capabilities and explicit limitations; no workspace read')
+    sub.add_parser('format-schema', help='Actual in-memory SQLite creator/schema and compatibility; no workspace read')
+    operator = sub.add_parser('operator-schema', help='Shared operator semantics with a real validated example closure; no workspace read')
+    operator.add_argument('type')
+    ports = sub.add_parser('ports', help='Complete stable graph port/axis/packing and wire contracts; no execution or edits')
+    ports.add_argument('id')
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -304,6 +314,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     workspace = None
     try:
+        if args.command in discovery_commands:
+            if args.expect_revision:
+                raise ValueError('Application discovery does not read a file revision; omit --expect-revision.')
+            from app.discovery import capabilities, format_schema, operator_schema
+            value = (capabilities() if args.command == 'capabilities' else format_schema()
+                     if args.command == 'format-schema' else operator_schema(args.type))
+            print(json.dumps({'ok': True, 'value': value}, allow_nan=False))
+            return 0
         path = Path(args.workspace).expanduser().resolve()
         if path.suffix.lower() != '.vtw':
             raise ValueError('Workspace path must end in .vtw.')
@@ -353,6 +371,9 @@ def main(argv=None):
                          'schema': [{'name':name,'sql':sql} for name,sql in workspace.db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name")]}
             elif args.command == 'show':
                 value = workspace.models()[args.id]
+            elif args.command == 'ports':
+                from app.discovery import port_contract
+                value = port_contract(workspace.models(), args.id)
             elif args.command == 'parameter-counts':
                 from app.presentation import block_parameter_counts
                 models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)

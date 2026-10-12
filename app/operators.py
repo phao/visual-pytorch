@@ -10,6 +10,7 @@ TENSOR_OPERATORS = frozenset({
 })
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
 LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
+BLOCK_TYPES = LAYER_TYPES | {'Input', 'Output', 'Concat', 'Splitter', 'Replicator'}
 COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version', 'share_with'}
 FIELDS = {
     'Conv2d': {'out_channels', 'kernel_size', 'stride', 'padding', 'dilation', 'groups', 'bias', 'padding_mode'},

@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
+from .operators import BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
@@ -223,7 +223,7 @@ def check_document(doc):
         if not isinstance(node.get("id"), str) or node["id"] in ids:
             raise GraphError("Block IDs must be unique strings.")
         ids.add(node["id"])
-        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Recurrent", "LSTM", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
+        if node.get("type") not in BLOCK_TYPES:
             raise GraphError("Unsupported block type.")
         if node['type'] in TENSOR_OPERATORS | {'Recurrent', 'LSTM'}:
             normalized(node)
