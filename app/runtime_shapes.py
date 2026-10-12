@@ -94,6 +94,10 @@ def _dependency_specification(models, mid, declared, *, temporal=False, temporal
                 current = ([merged([merged(p) for p in parts])] if item['flatten'] else
                            [merged([p[i] for p in parts]) for i in range(len(before))])
                 guards.append({'path':location,'rule':'ordered-concat-equality-on-unjoined-axes'})
+            elif kind == 'Add':
+                current = [merged([p[i] for p in parts]) for i in range(len(before))]
+                guards.append({'path':location,'rule':'add-identical-shapes-and-axes-no-broadcast'})
+            elif kind == 'Scale': current = list(before)
             elif kind == 'Splitter':
                 current = {pid:before[:-1]+[frozenset()] for pid in item['ports']}
                 guards.append({'path':location,'rule':'last-axis-equals-declared-part-sum'})

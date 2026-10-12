@@ -66,7 +66,7 @@ class TemporalV2ExperimentExecutionTests(unittest.TestCase):
             self.assertEqual(value['record']['attempts'][0]['result']['checkpoint'],checkpoint)
             loaded=Workspace.load(path)
             try:
-                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],20)
+                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],VERSION)
                 self.assertEqual(loaded.get_spec('run',r['id'],r['revision']),r);validate_all(loaded.db)
             finally:loaded.db.close()
             before=path.read_bytes();export=subprocess.run([sys.executable,str(ROOT/'vpw_cli.py'),str(path),

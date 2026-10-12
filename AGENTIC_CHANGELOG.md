@@ -4,6 +4,28 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 16:22 -03:00 — Versioned arithmetic and output insertion anchor
+
+Implemented Add/fixed Scale, aligned `.vtw23`/Model5/Family9/Spec8/CLI/Qt/export
+contracts, and fixed four independently reviewed authoring/scalar defects.
+Reserved E21/22 remain rejected and untouched. Added independent values/all
+gradients, dynamic repeated Module arithmetic, actual local/worker parity,
+app-free fresh exports and saved/rerun notebook kernels. 10 pure/6 numerical/
+two fresh/kernel/34 native-UI and365 JS cases pass. Actual Qt editing, history,
+socket connections and save/reload pass. Full frozen regression/integration are
+pending; no report-wide LoRA/MS-VAR completion or push claim.
+
+The requested Ctrl-click output anchor highlights/selects a multioutput branch
+without starting a wire or editing the workspace; actual Qt insertion preserves
+the other branch. Help/tooltips/reusable GUI specification are synchronized.
+Single read-only subagent review influenced family version seeds/session ceilings
+and scalar equivalence/controlled error fixes; parent made every edit.
+
+Diagnosed slow undo using the local performance skill and private fixtures:
+complete snapshot/source registries are synchronously revalidated. Four10,000-row
+retained datasets take923–956ms versus0.55–1.89ms without them. This is measured
+baseline only, no undo optimization or user file/config/process change.
+
 ## 2026-10-12 15:23 -03:00 — Implemented shared application/port discovery
 
 Added capabilities/operator-schema/format-schema and complete ports queries,

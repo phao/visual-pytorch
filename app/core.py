@@ -17,12 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
+from .operators import ARITHMETIC_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 20
+VERSION = 23
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -225,7 +226,7 @@ def check_document(doc):
         ids.add(node["id"])
         if node.get("type") not in BLOCK_TYPES:
             raise GraphError("Unsupported block type.")
-        if node['type'] in TENSOR_OPERATORS | {'Recurrent', 'LSTM'}:
+        if node['type'] in TENSOR_OPERATORS | ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}:
             normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
@@ -561,7 +562,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in set(range(1, VERSION + 1)) or magic != (FORMAT,):
+            if version not in SUPPORTED_VERSIONS or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -592,6 +593,13 @@ class Workspace:
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
             validate_all(w.db)
+            if version < 23:
+                from .revisions import _parse
+                if any(n['type'] in ARITHMETIC_OPERATORS for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Add/Scale blocks require a version-23 container.')
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model': 5, 'family': 9, 'specialization': 8}[kind]:
+                        raise GraphError('Arithmetic model/family contracts require a version-23 container.')
             if version < 20:
                 from .revisions import _parse
                 for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
@@ -721,6 +729,15 @@ def _graph_values(module, x, contract):
                 value = layer(parts[0], shape=item['runtime_reshape'])
             else:
                 value = layer.forward_tensor(parts[0]) if kind == 'Module' else layer(parts[0])
+        elif kind == 'Add':
+            if len(parts) < 2 or any(not isinstance(p, torch.Tensor) or p.dtype != torch.float32 or p.device.type != 'cpu' or p.shape != parts[0].shape for p in parts):
+                raise ValueError('Add requires at least two identical-shape CPU float32 tensors; no broadcasting.')
+            value = parts[0]
+            for part in parts[1:]: value = value + part
+        elif kind == 'Scale':
+            if not isinstance(parts[0], torch.Tensor) or parts[0].dtype != torch.float32 or parts[0].device.type != 'cpu':
+                raise ValueError('Scale requires CPU float32 input.')
+            value = parts[0] * item['coefficient']
         elif kind == 'Concat':
             value = torch.cat([p.flatten(start_dim=1) for p in parts] if item['flatten'] else parts,
                               dim=1 if item['flatten'] else -1)

@@ -146,7 +146,7 @@ class TemporalV2ExperimentTests(unittest.TestCase):
             try:
                 value=loaded.get_spec('experiment',good['id']);self.assertEqual(value['version'],6)
                 self.assertEqual(value['models'][0]['execution'],'runtime-temporal-v2')
-                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],20);validate_all(loaded.db)
+                self.assertEqual(loaded.db.execute('PRAGMA user_version').fetchone()[0],VERSION);validate_all(loaded.db)
             finally:loaded.db.close()
 
 

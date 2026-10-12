@@ -8,10 +8,12 @@ import copy
 
 from . import operators
 from .activations import ACTIVATIONS
-from .core import FORMAT, VERSION, GraphError, Workspace, check_document, validate_model
+from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, check_document, validate_model
 from .revisions import KINDS
 
 _RULES = {
+    'Add': 'Ordered elementwise sum, at least two identical sample shapes and axes; no broadcasting, flattening or learned parameters.',
+    'Scale': 'Multiply by a fixed finite coefficient, preserving shape/axes/batch; no learned parameters.',
     'Input': 'Declare sample shape (or vector features), optional unique axes; batch B is implicit.',
     'Output': 'Expose one named tensor; optional shape must equal incoming shape.',
     'Linear': 'Replace only the last axis; earlier axes share weights. Bias defaults true.',
@@ -67,11 +69,13 @@ def _example(kind):
                 'Flatten': {}, 'Permute': {'dims': [1, 2, 0]}}
             node.update(settings[kind]); node = operators.normalized(node)
         elif kind == 'Linear': node.update(features=3, bias=True)
+        elif kind == 'Scale': node.update(coefficient=2.)
         elif kind == 'Activation': node.update(activation='Softmax', dim=0)
         elif kind == 'Reshape': node.update(shape=[1, 2])
-        elif kind == 'Concat':
-            nodes.append({'id': 'other', 'type': 'Input', 'shape': [3]})
-            node.update(sources=['x', 'other'], flatten=True)
+        elif kind in {'Concat', 'Add'}:
+            nodes.append({'id': 'other', 'type': 'Input', 'shape': [2] if kind == 'Add' else [3]})
+            node.update(sources=['x', 'other'])
+            if kind == 'Concat': node['flatten'] = True
             edges.insert(1, {'from': 'other', 'to': 'op'})
         elif kind in {'Splitter', 'Replicator'}:
             if kind == 'Splitter': node.update(parts=[{'output': 'left', 'features': 1}, {'output': 'right', 'features': 1}])
@@ -130,8 +134,9 @@ def operator_schema(kind):
         from .lstm_nodes import FIELDS
         fields = FIELDS
     else: fields = operators.FIELDS.get(kind, _LEGACY_FIELDS.get(kind, set()))
-    strict = kind in operators.TENSOR_OPERATORS | {'Recurrent', 'LSTM'}
+    strict = kind in operators.TENSOR_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
     required = {
+        'Add': {'sources'}, 'Scale': {'coefficient'},
         'Input': set(), 'Output': set(), 'Linear': {'features'}, 'Activation': {'activation'},
         'Module': {'ref'}, 'Reshape': {'shape'}, 'Concat': {'sources'}, 'Splitter': {'parts'},
         'Replicator': {'outputs'}, 'Conv2d': {'out_channels', 'kernel_size'},
@@ -155,7 +160,7 @@ def operator_schema(kind):
             'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else []},
         defaults=actual_defaults, defaults_scope='shared normalizer plus legacy bias/flatten defaults; required fields are not defaults',
         shape_rule=_RULES[kind], batch_axis='implicit leading B; sample-axis indices exclude B',
-        ports={'incoming': 'none' if kind == 'Input' else 'ordered sources, at least two' if kind == 'Concat' else
+        ports={'incoming': 'none' if kind == 'Input' else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
                'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent'} else 'exactly one',
                'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent'} else 'one tensor with ordinary fan-out'},
         sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM'},
@@ -174,8 +179,7 @@ def capabilities():
     schemas = [operator_schema(kind) for kind in sorted(operators.BLOCK_TYPES)]
     return _header('capabilities', container_version=VERSION, operators=[s['type'] for s in schemas],
         activations=sorted(ACTIVATIONS), tensor_dtype='float32', device='cpu',
-        unavailable={'Add': 'not implemented', 'Scale': 'not implemented',
-            'Constant': 'not implemented', 'TrainableParameter': 'not implemented',
+        unavailable={'Constant': 'not implemented', 'TrainableParameter': 'not implemented',
             'per_parameter_freezing': 'not implemented; graph revision freezing is different',
             'explicit_initial_parameter_values': 'not implemented for new training runs',
             'latent_sequence_likelihood': 'not implemented; supervised heads are not filtering',
@@ -221,7 +225,7 @@ def format_schema():
         sql = [{'name': name, 'type': kind, 'sql': text} for name, kind, text in workspace.db.execute(
             "SELECT name,type,sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY name")]
     finally: workspace.db.close()
-    return _header('format-schema', format=FORMAT, container_version=VERSION, reader_versions=list(range(1, VERSION + 1)),
+    return _header('format-schema', format=FORMAT, container_version=VERSION, reader_versions=sorted(SUPPORTED_VERSIONS),
         extension='.vtw', storage='SQLite', sqlite_schema=sql, independent_kinds=list(KINDS),
         revision_semantics='immutable exact kind/id/SHA256 revisions; heads are browsing selections',
         loading='working-copy migration; opening does not save or downgrade unsupported newer headers',

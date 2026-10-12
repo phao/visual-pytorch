@@ -25,6 +25,7 @@
   const multiOutput = n => routers(n) || R.multiport(n);
   const outputs = n => n.type === "Splitter" ? n.parts.map(p => p.output) : n.outputs;
   const outputPorts = n => R.multiport(n)?R.ports(n):outputs(n);
+  const appendTarget = (n,selected,port) => n.id===selected && port!==null && port!==undefined && multiOutput(n) && slots(n,true).includes(port);
   function tensorShape(n,entry,port=null){
     if(R.multiport(n))return entry?.ports?.[port];
     if(n.type==='Splitter'){
@@ -34,7 +35,7 @@
     return entry?.output_shape;
   }
   function replaceSource(n,oldKey,newKey){
-    if(n.type==='Concat')n.sources=n.sources.map(key=>key===oldKey?newKey:key);
+    if(['Concat','Add'].includes(n.type))n.sources=n.sources.map(key=>key===oldKey?newKey:key);
     if(R.multiport(n))R.replaceSource(n,oldKey,newKey);
   }
   function unusedLabel(doc, type, prefix, first = 1) {
@@ -64,7 +65,7 @@
   }
   function slots(n, output) {
     if ((output && n.type === "Output") || (!output && n.type === "Input")) return [];
-    if (!output && n.type === "Concat") return [...n.sources,null];
+    if (!output && ["Concat","Add"].includes(n.type)) return [...n.sources,null];
     if(R.multiport(n))return output?R.ports(n):R.sources(n);
     if (output && routers(n)) return outputs(n);
     return [null];
@@ -216,7 +217,7 @@
       doc.graph.edges=doc.graph.edges.filter(e=>!(e.to===to && sourceKey(e)===toPeer));
       R.replaceSource(b,toPeer,key);
     }
-    if(b.type==="Concat") {
+    if(['Concat','Add'].includes(b.type)) {
       // Normalize legacy router source IDs to explicit source-port keys before edits.
       const oldEdges=doc.graph.edges.filter(e=>e.to===to);
       b.sources=b.sources.map(src=>{
@@ -225,13 +226,13 @@
       });
     }
     doc.graph.edges = doc.graph.edges.filter(e =>
-      !(e.to === to && !['Concat','Recurrent','LSTM'].includes(b.type)) && !(e.from === from && e.to === to && (e.from_port || null)===(fromPeer || null)));
+      !(e.to === to && !['Concat','Add','Recurrent','LSTM'].includes(b.type)) && !(e.from === from && e.to === to && (e.from_port || null)===(fromPeer || null)));
     const edge={from,to};
     if(multiOutput(a)) {
       edge.from_port=fromPeer;
     }
     doc.graph.edges.push(edge);
-    if(b.type==="Concat") {
+    if(['Concat','Add'].includes(b.type)) {
       const key=fromPeer ? from+"@"+fromPeer : from;
       if(!b.sources.includes(key))b.sources.push(key);
     }
@@ -242,7 +243,7 @@
     const found=doc.graph.edges.find(e=>sameWire(e,edge));
     if(!found)throw new Error('Connection no longer exists.');
     const dest=node(doc,found.to);
-    if(dest?.type==='Concat') {
+    if(['Concat','Add'].includes(dest?.type)) {
       const incoming=doc.graph.edges.filter(e=>e.to===dest.id);
       dest.sources=dest.sources.map(key=>{
         const legacy=incoming.find(e=>e.from===key && e.from_port);
@@ -265,7 +266,7 @@
     const occupied=draft.graph.edges.some(e=>e.to===to);
     if(R.multiport(dest) && (!R.sources(dest).includes(toPeer) || draft.graph.edges.some(e=>e.to===to && sourceKey(e)===toPeer)))
       throw new Error('Choose an empty declared recurrent input socket.');
-    if((!['Concat','Recurrent','LSTM'].includes(dest.type) && occupied) || (dest.type==='Concat' && toPeer!==null))
+    if((!['Concat','Add','Recurrent','LSTM'].includes(dest.type) && occupied) || (['Concat','Add'].includes(dest.type) && toPeer!==null))
       throw new Error('That input is occupied. Choose an empty socket (the last socket on Concat).');
     const seen=new Set(),todo=[to];
     while(todo.length){
@@ -298,13 +299,13 @@
     if(!removed)throw new Error('Block does not exist.');
     // Unary operations and tensor aliases can bypass without guessing a merge/slice.
     const distinctDestinations=new Set(outgoing.map(edge=>edge.to)).size===outgoing.length;
-    const bypass=incoming.length===1 && !['Input','Output','Concat','Splitter','Recurrent','LSTM'].includes(removed.type) && (removed.type!=='Replicator' || distinctDestinations);
+    const bypass=incoming.length===1 && !['Input','Output','Concat','Add','Splitter','Recurrent','LSTM'].includes(removed.type) && (removed.type!=='Replicator' || distinctDestinations);
     const replacements=bypass ? outgoing.map(edge=>({...incoming[0],to:edge.to})) : [];
     const sourceKey=bypass ? incoming[0].from+(incoming[0].from_port?'@'+incoming[0].from_port:'') : null;
     doc.graph.nodes=doc.graph.nodes.filter(n=>n.id!==nid);
     doc.graph.edges=doc.graph.edges.filter(e=>e.from!==nid && e.to!==nid);
     replacements.forEach(e=>{if(!doc.graph.edges.some(old=>old.from===e.from && old.to===e.to && old.from_port===e.from_port))doc.graph.edges.push(e);});
-    for(const join of doc.graph.nodes.filter(n=>n.type==='Concat')){
+    for(const join of doc.graph.nodes.filter(n=>['Concat','Add'].includes(n.type))){
       join.sources=[...new Set(join.sources.flatMap(key=>key===nid || key.startsWith(nid+'@') ? sourceKey?[sourceKey]:[] : [key]))];
     }
     if(bypass)for(const recurrent of doc.graph.nodes.filter(R.multiport))
@@ -323,5 +324,5 @@
     return {zoom,x:rect.x+(rect.width-(right-left)*zoom)/2-left*zoom,
                  y:rect.y+(rect.height-(bottom-top)*zoom)/2-top*zoom,fitted:true};
   }
-  return {GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
+  return {GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,appendTarget,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
 });

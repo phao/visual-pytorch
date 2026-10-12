@@ -118,7 +118,9 @@ class TemporalV2FamilyTests(unittest.TestCase):
         bad=record_definition(self.record(result['specialization']));bad['version']=6
         bad['runtime']=None
         with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
-        for version in (True,8):
+        bad['version']=8
+        with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
+        for version in (True,9):
             bad['version']=version
             with self.assertRaises(GraphError):validate_specialization(bad)
 
@@ -202,8 +204,13 @@ class TemporalV2FamilyTests(unittest.TestCase):
         from app.authoring_sessions import Sessions
         ref=self.w.put_spec('family',definition());sessions=Sessions();owner=object()
         h=sessions.open(self.w,owner,'family',base=ref)
-        for version in (7,9,True):
+        for version in (7,10,True):
             before=sessions.read(h['session'],owner,0)
             with self.subTest(version=version),self.assertRaisesRegex(GraphError,'preserve stable'):
                 sessions.family_edit(self.w,h['session'],owner,0,[{'op':'property','target':{'kind':'document'},'key':'version','text':json.dumps(version)}])
             self.assertEqual(sessions.read(h['session'],owner,0),before)
+        upgraded=sessions.family_edit(self.w,h['session'],owner,0,[{'op':'property','target':{'kind':'document'},'key':'version','text':'9'}])
+        self.assertEqual(upgraded['sequence'],1)
+        renamed=sessions.family_edit(self.w,h['session'],owner,1,[{'op':'property','target':{'kind':'document'},'key':'name','text':'"Explicit family9"'}])
+        self.assertEqual(renamed['sequence'],2)
+        self.assertEqual(sessions.family_preview(self.w,h['session'],owner,2)['status'],'verified')

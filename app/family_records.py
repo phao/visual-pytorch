@@ -27,8 +27,8 @@ def validate_family_revision(doc):
 def validate_specialization(doc):
     _keys(doc, ('version', 'id', 'name', 'family', 'bindings', 'model') +
           (('instances',) if type(doc.get('version')) is int and doc['version'] >= 3 else ()) +
-          (('runtime',) if doc.get('version') in (4,5,6,7) else ()), ('revision',), 'Specialization')
-    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7), 'Specialization supports integer version 1 through 7.')
+          (('runtime',) if doc.get('version') in (4,5,6,7,8) else ()), ('revision',), 'Specialization')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8), 'Specialization supports integer version 1 through 8.')
     _require(_identifier(doc['id']) and _identifier(doc['name']), 'Specialization needs a stable ID/name.')
     reference(doc['family'], 'family'); reference(doc['model'], 'model')
     _require(isinstance(doc['bindings'], dict) and len(doc['bindings']) <= 128,
@@ -50,14 +50,14 @@ def validate_specialization(doc):
             for sid, value in row['bindings'].items():
                 _require(_identifier(sid), 'Constructor context key must be a stable symbol ID.')
                 binding_atom(value, 'Constructor context ' + sid, typed=True)
-    if doc['version'] in (4,5,6,7) and doc['runtime'] is not None:
+    if doc['version'] in (4,5,6,7,8) and doc['runtime'] is not None:
         value = doc['runtime']
-        temporal = doc['version'] in (5,6,7)
+        temporal = doc['version'] in (5,6,7,8)
         _keys(value, ('version','inputs','specification_sha256') + (('kind',) if temporal else ()), context='Specialization runtime contract')
-        _require(type(value['version']) is int and value['version'] == (3 if doc['version'] == 7 else 2 if temporal else 1) and isinstance(value['inputs'],dict) and
+        _require(type(value['version']) is int and value['version'] == (3 if doc['version'] in (7,8) else 2 if temporal else 1) and isinstance(value['inputs'],dict) and
                  1 <= len(value['inputs']) <= 64, 'Runtime contract requires its exact grammar and explicit root Input IDs.')
         if temporal:
-            _require(value['kind'] == ('runtime-temporal-v2' if doc['version'] == 7 else 'runtime-temporal-v1'),
+            _require(value['kind'] == ('runtime-temporal-v2' if doc['version'] in (7,8) else 'runtime-temporal-v1'),
                      'Specialization requires the explicit runtime kind belonging to its version.')
         for nid, axes in value['inputs'].items():
             _require(_identifier(nid) and isinstance(axes,list) and
@@ -75,7 +75,7 @@ def validate_specialization_dependencies(doc, resolve):
     family = resolve(doc['family']['kind'], doc['family']['id'], doc['family']['revision'])
     model = resolve(doc['model']['kind'], doc['model']['id'], doc['model']['revision'])
     source = definition(family)
-    _require(doc['version'] == (7 if source['version'] == 8 else 6 if source['version'] == 7 else 5 if source['version'] == 6 else 4 if source['version'] == 5 else 3 if source['version'] == 4 else 2 if source['version'] == 3 else 1),
+    _require(doc['version'] == (8 if source['version'] == 9 else 7 if source['version'] == 8 else 6 if source['version'] == 7 else 5 if source['version'] == 6 else 4 if source['version'] == 5 else 3 if source['version'] == 4 else 2 if source['version'] == 3 else 1),
              'Specialization version must match its exact family scalar grammar.')
     if doc['version'] < 3:
         _require(set(doc['bindings']) == {s['id'] for s in source['symbols']},
@@ -84,7 +84,7 @@ def validate_specialization_dependencies(doc, resolve):
     if doc['version'] >= 3:
         _require(doc['bindings'] == resolved['bindings'] and digest(doc['instances']) == digest(resolved['instances']),
                  'Specialization must retain canonical fallback bindings and every exact constructor context.')
-    if doc['version'] in (4,5,6,7):
+    if doc['version'] in (4,5,6,7,8):
         _require(digest(doc['runtime']) == digest(resolved['runtime']),
                  'Specialization runtime contract differs from its exact family revision and constructor bindings.')
     expected = model_document(resolved['models'], resolved['root'])
@@ -109,7 +109,7 @@ def compile_specialization(workspace, specialization_ref, *, constrained=None,
     model = workspace.get_spec('model', doc['model']['id'], doc['model']['revision'])
     witness = doc.get('runtime')
     policy = {} if witness is None else {
-        'runtime_temporal_v2' if doc['version'] == 7 else 'runtime_temporal' if doc['version'] in (5,6) else 'runtime_inputs': copy.deepcopy(witness['inputs'])}
+        'runtime_temporal_v2' if doc['version'] in (7,8) else 'runtime_temporal' if doc['version'] in (5,6) else 'runtime_inputs': copy.deepcopy(witness['inputs'])}
     return compile_model(model['models'], model['root'],
                          workspace.constrained_mode if constrained is None else constrained,
                          memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes, **policy)
@@ -154,11 +154,11 @@ def resolution_records(frozen, resolved, *, sid=None, name=None):
     model = frozen_document('model', model_document(resolved['models'], resolved['root']))
     model_ref = {'kind': 'model', 'id': model['id'], 'revision': model['revision']}
     record = frozen_document('specialization', {
-        'version': 7 if frozen['version'] == 8 else 6 if frozen['version'] == 7 else 5 if frozen['version'] == 6 else 4 if frozen['version'] == 5 else 3 if frozen['version'] == 4 else 2 if frozen['version'] == 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
+        'version': 8 if frozen['version'] == 9 else 7 if frozen['version'] == 8 else 6 if frozen['version'] == 7 else 5 if frozen['version'] == 6 else 4 if frozen['version'] == 5 else 3 if frozen['version'] == 4 else 2 if frozen['version'] == 3 else 1, 'id': sid if sid is not None else 'specialization-' + resolved['specialization'],
         'name': name if name is not None else frozen['name'] + ' · resolved',
         'family': copy.deepcopy(family_ref), 'bindings': copy.deepcopy(resolved['bindings']), 'model': model_ref,
         **({'instances': copy.deepcopy(resolved['instances'])} if frozen['version'] >= 4 else {}),
-        **({'runtime':copy.deepcopy(resolved['runtime'])} if frozen['version'] in (5,6,7,8) else {})})
+        **({'runtime':copy.deepcopy(resolved['runtime'])} if frozen['version'] in (5,6,7,8,9) else {})})
     return {'family_ref': family_ref, 'model': model, 'model_ref': model_ref,
             'specialization': record, 'specialization_ref': {
                 'kind': 'specialization', 'id': record['id'], 'revision': record['revision']}}

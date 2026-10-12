@@ -57,11 +57,11 @@ def topology(model):
         if n['type'] == 'Input':
             if ins:
                 raise GraphError('Input cannot receive a wire.')
-        elif n['type'] == 'Concat':
+        elif n['type'] in {'Concat', 'Add'}:
             sources = n.get('sources', [])
             keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
             if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
-                raise GraphError('Concat sources must list each incoming source exactly once, in order.')
+                raise GraphError(n['type'] + ' sources must list at least two incoming source keys exactly once, in order.')
         elif n['type'] in {'Recurrent', 'LSTM'}:
             if n['type'] == 'LSTM':
                 from .lstm_nodes import sources
@@ -164,7 +164,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         kind, nid = n['type'], n['id']
         previous_params = params
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
-        if kind == 'Concat':
+        if kind in {'Concat', 'Add'}:
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
         if kind in {'Recurrent', 'LSTM'}:
             if kind == 'LSTM':
@@ -200,6 +200,18 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             if input_shapes is not None:
                 item['runtime_reshape'] = list(current)
             axes = None
+            origin = (nid, None)
+        elif kind == 'Add':
+            from .operators import normalized
+            normalized(n)
+            if any(r[1] != before or source_axes(r[0]) != axes for r in resolved):
+                raise GraphError('Add requires identical sample shapes and declared axes; no broadcasting or flattening.')
+            matrix_affine = False
+            origin = (nid, None)
+        elif kind == 'Scale':
+            from .operators import normalized
+            item['coefficient'] = normalized(n)['coefficient']
+            matrix_affine = False
             origin = (nid, None)
         elif kind in TENSOR_OPERATORS:
             operator = describe(n, before, axes)
@@ -325,7 +337,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             operation_index += 1
             if kind not in {'Module', 'Recurrent', 'LSTM'}:
                 ops += 1
-        elif kind in {'Concat', 'Splitter', 'Replicator'}:
+        elif kind in {'Concat', 'Add', 'Scale', 'Splitter', 'Replicator'}:
             ops += 1
         plan.append(item)
         parameter_counts[nid] = params - previous_params

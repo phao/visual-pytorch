@@ -14,7 +14,7 @@ in-place builder as Qt, preserves stable nodes/ports/wires, and validates affect
 paths without replacing unrelated drafts. Exact transport/options, no-op,
 rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container20). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container23). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
@@ -79,6 +79,16 @@ variable-resolution data; their exact family/specialization provenance remains
 retained. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
 See [architecture-families.md](architecture-families.md)
 for grammar, defaults, atomicity, statuses and repeat identities.
+
+`Add` and fixed `Scale` use ordinary `apply` node edits and the same validation,
+preview, freezing, family retention and export commands. Add's `sources` is an
+ordered array of physical source keys; incoming wires must agree exactly.
+Scale's `coefficient` is a finite numeric architecture value, not an optimizer
+parameter. A draft Add may await its second wire but cannot execute until valid.
+Arithmetic requires `.vtw23`, ModelRevision5 and Family9/Specialization8 when
+those retained document kinds are used. No new command or SQL table is needed.
+See [closed arithmetic contract](arithmetic-blocks.md); discovery describes both
+operators and reports the explicit noncontiguous reader versions.
 
 Explicit shared parameter owners use ordinary `set-node` values containing
 `share_with`; `remove_fields:["share_with"]` explicitly detaches. `freeze-model`

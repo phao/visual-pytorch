@@ -6,6 +6,9 @@
 })(typeof globalThis!=="undefined"?globalThis:this,()=>{
   // UI edits concrete specs; shapes/constructor checks remain backend authority.
   const definitions={
+    Scale:{defaults:{coefficient:2},fields:{coefficient:'scalar'},
+      explanation:'Multiply every entry by this fixed coefficient. Shapes, axes and batch B are preserved. This block has no learned weights; changing the coefficient is an architecture edit, not training.',
+      equation:'y = c x · c fixed',tex:'y=cx,\\quad c\\text{ fixed}'},
     Conv2d:{defaults:{out_channels:2,kernel_size:[3,3],stride:[1,1],padding:[0,0],dilation:[1,1],groups:1,bias:true,padding_mode:"zeros"},
       fields:{out_channels:"positive",kernel_size:"pair",stride:"pair",padding:"padding",dilation:"pair",groups:"positive",bias:"bool"},
       explanation:"NCHW: sample axes C, H, W. Cross-correlation learns local filters, optionally grouped. H/W output = floor((input + 2 padding − dilation (kernel − 1) − 1) / stride) + 1. Zero padding only.",
@@ -38,6 +41,11 @@
     const kind=definitions[type]?.fields[key];
     if(!kind)throw new Error("Unsupported operator field.");
     if(kind==="bool"){if(typeof text!=="boolean")throw new Error("Use a checkbox value.");return text;}
+    if(kind==='scalar'){
+      const raw=String(text).trim(),value=Number(raw);
+      if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)||!Number.isFinite(value)||Math.abs(value)>3.4028234663852886e38||Number.isInteger(value)&&!Number.isSafeInteger(value))throw new Error('Use a finite float32-range coefficient; integer values must be editor-exact.');
+      return value;
+    }
     const tokens=String(text).trim().split(/[,\s]+/);
     if(!tokens.length || tokens.some(t=>!/^[-]?\d+$/.test(t)))throw new Error("Enter integer values.");
     const values=tokens.map(Number);

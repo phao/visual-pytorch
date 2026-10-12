@@ -12,7 +12,7 @@ from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from app import discovery, operators
-from app.core import Workspace, VERSION, GraphError, check_document, validate_model
+from app.core import Workspace, VERSION, SUPPORTED_VERSIONS, GraphError, check_document, validate_model
 import vpw_cli
 
 
@@ -26,7 +26,7 @@ class DiscoveryTests(unittest.TestCase):
         value = discovery.capabilities()
         self.assertEqual(value['operators'], sorted(operators.BLOCK_TYPES))
         self.assertEqual(value['version'], 1); self.assertEqual(value['container_version'], VERSION)
-        for kind in ('Add', 'Scale', 'Constant', 'TrainableParameter'):
+        for kind in ('Constant', 'TrainableParameter'):
             self.assertNotIn(kind, value['operators']); self.assertIn(kind, value['unavailable'])
             with self.assertRaises(GraphError): discovery.operator_schema(kind)
 
@@ -74,7 +74,7 @@ class DiscoveryTests(unittest.TestCase):
     def test_unknown_boolean_empty_and_wrong_case_operator_refuse(self):
         for value in (True, None, {}, '', 'linear', '__import__'):
             with self.subTest(value=value), self.assertRaises(GraphError): discovery.operator_schema(value)
-        for value in ('Add', 'linear'):
+        for value in ('Future', 'linear'):
             self.assertEqual(self.cli('operator-schema', value)[0], 1)
 
     def test_capabilities_refuses_missing_metadata_for_future_registry_entry(self):
@@ -88,7 +88,7 @@ class DiscoveryTests(unittest.TestCase):
                 'SELECT name,type,sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY name')]
             self.assertEqual(result['sqlite_schema'], expected)
         finally: w.db.close()
-        self.assertEqual(result['reader_versions'], list(range(1, VERSION + 1)))
+        self.assertEqual(result['reader_versions'], sorted(SUPPORTED_VERSIONS))
         self.assertIn('spec_revisions_no_delete', [s['name'] for s in expected])
 
     def test_application_queries_do_not_load_workspace_read_config_or_modify_rng(self):

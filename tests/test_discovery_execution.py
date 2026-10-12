@@ -5,7 +5,7 @@ from app.core import compile_model, generate_code
 
 
 class DiscoveryExecutionTests(unittest.TestCase):
-    def test_all_seventeen_example_closures_native_and_standalone_match(self):
+    def test_all_registered_example_closures_native_and_standalone_match(self):
         import torch
         torch.set_num_threads(1)
         for kind in capabilities()['operators']:
