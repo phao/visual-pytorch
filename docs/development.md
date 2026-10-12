@@ -15,6 +15,15 @@ fe8cb80 with1274 Python cases (1271 executed/three Qt-dependent skips),359 JS,
 checks remain separately attributable; this historical full suite is not claimed
 rerun just because its code is merged into main. LoRA/MS-VAR remain unimplemented.
 
+Fresh one-flock A–D integration checks pass14 pure/numerical CNN-recurrent cases
+in84.226s,30 UI contracts0.037s,359 JavaScript cases1186.12661ms and actual
+sandboxed Qt drawing/three worker updates/save/reload with no host Torch or
+console errors. Saved and explicit-rerun kernels execute in the numerical gate.
+Separately carried the user's presentation-only Inspector cleanup fromb1f9d67,
+without its E ancestry:31 UI/359 JS and real native Inspector/local contracts/
+status/sharing/family/history/save/reload pass. Numerical modules are unchanged.
+The public push is a separate operation, not inferred from these local checks.
+
 ## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen-source acceptance
 
 Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the

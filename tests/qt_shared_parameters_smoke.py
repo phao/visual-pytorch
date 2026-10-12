@@ -67,9 +67,14 @@ with tempfile.TemporaryDirectory() as td:
         until('Boolean(window.loom?.document?.view.fitted)')
         js('document.querySelector(".node[data-id=use1]").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
         until('Boolean(document.getElementById("parameter-owner"))')
+        assert js('!document.getElementById("parameter-count")')
+        assert js('!document.querySelector("#inspector-panel .parameter-total")')
+        assert js('document.getElementById("inspector-content").textContent.includes("A [")')
+        assert js('Boolean(document.getElementById("equation").textContent)')
         js('(()=>{const n=document.getElementById("parameter-owner");n.value="use0";n.dispatchEvent(new Event("change"));})()')
         until('window.loom.document.graph.nodes.find(n=>n.id==="use1").share_with==="use0" && document.getElementById("inspector-content").textContent.includes("Canonical owner: use0")')
         assert validate_model(h.workspace.models(), 'shared')['parameters'] == 12
+        assert js('document.getElementById("status").textContent.includes("12 parameters")')
         assert h.workspace.models()['shared']['graph']['nodes'][2]['share_with'] == 'use0'
         assert js('document.querySelector(".node[data-id=use1] .node-params title").textContent.includes("Shared: use0")')
         if os.environ.get('VTW_SHARED_CAPTURE'):

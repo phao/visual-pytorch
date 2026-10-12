@@ -35,7 +35,7 @@ unique underlying parameters.
 ## Evidence underlying acceptance
 
 The accepted original-D tip is
-`501e5bf1a2aa4fcb6fa179ead1debb9b78de4a05`. Its executable code, examples and
+`501e5bf1a2aa4fcb6fa179ead1debb9b78de4a05`. Its numerical code, examples and
 tests match the frozen implementation
 `fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff`; subsequent acceptance commits changed
 documentation only. Verification included:
@@ -60,6 +60,13 @@ Relevant executable tests are `test_scoped_constructors`, `test_scoped_execution
 `test_shared_parameters`, `test_shared_execution`, recurrent/LSTM contract and
 execution modules, temporal-v2 tests, `test_cnn_recurrent_example`,
 `test_cnn_recurrent_execution` and `qt_cnn_recurrent_smoke.py`.
+
+Publication preserves the separately requested Inspector cleanup: remove its
+whole-network total while retaining selected-layer contracts/local counts and
+architecture/status totals. This presentation-only fix was first implemented on
+a later development branch; it is carried here without any E execution code.
+Fresh31 UI/359 JS tests and sandboxed Qt Inspector/sharing/family/history/save/
+reload checks pass after the carry-over. Numerical source is unchanged.
 
 ## Compatibility and deliberate limits
 
