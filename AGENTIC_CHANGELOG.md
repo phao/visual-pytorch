@@ -4,7 +4,7 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
-## 2026-10-12 18:53 -03:00 — Internal owner-aware policy foundation
+## 2026-10-12 18:50 -03:00 — Internal owner-aware policy foundation
 
 Added pure normalization of stable-owner policies and explicit alias conflicts,
 typed finite initializer declarations and stored/trainable/frozen counts. Fixed
