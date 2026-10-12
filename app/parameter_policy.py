@@ -23,8 +23,9 @@ def graph_aliases(models, mid):
     from .core import operation_nodes
     from .evidence import parameter_schema
     from .graph import parameter_owners, contract as shape_contract
+    from .policy_graph import owner_key, present, expansion_bound
+    expansion_bound(models, mid)
     schema = parameter_schema(models, mid)
-    from .policy_graph import owner_key, present
     component_ids = present(models, mid)
     def key(parts): return owner_key(parts) if component_ids else '/'.join(parts)
     canonical = resolve(schema)['owners']  # Also refuses old slash-ID collisions.

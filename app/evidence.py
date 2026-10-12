@@ -93,6 +93,9 @@ def normalize_models(models, mid):
 
 def parameter_schema(models, mid, prefix='', stable_prefix=None, *, identity_version=None, components=None):
     """Pure expected state-dict shapes/IDs, without allocating a Torch model."""
+    if components is None:
+        from .policy_graph import present, expansion_bound
+        if present(models, mid): expansion_bound(models, mid)
     from .core import operation_nodes
     from .graph import contract as shape_contract
     contract=shape_contract(models,mid)

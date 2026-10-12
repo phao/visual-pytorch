@@ -4,6 +4,14 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 20:47 -03:00 — Direct inventory safety after full parent regression
+
+Parent2d7a2e9 full1373/549.413s passes. Follow-up review closes the three original
+witnesses but identifies direct inventory entry bypass; added root policy-schema
+and alias guards/two bounded cases.57 focused checks pass without allocating the
+oversized structures. Child-only full gate not run; product stays unmerged and
+full LoRA/MS-VAR remains incomplete. No user-state, public-push or E changes.
+
 ## 2026-10-12 20:35 -03:00 — Bound policy discovery and close repeat/RAM gaps
 
 Fixed three reviewer-derived issues with bounded reproductions: pre-admission

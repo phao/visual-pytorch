@@ -31,6 +31,20 @@ class PolicySafetyTests(unittest.TestCase):
                           lambda: safety_report(models, 'M30')):
                 with self.assertRaisesRegex(GraphError, 'structural limits'): query()
 
+    def test_direct_policy_schema_refuses_before_recursive_enumeration(self):
+        from app.evidence import parameter_schema
+        models = expanding_dag()
+        # Keep the public root callable but prohibit its recursive enumerator.
+        with patch('app.evidence.parameter_schema', side_effect=AssertionError('recursive enumeration must not start')):
+            with self.assertRaisesRegex(GraphError, 'structural limits'): parameter_schema(models, 'M30')
+
+    def test_direct_alias_query_bounds_logical_occurrences_even_with_one_owner(self):
+        from app.parameter_policy import graph_aliases
+        models = expanding_dag()
+        for i in range(1, 31): models['M' + str(i)]['graph']['nodes'][2]['share_with'] = 'a'
+        with patch('app.evidence.parameter_schema', side_effect=AssertionError('alias enumeration must not start')):
+            with self.assertRaisesRegex(GraphError, 'structural limits'): graph_aliases(models, 'M30')
+
     def test_whole_RAM_refusal_precedes_small_owner_inventory(self):
         models = {'m': {'id': 'm', 'name': 'Big linear', 'graph': {'nodes': [
             {'id': 'x', 'type': 'Input', 'features': 1024},

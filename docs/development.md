@@ -1,5 +1,18 @@
 # Development state and roadmap
 
+## 2026-10-12 20:47 -03:00 — Frozen parent gate passes; direct inventory guards
+
+Frozen2d7a2e9 passed1373 invocations549.413s,1370 executed/three unchanged
+native-covered skips.72132 terminal0/consumed; no source edits while running.
+The original three reviewer findings are covered and the follow-up source review
+confirms their paths, but found a remaining direct-schema/alias entry bypass.
+Guarded policy-bearing schema roots and alias queries before enumeration, keeping
+policy-free schema IDs/behavior unchanged. Two additional allocation-free cases
+plus55 affected tests pass57/6.995s. This child has focused checks, not its own
+full frozen gate; no main integration/public push or full-goal completion claim.
+Next native GUI policy controls/base-source binding/showcase plus remaining
+MS-VAR/CLI requirements, with regression on the final integrated executable tree.
+
 ## 2026-10-12 20:35 -03:00 — Review corrections before renewed frozen regression
 
 The frozen d100aac full gate completed:1368 invocations542.618s, two failures/
