@@ -1,5 +1,15 @@
 # Development state and roadmap
 
+## 2026-10-12 16:33 -03:00 — Arithmetic frozen gate: obsolete session fixture
+
+Exact checkpointc9717d1 full1307 cases531.722s finished with one failed subcase
+and one follow-on sequence error in the same old Family8 session test: it still
+expected now-supported Family9 to refuse. Changed the unknown-version witness
+to10 while preserving7 downgrade/boolean refusals, and added actual8→9 upgrade,
+rename/sequence and preview acceptance in that test. No production source changed.
+This negative full log remains retained; it is not accepted as a green gate.
+Corrected focused checking and a fresh frozen rerun are next before integration.
+
 ## 2026-10-12 16:22 -03:00 — Arithmetic and selected-output checkpoint
 
 Implemented closed Add/fixed Scale with `.vtw23`, Model5/Family9/Spec8, preserving
