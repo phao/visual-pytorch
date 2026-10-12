@@ -1,5 +1,24 @@
 # Development state and roadmap
 
+## 2026-10-12 — Shared discovery first slice for LoRA/MS-VAR
+
+Added allocation-free application capability/operator/SQLite-schema descriptions
+and complete current graph ports through the common graph checker. Every17-block
+witness includes its runnable reference closure; native/exported forwards agree.
+Shared BLOCK_TYPES replaces the equivalent hard-coded check_document set; family
+export's selected runtime imports it too. No operator/file/task semantics changed.
+Commands explicitly expose missing freezing/initialization/latent likelihood and
+output-representation enforcement instead of treating unsupported JSON as a
+feature. Specification: [contract discovery](contract-discovery.md).
+
+Initial23 pure/CLI cases pass. An initial37 affected-case gate fails17 subcases
+because its new test assumed a fixed generated class name; the exporter uses a
+stable module-level model instead. Corrected17-witness execution passes;59 pure/
+CLI/native-export/UI cases and359 JS pass. Corrected affected export/worker/kernel
+gate subsequently passed37 cases86.296s (34 executed/three Qt-dependent skips,
+covered by the separate actual Qt-native unit route). No fresh full-suite,
+GUI reorganization, complete discovery-priority/LoRA/MS-VAR/E or public push claim.
+
 ## 2026-10-12 — A–D publication; E deliberately deferred
 
 The user requested A–D publication and moved active development to the LoRA and

@@ -1,5 +1,12 @@
 # Agent and user CLI contract
 
+Shared read-only discovery now supports workspace-free `capabilities`,
+`operator-schema TYPE` and `format-schema`, plus workspace-scoped
+`ports ARCHITECTURE_ID`. Examples pass actual validators; no Tensor/Qt import,
+training, config read or workspace save occurs. Application-only queries reject
+`--expect-revision`; `ports` honors it. Exact scope/fields/defaults/ordering and
+remaining formal-schema limitations: [contract discovery](contract-discovery.md).
+
 `prepare-recurrent-edit PARENT_ID BLOCK_ID [--ref TRANSITION_ID]` reads an existing
 recurrent interface and exact graph/current-reference/candidate token without
 execution or file writes. Atomic `apply` operation `edit-recurrent` uses the same

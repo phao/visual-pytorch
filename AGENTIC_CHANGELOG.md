@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 15:23 -03:00 — Implemented shared application/port discovery
+
+Added capabilities/operator-schema/format-schema and complete ports queries,
+because the active MS-VAR/CLI and LoRA requests need honest machine-readable
+authoring contracts. Examples use actual checking and include referenced closures;
+the unchanged accepted block set is shared by validator/discovery/export runtime.
+No tensor allocations or user file/config writes during application discovery.
+59 pure/CLI/native-export/UI and359 JS cases pass, plus native/export parity for
+all17 witnesses. Initial wrong class-name test errors are retained. Corrected
+affected37-case gate subsequently passes86.296s (34 executed/three Qt-dependent
+skips, separately covered by actual native export units). No complete schema/report/feature claim,
+E work, remote job, user app change or push; see docs/contract-discovery.md.
+
 ## 2026-10-12 15:08 -03:00 — Retain requested Inspector cleanup in A–D
 
 Carried the exact presentation-only change fromb1f9d67 onto accepted A–D without
