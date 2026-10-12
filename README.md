@@ -58,11 +58,15 @@ split-environment notebook generation: the Qt host need not import Torch or
 Jupyter. Choose a report Python with the report dependencies installed; CLI
 generation also accepts `--report-python`. That checkpoint is published in main.
 
-Local Stage D development also includes [scoped architecture families](docs/architecture-families.md),
+Current development source also includes [scoped architecture families](docs/architecture-families.md),
 [explicit recurrent graphs](docs/recurrent-graph-contract.md) and
 [temporal experiments](docs/temporal-task-execution.md), with exact saved/runtime
-provenance and checked standalone export. Stage D acceptance is still incomplete;
-durable detached/distributed execution remains future work. These are development
+provenance and checked standalone export. The bounded A–D roadmap is verified,
+including projected/bidirectional LSTM and a complete padded CNN/recurrent example;
+see [Stage D acceptance and limits](docs/stage-d-acceptance.md).
+Durable detached/remote/distributed execution is deferred and is not included in
+this public source. LoRA and neural MS-VAR are requested future additions, not
+implemented capabilities. These are development
 capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.

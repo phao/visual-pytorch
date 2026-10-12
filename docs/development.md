@@ -1,5 +1,20 @@
 # Development state and roadmap
 
+## 2026-10-12 — A–D publication; E deliberately deferred
+
+The user requested A–D publication and moved active development to the LoRA and
+neural MS-VAR/CLI feature reports. Stage E is deferred to the distant future;
+its accepted groundwork and unmerged predictor checkpoint remain on separate
+branches, not in public main. Do not infer permission to resume E from historical
+roadmap entries below. No remote job or user workspace/config/app change occurs.
+
+Original D acceptance is complete at501e5bf; executable source matches frozen
+fe8cb80 with1274 Python cases (1271 executed/three Qt-dependent skips),359 JS,
+143 focused cases and independent/native/worker/actual-kernel evidence. See
+[scope, verification and compatibility](stage-d-acceptance.md). Fresh publication
+checks remain separately attributable; this historical full suite is not claimed
+rerun just because its code is merged into main. LoRA/MS-VAR remain unimplemented.
+
 ## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen-source acceptance
 
 Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the

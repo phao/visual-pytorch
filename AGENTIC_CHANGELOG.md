@@ -4,6 +4,15 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 15:03 -03:00 — Prepare accepted A–D public source without E
+
+The user explicitly authorized an A–D GitHub push while deferring E on separate
+branches and prioritizing LoRA/neural MS-VAR next. Returned to acceptedD501e5bf,
+without merging any E commits. Updated README and the public acceptance guide
+to describe bounded D capabilities, actual prior tests and compatibility limits
+accurately; no executable code, old format meaning or release tag changed.
+Publication gates/push are still pending at this entry, not claimed performed.
+
 ## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen regression accepted
 
 Recorded actual frozen fe8cb80 acceptance: 1274 Python cases in 630.759s
