@@ -1,5 +1,13 @@
 # Owned experiment editor — retained local Stage C checkpoint
 
+The family execution selector offers Runtime sequence T (v1) and Runtime sequence
+T with LSTM (v2). Selecting them queues explicit experiment version5 or6 before
+the exact execution property; older concrete/spatial choices require4 and never
+downgrade an acknowledged/queued newer version. The visible exact version control
+accepts1–6. Owned sequence/workspace/head/job/child-editor fences remain unchanged.
+See [temporal-task-execution.md](temporal-task-execution.md) and
+[retained runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+
 The native owned-session service now provides experiment selection cards, named
 literal edits, current-property lookup, local selection choices and a projected
 prospective preview. The actual experiment form now uses this service for Open,
@@ -65,6 +73,19 @@ reload stays stale. These are transient fences, not durable recovery/general ABA
 
 ## Closed native commands
 
+Version-2 family choices reuse these commands and ownership fences. Add family
+selection explicitly upgrades the draft to version 2; historical version-2 edits
+preserve that version. Family model cards expose id, family, bindings and axes;
+they also expose optional execution. Explicitly choosing either concrete baseline
+or runtime image H/W upgrades to version4 before the named policy edit; omitted
+policy stays concrete without any automatic write. Acknowledgement updates the
+visible version and controller; later edits cannot silently downgrade it. See
+[runtime-task-execution.md](runtime-task-execution.md) for exact semantics.
+fixed/axis JSON stays raw exact text with staged large-value repair. Root version
+is a named property used for the explicit upgrade, not a new persistent field.
+See [family-experiment-axes.md](family-experiment-axes.md) for grammar, coordinates,
+conditional points, paired-family editing and terminal/native/CLI behavior.
+
 All requests require `action`; unsupported keys fail. Compact ASCII JSON
 requests/result projections are at most 65536 bytes, excluding the existing
 bridge envelope. Owner, document sequence, native origin, active buffer and
@@ -98,7 +119,9 @@ workspace_id, experiment id, collection, offset, limit, total, path, rows,
 next_offset, byte_limit65536, text_limit256, reference_text_limit8192 and roots.
 Each row has ordinal, current absolute ordinal path, and properties. Each
 property has key, path, present, text and summary. Root properties are name,
-question, selection.kind. Descriptor path is null when an intermediate/leaf is
+question, selection.kind and version. Version edits permit monotonic explicit
+upgrades through v4, never downgrade of an owned draft. Descriptor path is null
+when an intermediate/leaf is
 missing; missing does not mean a present JSON null. A complete `text` is literal
 strict JSON, not a JavaScript Number. Otherwise an explicit type/size summary
 marks an incomplete value; it is not editable partial JSON.
@@ -140,7 +163,7 @@ insert-json/remove/move use the [task literal operation grammar](typed-task-sess
 and current ordinal paths; this is not RFC6902. An additional property operation
 has exactly op:"property", target, key, text.
 
-Closed targets are {kind:"document"} for name/question/selection.kind, or
+Closed targets are {kind:"document"} for name/question/selection.kind/version, or
 {kind:"entry",collection,ordinal} for listed entry keys. Ordinals are existing
 exact nonnegative integers. Named paths resolve against the current draft after
 each preceding operation, not dictionary insertion positions captured earlier.

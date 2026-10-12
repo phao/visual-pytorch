@@ -8,7 +8,14 @@ from app.core import Workspace, default_model, generate_code, generate_predictor
 
 
 def read_json(path):
-    return json.load(sys.stdin) if path == '-' else json.loads(Path(path).read_text())
+    """One strict serialized input seam for every CLI JSON document."""
+    from app.revisions import _parse
+    text = sys.stdin.read() if path == '-' else Path(path).read_text()
+    document = _parse(text)
+    # JSON's finite-looking exponent can overflow the host float (e.g. 1e309).
+    # parse_constant covers NaN/Infinity tokens, not that numeric overflow.
+    json.dumps(document, allow_nan=False)
+    return document
 
 
 def ram_percentage(override):
@@ -29,7 +36,23 @@ def apply_edits(workspace, edits):
     results = []
     for edit in edits:
         kind = edit['op']
-        if kind == 'put-spec':
+        if kind == 'specialize-family':
+            from app.family_records import retain
+            from app.datasets import _keys
+            _keys(edit, ('op',), ('family', 'family_ref', 'bindings', 'id', 'name', 'materialize'), 'Specialize-family edit')
+            retained = retain(workspace, family=edit.get('family'), family_ref=edit.get('family_ref'),
+                              bindings=edit.get('bindings'), sid=edit.get('id'), name=edit.get('name'),
+                              materialize=edit.get('materialize', True))
+            results.append({'op': kind, **retained})
+            continue
+        elif kind == 'admit-run':
+            from app.experiment_objects import admit_run
+            from app.datasets import _keys
+            _keys(edit, ('op', 'document'), ('select',), 'Admit-run edit')
+            ref = admit_run(workspace, edit['document'], select=edit.get('select', True))
+            results.append({'op': kind, 'reference': ref})
+            continue
+        elif kind == 'put-spec':
             ref = workspace.put_spec(edit['kind'], edit['document'], edit.get('select', True))
             results.append({'op': kind, 'reference': ref})
             continue
@@ -44,6 +67,32 @@ def apply_edits(workspace, edits):
             continue
         elif kind == 'freeze-model':
             results.append({'op': kind, 'reference': workspace.freeze_model(edit['id'])})
+            continue
+        elif kind in {'add-lstm','edit-lstm'}:
+            from app.lstm_authoring import build, build_edit
+            if set(edit) != {'op','token','options'}:
+                raise ValueError('LSTM edit requires an exact token and explicit options.')
+            document,nid = (build_edit if kind=='edit-lstm' else build)(workspace.models(),edit['token'],edit['options'])
+            if document != workspace.models()[document['id']]:
+                workspace.put(document)
+            results.append({'op':kind,'id':document['id'],'node':nid})
+            continue
+        elif kind == 'edit-recurrent':
+            from app.recurrent_reconfiguration import build_edit
+            if set(edit) != {'op', 'token', 'options'}:
+                raise ValueError('Edit-recurrent requires an exact token and explicit options.')
+            document, nid = build_edit(workspace.models(), edit['token'], edit['options'])
+            if document != workspace.models()[document['id']]:
+                workspace.put(document)
+            results.append({'op': kind, 'id': document['id'], 'node': nid})
+            continue
+        elif kind == 'add-recurrent':
+            from app.recurrent_authoring import build
+            if set(edit) != {'op', 'token', 'options'}:
+                raise ValueError('Add-recurrent requires an exact token and explicit options.')
+            document, nid = build(workspace.models(), edit['token'], edit['options'])
+            workspace.put(document)
+            results.append({'op': kind, 'id': document['id'], 'node': nid})
             continue
         elif kind == 'create':
             doc = edit.get('document') or default_model(edit.get('name', 'New architecture'), edit.get('inputs', 2), edit.get('outputs', 1))
@@ -130,6 +179,28 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
+    lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
+    lstm.add_argument('id', help='Parent architecture ID')
+    lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
+    lstm_edit.add_argument('id', help='Parent architecture ID')
+    lstm_edit.add_argument('node', help='Existing LSTM block ID')
+    recurrent = sub.add_parser('prepare-recurrent', help='Read a guarded transition interface for adding an explicit recurrent branch; no execution or edits')
+    recurrent.add_argument('id', help='Parent architecture ID')
+    recurrent.add_argument('ref', help='Transition architecture ID')
+    recurrent_edit = sub.add_parser('prepare-recurrent-edit', help='Read an existing recurrent interface and guarded in-place edit token; no execution or edits')
+    recurrent_edit.add_argument('id', help='Parent architecture ID')
+    recurrent_edit.add_argument('node', help='Existing recurrent block ID')
+    recurrent_edit.add_argument('--ref', help='Explicit replacement transition architecture ID; omitted keeps the current one')
+    family = sub.add_parser('preview-family', help='Check an external architecture family and resolve bindings; no execution or workspace edits')
+    family.add_argument('family', help='Family JSON file (or - for stdin)')
+    family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
+    stored_family = sub.add_parser('preview-stored-family', help='Resolve an EXACT stored family revision without execution or edits')
+    stored_family.add_argument('id'); stored_family.add_argument('revision')
+    stored_family.add_argument('--bindings', help='Stable-symbol-ID bindings JSON file; omitted uses declared defaults')
+    export_family = sub.add_parser('export-family', help='Export an EXACT retained family as a checked standalone PyTorch class; no model construction or training')
+    export_family.add_argument('id'); export_family.add_argument('revision')
+    export_family.add_argument('--output', required=True, help='New Python file; never overwrite')
+    export_family.add_argument('--memory-limit-percent', type=float)
     for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
@@ -247,7 +318,31 @@ def main(argv=None):
             workspace = Workspace.load(path)
             if args.expect_revision and workspace.disk_revision != args.expect_revision:
                 raise ValueError('Revision conflict. Inspect again before applying edits.')
-            if args.command == 'inspect':
+            if args.command == 'prepare-lstm':
+                from app.lstm_authoring import prepare
+                value = prepare(workspace.models(),args.id)
+            elif args.command == 'prepare-lstm-edit':
+                from app.lstm_authoring import prepare_edit
+                value = prepare_edit(workspace.models(),args.id,args.node)
+            elif args.command == 'prepare-recurrent-edit':
+                from app.recurrent_reconfiguration import prepare_edit
+                value = prepare_edit(workspace.models(), args.id, args.node, args.ref)
+            elif args.command == 'prepare-recurrent':
+                from app.recurrent_authoring import prepare
+                value = prepare(workspace.models(), args.id, args.ref)
+            elif args.command == 'preview-family':
+                from app.families import preview
+                value = preview(read_json(args.family), None if args.bindings is None else read_json(args.bindings))
+            elif args.command == 'preview-stored-family':
+                from app.family_records import preview_stored
+                value = preview_stored(workspace, {'kind':'family','id':args.id,'revision':args.revision},
+                                       None if args.bindings is None else read_json(args.bindings))
+            elif args.command == 'export-family':
+                from app.family_export import stored_source, write_new_family
+                source = stored_source(workspace, {'kind': 'family', 'id': args.id, 'revision': args.revision},
+                                       memory_limit_percent=ram_percentage(args.memory_limit_percent))
+                value = write_new_family(source, args.output)
+            elif args.command == 'inspect':
                 value = {'path': str(path), 'revision': workspace.disk_revision,
                          'format_version': workspace.db.execute('PRAGMA user_version').fetchone()[0],
                          'constrained_mode': workspace.constrained_mode,

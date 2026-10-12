@@ -24,9 +24,11 @@ from .memory import memory_percent
 from .report_runtime import new_file, new_json, resolve_payload
 
 RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.py', 'experiment_objects.py',
-           'file_sync.py', 'graph.py', 'history.py', 'memory.py', 'operators.py', 'presentation.py',
+           'families.py', 'family_records.py', 'family_axes.py', 'runtime_tasks.py', 'family_export.py',
+           'file_sync.py', 'graph.py', 'history.py', 'memory.py', 'operators.py', 'presentation.py', 'runtime_shapes.py',
            'report_runtime.py', 'revisions.py', 'task_execution.py', 'task_result.py',
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
+RUNTIME += ('recurrent.py', 'recurrent_nodes.py', 'temporal_shapes.py', 'lstm_nodes.py', 'temporal_shapes_v2.py')
 FORMAT = 'visual-pytorch-report-bundle'
 
 
@@ -137,7 +139,7 @@ print('Input closure verified; mode:', payload['documents'][-1]['document']['mod
             '## Captured selection preview\n\nThis cell only displays the saved page. Incompatible/excluded combinations are not silently removed.')
         add('code', 'selection-preview',
             "display(HTML(table(('Model revision', 'Data/task', 'Split', 'Initialization', 'Configuration', 'Status', 'Reason'),\n" +
-            "    [[r['coordinates']['model']['revision'], r['coordinates']['data_task'], r['coordinates']['split'],\n" +
+            "    [[__import__('app.family_axes', fromlist=['label']).label(r['coordinates']['model']), r['coordinates']['data_task'], r['coordinates']['split'],\n" +
             "      r['coordinates']['initialization'], r['coordinates']['protocol'], r['status'], r['reason'] or '']\n" +
             "     for r in payload['preview']['candidates']])))")
     add('markdown', 'execution-behavior', '## Resolve report evidence\n\n' + behavior +
@@ -276,8 +278,17 @@ def verify_bundle(root):
     _version(manifest, 'Report manifest'); reference(manifest['recipe'], 'report')
     _require(manifest['format'] == FORMAT and isinstance(manifest['files'], dict), 'Unsupported report bundle.')
     expected = {'payload.json', 'LICENSE', 'README.txt', 'requirements.txt'} | {'runtime/app/' + n for n in RUNTIME}
-    legacy = expected - {'runtime/app/activations.py'}
-    _require(set(manifest['files']) in (expected, legacy),
+    family_paths = {'runtime/app/families.py', 'runtime/app/family_records.py'}
+    pre_axes = expected - {'runtime/app/family_axes.py'}
+    pre_family = pre_axes - family_paths
+    legacy = pre_family - {'runtime/app/activations.py'}
+    no_activations = pre_axes - {'runtime/app/activations.py'}
+    sets = (expected, pre_axes, pre_family, legacy, no_activations,
+            expected - family_paths, expected - {'runtime/app/activations.py'})
+    sets=sets+tuple(v-{'runtime/app/runtime_shapes.py'} for v in sets)
+    for dependency in ('runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','lstm_nodes.py','temporal_shapes_v2.py'):
+        sets=sets+tuple(v-{'runtime/app/'+dependency} for v in sets)
+    _require(set(manifest['files']) in sets,
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
         part = PurePosixPath(relative); path = root / relative
@@ -289,7 +300,21 @@ def verify_bundle(root):
                  'Report input escapes bundle or uses symlinks.')
         raw = path.read_bytes()
         _require(len(raw) == info['bytes'] and hashlib.sha256(raw).hexdigest() == info['sha256'], 'Report input integrity mismatch: ' + relative)
-    if set(manifest['files']) == legacy:
+    if 'runtime/app/family_axes.py' not in manifest['files']:
+        import ast
+        for name in ('experiment_objects.py', 'report_runtime.py'):
+            tree = ast.parse((root / 'runtime/app' / name).read_text(encoding='utf-8'))
+            _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
+                             (n.module == 'family_axes' or (n.module is None and any(a.name == 'family_axes' for a in n.names)))
+                             for n in ast.walk(tree)), 'This report runtime requires its captured family_axes.py dependency.')
+    if not family_paths <= set(manifest['files']):
+        import ast
+        for name in ('core.py', 'revisions.py', 'experiment_objects.py'):
+            tree = ast.parse((root / 'runtime/app' / name).read_text(encoding='utf-8'))
+            _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
+                             n.module in ('families', 'family_records') for n in ast.walk(tree)),
+                     'This report runtime requires its captured family specialization dependencies.')
+    if 'runtime/app/activations.py' not in manifest['files']:
         # Preserve genuine pre-extraction v1 bundles, not an incomplete new
         # closure. This is a supported-dependency guard, NOT a Python sandbox.
         import ast
@@ -298,6 +323,20 @@ def verify_bundle(root):
             _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                              n.module == 'activations' for n in ast.walk(tree)),
                      'This report runtime requires its captured activations.py dependency.')
+    if 'runtime/app/runtime_shapes.py' not in manifest['files']:
+        import ast
+        tree = ast.parse((root / 'runtime/app/core.py').read_text(encoding='utf-8'))
+        _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
+                         n.module == 'runtime_shapes' for n in ast.walk(tree)),
+                 'This report runtime requires its captured runtime_shapes.py dependency.')
+    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2'):
+        if 'runtime/app/'+dependency+'.py' not in manifest['files']:
+            import ast
+            for relative in manifest['files']:
+                if not relative.startswith('runtime/app/') or not relative.endswith('.py'):continue
+                tree=ast.parse((root/relative).read_text(encoding='utf-8'))
+                _require(not any(isinstance(n,ast.ImportFrom) and n.level==1 and n.module==dependency for n in ast.walk(tree)),
+                         'This report runtime requires its captured '+dependency+'.py dependency.')
     requested = manifest['requested_notebook']
     _keys(requested, ('path', 'sha256'), context='Requested notebook identity')
     _require(requested['path'] == 'requested.ipynb' and isinstance(requested['sha256'], str), 'Invalid notebook path/identity.')

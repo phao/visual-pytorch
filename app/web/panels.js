@@ -27,8 +27,8 @@
   }
   function shortcutPanel(event) {
     if(event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.target?.isContentEditable ||
-       event.target?.closest('input,textarea,select,[contenteditable]'))return null;
-    return {i:'inspector-panel',a:'architectures-panel',b:'library-panel',e:'experiment-dock'}[event.key.toLowerCase()] || null;
+       event.target?.closest('input,textarea,select,button,a,summary,[contenteditable],[role="button"],[role="textbox"],[role="combobox"],[role="slider"],[role="checkbox"],[role="switch"]'))return null;
+    return {i:'inspector-panel',a:'architectures-panel',b:'library-panel',e:'experiment-dock',h:'help-panel'}[event.key.toLowerCase()] || null;
   }
   function constrain(rect, bounds) {
     const {width,height} = rect, visible = 24;
@@ -73,6 +73,9 @@
     const packToggle = document.getElementById("pack-toggle");
     const openers = [...pack.querySelectorAll("[data-open-panel]")];
     let z = 3;
+    // The launcher and palettes share one menu layer, above the graph.
+    const raise = panel => {panel.style.zIndex = ++z;};
+    pack.addEventListener("pointerdown", () => raise(pack));
     const cancelGestures=[];
     const bounds = () => editor.getBoundingClientRect();
     const relative = panel => {
@@ -111,7 +114,10 @@
     function restore(panel) {
       panel.classList.remove("expanded");
       if (panel.restoreStyle !== undefined) {
+        const currentZ = panel.style.zIndex;
         panel.style.cssText = panel.restoreStyle;
+        // Restore geometry, not the stale stacking level from before expansion.
+        panel.style.zIndex = currentZ;
         delete panel.restoreStyle;
       }
     }
@@ -124,15 +130,15 @@
       const panel = panels.find(p => p.id === id);
       if (!panel) return;
       panel.hidden = false;
-      panel.style.zIndex = ++z;
+      raise(panel);
       if (panel.style.left) place(panel,relative(panel));
       controls(panel);
     }
     panels.forEach(panel => {
-      panel.dataset.label = panel.id === "library-panel" ? "building blocks" : panel.id === "architectures-panel" ? "architectures" : panel.id === "inspector-panel" ? "inspector" : "experiment panel";
+      panel.dataset.label = panel.id === "library-panel" ? "building blocks" : panel.id === "architectures-panel" ? "architectures" : panel.id === "inspector-panel" ? "inspector" : panel.id === "layout-panel" ? "layout" : panel.id === "help-panel" ? "help" : "experiment panel";
       const heading = panel.querySelector("[data-drag-handle]");
       const scroll = panel.querySelector(".scrollport");
-      panel.addEventListener("pointerdown", () => panel.style.zIndex = ++z);
+      panel.addEventListener("pointerdown", () => raise(panel));
       panel.querySelector("[data-fold-panel]").onclick = () => {
         close(panel);
         openers.find(b => b.dataset.openPanel === panel.id).focus();
@@ -143,7 +149,7 @@
           panel.restoreStyle = panel.style.cssText;
           panel.classList.add("expanded");
           place(panel, {x:16,y:16,width:bounds().width-32,height:bounds().height-32});
-          panel.style.zIndex = ++z;
+          raise(panel);
         }
         controls(panel);
       };
@@ -295,10 +301,12 @@
     function shrink() {
       panels.forEach(close);
       pack.classList.add("collapsed");pack.style.width="";pack.style.height="";
+      raise(pack);
       packControls();
     }
     function unshrink() {
       pack.classList.remove("collapsed");pack.style.width="";pack.style.height="";packControls();
+      raise(pack);
       if (pack.style.left) place(pack,relative(pack));
     }
     packToggle.onclick=()=> {if (!pack.classList.contains("collapsed")) shrink();};
@@ -353,7 +361,9 @@
     function capture() {
       if(bounds().width<=0||bounds().height<=0)throw Error('Open an architecture before saving its panel arrangement.');
       const round=v=>Math.round(v*1000)/1000,items={};
-      for(const p of panels) {
+      // Help is tab-local. Keep the existing closed version-1 .vtw preset grammar.
+      const storedPanels=panels.filter(p=>panelIDs.includes(p.id));
+      for(const p of storedPanels) {
         // Read ordinary geometry, never save full-stage expanded bounds as it.
         const expanded=p.classList.contains('expanded'),style=p.style.cssText;
         let r;
@@ -367,7 +377,7 @@
       }
       const r=relative(pack);
       return validatePreset({version:1,pack:{x:round(r.x),y:round(r.y),collapsed:pack.classList.contains('collapsed')},panels:items,
-        order:[...panels].sort((a,b)=>(parseFloat(a.style.zIndex)||0)-(parseFloat(b.style.zIndex)||0)).map(p=>p.id)});
+        order:[...storedPanels].sort((a,b)=>(parseFloat(a.style.zIndex)||0)-(parseFloat(b.style.zIndex)||0)).map(p=>p.id)});
     }
     function apply(value) {
       value=validatePreset(value); // Reject first: malformed presets cannot partly change the UI.

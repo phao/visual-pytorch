@@ -33,7 +33,7 @@
     }
     detail('Exact model, dataset, task and selection',Object.entries(view.objects).flatMap(([kind,obj])=>[
       [kind+' name',obj.name],[kind+' identity',obj.reference],
-      ...(kind==='model'?[['Trainable parameters',obj.parameters]]:kind==='dataset'?[['Dataset observations',obj.observations]]:[])
+      ...(kind==='model'?[['Trainable parameters',obj.parameters_exact??obj.parameters]]:kind==='dataset'?[['Dataset observations',obj.observations]]:[])
     ]).concat([['Experiment/coordinates',view.selection],['Captured split summary',view.split],['Resolved training configuration',view.protocol]]));
     table(container,'Population objectives · available heads only; no weight renormalization',
       ['Population','Status','Objective'],view.populations.map(p=>[p.population,p.status,p.status==='available'?H().value(p.objective):'Unavailable']));

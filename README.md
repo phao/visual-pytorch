@@ -53,12 +53,21 @@ group/time splits, exact saved predictors/curves and explicit notebook generatio
 and real-kernel execution. These additions are not included in the initial
 `v0.1.0-alpha.1` prerelease. See [Stage C acceptance](docs/stage-c-acceptance.md),
 [experiment GUI](docs/experiment-gui.md) and [notebook setup](docs/notebook-reports.md).
-The [A–C finalization checkpoint](docs/stage-abc-finalization.md) preserves that
-bounded scope and repairs split-environment notebook generation: the Qt host
-does not need to import Torch or Jupyter. Choose a report Python with the report
-dependencies installed; CLI generation also accepts `--report-python`.
-Recurrent/symbolic model families and durable detached/distributed execution
-remain future work. See [development](docs/development.md) and the
+The [A–C finalization checkpoint](docs/stage-abc-finalization.md) repairs
+split-environment notebook generation: the Qt host need not import Torch or
+Jupyter. Choose a report Python with the report dependencies installed; CLI
+generation also accepts `--report-python`. That checkpoint is published in main.
+
+Current development source also includes [scoped architecture families](docs/architecture-families.md),
+[explicit recurrent graphs](docs/recurrent-graph-contract.md) and
+[temporal experiments](docs/temporal-task-execution.md), with exact saved/runtime
+provenance and checked standalone export. The bounded A–D roadmap is verified,
+including projected/bidirectional LSTM and a complete padded CNN/recurrent example;
+see [Stage D acceptance and limits](docs/stage-d-acceptance.md).
+Durable detached/remote/distributed execution is deferred and is not included in
+this public source. LoRA and neural MS-VAR are requested future additions, not
+implemented capabilities. These are development
+capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
@@ -121,6 +130,12 @@ then select Experiment → Experiments & history. Browse exact dataset/task/mode
 revisions, preview candidates, run a trial and inspect its retained evidence.
 Notebook generation and execution are separate explicit actions and need the
 optional environments described in [notebook setup](docs/notebook-reports.md).
+
+For the development temporal workflow, run
+`python -m examples.temporal_experiment /path/to/new-temporal.vtw`.
+It creates explicit T=3/7 dataset/task cases over one retained recurrent family;
+add `--train` for separate bounded CPU worker trials. No implicit state carry,
+parameter sharing across trials or automatic padding is inferred.
 
 `A`, `B`, `E`, `I` toggle Architectures, Building blocks, Experiment and Inspector.
 `D` deletes the selection; undo/redo repairs accidental edits. Empty canvas

@@ -1,13 +1,29 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const P=require("../app/web/panels.js");
-test('Panel shortcuts toggle I/A/B/E but do not steal text or modified keys',()=>{
-  for(const [key,id] of Object.entries({i:'inspector-panel',A:'architectures-panel',b:'library-panel',E:'experiment-dock'}))
+test('Panel shortcuts toggle I/A/B/E/H but do not steal text or modified keys',()=>{
+  for(const [key,id] of Object.entries({i:'inspector-panel',A:'architectures-panel',b:'library-panel',E:'experiment-dock',h:'help-panel',H:'help-panel'}))
     assert.equal(P.shortcutPanel({key,target:{closest:()=>null}}),id);
   for(const event of [{key:'i',ctrlKey:true},{key:'a',repeat:true},{key:'e',target:{closest:()=>true}}])
     assert.equal(P.shortcutPanel(event),null);
 });
 
+test('Help ignores editable, native-control, modified and repeated shortcut keys',()=>{
+  for(const modifier of ['ctrlKey','altKey','metaKey','repeat'])
+    assert.equal(P.shortcutPanel({key:'h',[modifier]:true}),null);
+  assert.equal(P.shortcutPanel({key:'h',target:{isContentEditable:true}}),null);
+  for(const control of ['input','textarea','select','button','a','summary','[contenteditable]','[role="button"]','[role="textbox"]','[role="combobox"]','[role="slider"]','[role="checkbox"]','[role="switch"]'])
+    assert.equal(P.shortcutPanel({key:'h',target:{closest:selector=>selector.split(',').includes(control)?{}:null}}),null,control);
+});
+test('Help joins normal stacking/hide-all but never changes the version-1 saved preset',()=>{
+  const f=fixture(),before=f.api.capture(),help=f.panels.find(p=>p.id==='help-panel');
+  f.api.open('help-panel');assert.ok(!help.hidden);
+  assert.equal(help.dataset.label,'help');assert.equal(f.api.capture().version,1);
+  assert.deepEqual(f.api.capture(),before);
+  f.api.apply(before);assert.ok(help.hidden);
+  f.api.toggle('help-panel');assert.ok(!help.hidden);f.api.hideAll();
+  assert.ok(help.hidden && f.pack.classList.contains('collapsed'));
+});
 test("Panels may leave bounds while a 24-pixel draggable frame remains visible",()=>{
   assert.deepEqual(P.constrain({x:-200,y:900,width:240,height:600},{width:1000,height:700}),
     {x:-200,y:676,width:240,height:600});
@@ -70,7 +86,7 @@ function fixture(snapDefault=()=>false){
   global.MutationObserver=class{constructor(fn){this.fn=fn;}observe(){}};
   const editor=new Element("editor",{x:0,y:0,width:1000,height:700});
   editor.clientWidth=1000;
-  const panels=["library-panel","inspector-panel","experiment-dock","architectures-panel","layout-panel"].map(id=>{
+  const panels=["library-panel","inspector-panel","experiment-dock","architectures-panel","layout-panel","help-panel"].map(id=>{
     const p=new Element(id);p.hidden=true;
     for(const selector of ["[data-fold-panel]","[data-expand-panel]","[data-drag-handle]",".scrollport"]){
       const e=new Element();e.isButton=selector.includes("panel]");p.selectors[selector]=e;
@@ -160,6 +176,49 @@ test("Shift-drag pans the menu layer, including closed menus, not the drawing",(
 
 const pointer=(type,target,x,y,extra={})=>({type,target,button:0,pointerId:1,clientX:x,clientY:y,
   preventDefault(){},stopPropagation(){},...extra});
+test('The launcher and palettes take turns at the front of one shared menu layer',()=>{
+  const f=fixture(),p=f.panels[0],q=f.panels[1];
+  const level=element=>Number(element.style.zIndex);
+  f.api.open(p.id);
+  f.pack.dispatchEvent(pointer('pointerdown',f.pack,0,0));
+  assert.ok(level(f.pack)>level(p));
+  p.dispatchEvent(pointer('pointerdown',p.selectors['[data-fold-panel]'],0,0));
+  assert.ok(level(p)>level(f.pack));
+  f.api.open(q.id);assert.ok(level(q)>level(p));
+  f.pack.dispatchEvent(pointer('pointerdown',f.toggle,0,0));
+  assert.ok(level(f.pack)>level(q));
+  q.dispatchEvent(pointer('pointerdown',q.selectors['.scrollport'],0,0,{button:2}));
+  assert.ok(level(q)>level(f.pack));
+});
+test('Expanded palettes share stacking and restoring geometry preserves the current level',()=>{
+  const f=fixture(),p=f.panels[0],q=f.panels[1],expand=p.selectors['[data-expand-panel]'];
+  f.api.open(p.id);p.style.left='50px';p.style.width='330px';expand.onclick();
+  f.pack.dispatchEvent(pointer('pointerdown',f.pack,0,0));
+  assert.ok(Number(f.pack.style.zIndex)>Number(p.style.zIndex));
+  f.api.open(q.id);p.dispatchEvent(pointer('pointerdown',p,0,0));
+  const current=p.style.zIndex;expand.onclick();
+  assert.equal(p.style.zIndex,current);assert.equal(p.style.width,'330px');
+  assert.equal(p.style.left,'50px');assert.ok(Number(current)>Number(q.style.zIndex));
+});
+test('Pack collapse and keyboard restoration raise it without permanently privileging it',()=>{
+  const f=fixture(),p=f.panels[0];f.api.open(p.id);f.api.hideAll();
+  assert.ok(Number(f.pack.style.zIndex)>Number(p.style.zIndex));
+  f.api.open(p.id);
+  f.toggle.onkeydown({key:'Enter',preventDefault(){}});
+  assert.ok(Number(f.pack.style.zIndex)>Number(p.style.zIndex));
+  p.dispatchEvent(pointer('pointerdown',p,0,0));
+  assert.ok(Number(p.style.zIndex)>Number(f.pack.style.zIndex));
+});
+test('Restoring presets keeps palette order but leaves the launcher free to take focus',()=>{
+  const f=fixture();f.api.open('library-panel');f.api.open('inspector-panel');
+  const preset=f.api.capture();f.api.apply(preset);
+  assert.deepEqual(f.api.capture().order,preset.order);
+  f.pack.dispatchEvent(pointer('pointerdown',f.pack,0,0));
+  assert.ok(f.panels.every(p=>Number(f.pack.style.zIndex)>(Number(p.style.zIndex)||2)));
+  assert.deepEqual(f.api.capture().order,preset.order);
+  f.api.open('library-panel');
+  assert.ok(Number(f.panels[0].style.zIndex)>Number(f.pack.style.zIndex));
+});
 test('Ctrl inverts either grid default; Shift does not change the snap decision',()=>{
   for(const enabled of [false,true])for(const ctrlKey of [false,true])for(const shiftKey of [false,true])
     assert.equal(P.snapEnabled({ctrlKey,shiftKey},enabled),enabled!==ctrlKey);

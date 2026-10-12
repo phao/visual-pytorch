@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "id": "activation-bias-mlp",
+  "name": "Activation and bias MLP",
+  "root": "mlp",
+  "models": {
+    "mlp": {
+      "id": "mlp", "name": "Choice MLP",
+      "graph": {
+        "nodes": [
+          {"id":"input","type":"Input","features":1},
+          {"id":"hidden","type":"Linear","features":3,"bias":true},
+          {"id":"activation","type":"Activation","activation":"Tanh"},
+          {"id":"head","type":"Linear","features":1,"bias":true},
+          {"id":"output","type":"Output"}
+        ],
+        "edges": [
+          {"from":"input","to":"hidden"},
+          {"from":"hidden","to":"activation"},
+          {"from":"activation","to":"head"},
+          {"from":"head","to":"output"}
+        ]
+      }
+    }
+  },
+  "symbols": [
+    {"id":"activation-kind","scope":"mlp","name":"activation","type":"enum","values":["GELU","ReLU","Sigmoid","Softmax","Tanh"],"default":"Tanh"},
+    {"id":"learn-bias","scope":"mlp","name":"bias","type":"boolean","default":true}
+  ],
+  "assignments": [
+    {"model":"mlp","node":"activation","field":"activation","value":{"symbol":"activation-kind"}},
+    {"model":"mlp","node":"hidden","field":"bias","value":{"symbol":"learn-bias"}},
+    {"model":"mlp","node":"head","field":"bias","value":{"symbol":"learn-bias"}}
+  ],
+  "repeats": []
+}

@@ -5,6 +5,7 @@
   const G = window.LoomGraph;
   const L = window.LoomLayout;
   const T = window.LoomTensorOperators;
+  const R = window.LoomRecurrent;
   const snapEnabled = event => window.LoomPanels.snapEnabled(event,document.documentElement.dataset.gridSnap==='true');
   const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.menuGridSnap==='true');
   const activationInfo = window.LoomActivations.info;
@@ -13,6 +14,9 @@
   let syncQueue = Promise.resolve(), describeGeneration = 0;
   let panelWorkspace, panelSavePending=false;
   let parameterSizingPending=false;
+  let recurrentAuthoringPending=false;
+  let lstmUI=null;
+  let recurrentEditGeneration=0;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
@@ -167,6 +171,8 @@
     }
     if (state.models[current]) $("reference-select").value = current;
     $("add-reference").disabled = !$("reference-select").value || busy();
+    $('add-recurrent').disabled = !$('reference-select').value || busy() || recurrentAuthoringPending;
+    $('add-lstm').disabled = !doc || busy() || Boolean(lstmUI?.pending());
   }
 
   function renderBookkeeping() {
@@ -175,7 +181,7 @@
     const heading=document.createElement('span');heading.className='eyebrow';heading.textContent='CURRENTLY OPEN';
     const name=document.createElement('b');name.textContent=doc.name;
     const stats=document.createElement('p');
-    const refs=doc.graph.nodes.filter(n=>n.type==='Module').length;
+    const refs=doc.graph.nodes.filter(n=>['Module','Recurrent'].includes(n.type)).length;
     const ins=doc.graph.nodes.filter(n=>n.type==='Input').length,outs=doc.graph.nodes.filter(n=>n.type==='Output').length;
     stats.textContent=doc.graph.nodes.length+' blocks · '+doc.graph.edges.length+' wires · '+ins+' inputs · '+outs+' outputs'+(refs?' · '+refs+' references':'');
     const contract=document.createElement('p');
@@ -252,12 +258,16 @@
     return el;
   }
   function shape(n) { return description?.contract?.shapes[n.id]; }
+  function sourceShape(key){
+    const edge=doc?.graph.edges.find(e=>(e.from_port?e.from+'@'+e.from_port:e.from)===key);
+    const from=node(edge?.from);return from?G.tensorShape(from,shape(from),edge.from_port||null):null;
+  }
   function title(n) {
     if (!n) return "Missing port";
     if (n.label) return n.label;
     if (n.type === "Input") return "Input tensor";
     if (n.type === "Output") return "Prediction ŷ";
-    if (n.type === "Module") return state.models[n.ref]?.name || "Missing architecture";
+    if (["Module","Recurrent"].includes(n.type)) return state.models[n.ref]?.name || "Missing architecture";
     if (n.type === "Activation") return n.activation;
     if (n.type === "Concat") return "Join branches";
     return n.type;
@@ -302,23 +312,26 @@
       let line;
       if (n.type === "Input") line = shapeText(n.shape || [n.features]);
       else if (n.type === "Output") line = shapeText(s?.output_shape || n.shape);
+      else if(R.multiport(n))line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??s?.lstm?.steps??'?');
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
-      const note = n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(note,4.9,14));
-      noteText.append(svgElement('title',{},note));group.append(noteText);
+      const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
+      const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):note;
+      const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
+      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
+      noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
           n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape'].includes(n.type)?line:
-          n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
-        const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
+          R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
+        const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
-        if(['Linear','Conv2d'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
-        group.append(svgElement('title',{},label+' · '+line+' · '+note));
+        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
+        group.append(svgElement('title',{},label+' · '+line+' · '+sharingNote));
       }
       for (const output of [false, true]) {
         for (const peer of G.slots(n, output)) {
@@ -326,7 +339,7 @@
           const circle = svgElement("circle", {cx: p.x - n.x, cy: p.y - n.y, r: 5,
             class: "port " + (output ? "port-out" : "port-in") + (connecting?.id === n.id && connecting?.peer === peer ? " armed" : ""), "data-id": n.id});
           if (peer) circle.dataset.peer = peer;
-          circle.append(svgElement("title", {}, peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor"));
+          circle.append(svgElement("title", {}, R.multiport(n)?R.portTitle(n,output,peer)+' · '+shapeText(output?s?.ports?.[peer]:sourceShape(peer)):peer ? (node(peer)?title(node(peer)):peer) : "Packed feature tensor"));
           group.append(circle);
         }
       }
@@ -475,8 +488,20 @@
       html += '<p class="inspect-note">' + (n.type === "Splitter" ? 'Partition the incoming tensor on its last axis into ordered slices. Positive sizes must sum to ' + (s?.input || "the incoming width") + '. Connect each socket to any downstream branch.' : 'Each port exposes the same full tensor, without a physical copy. Connect ports to downstream branches.') + '</p>';
       ids.forEach((nid, i) => html += '<div class="port-row"><span>' + esc(title(node(nid))) + '</span>' + (n.type === "Splitter" ? '<input data-split-size="' + i + '" type="number" min="1" value="' + n.parts[i].features + '"' + (busy() ? ' disabled' : '') + '>' : '<small>full tensor</small>') + '</div>');
       html += '<button id="add-output-port"' + (busy() ? ' disabled' : '') + '>+ Output port</button>';
+    } else if(n.type==='LSTM') {
+      html+='<button id="edit-lstm-interface"'+(busy()?' disabled':'')+'>Edit LSTM constructor and bindings…</button>';
+      html+='<div class="contract-card">LSTM · '+esc(n.num_layers??1)+' layers · '+(n.bidirectional?'bidirectional':'forward')+'<br>Cell width: '+esc(n.hidden_size)+'<br>Hidden width: '+esc(n.proj_size||n.hidden_size)+'<br>Bias '+(n.bias!==false?'on':'off')+' · '+esc(s?.lstm?.parameters??'?')+' learned parameters</div>';
+      for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+'<br>source: '+esc(row.source)+' '+esc(shapeText(sourceShape(row.source)))+(row.adapter?'<br>adapter: '+esc(row.adapter):'')+'</div>';
+      for(const port of R.ports(n))html+='<div class="contract-card">'+esc(R.portTitle(n,true,port))+'<br>'+esc(shapeText(s?.ports?.[port]))+'</div>';
+      html+='<p class="inspect-note">Sequence [B,T,F]; states [B,layers × directions,width]. PyTorch receives states transposed to [layers × directions,B,width]. Projection narrows hidden, not cell. Supplied initial states are explicit; no carry between calls. Lengths run only positive prefixes; zero-length rows keep initial states and emit zero. Execution lengths never choose loss masks. Dropout is fixed at zero. Family7 supports explicit fixed-T constructors; runtime-T LSTM is not yet available.</p>';
+    } else if(n.type==='Recurrent') {
+      html+='<button id="edit-recurrent-interface"'+(busy()?' disabled':'')+'>Edit recurrent interface…</button>';
+      html+='<div class="contract-card">Transition: '+esc(state.models[n.ref]?.name||n.ref)+'<br>T: '+esc(s?.recurrent?.steps??'unresolved')+' · one parameter owner<br>'+esc(s?.recurrent?.contract?.parameters??'?')+' learned parameters</div><p class="inspect-note">Sequence inputs have a leading T axis. Initial states are supplied data; final states are explicit returned ports. Change T or supplied tensor dimensions by inspecting their Input boxes. Drag a source to a named input socket to replace only that binding.</p>';
+      for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+' '+esc(row.input||'')+'<br>source: '+esc(row.source)+' '+esc(shapeText(sourceShape(row.source)))+(row.output?'<br>next state: '+esc(row.output):'')+(row.adapter?'<br>adapter: '+esc(row.adapter):'')+'</div>';
+      for(const port of R.ports(n))html+='<div class="contract-card">'+esc(R.portTitle(n,true,port))+'<br>'+esc(shapeText(s?.ports?.[port]))+'</div>';
+      html+='<p class="inspect-note">Full backpropagation through time. Masked steps hold state and emit zero. Reset uses the supplied initial state before an active step. Execution masks do not choose loss masks. No state is silently carried between calls.</p><div class="inspect-actions"><button id="open-reference">Open transition</button><button id="tab-reference">Open in new tab ↗</button></div>';
     } else if (n.type === "Module") {
-      html += '<div class="contract-card">reference<br>' + esc(state.models[n.ref]?.name || "missing") + '<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">This block refers to a named architecture in this workspace. Editing that architecture updates every referring graph. Each occurrence has independent trainable parameters.</p><div class="inspect-actions"><button id="open-reference">Open details</button><button id="tab-reference">Open in new tab ↗</button></div>';
+      html += '<div class="contract-card">reference<br>' + esc(state.models[n.ref]?.name || "missing") + '<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">This block refers to a named architecture in this workspace. Editing that architecture updates every referring graph. Occurrences are independent unless explicit sharing is selected below.</p><div class="inspect-actions"><button id="open-reference">Open details</button><button id="tab-reference">Open in new tab ↗</button></div>';
       const signature = description?.interfaces?.[n.id];
       if (signature) html += '<div class="contract-card">Declared inputs<br>' + signature.input_groups.map(g => esc(g.name) + ' [' + g.features + ']').join('<br>') + '<br>Declared outputs<br>' + signature.output_groups.map(g => esc(g.name) + ' [' + g.features + ']').join('<br>') + '</div><p class="inspect-note">This prototype connects references through packed tensors; the named boundaries remain part of the reusable architecture contract.</p>';
     } else {
@@ -485,7 +510,15 @@
     if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
     if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
+    if(['Linear','Conv2d','Module','Recurrent','LSTM'].includes(n.type)){
+      const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
+      if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
+      html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
+    }
     content.innerHTML = html;
+    if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
+    if($('edit-lstm-interface'))$('edit-lstm-interface').onclick=()=>lstmUI.open(n.id);
+    if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};
     content.querySelectorAll('[data-op-field]').forEach(input=>input.onchange=()=>{
       if(busy())return;
       try{n[input.dataset.opField]=T.parse(n.type,input.dataset.opField,input.type==='checkbox'?input.checked:input.value);invalidateRun();persist();}
@@ -559,6 +592,11 @@
     }
     $("contract-explanation").textContent = n.type === "Linear" ? "Linear mixes the last axis: y = x @ A.T"+(n.bias!==false?" + b.":". Bias is off.")+" All preceding sample dimensions and B are preserved." : "Ports carry float32 tensors [B, …sample dimensions]. Splits use the last axis; reshapes preserve B. Wires name their source ports.";
     if(T.types.includes(n.type))$('contract-explanation').textContent=T.definitions[n.type].explanation;
+    if(n.type==='Recurrent'){
+      $('equation').textContent='(yₜ, hₜ₊₁) = transition(xₜ, hₜ)';
+      window.LoomMath.set($('equation'),'(y_t,h_{t+1})=\\operatorname{transition}(x_t,h_t)').catch(()=>{});
+      $('contract-explanation').textContent='Explicit sequence/state/control bindings; one transition owns parameters across T. Input controls validate exact integers or 0/1 values before conversion. No hidden state initialization or between-call carry.';
+    }
   }
 
   function invalidateRun() {
@@ -568,17 +606,21 @@
   }
   function insertBlock(type, ref = null) {
     if (!doc || busy()) return;
-    let after = node(selected);
-    if (!after || after.type === "Output") after = node(doc.graph.edges.find(e => e.to === (after?.id || "output"))?.from) || doc.graph.nodes.find(n => n.type === "Input");
+    let after = node(selected),chosenPort=selectedPort;
+    if (!after || after.type === "Output") {
+      const incoming=doc.graph.edges.find(e=>e.to===(after?.id||'output'));
+      after=node(incoming?.from)||doc.graph.nodes.find(n=>n.type==='Input');chosenPort=incoming?.from_port||chosenPort;
+    }
     if (doc.graph.nodes.length >= 64) { toast("Use at most 64 blocks.", true); return; }
-    const port=["Splitter","Replicator"].includes(after.type) ? (selectedPort || G.slots(after,true)[0]) : null;
+    const port=G.multiOutput(after) ? (chosenPort || G.slots(after,true)[0]) : null;
     const edge = doc.graph.edges.find(e => e.from === after.id && (!port || (e.from_port || e.to)===port)), next = edge ? node(edge.to) : null;
     const id = "n_" + Math.random().toString(36).slice(2, 10);
     const block = {id, type, x: after.x + 245, y: after.y};
-    if (type === "Linear") Object.assign(block, {features: shape(after)?.output || 1, bias: true});
+    const sourceShape=G.tensorShape(after,shape(after),port);
+    if (type === "Linear") Object.assign(block, {features: sourceShape?.at(-1) || 1, bias: true});
     else if (type === "Activation") {block.activation = $("activation-select").value;if(block.activation==='Softmax')block.dim=-1;}
-    else if (type === "Reshape") block.shape = shape(after)?.output_shape || [-1];
-    else if(T.types.includes(type))Object.assign(block,T.defaults(type,shape(after)?.output_shape));
+    else if (type === "Reshape") block.shape = sourceShape || [-1];
+    else if(T.types.includes(type))Object.assign(block,T.defaults(type,sourceShape));
     else if (type === "Concat") {block.sources=[port?after.id+"@"+port:after.id];block.flatten=true;}
     else block.ref = ref;
     if (next) {
@@ -587,7 +629,7 @@
       doc.graph.edges = doc.graph.edges.filter(e => e !== edge);
       const incoming={from:after.id,to:id};if(port)incoming.from_port=port;
       doc.graph.edges.push(incoming, {from: id, to: next.id});
-      if(next.type==="Concat")next.sources=next.sources.map(src=>src===(port?after.id+"@"+port:after.id)?id:src);
+      G.replaceSource(next,port?after.id+'@'+port:after.id,id);
     } else {const incoming={from:after.id,to:id};if(port)incoming.from_port=port;doc.graph.edges.push(incoming);}
     doc.graph.nodes.push(block);
     selected = id;selectedPort=null;
@@ -604,6 +646,104 @@
     if (!doc || busy()) return;
     try { selected = edit(); selectedWire=null; doc.dataset = null; invalidateRun(); persist(); }
     catch (error) { toast(error.message, true); }
+  }
+  async function recurrentEditDialog(nid){
+    if(!doc||busy()||$('recurrent-edit-dialog').open)return;
+    const id=doc.id,workspace_id=state.workspace_id,panel_scope=state.panel_scope;
+    const generation=++recurrentEditGeneration;
+    const current=()=>generation===recurrentEditGeneration&&doc?.id===id&&state.workspace_id===workspace_id&&state.panel_scope===panel_scope&&!busy();
+    const dialog=$('recurrent-edit-dialog'),form=$('recurrent-edit-form');
+    let token=null,loading=false;
+    $('recurrent-edit-ref').innerHTML=Object.values(state.models).filter(m=>m.id!==id).sort((a,b)=>a.name.localeCompare(b.name)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+' · '+esc(m.id)+'</option>').join('');
+    $('recurrent-edit-ref').value=node(nid)?.ref||'';
+    $('recurrent-edit-error').textContent='';
+    async function read(first=false){
+      if(loading)return;loading=true;token=null;$('recurrent-edit-apply').disabled=true;
+      $('recurrent-edit-ref').disabled=true;
+      $('recurrent-edit-error').textContent='';
+      try{
+        await syncQueue;if(!current()||!dialog.open)throw Error('Workspace changed; reopen recurrent editing.');
+        const ref=$('recurrent-edit-ref').value;
+        const context={id,ref,node:nid,workspace_id,panel_scope};
+        const info=await call('recurrentEditing',context);
+        if(!current()||!dialog.open)throw Error('Workspace changed; reopen recurrent editing.');
+        token=R.editResponse(info,context);
+        $('recurrent-edit-signature').textContent='Transition inputs: '+info.inputs.map(g=>g.id+' '+shapeText(g.shape)).join('; ')+'\nTransition outputs: '+info.outputs.map(g=>g.id+' '+shapeText(g.shape)).join('; ');
+        $('recurrent-edit-sources').textContent='Existing source sockets: '+doc.graph.nodes.filter(n=>n.id!==nid&&n.type!=='Output').flatMap(n=>G.slots(n,true).map(port=>port?n.id+'@'+port:n.id)).join(', ');
+        if(first)$('recurrent-edit-json').value=JSON.stringify(info.options,null,2);
+        $('recurrent-edit-apply').disabled=false;
+      }catch(error){if(current()&&dialog.open)$('recurrent-edit-error').textContent=error.message;else if(generation===recurrentEditGeneration)dialog.close();}
+      finally{loading=false;if(generation===recurrentEditGeneration)$('recurrent-edit-ref').disabled=false;}
+    }
+    $('recurrent-edit-ref').onchange=()=>read();
+    $('recurrent-edit-cancel').onclick=()=>dialog.close();
+    form.onsubmit=async event=>{
+      event.preventDefault();if(!token||loading||$('recurrent-edit-apply').disabled)return;
+      $('recurrent-edit-apply').disabled=true;$('recurrent-edit-error').textContent='';
+      $('recurrent-edit-ref').disabled=true;
+      try{
+        await syncQueue;if(!current())throw Error('Workspace changed; reopen recurrent editing.');
+        const result=await call('editRecurrent',{...token,workspace_id,panel_scope,options_json:$('recurrent-edit-json').value});
+        if(result.id!==id||result.node!==nid||result.workspace_id!==workspace_id||result.panel_scope!==panel_scope)throw Error('Recurrent acknowledgement belongs to another block or workspace.');
+        if(current()){
+          const latest=await call('state');
+          if(current()&&latest.workspace_id===workspace_id&&latest.panel_scope===panel_scope)hydrate(latest);
+          if(current()&&node(nid)){selected=nid;selectedPort=null;selectedWire=null;await describe();floating.open('inspector-panel');}
+        }
+        if(generation===recurrentEditGeneration){dialog.close();toast('Recurrent interface accepted. Existing block identities and downstream wires were kept.');}
+      }catch(error){if(generation===recurrentEditGeneration){if(dialog.open)$('recurrent-edit-error').textContent=error.message;else toast(error.message,true);}}
+      finally{if(generation===recurrentEditGeneration){$('recurrent-edit-apply').disabled=false;$('recurrent-edit-ref').disabled=false;}}
+    };
+    dialog.showModal();await read(true);
+  }
+  async function recurrentDialog(){
+    if(!doc||busy()||recurrentAuthoringPending)return;
+    const id=doc.id,ref=$('reference-select').value,workspace_id=state.workspace_id,panel_scope=state.panel_scope;
+    if(!ref)return;
+    const current=()=>doc?.id===id&&state.workspace_id===workspace_id&&state.panel_scope===panel_scope&&!busy();
+    recurrentAuthoringPending=true;renderLibrary();
+    try{
+      await syncQueue;if(!current())return;
+      const info=await call('recurrentAuthoring',{id,ref,workspace_id,panel_scope});
+      if(!current())return;
+      if(info.id!==id||info.ref!==ref||info.workspace_id!==workspace_id||info.panel_scope!==panel_scope)throw Error('Recurrent authoring response belongs to another workspace.');
+      const dialog=$('recurrent-dialog'),form=$('recurrent-form');
+      $('recurrent-title').textContent='Recurrent transition · '+info.name;
+      $('recurrent-label').value=('Recurrent '+info.name).slice(0,60);$('recurrent-steps').value='4';$('recurrent-error').textContent='';
+      $('recurrent-inputs').innerHTML=info.inputs.map((g,i)=>{
+        const compatible=info.outputs.filter(out=>JSON.stringify(out.shape)===JSON.stringify(g.shape)&&JSON.stringify(out.axes??null)===JSON.stringify(g.axes??null));
+        return '<fieldset class="recurrent-input-row" data-input="'+esc(g.id)+'"><legend>'+esc(g.name)+' · '+esc(g.id)+' '+esc(shapeText(g.shape))+'</legend><label for="recurrent-role-'+i+'">Input role</label><select id="recurrent-role-'+i+'" data-role required><option value="">Choose role…</option><option value="sequence">Sequence over T</option><option value="state">Explicit initial state</option></select><label for="recurrent-next-'+i+'">Next-state Output (shape/axes must match)</label><select id="recurrent-next-'+i+'" data-next disabled><option value="">Choose Output…</option>'+compatible.map(out=>'<option value="'+esc(out.id)+'">'+esc(out.name)+' · '+esc(out.id)+'</option>').join('')+'</select></fieldset>';
+      }).join('');
+      $('recurrent-outputs').innerHTML=info.outputs.map(g=>'<label class="checkbox"><input type="checkbox" data-sequence-output="'+esc(g.id)+'" checked> '+esc(g.name)+' · '+esc(g.id)+' '+esc(shapeText(g.shape))+'</label>').join('');
+      form.querySelectorAll('[data-recurrent-control]').forEach(input=>input.checked=false);
+      form.querySelectorAll('.recurrent-input-row').forEach(row=>row.querySelector('[data-role]').onchange=()=>{
+        const state=row.querySelector('[data-role]').value==='state',next=row.querySelector('[data-next]');
+        next.disabled=!state;next.required=state;
+      });
+      $('recurrent-cancel').onclick=()=>dialog.close();
+      form.onsubmit=async event=>{
+        event.preventDefault();if($('recurrent-create').disabled)return;
+        $('recurrent-create').disabled=true;$('recurrent-error').textContent='';
+        try{
+          await syncQueue;if(!current())throw Error('Workspace changed; reopen recurrent authoring.');
+          const options={version:1,steps:Number($('recurrent-steps').value),label:$('recurrent-label').value,
+            inputs:[...form.querySelectorAll('.recurrent-input-row')].map(row=>({input:row.dataset.input,role:row.querySelector('[data-role]').value,output:row.querySelector('[data-role]').value==='state'?row.querySelector('[data-next]').value:null})),
+            sequence_outputs:[...form.querySelectorAll('[data-sequence-output]:checked')].map(input=>input.dataset.sequenceOutput),
+            controls:[...form.querySelectorAll('[data-recurrent-control]:checked')].map(input=>input.dataset.recurrentControl)};
+          const result=await call('addRecurrent',{id,ref,workspace_id,panel_scope,root_graph:info.root_graph,transition:info.transition,options});
+          if(result.id!==id||result.workspace_id!==workspace_id||result.panel_scope!==panel_scope)throw Error('Recurrent acknowledgement belongs to another workspace.');
+          if(current()){
+            const latest=await call('state');
+            if(current()&&latest.workspace_id===workspace_id&&latest.panel_scope===panel_scope)hydrate(latest);
+            if(current()&&node(result.node)){selected=result.node;selectedPort=null;selectedWire=null;await describe();floating.open('inspector-panel');fit();}
+          }
+          dialog.close();toast('Recurrent branch added. Supply initial states and explicit task/output bindings before training.');
+        }catch(error){if(dialog.open)$('recurrent-error').textContent=error.message;else toast(error.message,true);}
+        finally{$('recurrent-create').disabled=false;}
+      };
+      $('recurrent-create').disabled=false;dialog.showModal();
+    }catch(error){if(current())toast(error.message,true);}
+    finally{recurrentAuthoringPending=false;renderLibrary();}
   }
   const wireFromElement = el => ({from:el.dataset.from,to:el.dataset.to,...(el.dataset.fromPort?{from_port:el.dataset.fromPort}:{})});
   function updateSelection() {
@@ -949,7 +1089,7 @@
       if(event.target.closest('.node-type-icon')){if(n.collapsed)foldBlock(n.id,false);event.preventDefault();return;}
       selected=n.id;renderInspector();floating.open("inspector-panel");
       selectedWire=null;
-      if (n.type === "Module" && (event.ctrlKey || event.metaKey)) safe("openModel", {id: n.ref, newTab: true});
+      if (["Module","Recurrent"].includes(n.type) && (event.ctrlKey || event.metaKey)) safe("openModel", {id: n.ref, newTab: true});
     } else if (path?.dataset.from && !busy()) {
       selectWire(wireFromElement(path));deleteSelection();
     }
@@ -965,6 +1105,9 @@
     const blockIcon=event.target.closest('.node-type-icon');
     if(blockIcon && ['Enter',' '].includes(event.key) && !event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey){
       event.preventDefault();const nid=blockIcon.closest('.node').dataset.id;foldBlock(nid,!node(nid).collapsed);return;
+    }
+    if(doc && node(selected) && !busy() && !drag && !connecting && G.blockToggleShortcut(event)){
+      event.preventDefault();if(!event.repeat)foldBlock(selected,!node(selected).collapsed);return;
     }
     const grip=event.target.closest('.node-resize'),delta={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[event.key];
     if(grip && delta && doc && !busy()){
@@ -1043,12 +1186,29 @@
   $("add-concat").onclick = () => insertBlock("Concat");
   $("add-activation").onclick = () => insertBlock("Activation");
   $("add-reference").onclick = () => insertBlock("Module", $("reference-select").value);
+  $('add-recurrent').onclick = recurrentDialog;
+  lstmUI=window.LoomLSTM.mount(document,{
+    call,context:()=>({id:doc?.id,workspace_id:state.workspace_id,panel_scope:state.panel_scope}),
+    busy,sync:()=>syncQueue,refresh:renderLibrary,toast,
+    owners:nid=>doc.graph.nodes.filter(n=>n.type==='LSTM'&&n.id!==nid)
+      .map(n=>({key:n.id,name:(n.label||n.id)+' · '+n.id})).sort((a,b)=>a.name.localeCompare(b.name)||a.key.localeCompare(b.key)),
+    accept:async(result,current)=>{const latest=await call('state');
+      if(!current())return;
+      if(latest.workspace_id!==state.workspace_id||latest.panel_scope!==state.panel_scope)
+        throw Error('Workspace changed; reopen LSTM authoring.');
+      hydrate(latest);if(current()&&node(result.node)){selected=result.node;selectedPort=null;selectedWire=null;
+        await describe();if(current()){floating.open('inspector-panel');fit();}}
+    }
+  });
+  $('add-lstm').onclick=()=>lstmUI.open();
   $("add-input").onclick = () => editBoundary(() => G.addInput(doc,true));
   $("add-output").onclick = () => editBoundary(() => G.addOutput(doc,selected,selectedPort));
   function addSelectedRouter(type) {
-    let after=node(selected);if(after?.type==="Output")after=node(doc.graph.edges.find(e=>e.to===after.id)?.from);
+    let after=node(selected),chosenPort=selectedPort;if(after?.type==="Output"){const incoming=doc.graph.edges.find(e=>e.to===after.id);after=node(incoming?.from);chosenPort=incoming?.from_port||chosenPort;}
     if(!after || ["Splitter","Replicator"].includes(after.type)){toast("Select a tensor-producing box, not a router.",true);return;}
-    editBoundary(()=>G.addRouter(doc,type,shape(after)?.output || 1,after.id));
+    const port=G.multiOutput(after)?chosenPort||G.slots(after,true)[0]:null;
+    const dims=G.tensorShape(after,shape(after),port);
+    editBoundary(()=>G.addRouter(doc,type,dims?.at(-1)||1,after.id,port));
   }
   $("add-splitter").onclick = () => addSelectedRouter("Splitter");
   $("add-replicator").onclick = () => addSelectedRouter("Replicator");
@@ -1178,11 +1338,16 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-replicator','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));
   $("dots").querySelector("circle").setAttribute("cy", 0);
-  document.querySelector(".canvas-note").textContent = "D: delete selection · drag arrow ends: reconnect · Ctrl: invert snapping · wheel: zoom · empty drag: pan · Shift-drag: menus";
+  document.querySelectorAll('.help-sections a').forEach(link=>link.onclick=event=>{
+    event.preventDefault();$(link.getAttribute('href').slice(1)).scrollIntoView({block:'start'});
+  });
+  document.querySelectorAll('[data-help-resource]').forEach(link=>link.onclick=event=>{
+    event.preventDefault();safe('openHelpResource',{id:link.dataset.helpResource});
+  });
 })();

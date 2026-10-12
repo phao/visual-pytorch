@@ -35,6 +35,21 @@ def declarations(selector):
 
 
 class UIContractTests(unittest.TestCase):
+    def test_help_is_a_closed_floating_hub_and_not_a_canvas_caption(self):
+        html=(ROOT/'app/web/index.html').read_text()
+        js=(ROOT/'app/web/editor.js').read_text()
+        self.assertNotIn('class="canvas-note"',html)
+        self.assertNotIn('querySelector(".canvas-note")',js)
+        self.assertIn('data-open-panel="help-panel"',html)
+        self.assertRegex(html,r'<aside id="help-panel"[^>]* hidden>')
+        for section in ('help-drawing','help-shortcuts','help-resources'):
+            self.assertIn('id="'+section+'"',html)
+        self.assertIn('<caption>Keyboard and pointer shortcuts</caption>',html)
+        self.assertIn('<th scope="row">Space</th>',html)
+        self.assertIn('<th scope="row">H</th>',html)
+        self.assertEqual(declarations('.help-shortcuts')['table-layout'],'fixed')
+        self.assertEqual(declarations('.help-shortcuts th')['overflow-wrap'],'anywhere')
+
     def test_related_palette_controls_have_named_groups_sorted_as_units(self):
         html=(ROOT/'app/web/index.html').read_text()
         js=(ROOT/'app/web/editor.js').read_text()
@@ -77,7 +92,8 @@ class UIContractTests(unittest.TestCase):
         self.assertIn('n.x+width(n)',(ROOT/'app/web/graph-tools.js').read_text())
         self.assertIn("class:'node-resize'",js)
         self.assertIn("'Bias '+(n.bias!==false?'on':'off')",js)
-        self.assertIn('shortened(note,4.9,14)',js)
+        self.assertIn('shortened(sharingNote,4.9,14)',js)
+        self.assertIn("const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '",js)
         self.assertEqual(declarations('.node-resize')['cursor'],'nwse-resize')
 
     def test_all_palettes_start_closed_under_one_pack(self):
@@ -118,7 +134,13 @@ class UIContractTests(unittest.TestCase):
     def test_size_fields_do_not_enforce_run_limits_on_editing(self):
         html=(ROOT/"app/web/index.html").read_text()
         js=(ROOT/"app/web/editor.js").read_text()
-        for source in (html,js):
+        # LSTM's stack-depth ceiling is a closed operator grammar, not the
+        # retired constrained-mode feature/sample/epoch cap. Keep this explicit
+        # exception narrow so any newly capped dimension still fails the check.
+        layer_tag=re.search(r'<input\b[^>]*id="lstm-layers"[^>]*>',html)
+        self.assertIsNotNone(layer_tag)
+        self.assertIn('max="64"',layer_tag.group())
+        for source in (html.replace(layer_tag.group(),''),js):
             self.assertNotIn('max="64"',source)
             self.assertNotIn('max="5000"',source)
             self.assertNotIn('max="10000"',source)

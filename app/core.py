@@ -17,12 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import TENSOR_OPERATORS, LAYER_TYPES, normalized, axes_for, constructor_code
+from .operators import TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 6
+VERSION = 20
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -223,9 +223,9 @@ def check_document(doc):
         if not isinstance(node.get("id"), str) or node["id"] in ids:
             raise GraphError("Block IDs must be unique strings.")
         ids.add(node["id"])
-        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
+        if node.get("type") not in TENSOR_OPERATORS | {"Input", "Linear", "Activation", "Module", "Recurrent", "LSTM", "Output", "Concat", "Splitter", "Replicator", "Reshape"}:
             raise GraphError("Unsupported block type.")
-        if node['type'] in TENSOR_OPERATORS:
+        if node['type'] in TENSOR_OPERATORS | {'Recurrent', 'LSTM'}:
             normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
@@ -255,7 +255,7 @@ def check_document(doc):
             raise GraphError("Bias must be true or false.")
         if node["type"] == "Activation":
             normalize_activation(node)
-        if node["type"] == "Module" and not isinstance(node.get("ref"), str):
+        if node["type"] in REFERENCE_TYPES and not isinstance(node.get("ref"), str):
             raise GraphError("An architecture block needs a reference ID.")
         for key in ("x", "y"):
             v = node.get(key, 0)
@@ -273,6 +273,8 @@ def check_document(doc):
             raise GraphError("A wire refers to a missing block.")
         if 'from_port' in edge and not isinstance(edge['from_port'], str):
             raise GraphError('Wire from_port must be a declared string port ID.')
+    from .graph import parameter_owners
+    parameter_owners(doc)
     json.dumps(doc, allow_nan=False)
 
 
@@ -283,8 +285,8 @@ class Workspace:
         self.history = History()
         self.db = sqlite3.connect(":memory:")
         self.db.execute("PRAGMA foreign_keys=ON")
-        self.db.executescript("""
-            PRAGMA user_version=6;
+        self.db.executescript(f"""
+            PRAGMA user_version={VERSION};
             CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE architectures(
                 id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -407,7 +409,7 @@ class Workspace:
     def put(self, doc):
         check_document(doc)
         for node in doc["graph"]["nodes"]:
-            if node["type"] == "Module":
+            if node["type"] in REFERENCE_TYPES:
                 if not self.db.execute("SELECT 1 FROM architectures WHERE id=?", (node["ref"],)).fetchone():
                     raise GraphError("The referenced architecture does not exist in this workspace.")
         document = copy.deepcopy(doc)
@@ -448,7 +450,7 @@ class Workspace:
             """, (doc["id"], doc["name"].strip(), json.dumps(document, allow_nan=False), timestamp()))
             self.db.execute("DELETE FROM architecture_refs WHERE owner_id=?", (doc["id"],))
             for node in doc["graph"]["nodes"]:
-                if node["type"] == "Module":
+                if node["type"] in REFERENCE_TYPES:
                     self.db.execute("INSERT INTO architecture_refs VALUES (?,?,?)",
                                     (doc["id"], node["id"], node["ref"]))
             if data is not None:
@@ -559,7 +561,7 @@ class Workspace:
         try:
             version = source.execute("PRAGMA user_version").fetchone()[0]
             magic = source.execute("SELECT value FROM metadata WHERE key='format'").fetchone()
-            if version not in {1, 2, 3, 4, 5, VERSION} or magic != (FORMAT,):
+            if version not in set(range(1, VERSION + 1)) or magic != (FORMAT,):
                 raise GraphError("This is not a supported Visual Torch Workspace file.")
             source.backup(w.db)
             if w.db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
@@ -570,7 +572,7 @@ class Workspace:
             expected_refs = set()
             for doc in loaded.values():
                 check_document(doc)
-                expected_refs.update((doc['id'], n['id'], n['ref']) for n in doc['graph']['nodes'] if n['type']=='Module')
+                expected_refs.update((doc['id'], n['id'], n['ref']) for n in doc['graph']['nodes'] if n['type'] in REFERENCE_TYPES)
             if expected_refs != set(w.db.execute('SELECT owner_id,node_id,target_id FROM architecture_refs')):
                 raise GraphError('Architecture reference index does not match the graph documents.')
             for mid, name in w.db.execute('SELECT id,name FROM architectures'):
@@ -587,7 +589,81 @@ class Workspace:
                 migrate_schema(w.db)
             if version < 6 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('experiment','run','report') LIMIT 1").fetchone():
                 raise GraphError('Experiment/run/report revisions require a version-6 container.')
+            if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
+                raise GraphError('Family/specialization revisions require a version-7 container.')
             validate_all(w.db)
+            if version < 20:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] >= 6:
+                        raise GraphError('Temporal-v2 experiment/run contracts require a version-20 container.')
+            if version < 19:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (8 if kind == 'family' else 7):
+                        raise GraphError('Temporal-v2 family contracts require a version-19 container.')
+            if version < 18:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (7 if kind == 'family' else 6):
+                        raise GraphError('LSTM family contracts require a version-18 container.')
+            if version < 8:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] == 2:
+                        raise GraphError('Version-2 experiment/run revisions require a version-8 container.')
+            if version < 9:
+                from .revisions import _parse
+                if any('share_with' in n for doc in loaded.values() for n in doc['graph']['nodes']):
+                    raise GraphError('Explicit shared parameters require a version-9 container.')
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','model')"):
+                    if _parse(text)['version'] == 2:
+                        raise GraphError('Version-2 family/model revisions require a version-9 container.')
+            if version < 10:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization','experiment','run')"):
+                    doc_version = _parse(text)['version']
+                    if doc_version >= (2 if kind == 'specialization' else 3):
+                        raise GraphError('Typed constructor choices require a version-10 container.')
+            if version < 11:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (3 if kind == 'specialization' else 4):
+                        raise GraphError('Scoped constructor bindings require a version-11 container.')
+            if version < 12:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (4 if kind == 'specialization' else 5):
+                        raise GraphError('Runtime family contracts require a version-12 container.')
+            if version < 14:
+                from .revisions import _parse
+                if any(n['type'] == 'Recurrent' for m in w.models().values() for n in m['graph']['nodes']):
+                    raise GraphError('Recurrent graph references require a version-14 container.')
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
+                    if _parse(text)['version'] >= 3:
+                        raise GraphError('Recurrent ModelRevisions require a version-14 container.')
+            if version < 17:
+                from .revisions import _parse
+                if any(n['type'] == 'LSTM' for m in w.models().values() for n in m['graph']['nodes']):
+                    raise GraphError('LSTM graph blocks require a version-17 container.')
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='model'"):
+                    if _parse(text)['version'] >= 4:
+                        raise GraphError('LSTM ModelRevisions require a version-17 container.')
+            if version < 16:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] >= 5:
+                        raise GraphError('Temporal experiment execution requires a version-16 container.')
+            if version < 15:
+                from .revisions import _parse
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('family','specialization')"):
+                    if _parse(text)['version'] >= (6 if kind == 'family' else 5):
+                        raise GraphError('Temporal recurrent family contracts require a version-15 container.')
+            if version < 13:
+                from .revisions import _parse
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version']>=4:
+                        raise GraphError('Runtime task execution requires a version-13 container.')
             w.db.execute(f'PRAGMA user_version={VERSION}')
             w.disk_revision = revision(path)
             if before != w.disk_revision:
@@ -633,7 +709,18 @@ def _graph_values(module, x, contract):
             value = x if len(contract['input_groups']) == 1 else x[:, g['start']:g['stop']].reshape(x.shape[0], *g['shape'])
         elif 'layer' in item:
             layer = getattr(module, item['layer'])
-            value = layer.forward_tensor(parts[0]) if kind == 'Module' else layer(parts[0])
+            if kind == 'Recurrent':
+                # The app-free emitter captures this helper under the same name.
+                value = _recurrent_graph_forward(layer, parts, item['recurrent'])
+            elif kind == 'LSTM':
+                value = _lstm_graph_forward(layer, parts, item['lstm'])
+            elif kind == 'Module' and 'runtime_contract' in item:
+                child = item['runtime_contract']
+                value = _graph_tensor(_graph_values(layer, parts[0], child), child)
+            elif kind == 'Reshape' and 'runtime_reshape' in item:
+                value = layer(parts[0], shape=item['runtime_reshape'])
+            else:
+                value = layer.forward_tensor(parts[0]) if kind == 'Module' else layer(parts[0])
         elif kind == 'Concat':
             value = torch.cat([p.flatten(start_dim=1) for p in parts] if item['flatten'] else parts,
                               dim=1 if item['flatten'] else -1)
@@ -645,6 +732,16 @@ def _graph_values(module, x, contract):
             value = parts[0]  # Output is an identity boundary.
         values[nid] = value
     return values
+
+
+def _recurrent_graph_forward(layer, parts, plan):
+    from .recurrent_nodes import graph_forward
+    return graph_forward(layer, parts, plan)
+
+
+def _lstm_graph_forward(layer, parts, plan):
+    from .lstm_nodes import graph_forward
+    return graph_forward(layer, parts, plan)
 
 
 def _graph_tensor(values, contract):
@@ -668,6 +765,38 @@ def generate_code(models, model_id):
              "        super().__init__()", "        self.dims = tuple(dims)",
              "    def forward(self, x):", "        return x.permute(*self.dims)", ""]
     emitted = set()
+    def has_recurrence(mid, seen):
+        if mid in seen: return False
+        seen.add(mid)
+        return any(n['type'] == 'Recurrent' or
+                   (n['type'] in REFERENCE_TYPES and has_recurrence(n['ref'], seen))
+                   for n in models[mid]['graph']['nodes'])
+    if has_recurrence(model_id, set()):
+        from .memory import MIB
+        from .recurrent import (_recurrent_inputs, _recurrent_run, _runner_class, recurrent_memory_report)
+        from .recurrent_nodes import _control, graph_forward
+        from .task_execution import _helper_source
+        lines.extend(['from pathlib import Path', 'import math', 'GraphError = ValueError',
+                      'MAX_INTEGER = 2**53 - 1', f'MIB = {MIB!r}'])
+        for helper in (feature_count, memory_percent, available_memory, format_bytes, recurrent_memory_report,
+                       _recurrent_inputs, _recurrent_run, _runner_class, _control, graph_forward):
+            lines.append(_helper_source(helper))
+        lines.append('_recurrent_graph_forward = graph_forward')
+
+    def has_lstm(mid, seen):
+        if mid in seen: return False
+        seen.add(mid)
+        return any(n['type'] == 'LSTM' or
+                   (n['type'] in REFERENCE_TYPES and has_lstm(n['ref'], seen))
+                   for n in models[mid]['graph']['nodes'])
+    if has_lstm(model_id, set()):
+        from .lstm_nodes import graph_forward as lstm_forward, lstm_memory_report
+        from .task_execution import _helper_source
+        from .memory import MIB
+        lines.extend(['from pathlib import Path', 'import math', f'MIB = {MIB!r}'])
+        for helper in (memory_percent, available_memory, format_bytes, lstm_memory_report, lstm_forward):
+            lines.append(_helper_source(helper))
+        lines.append('_lstm_graph_forward = graph_forward')
 
     def cname(mid):
         return "Architecture_" + str(uuid.uuid5(uuid.NAMESPACE_URL, mid)).replace("-", "")[:12]
@@ -678,13 +807,15 @@ def generate_code(models, model_id):
         model, contract = models[mid], validate_model(models, mid)
         order = operation_nodes(model)
         for n in order:
-            if n["type"] == "Module":
+            if n["type"] in REFERENCE_TYPES:
                 emit(n["ref"])
         lines.extend([
             f"class {cname(mid)}(nn.Module):",
             "    def __init__(self):", "        super().__init__()",
         ])
         for index, node in enumerate(order):
+            if 'parameter_owner' in contract['shapes'][node['id']]:
+                continue
             if node["type"] == "Linear":
                 s = contract["shapes"][node["id"]]
                 op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
@@ -694,6 +825,12 @@ def generate_code(models, model_id):
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
             elif node['type'] in TENSOR_OPERATORS:
                 op = constructor_code(contract['shapes'][node['id']]['operator'])
+            elif node['type'] == 'Recurrent':
+                op = f'_runner_class(nn)({cname(node["ref"])}(), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
+            elif node['type'] == 'LSTM':
+                kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
+                kwargs.pop('dtype')
+                op = f'nn.LSTM(**{kwargs!r}, dtype=torch.float32)'
             else:
                 op = f'{cname(node["ref"])}()'
             lines.append(f"        self.layer_{index} = {op}")
@@ -712,7 +849,26 @@ def generate_code(models, model_id):
     return "\n".join(lines)
 
 
-def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
+def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT,
+                  runtime_inputs=None, initial_shapes=None, runtime_temporal=None, runtime_temporal_v2=None):
+    if runtime_temporal_v2 is not None:
+        if runtime_inputs is not None or runtime_temporal is not None:
+            raise GraphError('Spatial and versioned temporal runtime policies are distinct; select exactly one.')
+        from .temporal_shapes_v2 import compile_temporal_model
+        return compile_temporal_model(models, mid, runtime_temporal_v2, constrained=constrained,
+                                      memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
+    if runtime_temporal is not None:
+        if runtime_inputs is not None:
+            raise GraphError('Spatial and temporal runtime policies are distinct; select exactly one.')
+        from .temporal_shapes import compile_temporal_model
+        return compile_temporal_model(models, mid, runtime_temporal, constrained=constrained,
+                                      memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
+    if runtime_inputs is not None:
+        from .runtime_shapes import compile_runtime_model
+        return compile_runtime_model(models, mid, runtime_inputs, constrained=constrained,
+                                     memory_limit_percent=memory_limit_percent, initial_shapes=initial_shapes)
+    if initial_shapes is not None:
+        raise GraphError('Initial runtime shapes require an explicit runtime input declaration.')
     preflight(models, mid, constrained, memory_limit_percent=memory_limit_percent)
     import torch
     import torch.nn as nn
@@ -722,8 +878,8 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             super().__init__()
             self.shape = tuple(shape)
 
-        def forward(self, x):
-            return x.reshape(x.shape[0], *self.shape)
+        def forward(self, x, *, shape=None):
+            return x.reshape(x.shape[0], *(self.shape if shape is None else shape))
 
     class Permute(nn.Module):
         def __init__(self, dims):
@@ -733,8 +889,21 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         def forward(self, x):
             return x.permute(*self.dims)
 
+    def recurrent_reference(current, seen=None):
+        # Legacy plain Modules keep their construction-only nested policy.
+        # A recurrent descendant must retain per-call admission through wrappers.
+        seen = set() if seen is None else seen
+        if current in seen:
+            return False
+        seen.add(current)
+        return any(n['type'] in {'Recurrent', 'LSTM'} or
+                   (n['type'] == 'Module' and recurrent_reference(n['ref'], seen))
+                   for n in models[current]['graph']['nodes'])
+
     layers = OrderedDict()
     for index, node in enumerate(operation_nodes(models[mid])):
+        if 'parameter_owner' in contract['shapes'][node['id']]:
+            continue
         if node["type"] == "Linear":
             shape = contract["shapes"][node["id"]]
             layer = nn.Linear(shape["input"], shape["output"], bias=node.get("bias", True),
@@ -751,8 +920,22 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             if 'dtype' in kwargs:
                 kwargs['dtype'] = torch.float32
             layer = (Permute if node['type'] == 'Permute' else getattr(nn, spec['constructor']))(**kwargs)
+        elif node['type'] == 'Recurrent':
+            from .recurrent import _runner_class
+            c = contract['shapes'][node['id']]['recurrent']['contract']
+            layer = _runner_class(nn)(compile_model(models, node['ref'], constrained=constrained,
+                                                     memory_limit_percent=memory_limit_percent), c,
+                                      constrained=constrained, memory_limit_percent=memory_limit_percent)
+        elif node['type'] == 'LSTM':
+            kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
+            kwargs['dtype'] = torch.float32
+            layer = nn.LSTM(**kwargs)
+            layer.constrained = constrained
+            layer.memory_limit_percent = memory_limit_percent
         else:
-            layer = compile_model(models, node["ref"], constrained=False)
+            layer = compile_model(models, node["ref"],
+                                  constrained=constrained and recurrent_reference(node['ref']),
+                                  memory_limit_percent=memory_limit_percent)
         layers[f"layer_{index}"] = layer
 
     class GraphModule(nn.Module):
@@ -789,14 +972,16 @@ def layer_descriptions(models, mid, prefix="", stable_prefix=None):
     layers = []
     stable_prefix=mid if stable_prefix is None else stable_prefix
     for i, node in enumerate(operation_nodes(models[mid])):
+        if 'parameter_owner' in contract['shapes'][node['id']]:
+            continue
         path = prefix + f"layer_{i}"
-        if node["type"] == "Module":
-            layers.extend(layer_descriptions(models, node["ref"], path + ".",stable_prefix+'/'+node['id']))
+        if node["type"] in REFERENCE_TYPES:
+            layers.extend(layer_descriptions(models, node["ref"], path + ('.transition.' if node['type'] == 'Recurrent' else '.'),stable_prefix+'/'+node['id']))
         else:
             layers.append({"path": path, "node_id": node["id"], "architecture": models[mid]["name"],
                            "stable_id":stable_prefix+'/'+node['id'],
                            "type": node.get("activation", node["type"]),
-                           **({'bias': node.get('bias', True)} if node['type'] in {'Linear', 'Conv2d'} else {}),
+                           **({'bias': node.get('bias', True)} if node['type'] in {'Linear', 'Conv2d', 'LSTM'} else {}),
                            **contract["shapes"][node["id"]]})
     return layers
 
@@ -867,9 +1052,14 @@ def affine_summary(model, contract):
     if not contract['matrix_affine']:
         return {'status':'unavailable','reason':'Nonlinear, branching or tensor geometry is outside the serial-vector analyzer.'}
     effective_a=effective_b=None
+    def occurrences(current):
+        for item in current.contract['plan']:
+            if item['type'] == 'Linear':
+                yield getattr(current, item['layer'])
+            elif item['type'] == 'Module':
+                yield from occurrences(getattr(current, item['layer']))
     with torch.no_grad():
-        for layer in model.modules():
-            if not isinstance(layer,torch.nn.Linear):continue
+        for layer in occurrences(model):
             bias=layer.bias if layer.bias is not None else layer.weight.new_zeros(layer.out_features)
             if effective_a is None:effective_a,effective_b=layer.weight.detach(),bias.detach()
             else:effective_a,effective_b=layer.weight @ effective_a,layer.weight @ effective_b+bias

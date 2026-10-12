@@ -35,9 +35,10 @@ def _distinct(values, what):
     _require(len({digest(v) for v in values}) == len(values), 'Duplicate ' + what + '.')
 
 
-def _header(doc, required):
+def _header(doc, required, *, versions=(1,)):
     _keys(doc, ('version', 'id', 'name', *required), ('revision',), 'Independent scientific object')
-    _version(doc, 'Independent scientific object')
+    _require(type(doc['version']) is int and doc['version'] in versions,
+             'Unsupported independent scientific object version.')
     _require(_identifier(doc['id']) and _identifier(doc['name']), 'Scientific object needs stable ID and name.')
 
 
@@ -68,12 +69,16 @@ def split_protocol(protocol):
 
 
 def validate_experiment(doc):
-    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'))
+    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4, 5, 6))
     _require(_text(doc['question']), 'Experiment needs an explicit question.')
     for key in ('models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols'):
         _require(isinstance(doc[key], list) and doc[key], 'Experiment selection axes must be nonempty arrays.')
+    from . import family_axes
     for model in doc['models']:
-        reference(model, 'model')
+        if doc['version'] == 1: reference(model, 'model')
+        else: family_axes.validate_choice(model, version=doc['version'])
+    choice_ids = [m['id'] for m in doc['models'] if family_axes.family_choice(m)]
+    _distinct(choice_ids, 'family choice ID')
     _distinct(doc['models'], 'model revision')
     for pair in doc['data_tasks']:
         _keys(pair, ('id', 'dataset', 'task'), context='Dataset/task pairing')
@@ -101,8 +106,11 @@ def validate_experiment(doc):
     for entries, excluded in ((selection['pairs'], False), (selection['exclusions'], True)):
         for entry in entries:
             _keys(entry, ('model', 'data_task', 'reason') if excluded else ('model', 'data_task'), context='Comparison pairing/exclusion')
-            reference(entry['model'], 'model')
-            _require(digest(entry['model']) in models and entry['data_task'] in data, 'Pair/exclusion must name selected model and data/task.')
+            if doc['version'] == 1:
+                reference(entry['model'], 'model')
+                _require(digest(entry['model']) in models, 'Pair/exclusion must name selected model.')
+            else: family_axes.selected(doc['models'], entry['model'], version=doc['version'])
+            _require(entry['data_task'] in data, 'Pair/exclusion must name selected data/task.')
             if excluded:
                 _require(_text(entry['reason']), 'Exclusion needs a visible reason.')
         _distinct([{'model': e['model'], 'data_task': e['data_task']} for e in entries], 'comparison pair')
@@ -138,19 +146,31 @@ def _utc(value):
 
 
 def validate_run(doc):
-    _header(doc, ('selection', 'resolved', 'attempts'))
+    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4, 5, 6))
     _keys(doc['selection'], ('experiment', 'coordinates', 'candidate_id'), context='Run selection')
     reference(doc['selection']['experiment'], 'experiment')
     coords = doc['selection']['coordinates']
     _keys(coords, ('model', 'data_task', 'split', 'initialization', 'protocol'), context='Resolved selection coordinates')
-    reference(coords['model'], 'model')
+    if doc['version'] == 1: reference(coords['model'], 'model')
+    else:
+        if isinstance(coords['model'], dict) and coords['model'].get('kind') == 'model': reference(coords['model'], 'model')
+        else:
+            _keys(coords['model'], ('id', 'bindings'), context='Run family coordinate')
+            _require(_identifier(coords['model']['id']) and isinstance(coords['model']['bindings'], dict), 'Invalid run family coordinate.')
+            from .families import binding_atom
+            for sid, value in coords['model']['bindings'].items():
+                _require(_identifier(sid), 'Run binding needs a stable symbol ID.')
+                binding_atom(value, 'Run binding ' + sid, typed=doc['version'] >= 3)
     _require(all(_identifier(coords[k]) for k in ('data_task', 'split', 'protocol')) and
              _integer(coords['initialization'], 0, 2**31 - 1), 'Invalid selection coordinate.')
     _require(doc['selection']['candidate_id'] == digest(doc['selection']['experiment'] | {'coordinates': coords}), 'Candidate identity mismatch.')
     if doc['resolved'] is not None:
         _keys(doc['resolved'], ('version', 'references', 'manifest', 'protocol'), context='Frozen resolved execution')
         _version(doc['resolved'], 'Frozen resolved execution')
-        _keys(doc['resolved']['references'], ('model', 'dataset', 'task'), context='Frozen execution references')
+        _keys(doc['resolved']['references'], ('model', 'dataset', 'task'),
+              ('family', 'specialization') if doc['version'] >= 2 else (), context='Frozen execution references')
+        _require(('family' in doc['resolved']['references']) == ('specialization' in doc['resolved']['references']),
+                 'Family execution references require both family and specialization.')
         for kind, ref in doc['resolved']['references'].items():
             reference(ref, kind)
         validate_protocol(doc['resolved']['protocol'])
@@ -190,10 +210,13 @@ def _get(resolve, ref):
 
 
 def dependencies(kind, doc):
+    if kind == 'specialization':
+        return [doc['family'], doc['model']]
     if kind == 'experiment':
-        return doc['models'] + [ref for p in doc['data_tasks'] for ref in (p['dataset'], p['task'])]
+        from .family_axes import dependencies as model_dependencies
+        return model_dependencies(doc['models']) + [ref for p in doc['data_tasks'] for ref in (p['dataset'], p['task'])]
     if kind == 'run':
-        return [doc['selection']['experiment']]
+        return [doc['selection']['experiment']] + (list(doc['resolved']['references'].values()) if doc['version'] >= 2 and doc['resolved'] else [])
     if kind == 'report':
         return doc['runs'] if doc['mode'] == 'result-report' else [doc['experiment']]
     return []
@@ -226,14 +249,18 @@ class _PreviewResolution:
             self.documents[kind]=(key,value)
         return self.documents[kind][1]
 
-    def check(self, refs, model, dataset, task):
+    def check(self, refs, model, dataset, task, runtime=None):
         model_key=(refs['model']['id'],refs['model']['revision'])
+        if runtime is not None:model_key=(*model_key,refs['dataset']['revision'],refs['task']['revision'],digest(runtime))
         if self.contract is None or self.contract[0]!=model_key:
             self.contract=None
             contract=validate_model(model['models'],model['root'])
+            if runtime is not None:
+                from .runtime_tasks import contract as runtime_contract
+                contract=runtime_contract(model,dataset,task,runtime)
             self.contract=(model_key,contract)
         contract=self.contract[1]
-        key=tuple((refs[k]['id'],refs[k]['revision']) for k in ('model','dataset','task'))
+        key=tuple((refs[k]['id'],refs[k]['revision']) for k in ('model','dataset','task'))+(digest(runtime),)
         if self.compatible!=key:
             self.compatible=None
             validate_task(task,dataset,contract)
@@ -257,9 +284,13 @@ def candidate(experiment, coordinates, resolve, *, saved_manifest=None):
 
 def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context=None):
     _keys(coordinates, ('model', 'data_task', 'split', 'initialization', 'protocol'), context='Selection coordinates')
-    selected = digest(coordinates['model']) in context.models if context else any(
-        digest(m) == digest(coordinates['model']) for m in experiment['models'])
-    _require(selected, 'Model not selected by experiment.')
+    if experiment['version'] >= 2:
+        from .family_axes import selected
+        selected(experiment['models'], coordinates['model'], version=experiment['version'])
+    else:
+        selected = digest(coordinates['model']) in context.models if context else any(
+            digest(m) == digest(coordinates['model']) for m in experiment['models'])
+        _require(selected, 'Model not selected by experiment.')
     pairs = context.pairs if context else {d['id']: d for d in experiment['data_tasks']}
     splits = context.splits if context else {s['id']: s for s in experiment['splits']}
     protocols = context.protocols if context else {p['id']: p for p in experiment['protocols']}
@@ -269,7 +300,13 @@ def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context
     result = {'id': digest(ref | {'coordinates': coordinates}), 'experiment': ref, 'coordinates': copy.deepcopy(coordinates),
               'status': 'compatible', 'reason': None, 'references': {}, 'manifest': None, 'protocol': None}
     pair = pairs[coordinates['data_task']]
+    if experiment['version'] >= 2: result['parameters_exact'] = None
     result['references'] = {'model': copy.deepcopy(coordinates['model']), 'dataset': copy.deepcopy(pair['dataset']), 'task': copy.deepcopy(pair['task'])}
+    if experiment['version'] >= 2 and coordinates['model'].get('kind') != 'model':
+        from .family_axes import selected as selected_choice
+        choice = selected_choice(experiment['models'], coordinates['model'], version=experiment['version'])
+        result['references'].pop('model')
+        result['references']['family'] = copy.deepcopy(choice['family'])
     selection = experiment['selection']; pair_key = {'model': coordinates['model'], 'data_task': coordinates['data_task']}
     exclusion = context.exclusions.get(digest(pair_key)) if context else next((e['reason'] for e in selection['exclusions'] if digest({k: e[k] for k in ('model', 'data_task')}) == digest(pair_key)), None)
     paired = digest(pair_key) in context.pairings if context else pair_key in selection['pairs']
@@ -278,12 +315,29 @@ def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context
         return result
     try:
         get=context.get if context else lambda r:_get(resolve,r)
-        model=get(coordinates['model']);dataset=get(pair['dataset']);task=get(pair['task'])
-        if context:context.check(result['references'],model,dataset,task)
+        if experiment['version'] >= 2:
+            from .family_axes import resolve_model
+            resolved = resolve_model(experiment['models'], coordinates['model'],
+                                     lambda k, s, h: get({'kind': k, 'id': s, 'revision': h}), version=experiment['version'])
+            result['references'].pop('model', None)
+            result['references'].update(resolved['references'])
+            if resolved['status'] != 'verified':
+                result.update(status=resolved['status'], reason=resolved['reason'])
+                return result
+            model = resolved['model']
+        else: model=get(coordinates['model'])
+        dataset=get(pair['dataset']);task=get(pair['task'])
+        runtime=resolved.get('runtime') if experiment['version']>=2 else None
+        if context:context.check(result['references'],model,dataset,task,runtime)
         else:
             contract = validate_model(model['models'], model['root'])
+            if runtime is not None:
+                from .runtime_tasks import contract as runtime_contract
+                contract=runtime_contract(model,dataset,task,runtime)
             validate_task(task, dataset, contract)
             _require(contract['parameters'] > 0, 'Training selection has no trainable parameters.')
+        if experiment['version'] >= 2:
+            result['parameters_exact'] = str((context.contract[1] if context else contract)['parameters'])
         if saved_manifest is None:
             protocol=splits[coordinates['split']]['protocol']
             result['manifest'] = context.split(pair['dataset'],dataset,protocol) if context else make_split(dataset,protocol)
@@ -304,21 +358,33 @@ def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context
     return result
 
 
+def selection_count(experiment):
+    from .family_axes import total
+    return total(experiment['models']) * math.prod(len(experiment[k]) for k in (
+        'data_tasks', 'splits', 'initialization_seeds', 'protocols'))
+
+
+def selection_at(experiment, index):
+    """Shared mixed-radix coordinates for preview and portable report checking."""
+    axes = ([d['id'] for d in experiment['data_tasks']], [s['id'] for s in experiment['splits']],
+            experiment['initialization_seeds'], [p['id'] for p in experiment['protocols']])
+    values = []
+    for axis in reversed(axes):
+        index, digit = divmod(index, len(axis)); values.append(axis[digit])
+    from .family_axes import at
+    return dict(zip(('model', 'data_task', 'split', 'initialization', 'protocol'),
+                    [at(experiment['models'], index), *reversed(values)]))
+
+
 def preview_experiment(experiment, resolve, *, offset=0, limit=100):
     """Bounded explicit page; incompatibles/exclusions are NOT filtered out."""
     validate_experiment(experiment)
     _require(_integer(offset) and _integer(limit, 1, 1000), 'Preview offset/limit must be integers; limit 1..1000.')
-    axes = (experiment['models'], [d['id'] for d in experiment['data_tasks']], [s['id'] for s in experiment['splits']],
-            experiment['initialization_seeds'], [p['id'] for p in experiment['protocols']])
-    total = math.prod(map(len, axes)); rows = []
+    total = selection_count(experiment); rows = []
     context = _PreviewResolution(experiment,resolve) if offset<total else None
     # Mixed-radix indexing: large offsets do not enumerate skipped combinations.
     for index in range(offset, min(total, offset + limit)):
-        value = index; coordinate = []
-        for axis in reversed(axes):
-            value, digit = divmod(value, len(axis)); coordinate.append(axis[digit])
-        coordinate.reverse()
-        rows.append(_candidate(experiment, dict(zip(('model', 'data_task', 'split', 'initialization', 'protocol'), coordinate)), resolve,context=context))
+        rows.append(_candidate(experiment, selection_at(experiment, index), resolve,context=context))
     return {'version': 1, 'experiment': object_reference('experiment', experiment), 'offset': offset, 'limit': limit,
             'total_combinations': total, 'candidates': rows, 'next_offset': offset + len(rows) if offset + len(rows) < total else None,
             'scope': 'bounded-selection-preview; no-fitting-or-training'}
@@ -327,15 +393,28 @@ def preview_experiment(experiment, resolve, *, offset=0, limit=100):
 def candidate_bundle(experiment, coordinates, resolve, *, saved_manifest=None):
     selected = candidate(experiment, coordinates, resolve, saved_manifest=saved_manifest)
     _require(selected['status'] == 'compatible', selected['reason'] or 'Selection is not executable.')
-    return task_bundle(*[_get(resolve, selected['references'][kind]) for kind in ('model', 'dataset', 'task')],
-                       selected['manifest'], selected['protocol'])
+    if experiment['version'] >= 2:
+        from .family_axes import resolve_model
+        resolved=resolve_model(experiment['models'], coordinates['model'], resolve, version=experiment['version'])
+        model=resolved['model']
+    else: model = _get(resolve, selected['references']['model'])
+    return task_bundle(model, *[_get(resolve, selected['references'][kind]) for kind in ('dataset', 'task')],
+                       selected['manifest'], selected['protocol'],
+                       runtime=resolved.get('runtime') if experiment['version']>=2 else None)
 
 
 def validate_dependencies(kind, doc, resolve):
     for ref in dependencies(kind, doc):
         _get(resolve, ref)
+    if kind == 'experiment' and doc['version'] >= 2:
+        from .family_axes import validate_dependencies as check_choices
+        check_choices(doc['models'], resolve, version=doc['version'])
+    if kind == 'specialization':
+        from .family_records import validate_specialization_dependencies
+        validate_specialization_dependencies(doc, resolve)
     if kind == 'run':
         experiment = _get(resolve, doc['selection']['experiment'])
+        _require(doc['version'] == experiment['version'], 'Run version must match its selected experiment grammar.')
         resolved = doc['resolved']
         selected = candidate(experiment, doc['selection']['coordinates'], resolve,
                              saved_manifest=resolved['manifest'] if resolved is not None else None)
@@ -350,6 +429,37 @@ def validate_dependencies(kind, doc, resolve):
                                 saved_manifest=resolved['manifest']), attempt['result'])
             else:
                 _require((selected['status'] != 'compatible') == (attempt['stage'] == 'compatibility'), 'Attempt failure stage contradicts selection compatibility.')
+
+
+def admit_run(workspace, record, *, select=True):
+    """Atomically retain derived provenance and a validated terminal record.
+
+    Reconstruct from the pinned experiment, never trust a worker's extra rows.
+    This also serves GUI completion/recovery and rejects partial forged evidence.
+    """
+    from .revisions import frozen_document
+    _require(type(select) is bool, 'Run admission select must be boolean.')
+    doc = frozen_document('run', record)
+    if doc['version'] == 1: return workspace.put_spec('run', doc, select=select)
+    experiment = _get(workspace.get_spec, doc['selection']['experiment'])
+    _require(experiment['version'] == doc['version'], 'Run version must match its exact experiment grammar.')
+    selected = candidate(experiment, doc['selection']['coordinates'], workspace.get_spec,
+                         saved_manifest=doc['resolved']['manifest'] if doc['resolved'] else None)
+    if doc['resolved']:
+        _require(selected['status'] == 'compatible' and selected['references'] == doc['resolved']['references'],
+                 'Run derived provenance does not match its exact family selection.')
+    from .family_records import _atomic, retain
+    with _atomic(workspace):
+        if doc['resolved'] and 'specialization' in doc['resolved']['references']:
+            ref = doc['resolved']['references']['specialization']
+            exists = workspace.db.execute('SELECT 1 FROM spec_revisions WHERE kind=? AND id=? AND revision=?',
+                                          (ref['kind'], ref['id'], ref['revision'])).fetchone()
+            if not exists:
+                result = retain(workspace, family_ref=selected['references']['family'],
+                                bindings=doc['selection']['coordinates']['model']['bindings'], materialize=False)
+                _require(all(result[k] == selected['references'][k] for k in ('family', 'model', 'specialization')),
+                         'Retained run provenance changed on admission.')
+        return workspace.put_spec('run', doc, select=select)
 
 
 def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, python=sys.executable,
@@ -389,7 +499,7 @@ def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, p
         stage = 'worker'
         from .transport import run_json_worker
         raw = run_json_worker([python, '-u', '-m', 'app.worker'],
-            {'kind': 'task-v1', 'bundle': bundle, 'constrained': workspace.constrained_mode,
+            {'kind': 'task-v'+str(bundle['version']), 'bundle': bundle, 'constrained': workspace.constrained_mode,
              'memory_limit_percent': memory_limit_percent}, on_progress=progress, cancel=cancel,
             cwd=str(Path(__file__).resolve().parent.parent), timeout=timeout)
         _require(digest(raw.get('bundle')) == digest(bundle), 'Worker substituted a different frozen execution bundle.')
@@ -404,8 +514,8 @@ def execute_candidate(workspace, experiment_ref, coordinates, run_id, name, *, p
         error = {'type': type(exc).__name__, 'message': str(exc) or type(exc).__name__}
     attempts.append({'number': len(attempts) + 1, 'started_at': started, 'finished_at': timestamp(),
                      'stage': stage, 'status': status, 'error': error, 'result': result})
-    record = {'version': 1, 'id': run_id, 'name': name, 'selection': selection, 'resolved': resolved, 'attempts': attempts}
-    ref = workspace.put_spec('run', record)
+    record = {'version': experiment['version'], 'id': run_id, 'name': name, 'selection': selection, 'resolved': resolved, 'attempts': attempts}
+    ref = admit_run(workspace, record)
     return {'reference': ref, 'record': workspace.get_spec('run', run_id, ref['revision'])}
 
 

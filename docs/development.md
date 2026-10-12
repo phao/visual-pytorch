@@ -1,5 +1,423 @@
 # Development state and roadmap
 
+## 2026-10-12 — A–D publication; E deliberately deferred
+
+The user requested A–D publication and moved active development to the LoRA and
+neural MS-VAR/CLI feature reports. Stage E is deferred to the distant future;
+its accepted groundwork and unmerged predictor checkpoint remain on separate
+branches, not in public main. Do not infer permission to resume E from historical
+roadmap entries below. No remote job or user workspace/config/app change occurs.
+
+Original D acceptance is complete at501e5bf; executable source matches frozen
+fe8cb80 with1274 Python cases (1271 executed/three Qt-dependent skips),359 JS,
+143 focused cases and independent/native/worker/actual-kernel evidence. See
+[scope, verification and compatibility](stage-d-acceptance.md). Fresh publication
+checks remain separately attributable; this historical full suite is not claimed
+rerun just because its code is merged into main. LoRA/MS-VAR remain unimplemented.
+
+## 2026-10-11 20:30 -03:00 — CNN/recurrent frozen-source acceptance
+
+Frozen implementation fe8cb80ddaa6c7960ca1ed247c6a68fbe86bdbff passes the
+full 1274-case Python suite in 630.759s (1271 executed, three Qt-dependent
+skips) and all 359 JavaScript cases. The fresh original-D-focused selection
+passes 143 cases in 128.347s; the new sandboxed Qt drawing/worker/reload
+harness also passes. Skips are not counted as executed tests; earlier retained-D
+native evidence covers the unchanged native modules separately.
+
+This documentation-only acceptance precedes local integration into the retained
+D branch. It does not declare all of D or E complete. Additional within-subject
+chronological splitting remains an explicit open interpretation, not an existing
+policy. LoRA and MS-VAR/CLI report requests remain deferred. No public push,
+schema change or user-state mutation occurred.
+
+## 2026-10-11 20:16 -03:00 — Original-D integrated CNN/recurrent example checkpoint
+
+Added a public stdlib-only .vtw20 generator for a scoped Family8 CNN/recurrent
+cell, ragged image sequences, explicit padding/derived lengths/mask/reset and
+trajectory/final-state objectives. The default14 learned parameters are shared
+across time. Two existing policies are exercised separately: global distinct-
+timestamp chronological roles and subject-disjoint holdout. No app/file/bundle/
+experiment/protocol grammar or old identity change. The guide defines the full
+forward, shapes, controls, objective and statistical/identifiability boundaries:
+[CNN/recurrent example](cnn-recurrent-example.md).
+
+7 new pure cases2.788s and7 numerical cases88.539s pass. Whole CNN/state outputs,
+input/initial/parameter gradients match an independent pixel-mean/row-time scan;
+six channel/activation constructors execute, with actual variable times, NaN
+padding and reset semantics. Both60-update local/worker fits have exact saved
+checkpoint/history/metrics and loss improvement. Real CLI/save/export/fresh
+app-free prediction and genuine saved/rerun kernels preserve the full case.
+Actual sandboxed Qt displays two materialized drawings/five named inputs,
+trains3 updates and reloads exact run6 without host Torch or console errors.
+
+Original D requirements are being audited against current named tests/evidence,
+not inferred from earlier broad suite counts. Current time grouping and whole-
+subject splitting do not mean chronology separately within subjects. User was
+asked about that additional interpretation; no new policy is silently invented
+or old split reinterpreted here. Original-D-focused gate is running; full frozen
+1274 Python/359 JS acceptance remains next. Original D/E incomplete, reports
+deferred, public A–C and user workspaces/config/application untouched.
+
+
+## 2026-10-11 19:28 -03:00 — Retained runtime-v2 experiment acceptance
+
+Fresh frozen0d25269b761f76c1cbc8d0924af23622f58e4d96 full suite1260 Python
+488.828s passes:1257 executed/3 native-covered Qt skips.74 actual native/pure
+4.405s,359 JS1563.330638ms,10 new pure2.477s/9 numerical46.564s, real sandboxed
+Qt v1/v2 editor/worker/reload and55 exact old1–5 experiment points pass. No
+executable/test/example changes after the implementation checkpoint; this final
+entry is documentation only.
+
+Persistent fresh saved/rerun kernel probe succeeds, with both real execution
+receipts/metrics retained privately. Both modes reproduce checkpoint
+f6abdb3cb9115e3e6fa45d54c2ab6c040beffb830bf6b6a57bef744d01853685 exactly,
+equal metrics and runtime/predictor companions; .vtw20 reload preserves run6.
+Saved reports do not train, rerun explicitly does. All captured source helpers
+remain closed and old archives are not rewritten. Initial genuine missing
+runtime companion branch and unsafe test-poll failures are retained in evidence.
+Git/campaign records identify following actual local integration/post-merge.
+
+This accepts the retained experiment6/run6/TaskBundle4/worker/report/kernel
+route, not full original D/E completion or public D publication. Next: original
+nepr D requirement-by-requirement convergence, particularly grouped temporal
+split behavior and integrated CNN→RNN evidence, before E. Reports remain
+deferred; public A–C/user workspaces/config/app process unchanged.
+
+
+## 2026-10-11 19:18 -03:00 — Retained runtime-v2 experiment implementation checkpoint
+
+Implemented explicit ExperimentSpec/RunRecord6/runtime-temporal-v2 selection,
+container20 fences (even unmaterialized6), owned experiment upgrades through6
+and visible exact choice/version control. The existing TaskBundle4 compiler,
+worker, result admission, atomic derived-row retention and saved exporter serve
+this route; no parallel trainer or new SQL table. Old1–5 policies remain closed.
+File/CLI/owned editor/reusable GUI specs are synchronized in
+[runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+
+10 new pure cases2.477s and9 numerical cases46.564s pass: actual worker/local
+checkpoints/metrics, two explicit data times sharing one constructor, real CLI
+run/reload/export/fresh prediction, historical references/retries, unavailable
+and admission failures, forgery and late atomic rollback, file20 fences, owned
+3→6 editing, real stdlib CLI preview/stdin atomic admission and missing source
+refusal before Jupyter/publishing. Genuine saved/rerun kernels reproduce exact
+checkpoint/metric/predictor outputs. Actual sandboxed Qt v1 and v2 editing,
+preview without writes, retention, real worker and reload pass with no host Torch
+or console errors.74 native/pure4.405s covers skipped native dispatch separately;
+30 focused JS568.158789ms passes.55 old1–5 selection/preview/bundle identities
+match committed pre-v2 modules exactly without heavy imports.
+
+First kernel gate exposed a real missing TaskBundle4 branch in runtime-architecture
+companion export; repaired and rerun. First old-v1 Qt smoke failed because its
+test poll dereferenced a transient missing candidate button, not an app callback;
+guarded the harness lookup and reran both variants. Raw failures remain evidence.
+No full-suite acceptance/integration yet. Freeze this complete executable/test
+checkpoint before full1260 Python/359 JS regression and persistent kernel probe.
+Then original D convergence, including grouped-temporal/CNN–RNN gates, before E.
+Reports remain deferred, full goal active, no public/main or user-state mutation.
+
+
+## 2026-10-11 18:57 -03:00 — Direct runtime-v2 task acceptance
+
+Fresh frozen ea358bb53f25480c34540380b87cd6a28f2770e2 full suite passes1241
+Python472.501s:1238 executed/3 Qt-only skips independently covered by76 actual
+native/pure3.893s.356 JS1619.059405ms and20 final focused23.223s pass. Real
+native Qt three data adapters/malformed-before-worker refusal and existing
+task-v1 240-update regression pass. Sandboxed family7→8 editor/exact export/
+history/reload regression passes, with an actual visually inspected capture.
+Three old spatial bundle/identity/six shape and four old temporal bundle/
+identity/preparation/RAM/12 shape points agree exactly with committed pins.
+
+Initial1241 full473.506s passes but overlaps source updates; it is not final
+acceptance. No executable/test/example change occurred after ea358bb; this
+acceptance entry is documentation only. Campaign evidence retains both full
+runs, initial fixture failures, native/raw numerical logs and exact source.
+Local child integration/post-merge state is recorded in Git/campaign handoff.
+This accepts only direct TaskBundle4/RunIdentity4/worker/predictor routes, not
+retained ExperimentSpec6, new notebook-v2 routes or original D/E completion.
+Next: exact experiment6/run6/container20 authoring and real retained worker/
+saved/rerun kernel gates. Public main, user workspace/config/process unchanged.
+
+
+## 2026-10-11 18:48 -03:00 — Direct runtime-v2 task implementation checkpoint
+
+TaskBundle4 now admits exact frozen Family8/Specialization7/proof2 provenance,
+actual rectangular/padded/fitted fields, shared v2 compilation, whole-case
+task/data/evidence plus LSTM-gate RAM admission, worker task-v4, checkpoints and
+standalone saved prediction. RunIdentity4 is distinct; existing1–3 contracts
+remain closed. The native QThread adapter had hardcoded task-v1; it now validates
+the bundle and sends its exact admitted kind, with failures signalled before
+worker creation. UI tooltip accurately separates backend tasks from retained
+experiment support. No SQL/container or experiment/run version change.
+
+20 new pure/numerical checks20.893s pass, including16 independent gate/Adam
+constructor fits, exact real-worker/local checkpoints/metrics/progress for four
+supervision/data cases, variable-T saved and fresh app-free predictors, explicit
+pad/derived-length versus loss masks, fitted-transform guards, independent RAM
+component validation, cancellation and pre-allocation refusals. Real Qt three
+data adapters pass with no host Torch/NumPy; existing task-v1 native adapter
+passes240 updates. Three old spatial bundle/identity points plus6 shape cases
+and four temporal bundle/identity/preparation/RAM points plus12 shape cases
+match pinned committed modules exactly. Full fresh acceptance is still pending;
+the initial running regression overlaps the native adapter/tooltip/test-name
+updates and is not the final frozen-source acceptance gate.
+
+Contract: [runtime-v2 tasks](runtime-temporal-v2-tasks.md). Next explicitly admit
+ExperimentSpec/RunRecord6, later container fence, owned experiment sessions,
+retained worker/result/report routes and actual saved/rerun notebook kernels.
+Neither that next route nor original D/E completion is claimed. Public A–C,
+user workspaces/config and app process remain unchanged; reports stay deferred.
+
+
+## 2026-10-11 18:32 -03:00 — Runtime-v2 family acceptance
+
+Fresh final full suite1221 Python430.877s passes:1218 executed/3 Qt-only skips
+independently covered by66 native/pure3.219s.356 JS1372.117225ms,116 focused
+Python13.977s and actual sandboxed Qt fixed-T/explicit7→8 variants pass.
+Implementation checkpointbdfb4b8fa03578a794e0d3ea3a49368b9694c0dd stayed frozen
+through final acceptance; subsequent product changes are documentation only.
+Exact26 family1–6/32 Family7 resolution/record comparisons and5 temporal-v1
+proofs/15 actual shapes/30 memory reports agree with pinned committed modules.
+Typed v2 task selection still demonstrably refuses before allocation/SQL writes.
+
+Initial1217-case full run434.054s also passes but overlaps the host upgrade repair
+and precedes four added regressions; it is not used as final acceptance. Failed
+fixtures/actual Qt host defect and all logs/captures are retained in campaign
+evidence/stage-d-lstm-retained-v2-20261011. Acceptance is for local retained D,
+not publication or completion: task/experiment/worker/kernel v2 routes and full
+original D gates still precede E. User app/workspace/config and public A–C stay
+untouched. Git/campaign records identify the subsequent actual local integration.
+
+## 2026-10-11 18:25 -03:00 — Retained runtime-T family implementation checkpoint
+
+Implemented explicit Family8/Specialization7/resolution6 and container19 because
+native temporal-v2 alone did not provide retained reproducible family meaning.
+Exact nullable/v2 policies, proof hashes, native compilation and checked exports
+preserve old grammar semantics. Owned Qt policy edits explicitly upgrade7→8;
+host version ceiling now admits8 but refuses downgrades/unknown versions. SQL
+retention, history and file fences stay atomic; model/task/experiment versions
+are unchanged. Contracts and CLI/UI specs are synchronized in
+[runtime-v2 families](runtime-temporal-v2-families.md).
+
+28 new pure/numerical cases pass:64 independent shape/count points at3 times,
+16 native/export constructors at3 times and all gradients, zero/NaN padding,
+35 variable-T updates per native/export route against independent student
+equations,156-element shared-owner branches with independent times, RAM guards,
+huge baseline/small actual warm start, exact legacy receipts and fresh app-free
+checkpoint prediction. Focused116 Python13.977s (3 Qt-only skips separately
+covered by66 system-Python native/pure checks3.219s),356 JS1372.117225ms,
+actual sandboxed Qt7→8/null-policy regression/exact export/history/reload pass.
+26 old-family1–6 and32 Family7 resolution/record points agree with committed pins.
+
+Initial fixture failures retained: mocked memory's origin rather than imported
+runtime binding, insufficient mocked training headroom, cross-VM JS prototypes
+and changed tooltip phrase. Actual Qt revealed the missed host upgrade ceiling;
+fixed with dedicated owned-session regressions. One early Qt test changed the
+policy before asserting its original null seed; fixed its order. An initial full
+run overlaps this repair; a fresh final full regression is underway, so no full
+acceptance/integration/publication is claimed at this implementation checkpoint.
+Retained runtime-v2 task/experiment/worker/kernel routes and original D gates
+remain required. E is unstarted and report features deferred; public A–C unchanged.
+
+## 2026-10-11 18:06 -03:00 — Runtime-T LSTM native v2 checkpoint
+
+Added a separate explicit runtime_temporal_v2 API, version-2 dependency proof,
+whole-current-B/T RAM admission and concrete standalone source because varying
+sequence lengths must reuse owners, not rebuild fixed-T specializations.
+The old temporal-v1/spatial closure refusal is unchanged. Constructor, supplied
+state and frame widths stay fixed; aliases/nested LSTM calls charge actual work.
+Inference retains conservative owner/backward allowance. Exact semantics and
+remaining route limits are in [the v2 contract](runtime-temporal-v2.md).
+
+30 dedicated pure/numerical tests pass:64 bounded constructor points at3 times,
+16 numerical constructor combinations through native/export at3 times, all
+input/state/parameter gradients, empty/NaN padding, nested full-BPTT, shared
+owners,35 variable-time Adam updates and fresh app-free checkpoint inference.
+354 JS/48 native-pure checks and actual sandboxed Family7 edit/export/history/
+reload pass. Exact old-v1 comparison agrees5 proofs/15 actual shapes/30 memory
+cases; old family1–6 agree26 resolution/record points. Final full1193 Python
+397.820s passes (1190 executed;3 Qt-only skips covered by48 native/pure1.185s),
+354 JS1424.369562ms and final97 focused checks11.666s pass. A separate manual
+six-case native/export probe verifies independent-T branches sharing156 parameters,
+all input/state/owner gradients and unchanged ownership. It is not six extra
+unittest discovery cases.
+
+The first full1193 run387.592s exposed two genuine notebook export failures:
+the shared exporter required temporal_shapes_v2.py but generated notebook
+bundles did not capture it. Added the helper to capture/verification, extended
+the missing-dependency refusal before kernel start, and preserved original
+historical fixture runtime selections. Five dedicated real-kernel/dependency/
+legacy checks31.072s and the full fresh rerun pass. Earlier pure/numerical
+fixture mistakes and missing Qt PYTHONPATH remain recorded, not hidden.
+
+This is an incomplete D route checkpoint, not Family8/TaskBundle4 support or
+D/E completion. Retained grammars/container18 unchanged; scientific v2 families,
+Qt/CLI, workers/checkpoints and real notebook parity are next. No main/public,
+user workspace/configuration or app restart. Future reports remain deferred.
+
+## 2026-10-11 17:33 -03:00 — Fixed-T LSTM architecture families
+
+Family7 admits explicit integer hidden-size/layer/projection and boolean
+bias/direction constructor assignments. Its closed integer selection AST derives
+the different hidden/cell and direction-dependent shapes from the same symbols.
+Specialization6 retains exact contexts/bindings/null runtime; resolved receipt5,
+ModelRevision4 and .vtw18 keep old scientific meanings intact. LSTM requires null
+family policy; runtime-temporal-v1/spatial policies still reject it. No new SQL
+table, task/experiment/protocol grammar or sidecar. Opening old files is read-only.
+Exact grammar, example, CLI and UI/export behavior: [LSTM families](lstm-families.md).
+
+Independent tests cover16 constructor combinations through native/checked family/
+ordinary concrete exports, all input/state/parameter gradients, zero lengths,
+NaN padding, semantic suffix identities, atomic strict/explicit partial warm starts,
+35 updates against an independent gate teacher and a real typed worker.100 pure
+bounded points verify counts/shapes without Torch. Real CLI preview/export/save/
+no-overwrite and .vtw18 fences/rollback pass. Committed pre-Family7 source at
+254e16348c45986ea586070ff60ceb22ac63b34f reproduces26 family1–6 receipts/records
+exactly. Real Qt seeds Family7 from a drawing, edits selection/default cards,
+retains invalid text, previews without SQL mutation, exports exact checked source,
+materializes and preserves historical rows through undo/redo/reload. Native42
+checks cover the3 Qt-only skips. Full1163 Python500.803s and354 JS2087.581504ms
+pass. Python runtime stayed fixed during full numerical/captured closure checks;
+the final omitted-type presentation correction has its own full JS/native checks.
+
+`tests/probe_lstm_family_experiment.py` also executes a genuine ExperimentSpec3
+family choice/typed bias axis, retains Specialization6/ModelRevision4, runs the
+real worker, and executes both result-report and rerun notebook kernels. Their
+checkpoint IDs and metrics match exactly and .vtw18 reload passes. This is a
+concrete specialization, not variable-T fitting. Whole-kernel artifacts remain
+private; no research-performance claims arise from the tiny fit.
+
+Initial failures preserved: incorrect preview-type/unbound-error expectations,
+captured helper never initialized (fixed), wrong task-bundle `split` key in the
+test (`manifest` is the actual contract), and historical undo inspection using
+a removed browsing head instead of its exact retained revision. The visible
+integer-type dropdown had an independent presentation fix. No tests were relaxed
+to accept unsupported runtime, malformed bindings or missing provenance.
+
+Integrate only into retained task/stage-d-families after verified checks/ancestry;
+public A–C main remains d2fcecbb. Next: a separately versioned runtime-T LSTM
+grammar and complete native/family/task/kernel/state/gradient/memory routes, then
+original nepr/nars D acceptance convergence and E. Neither full goal nor campaign
+is complete; new report features are deferred. No user workspace/config/app
+mutation, public push, new campaign or hidden source fork.
+
+## 2026-10-11 17:02 -03:00 — Guarded concrete LSTM creation and editing
+
+The resumed child now delivers Building blocks' typed LSTM branch form and
+Inspector's in-place constructor/source/parameter-owner editor. Qt and CLI
+prepare-lstm/prepare-lstm-edit/add-lstm/edit-lstm share the allocation-free builder.
+Explicit state dimensions/three return ports, unique boundaries, old input order,
+stable IDs/outgoing wires and unrelated drafts are preserved. Affected paths,
+sharing peers, raw reachable graph/name/geometry tokens and workspace-instance
+guards refuse incompatible/stale edits instead of silently resizing other work.
+Actual edits are one undo/redo step; proved default-prefill no-ops preserve SQL.
+Legacy attached data/results clear on real edits; immutable revisions remain.
+Parameter-sized layout includes LSTM owners/aliases. No storage/runtime grammar
+change: .vtw17/ModelRevision4; family1–6/runtime-v1 still reject LSTM.
+
+Fixed strict CLI parsing at the common read_json file/stdin seam, including
+duplicate keys, NaN/Infinity and overflow1e309, without bypassing existing tests.
+New tests caught a real implicit-default no-op mutation, now repaired. Initial
+full1132 run failed one obsolete global64-cap UI assertion: only the closed
+LSTM stack-depth field is now exempted, not feature/sample/epoch controls.
+All initial failures are retained in private campaign evidence. Real captures
+also exposed retained modal scroll hiding its title; reopening resets scroll.
+Wrong post-acknowledgement workspace refresh errors retain the draft rather than
+claim success. Cancel fences late view delivery, not an already authorized write.
+
+Final1132 Python428.355s passes (1129 executed/3 Qt-only skips separately covered
+by33 native/UI cases0.136s). Full352 JS1696.590397ms passes. Focused102 pure/CLI
+cases1.406s and18 authored/original numerical cases3.637s pass. Independent gate
+scans check authored/edited native and generated outputs and all gradients;
+35-update fitting checks exact loaded predictions. Existing real task/worker,
+saved/app-free and actual notebook kernels remain in the full regression.
+Numerical/CLI Python runtime stayed fixed throughout that rerun; final UI-only
+scroll/refresh corrections have final full JS and actual native form checks.
+
+Actual sandboxed Qt/std-lib host tests create/edit from real controls, verify
+explicit projected/bidirectional states, cancel/no-op/refusal/stale behavior,
+atomic history/save-reload and no host Torch/config mutation. Imported-LSTM
+compact drag, Space/Help/control guards, generic recurrent creation and MLP/CNN
+interface editing plus panel preset/stacking/snap/large-font regressions pass.
+Durable painted captures were inspected. First incorrect palette-opening fixture,
+missing Xvfb launcher and teardown warning are retained; final offscreen Qt
+checks need no Xvfb and delete pages before their profile without that warning.
+
+Contract: [LSTM authoring](lstm-authoring.md); file/CLI/portable UI specs aligned.
+This is a local D checkpoint, not D/E completion or public publication. Public
+A–C stays d2fcecbb. Next explicit LSTM family/runtime-T grammars and original D
+requirement convergence, then E. Two user feature reports are pinned/assessed in
+the campaign; no whole A–C rebuild or D/E delay is indicated. LoRA policy/init/
+arithmetic, MS-VAR likelihood/representation and broader CLI discovery remain
+future versioned work after E, not implemented metadata.
+
+## 2026-10-11 16:28 -03:00 — Unmerged LSTM authoring draft
+
+Interrupted authoring work is preserved on `task/stage-d-lstm-authoring`, based
+on720d7db, not merged into retained D/main. Shared pure builder, desktop bridge,
+CLI preparation/apply and parameter-layout proof are drafts; no JavaScript form
+or dedicated authoring acceptance exists. Focused existing76 tests yield72 PASS
+and four failures because new strict CLI parsing bypasses their `read_json`
+input mocks. Retain those failures, repair the intended seam and prove serialized
+CLI/native/numerical behavior before integration. Full acceptance has not run.
+See [precise continuation handoff](draft-lstm-authoring-handoff.md).
+
+## 2026-10-11 16:10 -03:00 — Concrete LSTM state gate and Help hub
+
+Local D now implements concrete stacked, bidirectional and projected LSTM with
+explicit supplied initial states/lengths and named sequence/hidden/cell outputs.
+See [exact contract and remaining authoring limits](lstm-graph-contract.md).
+Container17 and ModelRevision4 fence the new operator; family1–6 and existing
+runtime-spatial/temporal-v1 still reject it. A–C public main stays unchanged.
+No claim of runtime-T LSTM, palette creation or guarded constructor editing.
+Parameter-sized layout for LSTM also remains to be integrated.
+
+Independent explicit gate/gradient scans cover16 constructors, row-specific
+packing, nonfinite padding, zero-length gradients/state identity, shared ownership
+and nested/mixed graphs. Bounded70-update teacher fitting and60-update masked
+task/real worker, restored/app-free predictions and actual saved/rerun kernels
+pass. Full frozen Python runtime1102 tests469.637s passes (3 Qt-only skips covered
+in11 native export cases0.876s). After that suite completed, Help changed frontend
+and native desktop dispatch only; full337 JavaScript tests,39 focused Python
+UI/preset tests and actual sandboxed Qt LSTM/Space/Help plus workspace-panel
+checks pass. The entire Python suite was not rerun after those UI-only changes.
+
+Space toggles the selected block, respecting typing/native controls and history.
+Help replaces the bottom shortcut caption, with H toggling, a24-row table and
+separate drawing/learning-resource sections. Links scroll locally without
+changing architecture navigation; external official PyTorch resources use an
+allowlist and system-browser launch on explicit clicks. Native tests intercept
+the OS browser launcher, not a real user's browser. Help is tab-local and excluded
+from unchanged version-1 five-panel presets; ordinary frame/layer behaviors apply.
+Actual large-font/narrow-table, drag/resize, no-SQL/config/history mutation and
+existing preset/open-tab/ESC-hide behavior are verified. Future richer Help
+documentation/NN examples are a direction, not implemented full guides.
+
+Remaining D requires coherent LSTM authoring and explicit new family/runtime
+grammars plus requirement-level convergence. E durable/distributed execution is
+still unstarted. Full A–E goal remains active; no public D push or user-state edits.
+
+## 2026-10-11 15:30 -03:00 — A–C published; retained D restored and verified
+
+GitHub push succeeded; remote main matches
+d2fcecbb010a3c690d8c66ce47e3223e730ed59b. Only after that confirmation, merged
+published A–C into retained task/stage-d-families atcc785c8, preserving all D work,
+both additive documentation histories and .vtw16 support. The daily checkout is
+back on D; main/public remains the independently verified version-6 A–C checkpoint.
+No user file downgrade, configuration edit or application restart.
+
+Fresh combined1069 Python403.353s pass (1066 executed/3 Qt-only skips explicitly
+covered by3 native export cases0.115s). All324 JS1476.20234ms pass. Actual native
+and sandboxed Qt recurrent-interface editing, temporal family/task real-worker
+execution/save-reload, experiment fit/retry/recovery/report generation and
+saved/eight-fit-rerun notebook kernels/failure/timeout/Stop pass. Source stayed
+fixed during those captured-runtime tests. Private campaign evidence records the
+initial failures and exact publication/merge/test distinctions.
+
+No new D feature is claimed by merging A–C. Remaining D includes the original
+projected/bidirectional state gate; the deferred LSTM draft is not supported code.
+E durable/distributed execution remains unstarted. The full A–E goal stays active.
+The initial prerelease/tag is unchanged; this source push is not a new installer.
+
 ## 2026-10-11 15:20 -03:00 — A–C publication convergence
 
 The user's priority is verified A–C → GitHub push → only then resume D–E.
@@ -30,6 +448,762 @@ historical acceptance entries below remain unchanged. After the authorized push,
 merge these corrections into retained D and restore the newer-format checkout
 before continuing D. Public origin status must be checked after the actual push,
 not inferred from this prepared checkpoint.
+
+## 2026-10-11 14:35 -03:00 — Existing recurrent interface reconfiguration
+
+Inspector now offers an advanced prefilled JSON interface editor, with exact
+child signatures and available source IDs, explicit replacement references and
+retained error drafts. Qt and CLI prepare-recurrent-edit/edit-recurrent share
+one pure builder. Stable root/block/port IDs, layout, input order, non-target
+nodes and outgoing wires are preserved. Incoming wire changes follow explicit
+bindings; connected return ports cannot be dropped. Affected paths, dependencies,
+owners and sharing peers are checked without silently deleting unrelated drafts.
+Unused former Inputs remain visible and must be explicitly cleaned up before
+whole-drawing compilation. True no-ops preserve SQL/history/dirty state; actual
+edits are one undo/redo step and clear legacy data/results, not independent specs.
+Parent graph plus current/candidate closures and workspace-instance guards refuse
+stale edits/replay/reload. Native JSON rejects duplicate keys; old modal responses
+cannot replace a newer editor. No format or execution grammar changes.
+Exact contract: [recurrent-interface-editing.md](recurrent-interface-editing.md).
+
+Final source stayed fixed during1054 Python362.048s (1051 PASS/3 native-covered
+skips),324 JS1340.753324ms and37 native/pure0.315s. Added20 pure and2 numerical
+unittest cases plus3 JS cases. Native dispatcher and real sandboxed WebEngine
+MLP/CNN editing pass, with actual box/Apply/Cancel clicks, invalid/stale refusal,
+stable sockets, one undo/redo and save/reload; old creation/socket/compact-drag
+workflow also passes. Independent edited-role forward/all gradients,40-update
+fitting and exact app-free loaded-weight predictions pass. Initial unused-branch
+proof errors led to the private affected-path proof; an incorrect native test
+class name and synthetic-pointer capture failures were test-fixture errors,
+corrected without weakening production checks. Private campaign evidence retains
+available raw failures/successes. No main/public integration or user-state writes.
+
+The JSON modal is delivered advanced editing, not a claim that all D authoring
+or acceptance is complete. Next finish remaining D acceptance and then E durable/
+heavyweight execution, preserving accepted bounded A/B/C rather than reopening
+them indefinitely. Full A–E goal remains active.
+
+## 2026-10-11 14:06 -03:00 — Explicit temporal scientific execution
+
+ExperimentSpec/RunRecord5 in .vtw16 explicitly select runtime-temporal-v1;
+TaskBundle3/RunIdentity3 capture exact family6/specialization5/model provenance.
+Data/task bindings supply the actual rectangular T while constructor frames,
+states and learned dimensions remain fixed. Native/worker fitting, restored and
+checked app-free predictors and actual saved/rerun notebook kernels use one
+validated compiler path. Current-minibatch nested-unroll copies/controls join task
+RAM admission and are independently reproduced by stored result validation.
+Fitted inputs retain saved raw field and processed shapes; explicit pad remains
+literal collation, not automatic resizing or inferred controls/loss masking.
+
+Owned Qt Family execution adds Runtime sequence T and queues explicit5 before
+the policy edit; selecting concrete/spatial never downgrades an acknowledged5.
+Existing CLI preview/run-candidate/evidence/export/notebook operations share the
+versioned contract. Old experiment choices never opt in; null or spatial witnesses
+cannot impersonate temporal execution. Concrete identity1/spatial identity2 remain
+byte-identical on3 pinned bundle fixtures and6 spatial actual-shape cases.
+
+Final unchanged-source1032 Python358.777s (1029 PASS/3 Qt-only skips covered in127
+native/pure4.930s),321 JS1447.211262ms and real sandboxed Qt temporal/spatial
+selection/preview/worker/save/reload pass. Added19 unittest cases/1 JS case.
+Independent per-row recurrence/Adam comparison uses float32 tolerance after
+matching float64 additive reduction, not a bitwise claim across differently batched
+linear kernels. Native/worker checkpoints/history and native/fresh app-free
+predictions remain exact. CNN transition fitting, new-T inference, explicit pad/
+standardization lowering, unavailable supervision, current RAM, CLI fit/export,
+forged identities and real saved/rerun kernel checkpoint/metric equality pass.
+
+Initial failures were fixture/API assertions: wrong exception class, passing an
+unsupported validator keyword, validating the transport's full bundle as a stored
+artifact, and mismatched oracle reduction precision. Corrected tests without
+relaxing execution/provenance guards; raw failed/final logs remain private campaign
+evidence. Python source/discovered tests stayed fixed throughout the full suite.
+Actual Qt capture was inspected; DOM/WebChannel workflow, not native mouse evidence.
+
+Public `examples/temporal_experiment.py` creates a new GUI-ready workspace without
+Torch; --train explicitly runs two default-constrained12-update demonstrations at
+T=3/7. First observed (update4)→final train objectives are0.227049→0.0189748 and
+0.304974→0.0122513, not claimed initialization losses. Existing-file refusal leaves
+bytes unchanged. Each trial is an independent instance of one exact family, not
+shared weights across trials. Exact contract: [temporal-task-execution.md](temporal-task-execution.md).
+
+Next finish remaining D authoring/acceptance, then E durable/heavyweight execution.
+Existing-node recurrent interface reconfiguration is still explicit CLI edits;
+the Qt modal only creates. Dynamic derived-control adapters, changing-T fitted
+preprocessing and ragged implicit collation are not silently added. D/E/full goal
+remain incomplete/local. No main/public integration or live user app/config/
+workspace/desktop changes, source fork, new campaign or CPW cleanup.
+
+## 2026-10-11 13:36 -03:00 — Retained temporal family and exact construction
+
+Family6 requires nullable runtime_policy (only nonnull runtime-temporal-v1) and
+permits closed Recurrent references/scoped child constructors. Specialization5
+retains the exact nullable witness and constructor contexts; container15 gates the
+new grammar without SQL tables. Admission/load/save re-prove frozen model and
+policy provenance. Exact historical `compile_specialization` explicitly constructs
+native models without drawing/head writes. Checked family export captures the
+selected policy and stable semantic Recurrent owner identities across baseline T;
+compatible warm starts transfer weights, not optimizer/hidden state.
+
+The owned Qt form explicitly upgrades policy edits to6, preserves required null
+and malformed text, and never converts spatial axes silently. Drawing capture with
+Recurrent seeds a fixed family6. Existing CLI preview/atomic specialization/export
+share the closed contract. Materialization copies the complete Module/Recurrent
+closure children-first with late-write rollback. The real Qt check found omission
+of recurrent bodies after an initial green unit suite; fixed it and added two
+focused closure/rollback regressions before final full verification.
+
+Final unchanged-source1013 Python322.005s pass (1010 PASS/3 Qt-only skips covered
+in101 native/pure2.248s),320 JS1437.348942ms, actual sandboxed Qt editing/preview/
+retention/export/materialization/reload and10 pinned family1–5 receipt/record
+comparisons pass. Added25 unittest cases and4 JS cases. Independent row/CNN
+outputs/all gradients, exact historical/null witness, forgery refusal, current RAM,
+80-update mixed-T fit with unchanged owner/optimizer IDs, cross-baseline warm starts
+and fresh app-free loaded-weight predictions pass. The disposable public
+`examples/temporal_family.py` reloads .vtw15 and matches native/export outputs
+at T=3/7/11. Actual Qt capture was inspected, not used as numerical evidence.
+
+Private evidence retains failed commands/fixtures, owned-version publication bug,
+first1011-test pass, failing Qt materialization and final corrected-source run.
+Production Python/discovered tests were fixed during both full numerical/kernel
+runs. Canonical sole source remains this checkout; campaign stores evidence only.
+Exact specification: [temporal-families.md](temporal-families.md).
+
+Next implement explicit temporal execution selection through Experiment/Run/
+TaskBundle, typed data/task bindings, workers, predictors and actual notebook/report
+paths. The existing runtime task service still requires spatial family5/
+specialization4; helper capture and ordinary materialization are not selection.
+Existing recurrent interface reconfiguration remains explicit CLI edits. D/E/full
+goal remain incomplete/local; no main/public or live user state changes.
+
+## 2026-10-11 13:00 -03:00 — Temporal graph runtime foundation
+
+Explicit `compile_model(..., runtime_temporal={root_input_id:[0]})` now permits
+declared semantic T variations on a concrete graph without rebuilding parameters.
+The allocation-free dependency proof requires fixed transition frames/states and
+learned dimensions, retaining stable roles/ports/controls. Every actual CPU
+float32 named-input call checks current shapes and whole-graph/nested-unroll RAM
+before packing/control casts. Full BPTT, active-only masking, resets, zero padding,
+sharing and explicit state remain the existing executor's semantics. Spatial
+runtime proof/shape bytes and old family grammars are not reinterpreted.
+
+`temporal_export.temporal_source` captures the exact checked eleven-module runtime
+and frozen reachable model. Import and pure proof need no Torch/app installation;
+`build_model()` creates native-path parameters explicitly. Captured outputs/all
+gradients and fresh-process loaded-weight predictions are exact. New notebook
+bundles include30 helper files; current missing imports fail before kernel launch,
+genuine old capsules still execute. No new SQL/container/family/experiment version.
+
+Final unchanged-source988 Python355.820s (985 PASS/3 Qt-only skips separately
+covered by72 native/pure1.237s),316 JS1450.782962ms and85 focused5.911s pass.
+Added34 unittest cases for pure declarations/proofs, independent row/CNN/nested
+tensor/all-gradient oracles, current RAM, invalid types/controls, all-masked NaNs,
+shared owner/optimizer identity, initial shapes and source tampering/portability.
+The manual durable `tests/probe_temporal_cohorts.py` checks independent T=(3,7)
+and(9,1) with one shared cell and full gradient parity. Three spatial spec byte
+comparisons and27 actual-plan byte comparisons match pinned e1402bd exactly.
+`examples/temporal_runtime.py` trains one10-parameter cell at T=4/7,60 updates:
+loss0.287035→0.000228155 under default constraints; actual-case T=11 preview passes.
+
+Earlier failures were fixture guard selection, CNN parameter ordering, unannotated
+concrete control axes and a state-axis mismatch before the intended proof test.
+The first full984-test pass preceded a real review finding: false-like non-boolean
+preview gradient flags could be accepted in training mode. Reproduced it, added
+strict validation and train/eval tests, then reran the full suite. Both full runs
+held production Python fixed; private evidence retains failed/probe/first/final
+logs rather than presenting the earlier run as final verification.
+
+Exact API/limitations: `runtime-temporal-contracts.md`. This remains a local D
+checkpoint. Next retain an explicitly versioned temporal family/specialization
+proof and select it via owned GUI/CLI and data/task/experiment/worker/notebook
+paths. Mere helper capture does not enable such selection. Existing recurrent
+interface reconfiguration remains explicit CLI edits. D/E/full goal incomplete;
+no public/main integration or live user app/config/workspace/desktop changes.
+
+## 2026-10-11 12:18 -03:00 — Recurrent palette/Inspector and agent authoring
+
+The concrete recurrent backend now has actual Qt authoring: a reusable-transition
+palette form requires explicit sequence/state roles, matching next-state Outputs,
+T, returned sequences and optional exact controls. It appends a separately
+validated branch, preserving existing work and input order, with unique stable IDs
+and boundary names. Initial states are supplied data; all generated root Outputs
+still need explicit task heads. The Inspector shows roles/sources/shapes/adapters/
+returned ports, explains recurrence, opens body details and exposes compatible
+sharing. The type loop icon, folding, compact drag, themes and existing menus stay
+in the accepted UI scheme. Physical sockets follow distinct declared sources and
+returned ports; individual wire edits cannot discard unrelated arguments. Moving
+between recurrent argument sockets leaves the old argument visibly disconnected.
+Subsequent layers/router/Output creation use the selected port's tensor shape.
+
+Pure `app/recurrent_authoring.py` serves Qt and CLI. Read `prepare-recurrent`
+exposes exact interface/graph/transition tokens; ordered atomic `add-recurrent`
+uses the same builder. Native workspace-instance/graph/closure guards reject stale
+forms, retries and same-UUID reloads without SQL/history changes. Successful Qt
+creation is one undo step. Legacy attached data/results clear because supplied
+Inputs change; independent scientific revisions remain. Existing invalid parent
+drafts are not silently repaired. The exact option/node/UI/CLI contracts are in
+`recurrent-graph-contract.md`, `vpw-cli.md` and `UI-AGENT-HANDOFF.md`.
+
+Final954 Python318.239s (951 PASS/3 Qt-only skips separately covered by55 pure/
+native checks0.847s),316 JS1295.817222ms, native ownership/undo/reload, actual
+sandboxed Qt MLP/CNN/two-state creation/rewiring/compact drag/selected-port/stale
+refusal/save-reload and all256 block/theme pairs pass. Sixteen new Python cases
+include independent tensor/all-gradient oracles and a60-update mixed-branch fit
+whose loss is below10% of start, with exact trained native/app-free prediction
+agreement. Thirteen JS cases cover ordered/deduplicated ports and atomic wire
+editing. Existing panel presets, font/window samples and snap gestures pass.
+Earlier fixture and offscreen button-hit failures are kept in private evidence,
+not hidden by weakening admission. Production Python was unchanged during live
+full numerical/export/kernel regression execution.
+
+This remains a local task-branch checkpoint, not D/E acceptance or a public
+release. A temporal architecture-family/runtime grammar remains required before
+root T can vary under retained family/experiment execution. Existing family1–5
+and `runtime-spatial-v1` still reject recurrence. Existing recurrent interface
+reconfiguration is via explicit CLI node edits for now, not the creation modal.
+No new SQL/version, task/loss policy, main integration, GitHub push, user app
+restart, workspace/config/desktop change or source fork is claimed.
+
+## 2026-10-11 11:47 -03:00 — Shared launcher/palette stacking
+
+Removed Building Blocks' “A LITTLE GUIDANCE” at the user's request; per-block
+About and hover descriptions remain. PANELS and all five palettes now share
+one click-to-front menu layer above blocks, including expanded palettes.
+Restoring an expanded palette retains current stacking instead of restoring its
+old z-index with its geometry. Collapse/restoration raises the launcher without
+making it permanently privileged. Version-1 preset palette order is unchanged;
+the pack's transient place among palettes is not newly persisted.
+
+Four new panel tests, all303 JS tests, nine Python workspace-preset tests,
+native bridge CAS/ownership/presentation checks and actual sandboxed Qt native-
+mouse overlap/expanded-restore/snap/preset/navigation/six-font-viewport checks
+pass. The browser checks leave science/history/config unchanged and import no
+Torch in the host. Offscreen Chromium may emit teardown shared-image warnings;
+the app JavaScript console is clean. No whole numerical-suite rerun is claimed
+for these web-only changes. This bounded checkpoint does not complete recurrent
+GUI authoring or D/E, and is not integrated into main or remotely published.
+
+## 2026-10-11 10:33 -03:00 — Explicit recurrent transition execution foundation
+
+`app/recurrent.py` compiles one existing transition graph with explicit stable
+sequence/state bindings and positive runtime T. There is one shared parameter
+object, not a finite independent repeat or hidden between-call state. Multiple
+state streams, masks/lengths, active-only resets to call-initial state, zero padded
+outputs and full BPTT are implemented. CNN operations, spatial CHW states, nested
+references and tied parameters work inside the transition. Current-B/T whole-unroll
+RAM admission occurs before allocation/execution; controls are strictly typed.
+Snapshot/export captures only the reachable runnable closure, never datasets,
+results or unrelated drafts. Checked portable source uses the same forward/RAM
+helpers and parameter paths. Semantic identity excludes presentation and labels.
+
+The precise API, policies, safety limitations and primary references are in
+`recurrent-transitions.md`; `examples/recurrent_transition.py` is runnable.
+37 focused tests pass, including independent functional outputs and all gradients,
+40-update MLP/30-update CNN fits, masking/reset/NaN padding, shared weights, manual
+chunk carry, real app-free subprocess inference/training and allocation refusal.
+Final unchanged-source regression:908 Python tests296.513s (905 PASS/3 Qt-only
+skips covered by93 native-export checks3.124s),299 JS1164.833592ms and107 pure/native
+tests1.982s pass.37 focused cases2.536s and the actual default-constrained example
+pass. The earlier pre-closure full run passed907 tests293.532s; its Jupyter paths
+deprecation warning and the wrong-cwd native launcher probe are retained in
+campaign evidence. Final full regression has no warnings or failures.
+
+This is a backend primitive, NOT a persisted recurrent graph node/family/.vtw
+revision, CLI/task-worker/report/notebook integration or new GUI feature. Those
+are the next D implementation steps. There is no new storage grammar/container,
+GPU/fusion/tracing claim, automatic loss masking or optimizer skip policy. A
+trainer must explicitly skip updates for all-invalid objectives: zero gradients
+do not suppress existing Adam momentum/decay. D/E and the full goal remain active,
+on local task/stage-d-families only. No main integration, publication, user app
+restart, desktop/config/workspace changes, source fork or roadmap re-audit.
+
+## 2026-10-11 09:57 -03:00 — Stage D explicit runtime task execution
+
+Experiment/run v4 adds an optional per-family concrete-v1/runtime-spatial-v1
+execution choice. Omission preserves old concrete execution even for family5.
+Runtime TaskBundle2 retains exact family/specialization proof and baseline model;
+RunIdentity2 records native-runtime-spatial-v1 and the full proof digest. Container13
+gates v4 records without new tables or changed ModelRevision semantics.
+
+Dataset/task fields determine an actual rectangular H/W case within the declared
+domain. Pure shape/task checks precede preparation and current-RAM admission;
+initial runtime allocation charges the actual case rather than unused baseline
+activations. Workers, restored predictors and checked standalone source share
+that compiler. Predictors accept new H/W only for untransformed image fields;
+fitted transforms require exact saved field shapes, never refit or reinterpret.
+Named multi-input shared encoders can use distinct rectangular resolutions.
+The Qt execution selector explicitly queues grammar4 before its property and
+updates displayed/controller version on acknowledgement; no automatic upgrades.
+
+Portable notebook closure now has27 files, with runtime_tasks/family_export and
+pre-kernel missing-dependency gates preserving genuine older captured closures.
+Runtime reports add exact per-run runtime architecture exports alongside baseline
+sources and trained predictors. Fresh app-free export contains no raw records.
+
+An exploratory full run was invalidated by source edits during execution: loaded
+co_firstlineno no longer matched inspect source. Predictor helper capture now
+checks complete-module-compiled bytecode/flags/exception structure against the
+loaded implementation and refuses stale source before export. Isolated-function
+compilation gave false positives due Python optimizer context; whole-module
+compilation repairs that boundary. RAM pre-allocation mock tests now target the
+shared compile_task_model entry point rather than a removed alias. Early probes
+are retained, not hidden. Independent functional Adam weights/population means,
+actual CLI/worker fits/save/reload, app-free inference, shared multi-input fits,
+real two-resolution Jupyter rerun and sandboxed Qt opt-in/worker delivery pass.
+Final unchanged-source regression:871 tests291.637s,868 PASS/3 Qt-environment
+skips separately covered by93 pure/native tests3.040s.299 JavaScript tests
+1244.825837ms and55 focused execution/export tests31.236s pass. Full regression
+includes the nine new runtime numerical/CLI/worker/kernel cases. The real Qt test
+passes with three updates, container13 reload, no host Torch/console errors.
+
+This is branch-only/local D progress, not recurrent state/length/mask/reset/mixed
+composition or E completion. No main/public integration/push, installer change,
+user app restart or real workspace/config edits. The full goal remains active.
+
+## 2026-10-11 09:17 -03:00 — Stage D retained runtime declaration checkpoint
+
+Family v5 stores optional runtime_inputs by stable root Input ID. Specialization
+v4 retains canonical H/W axes and a specification digest rederived from its exact
+family, bindings and scoped contexts on admission/load/save. Container12 gates
+those records, with no new SQL table or runtime sidecar. Family1–4 hashes and
+concrete ModelRevisions remain unchanged; saved unresolved/incompatible family
+drafts remain repairable, but cannot become executable specializations.
+
+Owned Qt JSON editing explicitly upgrades to5, retains invalid text and respects
+owner/sequence/workspace/staging fences. Acknowledged upgrades now update the
+visible version and controller state, so later edits cannot enqueue an accidental
+downgrade. Preview labels conditional runtime safety separately from a verified
+baseline. CLI and checked family export use the exact retained source, never its
+mutable head; omitted constructor runtime_inputs adopts its captured v5 policy.
+The new spatial-adaptive.json example supports constructor C/d/K/g and runtime
+H/W with179 default parameters,375 for C=6,d=12 including biases.
+
+82 pure/native and297 JS tests pass. Seven focused numerical tests include
+independent actual outputs/input/parameter gradients, different-resolution shared
+ports, current-RAM refusal, default/override distinction,3 fresh app-free Adam
+updates and strict semantic weights-only transfer. Actual sandboxed Qt root edit,
+invalid text/explicit upgrade/preview/exact-byte export/retention/reload passes
+without host Torch or console errors; capture inspected. A real fixed-shape task
+worker and Jupyter kernel fit preserve the new exact family provenance. Those
+tasks remain concrete: variable-resolution data, recurrence/state/length/mask/
+reset/mixed composition and E are not completed by this change. Main/public refs,
+installer and actual user app/config/.vtw files are untouched. Failed probes and
+full regression counts are retained in the campaign checkpoint evidence.
+Final full suite:846 invocations in274.799s,843 passed/3 Qt-environment skips
+separately covered in system Python; all297 JS pass in1212.80614ms. No final
+warnings. See product docs/runtime-spatial-contracts.md for exact semantics.
+
+## 2026-10-11 08:50 -03:00 — Stage D: runtime spatial backend/API
+
+Native compile_model and checked exported ArchitectureFamily now accept explicit
+root-Input-ID runtime_inputs declarations for H/W, with fixed C/rank/parameter
+shapes. Allocation-free dependency propagation proves that Linear widths and
+Conv channels do not depend on runtime axes; fixed Flatten heads fail at the
+affected node with a binding/adaptive-reduction repair. Actual-call plans reuse
+operator-owned shape/axis/product/Concat/router rules, nested Module contexts and
+explicit sharing. No layer/weight/optimizer is recreated. Baseline contracts,
+scientific source/view/RNG stay unchanged. Source and declaration copies are private.
+
+Current full-batch CPU RAM admission charges actual image/activation/workspace/
+packing/parameter sizes, dtype and gradient headroom before packing or any network
+tensor computation. Unknown RAM fails closed; explicit unconstrained execution
+still checks shapes and types. Named inputs can travel through shared encoders
+at distinct resolutions; packed multi-input dynamic shapes are explicitly denied.
+Inferred Reshape executes actual targets, preserving operator hooks. Static and
+actual plans have64-context limits including pending nested parent reservations.
+These are ordinary eager CPU float32/64 contracts, not GPU/tracing/torch.compile
+certification or an allocator/OOM guarantee. Exact spec:
+[runtime-spatial-contracts.md](runtime-spatial-contracts.md).
+
+Checked exports now capture8 isolated runtime modules; notebook bundles capture
+25 files. A missing runtime_shapes.py dependency in new source fails before kernel
+launch; original earlier closures remain compatible without rewriting inputs.
+No .vtw schema change: retained families/specializations, owned typed runtime
+authoring, task datasets and worker experiments still specify concrete H/W.
+Persisted/typed runtime declarations are the next D integration, not falsely
+claimed as implemented. Recurrence/state/length/mask/reset/mixed composition and
+E remain. D is branch-only/local/incomplete, full goal active, no roadmap re-audit.
+
+Focused final23 system-Python pure/native tests0.563s and24 numerical4.835s pass.
+The23 include the three native export cases skipped in numerical Python. New
+runtime tests cover the179-parameter adaptive head at24 pure spatial cases and
+independent functional outputs/input/parameter gradients at multiple resolutions;
+non-square pooling/Permute, shared nested calls, named inputs, variable outputs,
+inferred Reshape, strict pre-layer/RAM rejection, stable Adam identities across3
+updates, private source/spec copies and fresh app-free3-update exported execution.
+293 JS1194.775594ms and real sandboxed Qt export byte equality/unchanged SQL/
+retention/reload pass without host Torch or console errors.
+
+Final full824 tests266.423s passed:821 PASS/3 Qt-only environment skips, with those
+three native cases separately passing in system Python. No final ResourceWarnings.
+Existing actual notebook/worker/legacy closure regressions pass; current new
+bundles include25 runtime files. Earlier full823 tests265.856s passed (820 PASS/
+3 same skips) before the pending-context reservation regression. First added pooling
+fixtures incorrectly fed logical[C,W,H] to NCHW pooling; pure and numerical
+validators correctly rejected them. Fixed fixtures with explicit restoring
+Permute and added negative assertions; retained failed logs. The nested fan-out
+review found pending parent plans were not counted by completed-cache length;
+explicit reservation now rejects before the65th context, verified separately.
+
+No main integration/publication, installer/real user app/config/workspace mutation,
+new dependency install or source fork. Earlier entries remain historical.
+
+## 2026-10-11 08:30 -03:00 — Stage D: checked standalone family export
+
+An exact retained family revision now exports one standalone Python file exposing
+ArchitectureFamily(bindings=...). The captured seven-module resolver/compiler
+closure supports grammars1–4, local constructors and explicit sharing, without
+requiring this app at execution time. Generation creates no model or tensors and
+does not specialize, train, mutate SQLite or select a mutable family head. Native
+CLI export-family and the retained-family Qt button use the same implementation;
+exclusive new-file writes refuse existing paths. Captured workspace policy and
+user RAM percentage are explicit. Constructors validate and admit whole-model
+memory before allocating ordinary CPU float32 PyTorch layers.
+
+Semantic snapshots/warm starts match typed family/template/call/owner/parameter
+identities and exact shapes/dtypes, rather than layer-list positions. The source
+bindings/schema are reproduced before tensor inspection; source/target RAM
+admission uses the target policy. Complete validation precedes copies. Partial
+matching is reported; strict incompatible loading changes nothing. These are
+same-family/revision/runtime warm starts, not optimizer or RNG continuation,
+cross-family migration, authentication, or device-copy rollback guarantees.
+Specification: [checked-family-export.md](checked-family-export.md).
+
+Final full run:797 tests in263.649s,794 passed and3 Qt-only environment skips.
+Those native tests pass explicitly in system Python (11 focused tests,0.507s).
+JavaScript293/293 passes1128.904157ms. Final focused numerical11/11 passes2.821s,
+including a later added CPU/float32 check under double/meta process defaults;
+that extra test is not counted in the797 full run. Independent branched/CNN/
+multi-input/split-output forward and gradient oracles, native parity, hooks,
+independent/tied Adam state, semantic moved-head/shape/dtype/forgery checks and
+RAM rejection before layers/tensor finiteness checks pass. Fresh app-free source
+execution performs3 Adam updates and strict warm start with equal predictions.
+Existing notebook/worker regressions pass in the full suite; no new exported-class
+Jupyter kernel claim. Numeric runs were serial/one-threaded, with no final
+ResourceWarnings. First full run796 also passed; one early pure fixture named a
+nonexistent example and was corrected without weakening assertions.
+
+Actual sandboxed Qt export/edit/upgrade and scalar regression paths pass with
+private workspace/config/profile, no host Torch or console errors. The selected
+exact revision's written source matches native generation byte-for-byte, with
+unchanged SQL and no instance creation. Cancellation, changed workspace and
+pending terminal ownership are rejected. Real1440×1000 capture reviewed.
+
+D remains local/branch-only/incomplete: runtime-spatial guards and structured
+recurrence/state/length/mask/reset/mixed composition remain; E follows. No main
+integration/publication, installer/user app/config/workspace change or source
+fork. Full goal remains active; no roadmap re-audit. Older entries are historical.
+
+## 2026-10-11 08:00 -03:00 — Stage D: scoped Module constructors
+
+Family v4 adds direct-child constructor bindings evaluated in each parent's local
+scope. Required child arguments can be satisfied solely by calls, without global
+defaults. Different widths/activations/biases produce distinct concrete contexts;
+equal contexts reuse a model SPEC, not weights. Explicit share_with/tied mode
+still controls parameter identity and rejects constructor mismatches. Finite
+repeated Modules retain their template arguments. A64-context reservation gate
+stops variant explosion before copying the65th graph, alongside existing limits.
+
+Receipt v2 and specialization v3 retain canonical available fallbacks and every
+resolved local context, reproduced exactly during admission/load/save. .vtw v11
+gates the new grammar without SQL/concrete-model changes; old family1..3 hashes
+and receipt paths remain. Existing experiment/run v3 supports scoped families.
+Owned Qt cards expose calls, bounded preview descriptors and an explicit v4
+upgrade/first insertion in one batch. Fresh insertion pages are owner/sequence/
+cursor fenced. CLI/worker/report/ordinary drawings use the same resolution.
+Runnable scoped-branches.json demonstrates differently configured reusable SLPs,
+ordered Concat and head (30 parameters). Exact spec: docs/scoped-constructors.md.
+
+Verified776 Python262.706s/290 JS1195.912867ms,19 pure0.244s/4 focused
+numerical14.609s. Independent branched outputs/input/parameter gradients, compiled/
+generated parity, independent/tied Adam state,2 actual worker fits+2 deterministic
+retries/fresh app-free predictors and an actual2-point Jupyter rerun pass. Native
+sandboxed Qt scoped edits/explicit upgrade/read-only preview/retention/instance/
+Save-reload pass without host Torch/console errors; earlier independent, shared
+and typed-family native workflows still pass. Real1440×1000 capture reviewed.
+Numerical workloads serialized/one-threaded; full suite has no ResourceWarnings.
+Initial new pure fixtures accidentally left unused parent symbols and used the
+wrong family_page signature; repaired their inputs, not grammar safeguards. First
+JS290 run had one new mock omitting the optional type descriptor; fixed that
+fixture. One patch-context mismatch made no changes. Failed JS log retained.
+
+D remains branch-only/local/incomplete. Runtime-spatial guards, checked family
+class export and structured recurrence/state/length/mask/reset/mixed composition
+remain; E durable/heavyweight execution follows. Current graph/native-cost/
+platform/paired-point bounds remain explicit. No main integration/publication,
+installer change, user app/config/workspace mutation or source fork. Full goal
+active; no roadmap re-audit. Earlier milestone entries remain historical.
+
+## 2026-10-11 07:35 -03:00 — Stage D: explicit constructor choices
+
+Family v3 supports model-local integer/boolean/finite string symbols and matching
+assignments to existing activation/bias/pooling/Concat constructor fields.
+Arithmetic remains integer-only; defaults, domains, scopes and input bindings
+are explicit. Unknown operators or incompatible constructors remain visible,
+not evaluated Python, silently filtered selections or repaired graphs. Actual
+JSON bools/strings flow through immutable specialization v2 and experiment/run
+v3, exact axes/coordinates/provenance, Qt/CLI/worker/report paths. Type-exact
+membership keeps false distinct from integer zero. `.vtw` v10 gates this grammar,
+without new SQL tables or changed old hashes/concrete model versions. Example:
+examples/families/activation-bias.json, ten valid MLP choices with6/10 parameters.
+
+Owned typed Qt cards expose alphabetic type selectors, enum domains and literal
+defaults, explicit monotonic version upgrades and preserved invalid text.
+Existing tied mode never downgrades v3; experiment Add family reads fresh native
+roots after pending edits rather than a stale version. Selection version is an
+explicit numeric control. No new hidden draft persistence or source fork.
+Specs are synchronized; full contract is [constructor-choices.md](constructor-choices.md).
+
+Verified753 Python247.679s/285 JS1194.74306ms, plus16 pure0.284s and4 focused
+numerical18.131s. Ten activation/bias instances match independent functional
+outputs/input/parameter gradients and generated code; Conv2d/AvgPool boolean
+arguments have independent gradient checks. Three worker fits/retries validate
+typed checkpoint/provenance and fresh standalone prediction; an actual two-point
+Jupyter rerun exports models, predictors and curves with unchanged source SQL.
+Actual sandboxed Qt defaults/invalid scalar/read-only preview/retention/instance/
+Save-reload and typed experiment axes/20 candidates/worker3 updates/saved exact
+evidence pass without host Torch/console errors. Prior independent/tied editor
+and integer-axis native workflows pass; reviewed capture shows real typed cards.
+Numerical runs are serial/one-threaded; no final ResourceWarnings.
+
+Failed probes retained: broad family glob in stdlib-only Python lacked optional
+Torch/notebook dependencies; first worker/Qt fixtures used nonexistent helper
+names; old native fixture searched the renamed integer-symbol section. The first
+full753 run had six old error-message expectation failures, fixed by preserving
+legacy wording, not weakening field rejection. Unknown-version probe now uses4
+because3 is actually supported. An initial capture included an old dismissed
+toast/template section; final real capture folds templates and shows both symbols.
+
+D remains local/branch-only/incomplete. Next scoped nested constructor bindings,
+runtime-spatial guards and structured recurrent state/length/mask/reset/mixed
+composition; E durable/heavyweight execution follows actual D acceptance. Current
+graph/closure/native-cost/platform limits remain explicit. No main integration,
+publication, installer change or user app/config/workspace mutation. The full
+A–E goal remains active; no roadmap re-audit.
+
+## 2026-10-11 07:04 -03:00 — Stage D: genuine shared parameter identity
+
+Concrete Linear/Conv2d/Module blocks now have explicit local `share_with` ownership,
+not equal-value copies or implicit template reuse. Chains resolve independently
+of data-flow order; missing/cyclic/different-type and incompatible constructors
+fail. The execution plan reuses one canonical registered module. Parameter counts,
+optimizer state, checkpoint keys/stable IDs and exported code contain its weights
+once, while execution/activation/workspace costs count every use. Nested Modules
+preserve local scope. Layout attributes newly owned parameters to the owner and
+zero to aliases. Inspector offers an explicit same-type selector and explanatory
+text; notes retain bias/shared-owner information and existing undo/persistence.
+
+Family v2 accepts finite tied repeats and explicit sharing in templates. Internal/
+external template links are remapped without copying weights; incompatible uses
+remain visible. The typed mode selector explicitly upgrades v1 alongside tied;
+v2 downgrade is denied. Shared drawing seeds preserve version2. `.vtw` v9 gates
+this extension without new SQL tables, and frozen ModelRevision v2 prevents old
+validators from ignoring ownership. Independent v1 captures/hashes remain.
+The runnable width-depth-tied example learns25 parameters regardless of depth.
+Affine analysis now follows execution occurrences, not unique module enumeration.
+Specifications: [shared-parameters.md](shared-parameters.md), format/CLI/revision/
+family/session documents are synchronized. Portable closure remains24 files.
+
+Verified16 pure checks0.099s and279 JS1261.220197ms cover grammar/identity/paths,
+strict version fences, seed/owned upgrades, CLI, template remapping, source
+structure and SQLite no-rewrite. Independent double forward/input/parameter
+gradients cover repeated Linear/nested Module and grouped Conv2d branches with
+different fixed H/W. Adam matches one functional shared-parameter oracle. Actual
+worker fits/retry, strict unique/forged-alias checkpoint admission, fresh standalone
+prediction, legacy3-update training/affine evidence and a real two-point Jupyter
+rerun with exported models/predictors/curves are exercised by the broad suite.
+Actual sandboxed Qt Inspector sharing/undo/redo and tied-family upgrade/preview/
+retention/instance/save-reload pass without host Torch/preview SQL writes or
+console errors. Prior independent family native workflows also pass. A real
+capture is reviewed. Numerical batches are serialized and one-threaded.
+
+Final733 Python230.039s passes on current source, including the additional
+malformed-model guard and seventh legacy-training case. Failed probes retained: outdated version/message and
+source-variable guard assumptions, fixture indentation/DOM casing/candidate
+field/readiness errors. Test-only SQLite connections are explicitly closed,
+not ResourceWarnings suppressed. An initial capture preceded repaint and had
+overlapping fixture coordinates; final capture has seeded geometry/paint wait.
+
+This is local branch-only progress, not full D acceptance/main integration or
+publication. Richer constructor choices, runtime-spatial guards and recurrent
+state/length/mask/reset/mixed composition remain; E follows D acceptance. Partial/
+transposed ties are not silently approximated. User app/config/workspaces and
+public refs are unchanged. The full goal remains active; no roadmap re-audit.
+
+## 2026-10-11 06:40 -03:00 — Stage D: explicit family experiment axes
+
+Version-2 experiments select exact historical architecture families with fixed
+stable-symbol bindings and ordered integer axes. Mixed-radix preview skips
+Cartesian prefixes without enumeration, training or SQL writes; conditional,
+invalid and excluded points remain visible. Candidate identities bind exact
+choice coordinates. Decimal-string parameter projections preserve counts beyond
+browser Number precision. Owned Qt cards explicitly upgrade v1 drafts and retain
+invalid JSON/raw integer text; paired family points still require explicit entry
+JSON rather than a rich point picker. Existing concrete v1 semantics remain.
+
+`.vtw` v8 gates the new experiment/run grammar without changing SQL tables or
+old hashes. Terminal admission recreates canonical frozen model/specialization
+provenance from the pinned family under one savepoint. Qt delivery, CLI execution
+and the new `admit-run` recovery edit share that service. Saved evidence, retries,
+standalone models/predictors and actual notebook reruns resolve the same exact
+instances. Portable runtime has24 files; incomplete new closures fail before a
+kernel starts. Genuine old20/21-file bundles continue to execute unchanged;
+23-file admission compatibility is not a newly tested immutable kernel fixture.
+
+Final710 Python tests pass215.332s;277 JS pass1199.230766ms;21 pure family-axis
+checks pass0.807s. Independent outputs/input/parameter gradients and standalone
+exports cover four width/depth points, eight bounded worker fits and deterministic
+retry; a real Jupyter kernel reruns all four points with predictors/curves/sources.
+Actual sandboxed Qt edits axes, previews20 points, runs one3-update trial, opens
+saved evidence and saves/reloads exact provenance without host Torch or console
+errors. Existing actual Qt family editor/retained-browser regressions pass.
+Numerical batches are serial and one-threaded. A real candidate capture is reviewed.
+
+Failed probes remain in campaign evidence: pure fixture/import/envelope/owner
+assumptions, missing xvfb-run before launch, two verifier error-message regression
+failures, and an actual owned-editor bug that hardcoded document version1.
+Fixed that publish gate to preserve v2 and permit only explicit v1 experiment
+upgrade, without weakening ownership or dependency guards. A saved-evidence
+consumer that assumed every model coordinate was a concrete reference now reads
+the exact resolved closure. Final regression and native checks pass.
+
+Specification: [family-experiment-axes.md](family-experiment-axes.md).
+This is a local task checkpoint, not full D acceptance or main/public integration.
+Genuine sharing, richer constructor choices, runtime guards and recurrent/mixed
+contracts remain; E follows D acceptance. Full goal stays active. No public push,
+installer, user-app restart or user workspace/configuration change.
+
+## 2026-10-11 05:50 -03:00 — Stage D: owned typed family authoring
+
+Continued the canonical D task fromefed917. New architecture family seeds from a
+valid drawing's complete concrete reference closure without copying its dataset/
+weights or editing the source. Exact historical family editing uses existing
+owned session/head/origin/sequence/staging/admission safeguards. Bounded typed
+cards cover templates, symbols, field assignments and independent finite repeats.
+Small integer/AST values remain exact raw text; large values use explicit staged
+editing. Preview returns conditional/incompatible/verified summaries without
+numerical allocation or training. Retaining a family is distinct from creating
+an exact stored concrete instance; optional drawings and native undo preserve
+the already-verified v7 provenance. No new schema or parallel persistence.
+
+Current21 pure family-draft tests pass0.113s, including long128-symbol projections,
+atomic failed edits, stale owner/head/working-copy fences and fresh stdlib execution
+without Torch/NumPy/Qt. The complete682-Python suite passes188.880s;271 JS tests
+pass1090.859084ms, including11 new controller cases. Existing fit/checkpoint/
+independent gradients/exports and actual saved/rerun/Stop notebook kernels pass.
+Numerical batches were serial and one-threaded. Actual sandboxed Qt controls build
+a width3 family and independent Linear repeat2 with21 parameters, preserve invalid
+text, avoid SQL writes before retention, create exact specialization, and verify
+undo/redo/save/reload without host Torch or console errors. Matching theme/grid/
+spacing CSS and no-horizontal-overflow are tested; a real capture is reviewed.
+This is default-font/local layout evidence, not all-platform/theme/accessibility
+certification or proof of tied/recurrent semantics.
+Drawing capture was subsequently tightened to read only reachable architecture
+documents, never dataset payloads/unrelated models, with source-size admission
+before each selected document is parsed. Three new regressions prove the scope/
+pre-parse check and nested Module closure. The682-test pass above predates those
+three tests. Final full685 Python regressions pass188.553s,21 focused tests pass
+0.113s,271 JS pass1090.859084ms, and both actual Qt authoring/retained-family
+workflows pass on the final source. Diff/compile checks pass. The styled capture
+shows the upper typed cards, not the off-screen repeat/preview section.
+
+Failed probes are retained: fixture Python quoting failed before app launch;
+the first live check exposed the family form mistaking its own pending request
+for another editor. Corrected that genuine opening guard and covered it in JS.
+Another fixture incorrectly asked for an undone browsing head instead of the
+retained exact revision; corrected the request, not undo retention semantics.
+Reviewing the first capture exposed unstyled labels/textarea overflow; palette/
+spacing/fieldset tokens now match existing forms. Failed card reads lock stale
+typed controls but keep retry/staged repair available. No user app/config/
+workspace or public refs changed; source stays on the local D task branch.
+
+Specification: [typed-family-sessions.md](typed-family-sessions.md).
+Next family experiment axes, better template/operator choice affordances,
+genuine tied-weight identity/count/checkpoint behavior, runtime-shape guards and
+recurrent state/length/mask/reset/mixed composition. E follows actual D acceptance.
+Full goal remains active; this is a checkpoint, not main integration/completion.
+
+## 2026-10-11 05:24 -03:00 — Stage D: retained family provenance
+
+Continued `task/stage-d-families` from checkpoint91113ac in the sole canonical
+checkout. `.vtw` v7 adds closed immutable family/specialization kinds to the
+existing guarded registry. All resolved bindings (including defaults), the exact
+family revision and its frozen concrete model are pinned. Admission/load/save
+reproduce that relationship; a valid content hash and equal shape/count are not
+enough to substitute another model. One internal savepoint groups all retained
+records and optional dependency-ordered drawings. Failed later writes restore
+rows/dirty state; caller transactions stay open. Undo/archive preserve provenance.
+Older v1–6 files migrate in memory only until explicit Save.
+
+CLI `specialize-family` retains provenance automatically, accepts an exact
+`family_ref` instead of a full definition, and can retain without drawings using
+`materialize:false`. `preview-stored-family` is exact and read-only. The unchanged
+Qt scientific browser now includes alphabetically ordered family/specialization
+reads/imports. Typed GUI family authoring and family experiment axes remain open.
+No new SQL table, global preference, sidecar, live product fork or remote push.
+
+Current report bundles capture the complete23-file runtime. Genuine immutable
+pre-family21-file and pre-activation20-file bundles pass current verification and
+actual fresh-kernel execution without rewriting original inputs. Partial/omitted
+new dependencies fail before a kernel starts; compatibility guards are not a
+hostile-code sandbox. Focused24 storage tests pass without ResourceWarnings;
+the initial warnings were traced to unclosed test-only SQLite connections, then
+repaired with explicit closing, not suppressed. All24 notebook tests pass63.200s,
+including actual modes/training fences/Stop/timeout and the two older closures.
+The sandboxed Qt check verifies saved ten-block77-parameter rendering/Inspector,
+both retained-kind summaries/exact references, default Experiments selection and
+alphabetical labels; no host Torch, console errors or dirty/SQLite mutation.
+The initial Qt probe used a wrong assertion key `tied` instead of `tied_weights`;
+only that fixture assertion was corrected. All260 JS tests pass1087.792817ms.
+The complete664-Python regression passes191.476s, including the original
+independent family tensor/gradient/fit/export tests and actual notebook kernels.
+Numerical batches were serialized and restricted to one Torch/BLAS/OpenMP thread.
+Compilation and `git diff --check` pass. These are local regression checks, not
+cross-platform, hostile-input or dynamic-shape acceptance proofs.
+
+This remains a branch-only D checkpoint, not full D acceptance or integration.
+Continue owned typed family editing/selection and explicit family experiment
+axes, genuine tied-weight identity/count/checkpoint behavior, runtime-shape guards
+and recurrent state/length/mask/reset/mixed composition with independent numerical
+and actual UI tests. E follows actual D acceptance. Main and public refs are
+unchanged; user app/config/workspaces are untouched.
+
+## 2026-10-11 05:02 -03:00 — Stage D: concrete-first family foundation
+
+Branch `task/stage-d-families` starts from accepted main
+bc85e57254083bf969a189d9685574b4d8598669 in the sole canonical checkout. The
+[external family specification](architecture-families.md) defines stable scoped
+integer symbols, checked expression ASTs, field assignments and independent
+finite chain repetition. Concrete instances retain boundary IDs/input packing,
+resolve Module dependencies, produce deterministic identity receipts and use the
+existing compiler/training/checkpoint/export paths. CLI preview is read-only;
+atomic `specialize-family` edits save ordinary v6 models without replacing IDs.
+The initial imported instance has readable seeded positions and works in the
+unchanged floating Qt editor. No mutable sibling source or hidden source fork.
+
+24 focused tests pass, including independent tensor/input/parameter gradients,
+fresh-process standalone export, multiple batches, grouped CNN179 parameters,
+scope/rename/bounds/AST failure origins, repeat/collision/Concat/router boundaries,
+actual training/checkpoint and atomic .vtw reload/freeze. Actual sandboxed Qt
+opens the ten-block77-parameter model, verifies Inspector/native code/clean
+camera after save/reload, with no host Torch import or console errors. Earlier
+failed fixture assumptions and the repaired native profile teardown are retained
+in the private campaign evidence, not hidden as application successes.
+Final complete637 Python tests pass in187.719s;260 JS regressions pass in
+1145.795423ms. Both numerical full suites were serialized; the first635-test
+pass187.473s predates the final closed-field guards and is retained separately.
+The final24 focused tests pass1.554s, and the Qt check was repeated against the
+final source with clean native teardown. CLI startup and actual stdlib preview
+against a private newly created .vtw also pass. `git diff --check` is clean.
+
+This is a meaningful initial D checkpoint, NOT D acceptance or integration into
+main. Family definitions/receipts are still external: .vtw contains the concrete
+instances only. Typed owned family authoring/persistence and family experiment
+axes, genuine tied parameter identity/counts/checkpoints, runtime shape guards and
+recurrent state/length/mask/reset/mixed composition remain required. Existing
+64-block concrete limits are reported explicitly before repeat materialization,
+not silently clamped or presented as final large-model support. E remains next
+after D acceptance. Main/public refs remain unchanged; no publication, installer,
+user state modification or app restart.
 
 ## 2026-10-11 04:38 -03:00 — Stage C accepted and integrated locally
 

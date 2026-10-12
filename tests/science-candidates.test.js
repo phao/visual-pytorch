@@ -57,3 +57,17 @@ test('an unsafe unrelated cursor cannot be followed as a rounded request',async(
   req.resolve(reply(req,{next_offset:9007199254740992}));await tick();assert.equal(f.nodes.get('science-next').disabled,true);
   assert.equal(f.toasts.length,1);f.nodes.get('science-next').onclick();await tick();assert.equal(f.requests.length,1);
 });
+test('family candidates display explicit bindings and preserve the exact run coordinate',async()=>{
+  const f=fixture();f.controller.show(ref('families'));await tick();const r=row(0);
+  r.coordinates.model={id:'width-depth',bindings:{width:4,depth:3}};r.parameters_exact='9007199254740993';
+  f.requests[0].resolve(reply(f.requests[0],{candidates:[r],next_offset:null}));await tick();
+  const card=f.nodes.get('science-candidates').children[0];assert.match(card.children[0].textContent,/width=4.*depth=3/);
+  assert.equal(card.children[1].textContent,'9007199254740993 trainable parameters');buttons(f)[0].onclick();await tick();
+  assert.equal(JSON.stringify(f.requests[1].args.coordinates),JSON.stringify(r.coordinates));f.requests[1].resolve({});await tick();
+});
+test('conditional family point has no run action despite an explicit coordinate',async()=>{
+  const f=fixture();f.controller.show(ref('families'));await tick();const r=row(0);r.status='conditional';r.counts=null;
+  r.coordinates.model={id:'unbound-family',bindings:{width:4}};r.reason={text:'Bind missing depth',next_offset:null};
+  f.requests[0].resolve(reply(f.requests[0],{candidates:[r],next_offset:null}));await tick();assert.equal(buttons(f)[0].disabled,true);
+  buttons(f)[0].onclick();await tick();assert.equal(f.requests.length,1);
+});

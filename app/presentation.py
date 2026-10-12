@@ -84,9 +84,12 @@ def block_parameter_counts(model, contract, interfaces):
             count=shape['input_shape'][-1]*node['features']+(node['features'] if node.get('bias',True) else 0)
         elif kind=='Conv2d':count=shape['operator']['parameters']
         elif kind=='Module':count=interfaces[node['id']]['parameters']
+        elif kind=='Recurrent':count=shape['recurrent']['contract']['parameters']
+        elif kind=='LSTM':count=shape['lstm']['parameters']
         elif kind in {'Input','Output','Activation','Reshape','Concat','Splitter','Replicator',
                        'Flatten','Permute','MaxPool2d','AvgPool2d','AdaptiveAvgPool2d'}:count=0
         else:raise ValueError('Parameter sizing is not implemented for '+kind+'.')
+        if 'parameter_owner' in shape:count=0
         if type(count) is not int or count<0:raise ValueError('Parameter counts must be nonnegative integers.')
         result[node['id']]=str(count)
     if sum(int(v) for v in result.values())!=contract['parameters']:

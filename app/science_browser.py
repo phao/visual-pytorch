@@ -109,6 +109,15 @@ def summary(workspace, ref):
         result['root'] = doc['root']; result['architecture_hash'] = doc['architecture_hash']
         result['counts'] = {'architectures': len(doc['models']),
                             'blocks': sum(len(m['graph']['nodes']) for m in doc['models'].values())}
+    elif kind == 'family':
+        result['root'] = doc['root']
+        result['counts'] = {'architectures': len(doc['models']), 'symbols': len(doc['symbols']),
+                            'assignments': len(doc['assignments']), 'repeats': len(doc['repeats'])}
+        result['capabilities'] = {'finite_repeat': 'independent-unary-chain', 'tied_weights': False,
+                                  'runtime_recurrence': False}
+    elif kind == 'specialization':
+        result['family'] = copy.deepcopy(doc['family']); result['model'] = copy.deepcopy(doc['model'])
+        result['counts'] = {'resolved_bindings': len(doc['bindings'])}
     elif kind == 'experiment':
         result['question'] = _text(doc['question'], limit=1024)
         result['counts'] = {key: len(doc[key]) for key in
@@ -119,7 +128,7 @@ def summary(workspace, ref):
         result['latest'] = {key: last[key] for key in ('number', 'stage', 'status', 'started_at', 'finished_at')}
         result['latest']['error'] = None if last['error'] is None else {
             'type': last['error']['type'], 'message': _text(last['error']['message'], limit=1024)}
-    else:
+    elif kind == 'report':
         result['mode'] = doc['mode']; result['question'] = _text(doc['question'], limit=1024)
         result['experiment'] = copy.deepcopy(doc['experiment']); result['counts'] = {'selected_runs': len(doc['runs'])}
     return _bounded(result)

@@ -9,6 +9,7 @@
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
   <script src="math.js" defer></script>
   <script src="vendor/mathjax/MathJax.js?config=TeX-AMS_SVG-full" defer onerror="window.LoomMath.failed()"></script>
+  <script src="recurrent-editing.js" defer></script>
   <script src="graph-tools.js" defer></script>
   <script src="layout.js" defer></script>
   <script src="type-icons.js" defer></script>
@@ -39,7 +40,9 @@
   <script src="science-document.js" defer></script>
   <script src="science-recoveries.js" defer></script>
   <script src="science-candidates.js" defer></script>
+  <script src="family-session-form.js" defer></script>
   <script src="science.js" defer></script>
+  <script src="lstm-authoring.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
 <body>
@@ -63,7 +66,7 @@
   <main id="editor" class="editor" hidden>
     <nav id="menu-pack" class="menu-pack" aria-label="Floating panel menus">
       <div class="pack-heading"><span class="pack-grip" title="Drag menu pack">PANELS</span><button id="pack-toggle" aria-label="Shrink menu pack" aria-expanded="true" aria-controls="pack-menus" title="Shrink to one icon · double-click icon to restore"><svg class="panel-pack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5V3h13v13h-2"/><rect x="3" y="8" width="13" height="13" rx="2"/><path d="M3 12h13"/><path d="M6 10h1"/></svg></button></div>
-      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
+      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="help-panel" aria-controls="help-panel" aria-expanded="false" title="Help · H"><span>?</span>Help</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
     </nav>
     <aside id="library-panel" class="library floating-panel" hidden>
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
@@ -74,15 +77,15 @@
       <button id="add-activation" class="palette"><span class="type-symbol mint-text">σ</span><span><b>Activation</b><small>Preserve shape; change the function</small></span><span>+</span></button></div>
       <button id="add-reshape" class="palette"><span class="type-symbol amber-text">↔</span><span><b>Reshape</b><small>Change sample dimensions; preserve B</small></span><span>+</span></button>
       <button id="add-concat" class="palette"><span class="type-symbol blue-text">⋈</span><span><b>Concat</b><small>Join independent branches</small></span><span>+</span></button>
+      <button id="add-lstm" class="palette"><span class="type-symbol amber-text">↻</span><span><b>LSTM</b><small>Add a concrete stacked/projected/bidirectional LSTM with supplied initial states and three returned ports.</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
       <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
-      <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button></div>
+      <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button><button id="add-recurrent" class="palette"><span class="type-symbol amber-text">↻</span><span><b>Recurrent transition</b><small>Repeat this graph across time with explicit sequence inputs and initial/final states.</small></span><span>+</span></button></div>
       <div class="eyebrow">NAMED BOUNDARIES</div>
       <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
       <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>
       <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button>
       <button id="add-replicator" class="palette compact-palette"><span class="type-symbol amber-text">⇉</span><span><b>Replicator</b><small>Expose the full tensor on two ports without copying it</small></span></button></div>
-      <div class="sidebar-help"><span class="eyebrow">A LITTLE GUIDANCE</span><p>Linear layers mix features. Activations let their composition learn nonlinear patterns.</p><p>Ctrl reverses the grid-snapping default set in Display preferences. Named boundaries define a reusable architecture's interface.</p></div>
       </div>
     </aside>
 
@@ -123,8 +126,55 @@
       </div>
     </aside>
 
+    <aside id="help-panel" class="help-panel floating-panel" aria-labelledby="help-title" hidden>
+      <div class="floating-heading" data-drag-handle><span id="help-title">HELP</span><div class="panel-controls"><button data-expand-panel aria-label="Expand help" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide help" aria-controls="help-scroll" title="Hide">×</button></div></div>
+      <div id="help-scroll" class="scrollport">
+        <article class="help-content">
+          <nav class="help-sections" aria-label="Help sections"><a href="#help-drawing">Drawing</a><a href="#help-shortcuts">Shortcuts</a><a href="#help-resources">Learning resources</a></nav>
+          <section id="help-drawing"><h3>From drawing to PyTorch</h3>
+            <p>Use Building blocks to add operations. Inputs describe one sample's dimensions; B is the batch dimension. Connect an output socket to an input socket. Use Concat to join independent paths, or Splitter to create branches.</p>
+            <p>Select a block, then open Inspector to see its settings and tensor contract. Double-clicking a block also opens Inspector. Right-clicking selects it and offers block actions. Its type icon folds details without changing computation.</p>
+            <p>Validate checks the executable graph. Experiment lets you prepare data, train, inspect learned parameters and read the generated PyTorch forward code. Save workspace keeps architectures and their retained evidence in one .vtw file.</p>
+            <p>Panels float independently: drag their headings or empty areas, resize at the bottom-right corner, expand with ⤢ and hide with ×. Layout offers workspace-specific block arrangements. Run safety controls execution, not which diagrams you may draw.</p>
+          </section>
+          <section id="help-shortcuts"><h3>Shortcuts</h3><p>Single-key commands apply outside text fields and dialogs. Focused controls keep their own keys. Selection survives empty-canvas clicks and panning.</p>
+            <table class="help-shortcuts"><caption>Keyboard and pointer shortcuts</caption><thead><tr><th scope="col">Key / gesture</th><th scope="col">Action</th></tr></thead><tbody>
+              <tr><th scope="row">A</th><td>Show / hide Architectures.</td></tr>
+              <tr><th scope="row">B</th><td>Show / hide Building blocks.</td></tr>
+              <tr><th scope="row">E</th><td>Show / hide Experiment.</td></tr>
+              <tr><th scope="row">H</th><td>Show / hide Help.</td></tr>
+              <tr><th scope="row">I</th><td>Show / hide Inspector.</td></tr>
+              <tr><th scope="row">Space</th><td>Expand / compact the selected block; one undoable edit.</td></tr>
+              <tr><th scope="row">D</th><td>Delete the selected block or connection.</td></tr>
+              <tr><th scope="row">Escape</th><td>Cancel an active drag or connection; otherwise clear selection. With nothing selected, hide all panels and shrink the pack. Typing and dialogs retain Escape.</td></tr>
+              <tr><th scope="row">Ctrl+Z</th><td>Undo a workspace edit; text fields keep text undo.</td></tr>
+              <tr><th scope="row">Ctrl+Shift+Z / Ctrl+Y</th><td>Redo a workspace edit.</td></tr>
+              <tr><th scope="row">Drag block</th><td>Move it, including a compact block's icon.</td></tr>
+              <tr><th scope="row">Drag socket</th><td>Connect a source output to a destination input.</td></tr>
+              <tr><th scope="row">Drag arrow end</th><td>Reconnect an existing connection to another input.</td></tr>
+              <tr><th scope="row">Drag empty canvas</th><td>Pan the diagram; the workspace does not become unsaved.</td></tr>
+              <tr><th scope="row">Mouse wheel</th><td>Zoom the diagram around the pointer.</td></tr>
+              <tr><th scope="row">Shift+drag</th><td>Move the floating-menu layer, not the diagram.</td></tr>
+              <tr><th scope="row">Ctrl while dragging / resizing</th><td>Invert the relevant snap-to-grid default. Drag snaps top-left; resize snaps bottom-right. Block and menu defaults are separate.</td></tr>
+              <tr><th scope="row">Click block icon</th><td>Compact its details; double-click a compact icon to expand. Enter / Space toggles a focused icon.</td></tr>
+              <tr><th scope="row">Double-click block</th><td>Open Inspector. Ctrl / Meta with a referenced architecture also opens its details in a new tab.</td></tr>
+              <tr><th scope="row">Ctrl+N / Ctrl+O</th><td>New workspace / open workspace.</td></tr>
+              <tr><th scope="row">Ctrl+S / Ctrl+Shift+S</th><td>Save workspace / Save As.</td></tr>
+              <tr><th scope="row">Ctrl+T</th><td>Open the current architecture in a new tab.</td></tr>
+              <tr><th scope="row">Alt+Left / Alt+Right</th><td>Navigate back / forward.</td></tr>
+              <tr><th scope="row">Ctrl++ / Ctrl+- / Ctrl+0</th><td>Enlarge / shrink / reset interface zoom, independently of diagram zoom.</td></tr>
+            </tbody></table>
+          </section>
+          <section id="help-resources"><h3>Learning resources</h3><p>This Help hub can grow into app documentation, worked network examples and linked guides. External resources open in your browser, leaving the drawing here.</p>
+            <ul><li><a data-help-resource="pytorch-basics" href="https://docs.pytorch.org/tutorials/beginner/basics/intro.html">PyTorch: Learn the Basics</a> — tensors, model building and training.</li><li><a data-help-resource="pytorch-nn" href="https://docs.pytorch.org/docs/stable/nn.html">PyTorch: torch.nn reference</a> — layer and operation documentation.</li></ul>
+            <p class="tiny">External documentation may describe capabilities this prototype does not yet implement. The app's validated graph contract determines what can run here. These resources require internet access; local help and shortcuts do not.</p>
+          </section>
+        </article>
+      </div>
+    </aside>
+
     <section class="workarea">
-      <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div class="canvas-note">Drag blocks · drag arrow ends to reconnect · D deletes selection · wheel to zoom · drag empty space to pan</div><div id="validation-message" class="validation-chip">Checking graph…</div></div>
+      <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div id="validation-message" class="validation-chip">Checking graph…</div></div>
       <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
         <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
         <div id="experiment-scroll" class="scrollport">
@@ -138,7 +188,23 @@
         <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
         <div id="science-panel" class="panel-content" hidden>
-          <div class="inline-actions"><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
+          <div class="inline-actions"><button id="science-author-new-family" title="Use the current valid drawing as a concrete seed, without changing it">New architecture family</button><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
+          <section id="science-family-editor" hidden aria-label="Owned architecture family authoring">
+            <h3>Architecture family draft</h3><p id="science-family-identity" class="tiny"></p>
+            <p class="tiny">A drawing is a concrete seed. Stable, model-local symbols specify dimensions and explicit constructor choices. Finite repeats are independent or explicitly tied; neither means runtime recurrence. Preview checks each concrete instance without training.</p>
+            <div id="science-family-roots" class="science-author-grid"></div>
+            <div id="science-family-cards"></div>
+            <p class="tiny">Expressions use integers or JSON objects: {"symbol":"hidden-width"} or {"op":"mul","args":[2,{"symbol":"hidden-width"}]}. Shape assignments use arrays of these expressions. Exact division rejects a remainder. Python expressions are never executed.</p>
+            <label>Preview bindings · stable symbol IDs<textarea id="science-family-bindings" spellcheck="false">{}</textarea></label>
+            <div class="inline-actions"><button id="science-family-preview">Preview concrete instance · no training</button><button id="science-family-check">Validate family</button><button id="science-family-save">Retain family revision</button><button id="science-family-raw">Edit complete staged JSON…</button><button id="science-family-retry">Retry current cards</button><button id="science-family-cancel">Discard draft</button></div>
+            <p id="science-family-status" role="status" class="tiny"></p><pre id="science-family-preview-result"></pre>
+          </section>
+          <section id="science-family-instance" hidden aria-label="Exact retained family specialization">
+            <p class="tiny">Create from the selected exact retained family revision. Default bindings are explicit in the retained specialization. This never trains or overwrites an existing drawing.</p>
+            <label>Instance bindings · stable symbol IDs<textarea id="science-family-instance-bindings" spellcheck="false">{}</textarea></label>
+            <label><input id="science-family-materialize" type="checkbox" checked> Add editable drawings</label>
+            <div class="inline-actions"><button id="science-family-create">Create concrete instance</button><button id="science-family-export" title="Export this exact retained family as a checked standalone PyTorch class. Does not instantiate or train it.">Export checked family…</button></div><p id="science-family-instance-status" role="status" class="tiny"></p>
+          </section>
           <section id="science-value-editor" hidden aria-label="Chunked draft value editor">
             <h3>Edit exact value · staged draft</h3><p id="science-value-identity" class="tiny"></p>
             <p class="tiny">Edit one JSON fragment at a time. Fragments may be incomplete JSON; Apply fragment preserves them, and Use staged value checks the entire value. Nothing is retained until Retain revision. No training.</p>
@@ -180,7 +246,7 @@
             <p id="science-author-status" role="status" class="tiny"></p>
             <div class="inline-actions"><button id="science-author-check">Validate draft</button><button id="science-author-save">Retain revision</button><button id="science-author-retry-page" hidden>Retry page</button><button id="science-author-cancel">Cancel draft</button></div>
           </section>
-          <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
+          <div class="science-toolbar"><label>Browse<select id="science-kind"><option value="family">Architecture families</option><option value="dataset">Datasets</option><option value="experiment" selected>Experiments</option><option value="model">Frozen architectures</option><option value="report">Report recipes</option><option value="run">Run history</option><option value="specialization">Specializations</option><option value="task">Tasks &amp; bindings</option></select></label><label>Exact revision<select id="science-object" aria-label="Exact scientific revision"></select></label><button id="science-refresh">Refresh</button><button id="science-freeze" title="Freeze the current drawing, not its trained weights">Freeze architecture</button><button id="science-import" title="Import a versioned JSON specification; dependencies must already exist">Import specification…</button></div>
           <div class="science-toolbar"><label>Search names / IDs<input id="science-object-query" maxlength="200" placeholder="Literal text, not a pattern"></label><button id="science-object-search">Search</button><button id="science-object-prev">‹ Revisions</button><span id="science-object-page" role="status" class="tiny"></span><button id="science-object-next">Revisions ›</button></div>
           <div class="inline-actions"><p id="science-status" role="status" class="tiny">Browsing never trains. Exact revisions retain historical meaning.</p><button id="science-stop" hidden>Stop run</button></div>
           <div id="science-recovery" hidden><p class="tiny">Unadmitted evidence is kept for this session. Inspect bounded pages or export before closing; contains captured data and results, not a running-job receipt.</p><label>Recovery evidence<select id="science-recovery-object"></select></label><div class="inline-actions"><label>Search run IDs / diagnostics<input id="science-recovery-query" maxlength="200"></label><button id="science-recovery-search">Search</button><button id="science-recovery-refresh">Refresh</button><button id="science-recovery-prev">‹ Evidence</button><button id="science-recovery-next">Evidence ›</button></div><p id="science-recovery-page" role="status" class="tiny"></p><button id="science-recovery-show">Inspect recovery</button><button id="science-recovery-export">Export recovery JSON…</button></div>
@@ -205,6 +271,36 @@
   <div id="toast" role="status" hidden><span id="toast-message"></span><button id="toast-close" type="button" aria-label="Dismiss notification" title="Dismiss notification">×</button></div>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message"><form method="dialog"><h2 id="confirm-title">Confirm workspace action</h2><p id="confirm-message"></p><div class="dialog-actions"><button value="cancel" autofocus>Cancel</button><button id="confirm-ok" value="ok" class="primary">Confirm</button></div></form></dialog>
   <dialog id="block-about-dialog" aria-labelledby="block-about-title"><form method="dialog"><h2 id="block-about-title">About building block</h2><div id="block-about-content" class="block-about-content"></div><div class="dialog-actions"><button value="close" autofocus>Close</button></div></form></dialog>
+  <dialog id="recurrent-dialog" aria-labelledby="recurrent-title"><form id="recurrent-form"><h2 id="recurrent-title">Recurrent transition</h2><p class="tiny">Choose every Input's role and each state's matching next-state Output. A new independent branch is added; existing blocks and wires are kept. Initial states and controls are supplied data, not learned values. Every exposed root Output needs an explicit task head.</p><label class="field-label" for="recurrent-label">Block name</label><input id="recurrent-label" maxlength="60" required><label class="field-label" for="recurrent-steps">Sequence length T (concrete)</label><input id="recurrent-steps" type="number" min="1" max="9007199254740991" step="1" value="4" required><div id="recurrent-inputs"></div><fieldset><legend>Return sequences</legend><div id="recurrent-outputs"></div></fieldset><fieldset><legend>Optional supplied controls</legend><label class="checkbox"><input type="checkbox" data-recurrent-control="lengths">Lengths [B, 1] — exact integers 0…T</label><label class="checkbox"><input type="checkbox" data-recurrent-control="mask">Active mask [B, T] — exact 0/1</label><label class="checkbox"><input type="checkbox" data-recurrent-control="reset">Reset mask [B, T] — exact 0/1</label></fieldset><p class="tiny">One shared transition owns its parameters once. Masked steps hold state and return zeros; reset restores the supplied initial state before an active step. Full backpropagation across T; no hidden carry between calls.</p><p id="recurrent-error" role="alert"></p><div class="dialog-actions"><button id="recurrent-cancel" type="button">Cancel</button><button id="recurrent-create" type="submit" class="primary">Add recurrent branch</button></div></form></dialog>
+  <dialog id="recurrent-edit-dialog" aria-labelledby="recurrent-edit-title"><form id="recurrent-edit-form"><h2 id="recurrent-edit-title">Edit recurrent interface</h2><p class="tiny">Advanced explicit bindings. This edits the existing block, not a new branch. Keep stable return port IDs to preserve downstream wires. Removing a connected return port is refused. Affected paths must validate; unrelated drafts are kept. Errors keep your edits here.</p><label for="recurrent-edit-ref" class="field-label">Transition architecture</label><select id="recurrent-edit-ref"></select><pre id="recurrent-edit-signature" class="contract-card"></pre><details><summary>Available source socket IDs</summary><p id="recurrent-edit-sources" class="tiny"></p></details><label for="recurrent-edit-json" class="field-label">Interface JSON · all fields explicit</label><textarea id="recurrent-edit-json" rows="16" maxlength="65536" required spellcheck="false"></textarea><p class="tiny">sequence_inputs: input + source. states: input + output + port + source. sequence_outputs: output + port. controls: lengths / mask / reset with source + exact adapter. share_with: stable block ID, or null for independent parameters. Change tensor dimensions on their Input boxes. Accepted changes clear legacy attached data/results, keep independent scientific revisions, and form one undo step.</p><p id="recurrent-edit-error" role="alert"></p><div class="dialog-actions"><button id="recurrent-edit-cancel" type="button">Cancel</button><button id="recurrent-edit-apply" type="submit" class="primary" disabled>Apply validated interface</button></div></form></dialog>
   <dialog id="name-dialog"><form method="dialog"><h2 id="dialog-title">New architecture</h2><p>Keep the name short and descriptive.</p><input id="name-input" maxlength="100" required autofocus><div class="dialog-actions"><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Create</button></div></form></dialog>
+  <dialog id="lstm-dialog" aria-labelledby="lstm-title"><form id="lstm-form">
+    <h2 id="lstm-title">LSTM</h2>
+    <p class="tiny">Concrete sequence [B,T,F]; supplied initial states, no hidden carry between calls. Creation adds an independent branch and keeps existing work. Every exposed Output needs an explicit task head.</p>
+    <label class="field-label" for="lstm-label">Block name</label><input id="lstm-label" maxlength="60" required>
+    <fieldset id="lstm-create-fields"><legend>Supplied sequence</legend>
+      <label for="lstm-steps">Sequence length T</label><input id="lstm-steps" type="number" min="1" step="1">
+      <label for="lstm-input-size">Input features F</label><input id="lstm-input-size" type="number" min="1" step="1">
+      <label class="checkbox"><input id="lstm-lengths" type="checkbox">Supplied lengths [B,1], exact integers 0…T</label>
+    </fieldset>
+    <fieldset><legend>Learned LSTM constructor</legend>
+      <label for="lstm-hidden-size">Cell width H</label><input id="lstm-hidden-size" type="number" min="1" step="1" required>
+      <label for="lstm-layers">Stacked layers</label><input id="lstm-layers" type="number" min="1" max="64" step="1" required>
+      <label for="lstm-projection">Projection width (0 = none; otherwise less than H)</label><input id="lstm-projection" type="number" min="0" step="1" required>
+      <label class="checkbox"><input id="lstm-bidirectional" type="checkbox">Bidirectional</label>
+      <label class="checkbox"><input id="lstm-bias" type="checkbox">Learn biases</label>
+      <pre id="lstm-shapes" class="contract-card"></pre>
+    </fieldset>
+    <fieldset id="lstm-edit-fields" hidden><legend>Existing source sockets and owner</legend>
+      <label for="lstm-source-sequence">Sequence</label><select id="lstm-source-sequence"></select>
+      <label for="lstm-source-hidden">Initial hidden</label><select id="lstm-source-hidden"></select>
+      <label for="lstm-source-cell">Initial cell</label><select id="lstm-source-cell"></select>
+      <label for="lstm-source-lengths">Optional lengths · exact-int64-v1</label><select id="lstm-source-lengths"></select>
+      <label for="lstm-owner">Parameter owner</label><select id="lstm-owner"></select>
+      <p class="tiny">Changing constructor dimensions does not resize existing Inputs. Edit their shapes explicitly or choose compatible sources. Unused former Inputs are kept; remove them explicitly before whole-model execution.</p>
+    </fieldset>
+    <p class="tiny">Projection narrows hidden, not cell. Layers × directions is the state’s first sample axis. Lengths run positive prefixes; zero-length rows keep supplied state and emit zero. Execution lengths are not loss masks. Dropout is zero. Family7 supports explicit fixed-T constructors; runtime-T LSTM is not yet supported.</p>
+    <p id="lstm-error" role="alert"></p><div class="dialog-actions"><button id="lstm-cancel" type="button">Cancel</button><button id="lstm-apply" type="submit" class="primary">Add LSTM branch</button></div>
+  </form></dialog>
 </body>
 </html>

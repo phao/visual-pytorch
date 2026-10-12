@@ -110,10 +110,10 @@ class Sessions:
         estimated += sum(row['estimate'] for token, row in self._sessions.items() if token != excluding)
         return authoring_memory.admit(workspace, estimated, self.memory_limit_percent, available_fn=self.available_fn)
 
-    def open(self, workspace, owner, kind, *, base=None, sid=None):
+    def open(self, workspace, owner, kind, *, base=None, sid=None, model=None):
         _require(not any(row['owner'] is owner for row in self._sessions.values()),
                  'Close the owner\'s existing unsaved draft explicitly before opening another.')
-        _require(kind in authoring.KINDS, 'Only datasets, tasks and experiments have authoring drafts.')
+        _require(kind in authoring.KINDS, 'Choose a dataset, task, experiment or architecture family draft.')
         source_bytes = 0
         if base is not None:
             authoring.reference(base, kind)
@@ -122,7 +122,8 @@ class Sessions:
             _require(size is not None, 'Requested immutable revision does not exist.')
             source_bytes = size[0]
         self._admit(workspace, source_bytes=source_bytes)  # Before full base parsing/copy.
-        draft = authoring.begin(workspace, kind, base=base, sid=sid)
+        draft = authoring.begin(workspace, kind, base=base, sid=sid, model=model,
+                                seed_admit=lambda size: self._admit(workspace, source_bytes=size))
         self._admit(workspace, draft['document'])
         token = uuid.uuid4().hex
         row = {'owner': owner, 'workspace': workspace, 'connection': workspace.db,
@@ -173,8 +174,11 @@ class Sessions:
         return self._publish(workspace, token, row, document)
 
     def _publish(self, workspace, token, row, document):
+        versions = (row['draft']['document']['version'],)
+        if row['draft']['kind'] in ('experiment', 'family'):
+            versions = tuple(range(versions[0], 9 if row['draft']['kind'] == 'family' else 7))
         _require(isinstance(document, dict) and document.get('id') == row['draft']['id'] and
-                 type(document.get('version')) is int and document['version'] == 1 and 'revision' not in document,
+                 type(document.get('version')) is int and document['version'] in versions and 'revision' not in document,
                  'Draft patches must preserve stable document ID/version and cannot forge a revision.')
         self._admit(workspace, document, excluding=token)
         prospective = dict(row, sequence=row['sequence'] + 1, buffer=None,
@@ -310,6 +314,36 @@ class Sessions:
         row = self._get(token,owner,sequence,workspace)
         _require(row['buffer'] is None, 'Finish or discard the staged value before retaining the draft.')
         return self._admit(workspace,row['draft']['document'],excluding=token)
+
+    def family_page(self, token, owner, sequence, collection, **cursor):
+        from . import family_drafts
+        row = self._get(token, owner, sequence)
+        _require(row['draft']['kind'] == 'family', 'Family pages require an architecture family draft.')
+        return family_drafts.page(row['draft']['document'], self._header(token, row), collection, **cursor)
+
+    def family_edit(self, workspace, token, owner, sequence, operations):
+        from . import family_drafts
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'family', 'Family edits require an architecture family draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before family edits.')
+        operations = _json(operations)
+        _require(isinstance(operations, list) and 1 <= len(operations) <= 25, 'Family edit needs 1..25 ordered operations.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        document = row['draft']['document']
+        for index, operation in enumerate(operations):
+            try: document = family_drafts.edit(document, operation)
+            except (GraphError, ValueError) as error:
+                raise GraphError('Family edit #' + str(index) + ': ' + str(error)) from error
+        return self._publish(workspace, token, row, document)
+
+    def family_preview(self, workspace, token, owner, sequence, bindings=None):
+        from . import family_drafts
+        row = self._get(token, owner, sequence, workspace)
+        _require(row['draft']['kind'] == 'family', 'Family preview requires an architecture family draft.')
+        _require(row['buffer'] is None, 'Finish or discard the staged value before family preview.')
+        self._admit(workspace, row['draft']['document'], excluding=token)
+        authoring.check(workspace, row['draft'])
+        return family_drafts.preview(row['draft']['document'], self._header(token, row), bindings)
 
     def dataset_page(self, token, owner, sequence, **cursor):
         from . import dataset_drafts

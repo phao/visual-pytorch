@@ -12,7 +12,7 @@ from .datasets import _identifier, _keys, _require, validate_task
 from .experiment_objects import reference, validate_dependencies, preview_experiment
 from .revisions import frozen_document
 
-KINDS = ('dataset', 'experiment', 'task')
+KINDS = ('dataset', 'experiment', 'family', 'task')
 
 
 def workspace_id(workspace):
@@ -24,9 +24,36 @@ def head(workspace, kind, sid):
     return row[0] if row else None
 
 
-def begin(workspace, kind, *, base=None, sid=None):
+def drawing_seed(workspace, root, admit=None):
+    """Read only the selected concrete reference closure, never dataset payloads.
+
+    Check source-size estimates before retrieving/parsing each document when the
+    owned session supplies admission. SQL/native parser costs remain separate.
+    """
+    from .revisions import model_document, _parse
+    _require(_identifier(root), 'Family seed needs an existing architecture ID.')
+    models = {}; source_bytes = 0
+    def visit(mid):
+        nonlocal source_bytes
+        if mid in models: return
+        size = workspace.db.execute('SELECT length(CAST(document AS BLOB)) FROM architectures WHERE id=?', (mid,)).fetchone()
+        _require(size is not None, 'Family seed refers to a missing architecture.')
+        source_bytes += size[0]
+        if admit is not None: admit(source_bytes)
+        row = workspace.db.execute('SELECT document FROM architectures WHERE id=?', (mid,)).fetchone()
+        parsed = _parse(row[0])
+        models[mid] = {k: parsed[k] for k in ('id', 'name', 'graph')}
+        for node in models[mid]['graph']['nodes']:
+            if node['type'] in {'Module', 'Recurrent'}: visit(node['ref'])
+    visit(root)
+    return model_document(models, root)
+
+
+def begin(workspace, kind, *, base=None, sid=None, model=None, seed_admit=None):
     """Read-only draft, including deliberately incomplete new-object templates."""
-    _require(kind in KINDS, 'Only datasets, tasks and experiments have authoring drafts.')
+    _require(kind in KINDS, 'Choose a dataset, task, experiment or architecture family draft.')
+    _require(model is None or (kind == 'family' and base is None),
+             'A drawing seed applies only to a new family, not an exact historical base.')
     if base is not None:
         reference(base, kind)
         _require(sid is None, 'Editing uses its exact base ID, not a replacement ID.')
@@ -43,6 +70,13 @@ def begin(workspace, kind, *, base=None, sid=None):
             document.update(storage={'kind': 'inline-records', 'version': 1}, fields=[], records=[])
         elif kind == 'task':
             document.update(inputs=[], heads=[])
+        elif kind == 'family':
+            document.update(root='', models={}, symbols=[], assignments=[], repeats=[])
+            if model is not None:
+                concrete = drawing_seed(workspace, model, seed_admit)
+                document['version'] = 7 if concrete['version'] == 4 else 6 if concrete['version'] == 3 else concrete['version']
+                if document['version'] in (6,7): document['runtime_policy'] = None
+                document.update(root=concrete['root'], models=concrete['models'])
         else:
             document.update(question='', models=[], data_tasks=[], splits=[], initialization_seeds=[],
                             protocols=[], selection={'kind': 'crossed', 'pairs': [], 'exclusions': []})

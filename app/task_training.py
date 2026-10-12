@@ -5,10 +5,9 @@ import platform
 import random
 import time
 
-from .core import compile_model
 from .datasets import _require
 from .evidence import digest
-from .task_execution import checkpoint_for, resolve_run, run_identity
+from .task_execution import checkpoint_for, resolve_run, run_identity, compile_task_model
 from .task_runtime import MetricAccumulator, forward_ports, head_terms, tensor_batch
 
 
@@ -22,7 +21,7 @@ def train_task(bundle, progress=None, cancel=None, *, constrained=True,
     config = bundle['protocol']; task = bundle['task']; spec = bundle['model']
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(config['seeds']['initialization'])
-        model = compile_model(spec['models'], spec['root'], constrained=False)
+        model = compile_task_model(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     settings = config['optimizer']
     optimizer = torch.optim.Adam(model.parameters(), lr=settings['lr'], betas=tuple(settings['betas']),
                                  eps=settings['eps'], weight_decay=settings['weight_decay'], foreach=False, fused=False)

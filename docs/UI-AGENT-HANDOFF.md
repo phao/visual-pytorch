@@ -32,6 +32,22 @@ Future menu or box/link ideas should extend this explicit contract rather than
 being treated as already implemented features. This document is a baseline,
 not a prohibition on improving the design.
 
+Domain-specific update: a concrete LSTM drawing seeds Family7 with a null runtime
+policy in the existing owned architecture-family editor. Typed cards/staged JSON
+support checked integer selection expressions; preview/retention/materialization
+remain separate. This does not change general floating-panel mechanics or imply
+runtime-T LSTM support. The separate Family8 extension uses the same editor;
+entering a runtime-temporal-v2 policy explicitly queues its grammar upgrade.
+Invalid text and old policy meaning remain intact, with no floating-panel redesign.
+The owned experiment selector separately queues explicit version6 before a
+runtime-temporal-v2 execution choice; it does not invent state data/masks/splits.
+Its exact version field accepts1–6, and switching policies never silently
+downgrades an acknowledged/queued version. Retention/training/history/report
+routes use the same frozen contract. See
+[LSTM family contract](lstm-families.md) and
+[runtime-v2 families](runtime-temporal-v2-families.md) and
+[runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+
 ## 2. Coordinate systems and stacking
 
 | Layer | Coordinates | Persisted in Visual PyTorch | Movement |
@@ -62,10 +78,15 @@ window chrome or outside the application's actual surface. "Off-window" means
 most of the rectangle can be outside that clipped stage; recovery uses its slice
 that is still visible. Native detached palette windows are NOT implemented.
 
-Normal menus start at z-index 2; interacting/opening raises them through a monotonic
-counter. Expanded menus are above ordinary menus. The pack is assigned a very high
-z-index so it remains accessible. This is a practical prototype stacking scheme,
-not a general compositor. Popups/modal dialogs use their browser/native mechanisms.
+All floating menus, including the PANELS launcher pack, start at z-index 2,
+above the graph. Pointer interaction or opening raises the target through one
+shared monotonic counter. The pack is not always on top: a clicked/opened palette
+can cover it, and clicking the exposed pack brings it back above other palettes.
+Expansion raises a palette but does not reserve a permanently higher tier;
+restoring ordinary geometry preserves its current stacking level. Pack collapse
+and keyboard/double-click restoration raise the pack. Reset floating menus is
+the recovery command when it is completely covered. Popups/modal dialogs use
+their browser/native mechanisms; notifications remain above the menu layer.
 
 ## 3. Launcher pack state machine
 
@@ -299,10 +320,16 @@ without expanding. Dragging that compact icon moves the block with the same
 world-coordinate and Ctrl-snap behavior as an expanded block. Double-click
 restores its details; Enter/Space toggles folding on a focused icon. Dragging
 must not expand or collapse it, and sockets remain separately clickable.
-Compact width is 72 world units; height is at least 54 for Linear/Conv2d or 44 otherwise,
+Plain Space also toggles the selected block while the diagram has focus; focus
+need not be on that block's icon. One initial press gives one history edit;
+autorepeat is consumed without repeated toggles. A wire-only/empty selection,
+running job, active canvas drag/wiring, dialog, editable field or focused control
+does not trigger this global block shortcut. Modified Space is left alone.
+The existing focused-icon Enter/Space behavior is retained.
+Compact width is 72 world units; height is at least 54 for Linear/Conv2d/LSTM or 44 otherwise,
 increasing to keep multiple ports distinct. Small 9-unit monospace text shows
 input/output shape, Linear last-axis in→out widths, activation name or type-specific
-summary. Linear/Conv2d also have an 8-unit Bias on/off line. Summaries truncate after
+summary. Linear/Conv2d/LSTM also have an 8-unit Bias on/off line. Summaries truncate after
 13 characters with full hover text; missing inferred dimensions show ?. The type
 icon sits at the compact body's top-center and remains directly draggable.
 Folding preserves preferred expanded sizes, tensor
@@ -465,11 +492,54 @@ can prevent double-click delivery. Current drag code updates selection classes
 in-place on pointerdown. Rebuild after actual movement/state changes instead.
 
 Visual PyTorch specifics, **not generic reuse requirements**: tensor shapes, Linear/
-Activation/Reshape, Concat, Splitter, Replicator, reference interfaces, training
+Activation/Reshape, Concat, Splitter, Replicator, Module/Recurrent reference interfaces, training
 contracts, MSE, constrained runs. Reference normal double-click inspects; Ctrl/
 Meta-double-click opens the referred graph in a new tab. Inspector also has Open
 details/Open in new tab actions. Socket click wiring and arbitrary DAG checks live
 in the domain adapter, not in the floating-menu manager.
+
+Recurrent references use the same floating Inspector and loop-type icon, not a
+new UI scheme. Their physical input sockets represent distinct explicit sources
+in sequence/state/lengths/mask/reset binding order. A deliberately shared source
+has one socket with all its argument roles in the tooltip. Returned sockets are
+sequence outputs then final states. Socket tooltips show role/identity/individual
+shape. Icons fold, compact icons drag, double-click expands, and Ctrl/Meta body
+double-click opens the transition in a new tab. Selected-port insertion defaults
+must use that tensor shape, not the packed aggregate. The guarded branch-creation
+modal makes all input roles/state outputs explicit and preserves existing work;
+its native ownership/closure tokens and precise domain semantics are specified
+in [recurrent-graph-contract.md](recurrent-graph-contract.md#qt-authoring-and-agent-parity).
+Keep this pure domain adapter (`recurrent-editing.js`), backend builder and Qt
+bridge separate from reusable floating-panel mechanics.
+
+Inspector also opens an advanced in-place interface modal. It prefills exact
+JSON bindings, shows stable signatures/source IDs and retains rejected drafts.
+Changing a reference never guesses new bindings; connected return ports cannot
+be removed implicitly. Read/write tokens fence both current and candidate
+closures plus the active workspace instance, and obsolete modal responses cannot
+replace newer sessions. One accepted edit is one undo step; exact no-ops change
+nothing. Preserve unrelated drafts rather than "repairing" them behind the
+user's back. These are reusable interaction principles, not a new panel scheme.
+Domain schema and affected-path proof: [interface editing](recurrent-interface-editing.md).
+
+The concrete LSTM domain adapter reuses this scheme with a distinct cell/gate
+icon and amber semantic token, not hard-coded dark fills. Its input sockets are
+the distinct source keys of sequence/hidden/cell, then optional lengths; its
+three output sockets are sequence/hidden/cell. Inspector must distinguish cell
+and projected hidden widths and show the explicit state batch-axis adapter.
+Both expanded and folded blocks always disclose bias. Compact icons remain
+draggable, all sockets remain distinct, and selected-port insertions use that
+port's shape. Its standalone palette action opens a typed creation modal;
+Inspector opens an in-place constructor/source/owner editor. Preview distinguishes
+hidden `[B,L*D,Q]` from cell `[B,L*D,H]`; initial states/lengths are explicit.
+Preserve existing IDs/outgoing wires rather than guess compatible replacements.
+Unproven source shapes are labelled, native errors keep editable field values,
+and workspace-instance/graph/reference/generation guards fence stale responses.
+Only one prepare/apply is pending; a true no-op leaves bytes/history unchanged.
+Cancel fences UI delivery, not rollback of a previously authorized native write.
+Keep existing panels/typing/history behavior rather than add a separate recurrence
+UI. Exact closed routes/options and remaining concrete-only limits:
+[LSTM authoring](lstm-authoring.md) and [forward contract](lstm-graph-contract.md).
 
 ## 8. Visual system and accessibility
 
@@ -564,8 +634,27 @@ token source for native and web backgrounds, controls, text, accents and node
 fills. Platform title bars/file choosers may retain OS styling. Palette tests
 are not a full contrast/accessibility audit.
 
-I/A/B/E toggle Inspector/Architectures/Building blocks/Experiment, ignoring
-editable fields, modified/repeated keys and modal dialogs. Ctrl+Z undoes workspace
+I/A/B/E/H toggle Inspector/Architectures/Building blocks/Experiment/Help, ignoring
+editable fields, modified/repeated keys and modal dialogs. Panel shortcuts also
+leave focused buttons, links, disclosure controls and ARIA controls alone.
+Help is a regular floating, draggable, resizable panel with a short drawing guide
+and a semantic shortcuts table. It starts closed; the bottom-of-canvas shortcut
+caption is removed (the status footer and validation chip remain). Help content
+scrolls through the same overlay scrollbar as the other panels, uses theme tokens
+and configured typography, and wraps within narrow resized frames. Help geometry
+is tab-local: version-1 workspace panel presets retain their exact five-panel
+grammar; Help is excluded from capture and closes on preset restoration/reset.
+It still participates in menu-layer drag, stacking, Fit occlusion and hide-all.
+Section links scroll inside Help without changing the architecture URL hash.
+Learning-resource links use an explicit desktop allowlist and open in the system
+browser only on user activation; they cannot navigate the trusted editor or
+provide arbitrary URLs. Initially linked resources are official PyTorch
+[Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html)
+and [torch.nn](https://docs.pytorch.org/docs/stable/nn.html), checked 2026-10-11.
+External documentation is not an assertion that every described operator is
+implemented. Local guides/shortcuts work offline; linked guides need internet.
+Keep sections extensible for future app documentation and worked NN guides.
+Ctrl+Z undoes workspace
 edits; Ctrl+Shift+Z/Ctrl+Y redo; text fields retain native text undo. Native Edit
 actions dispatch the same commands without stealing text-field shortcuts.
 Domain history is session-only SQLite snapshots (50 steps/128 MiB combined),

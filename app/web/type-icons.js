@@ -15,6 +15,8 @@
     Splitter:'<path d="M3 12h6l7-7h5M9 12l7 7h5m-3-17 3 3-3 3m0 8 3 3-3 3"/>',
     Replicator:'<path d="M2 12h5m0 0V6h5m-5 6v6h5"/><path d="M13 3h8v6h-8zm0 12h8v6h-8z"/>',
     Module:'<path d="M3 3h18v18H3zm5 5h8v8H8zM3 12h5m8 0h5"/>',
+    Recurrent:'<path d="M5 5h12l4 4-4 4m4-4H5V5m14 14H7l-4-4 4-4m-4 4h16v4M9 9h6v6H9z"/>',
+    LSTM:'<path d="M3 4h18v16H3zm0 8h18M8 4v8m8-8v8M7 16h10m-3-2 3 2-3 2"/>',
     Conv2d:'<path d="M3 3h14v14H3zm5 5h13v13H8zM3 8h5M8 3v5m5 5h3m-3 3h3"/>',
     AvgPool2d:'<path d="M3 3h12v12H3zm6 0v12M3 9h12m2 8h4v4h-4zM10 19h5m-3-2 3 2-3 2"/>',
     MaxPool2d:'<path d="M3 3h12v12H3zm3 9 3-6 3 6M17 17h4v4h-4zM10 19h5m-3-2 3 2-3 2"/>',

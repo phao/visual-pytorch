@@ -1,10 +1,89 @@
 # Agent and user CLI contract
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw. It needs Python
+`prepare-recurrent-edit PARENT_ID BLOCK_ID [--ref TRANSITION_ID]` reads an existing
+recurrent interface and exact graph/current-reference/candidate token without
+execution or file writes. Atomic `apply` operation `edit-recurrent` uses the same
+in-place builder as Qt, preserves stable nodes/ports/wires, and validates affected
+paths without replacing unrelated drafts. Exact transport/options, no-op,
+rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
+
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container20). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute
 for explicit IDs.
+
+The local Stage D family checkpoint adds read-only
+`preview-family FAMILY_JSON [--bindings BINDINGS_JSON]` and atomic
+`apply` edit `specialize-family`, with full family document and optional stable-ID
+bindings. This retains exact family/specialization/frozen-model revisions and
+optionally imports a verified ordinary concrete closure, rejecting ID collisions
+instead of replacing user work. `preview-stored-family ID REVISION` uses an exact
+retained family; the edit accepts `family_ref` instead of a full definition,
+optional `id`/`name`, and boolean `materialize` (default true). Typed GUI family
+authoring now uses the same persisted grammar; its transient editor transport is
+specified in [typed-family-sessions.md](typed-family-sessions.md).
+Family6 and specialization5 use these same commands, with required nullable
+runtime_policy and an exact nullable runtime-temporal-v1 witness. Materialization
+inserts the complete Module/Recurrent closure children-first in one atomic edit.
+Preview/export do not rewrite the workspace or allocate PyTorch. CLI constructor
+bindings do not select temporal experiment execution. An ExperimentSpec5 family
+choice must explicitly choose execution:runtime-temporal-v1. Existing preview/run-
+candidate/run evidence/export-run-trained/notebook operations then use exact
+TaskBundle3 temporal provenance, not a parallel CLI format. See
+[temporal-families.md](temporal-families.md).
+Family7/Specialization6 use these same preview/specialize/export commands for
+explicit fixed-T LSTM constructor bindings and typed integer selection expressions.
+They require `.vtw18`, null runtime policy for LSTM, and retain ModelRevision4.
+No unsupported runtime-T LSTM is inferred from changing a time symbol. The
+stdlib example is `examples/lstm_family.py NEW.vtw [--bindings JSON_FILE]`.
+See [LSTM families](lstm-families.md) for closed grammar and all route limits.
+Family8/Specialization7 use the same preview/specialize/export commands for exact
+nullable/runtime-temporal-v2 policy in `.vtw19`. No separate CLI-only schema or
+implicit upgrade is admitted. The pure example is
+`examples/runtime_lstm_family.py NEW.vtw [--bindings JSON_FILE]`; it explicitly
+removes the fixed sequence Output annotation, supplies states/length roles and
+retains proof2. Existing `apply` imports validate/retain these same documents.
+TaskBundle4 and exact task-v4 workers are admitted. ExperimentSpec/RunRecord6
+explicitly selects runtime-temporal-v2 in `.vtw20`; existing apply/preview-
+experiment/run-candidate/evidence/export-run-trained/notebook commands retain
+and execute that exact family proof. No CLI-only execution shortcut bypasses
+the shared experiment grammar. See
+[runtime-v2 families](runtime-temporal-v2-families.md) and
+[direct task execution](runtime-temporal-v2-tasks.md) and
+[retained v2 experiments](runtime-temporal-v2-experiments.md).
+Family v4 scoped Module call bindings and specialization v3 local contexts use
+these same CLI operations, with no agent-only schema shortcuts. See
+[scoped-constructors.md](scoped-constructors.md) and
+examples/families/scoped-branches.json. Required child arguments may be supplied
+per call without global defaults; complete canonical context provenance is retained.
+`export-family ID REVISION --output NEW_PYTHON_FILE [--memory-limit-percent P]`
+exports the exact retained family as a checked standalone PyTorch class without
+instantiating or training. Captures workspace constrained mode and the read-only
+user RAM percentage unless overridden. It leaves the .vtw unchanged, refuses
+overwrite/final symlinks and returns compact source hash/provenance, not code.
+See [checked-family-export.md](checked-family-export.md).
+Family v5 accepts optional runtime_inputs keyed by stable root Input IDs with
+H/W sample axes1/2. Stored preview and exported constructors retain this policy;
+specialization v4 reproduces its exact canonical witness in `.vtw`12. No new CLI
+command is needed. Preview/export do not train or infer bindings. Existing
+dataset-driven workers and notebook reruns still fit the concrete baseline, not
+variable-resolution data; their exact family/specialization provenance remains
+retained. See [runtime-spatial-contracts.md](runtime-spatial-contracts.md).
+See [architecture-families.md](architecture-families.md)
+for grammar, defaults, atomicity, statuses and repeat identities.
+
+Explicit shared parameter owners use ordinary `set-node` values containing
+`share_with`; `remove_fields:["share_with"]` explicitly detaches. `freeze-model`
+preserves version2 sharing semantics and unique checkpoint paths. Family v2
+accepts tied finite repeats; .vtw v9 is required. `parameter-counts` attributes
+newly owned parameters once to the canonical block and zero to its aliases.
+Complete ownership/constructor/CLI/export rules: [shared-parameters.md](shared-parameters.md).
+
+Family v3 constructor choices use explicit JSON boolean/string bindings in the
+same preview/specialize commands. Specialization v2, experiment/run v3 and .vtw
+v10 preserve exact typed provenance; older integer grammars are not widened.
+See [constructor-choices.md](constructor-choices.md).
 
 `inspect` also includes the optional workspace-owned `panel_layout`. An atomic
 `apply` batch accepts `{"op":"panel-layout","value": <preset-or-null>}`.
@@ -69,7 +148,7 @@ manifest replay, fitted transforms and RAM-policy behavior are specified in
 [dataset-task-contract.md](dataset-task-contract.md). `prepare-task` takes exactly
 one of `--split` (protocol) or `--manifest` (saved actual IDs); percentage defaults
 to user config and can be explicitly overridden with `--memory-limit-percent`.
-Independent dataset/experiment/model/report/run/task persistence is implemented
+Independent dataset/experiment/family/model/report/run/specialization/task persistence is implemented
 in `.vtw` v6; the Stage C selection/history GUI is described in
 [experiment-gui.md](experiment-gui.md). Portable
 notebook generation/explicit real-kernel execution are described below.
@@ -274,6 +353,10 @@ adapter still requires those optional execution packages in its invoking
 environment. See [notebook-gui-execution.md](notebook-gui-execution.md). No new
 SQLite objects, implicit fits during reads or optimizer-resume command is added.
 
+All JSON file/stdin input uses one strict reader: duplicate keys, NaN/Infinity
+and finite-looking floats overflowing the host (such as `1e309`) are rejected.
+Exact integer tokens remain integers. There is no separate lax authoring parser.
+
 apply reads an ordered JSON array from a file or stdin. It edits an in-memory
 copy and persists only if the whole batch succeeds. Normal apply validates every
 graph, including affected references. --allow-invalid explicitly permits semantic
@@ -290,16 +373,29 @@ bytes unchanged; successful edits are not automatically archived as undo history
 | layout | value | Closed workspace layout profile version 1 in metadata; read-only inspect returns layout_preferences. Never changes global preferences. |
 | set-node | id, node ID, values; optional remove_fields | Property edits; changing/removing ID/type refused |
 | add-node | id, node object | Explicit new block |
+| add-recurrent | token with id/ref/root_graph/transition; options | Guarded append of an explicit sequence/state/control branch using the same pure builder as Qt; existing work is preserved. See [recurrent graph contract](recurrent-graph-contract.md#qt-authoring-and-agent-parity). |
+| edit-recurrent | token with id/ref/node/root_graph/root_model/transition; options | Guarded in-place interface change; no new boundaries or guessed outgoing rewiring. See [interface editing](recurrent-interface-editing.md). |
+| add-lstm | token with id/root_graph/root_model; options | Guarded append of explicit sequence/hidden/cell inputs and three returned ports; optional supplied lengths. See [LSTM authoring](lstm-authoring.md). |
+| edit-lstm | token with id/node/root_graph/root_model; options | Guarded constructor/bindings/owner edit, preserving IDs/outgoing wires; no implicit resize of initial states or downstream work. |
 | remove-node | id, node ID | Remove block/incident wires; prune Concat keys; no guessed rewiring |
 | connect | id, edge object | Append explicit wire; update ordered Concat sources separately |
 | disconnect | id, exact edge object | Remove exactly that wire or fail |
 | delete | id | Delete unreferenced graph; last architecture protected |
 | mode | enabled boolean | Persist workspace safety policy only |
-| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/model/report/run/task revision and exact dependencies, optionally select for browsing |
+| put-spec | kind, document, optional select boolean (default true) | Validate/store immutable dataset/experiment/family/model/report/run/specialization/task revision and exact dependencies, optionally select for browsing |
+| admit-run | document; optional select boolean (default true) | Reconstruct exact family provenance from the pinned experiment and atomically retain missing derived records plus a validated terminal run; supports explicit recovery without training |
+| specialize-family | exactly one of family/family_ref; optional bindings, id, name, materialize | Atomically retain exact family, resolved specialization and frozen model; optionally add new concrete drawings, never implicitly replace |
 | select-spec | reference={kind,id,revision} | Select a retained exact revision, never edit its bytes |
 | archive-spec | kind, id | Hide browsing head; revision bytes are retained and recoverable |
 | freeze-model | id | Capture current valid architecture's complete reachable closure as an independent model revision |
 | rebind-dataset | id | Explicitly bind valid existing x/y columns to the current input/output port contract; no numerical reordering/transformation; clears current result, preserves historical runs |
+
+Experiment/run version-2 documents add explicit ordered family binding axes in
+container v8. Existing preview/run/report/notebook commands resolve the same
+family coordinates and preserve exact specialization provenance; no parallel
+CLI state or transient editor token is added. Full grammar and examples are in
+[family-experiment-axes.md](family-experiment-axes.md). Import a family before its
+experiment; import a completed run's exact dependency closure before its record.
 
 Create referenced targets before their owners. Custom documents follow
 [vtw-format.md](vtw-format.md). Computational edits invalidate current results in
@@ -314,6 +410,20 @@ and op_version=1. Normal apply checks grouped channel divisibility, layout and
 positive output sizes without importing Torch. Invalid batches leave disk bytes
 unchanged. A structured dataset adapter mismatch is not repaired by rebind-dataset.
 See [the CNN example](cnn-workflow.md) for a runnable workspace generator.
+
+Concrete LSTM v1 uses the same explicit graph create/replace/add-node/set-node
+and wire operations, with named sequence/hidden/cell bindings and return ports.
+Container17/ModelRevision4 fence its grammar; no family1–6 upgrade is inferred.
+Generate a pure-host example with `python examples/projected_lstm.py example.vtw`,
+then use normal inspect/revision-check/apply/validate/export workflows. Normal
+apply refuses incompatible state widths or ambiguous port bindings before
+Torch allocation. Graph editing does not supply initial-state or length data.
+`prepare-lstm PARENT_ID` reads a creation token/defaults;
+`prepare-lstm-edit PARENT_ID BLOCK_ID` reads the exact edit token/options/source
+catalog. Atomic `add-lstm` / `edit-lstm` use the same pure builder as Qt's typed
+modal. Read-only preparation never changes disk or allocates Torch layers.
+See [LSTM authoring](lstm-authoring.md) for closed requests, affected-path proof,
+stale guards and no-op behavior, and the exact [forward contract](lstm-graph-contract.md).
 
 Example layout repair (substitute actual IDs):
 

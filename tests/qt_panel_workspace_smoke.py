@@ -67,6 +67,30 @@ with tempfile.TemporaryDirectory() as directory:
     folder=Path(directory);h=Harness(folder);view=open_view(h);config_before=h.config.path.read_bytes()
     try:
         assert js(view,'!document.getElementById("find")')
+        assert js(view,'!document.querySelector("#library-panel .sidebar-help")')
+        # Actual overlap/hit tests and native clicks: the launcher is not an
+        # always-on-top island, including when another palette is expanded.
+        raw_before=h.workspace.db.serialize();history_before=copy.deepcopy(h.workspace.history.summary())
+        js(view,'document.querySelector("[data-open-panel=library-panel]").click();Object.assign(document.getElementById("library-panel").style,{left:"80px",top:"0px",width:"340px",height:"500px"})')
+        def click_stage(x,y):
+            point=js(view,f'(() => {{const r=document.getElementById("editor").getBoundingClientRect();return {{x:r.left+{x},y:r.top+{y}}};}})()')
+            QTest.mouseClick(view.focusProxy() or view,Qt.MouseButton.LeftButton,
+                            Qt.KeyboardModifier.NoModifier,QPoint(round(point['x']),round(point['y'])))
+            QTest.qWait(50)
+        def front(x=100,y=20):
+            return js(view,f'(() => {{const r=document.getElementById("editor").getBoundingClientRect();return document.elementFromPoint(r.left+{x},r.top+{y})?.closest(".floating-panel,.menu-pack")?.id;}})()')
+        assert front()=='library-panel'
+        click_stage(20,20);assert front()=='menu-pack'
+        click_stage(310,20);assert front()=='library-panel'
+        js(view,'document.querySelector("#library-panel [data-expand-panel]").click()')
+        click_stage(8,20);assert front()=='menu-pack'
+        click_stage(310,20);assert front()=='library-panel'
+        js(view,'document.querySelector("#library-panel [data-expand-panel]").click()')
+        assert front()=='library-panel'
+        click_stage(20,20);assert front()=='menu-pack'
+        assert h.workspace.db.serialize()==raw_before and h.workspace.history.summary()==history_before
+        assert h.config.path.read_bytes()==config_before
+        js(view,'window.loom.perform("reset-panels")')
         # Real mouse events, not calls to a coordinate helper.
         for block_enabled,menu_enabled in ((False,False),(True,False),(False,True),(True,True)):
             h.config.values.update(grid_snap=block_enabled,menu_grid_snap=menu_enabled);h.broadcast()
@@ -130,7 +154,8 @@ with tempfile.TemporaryDirectory() as directory:
                 assert r['x']+r['width']>=24 and r['y']+r['height']>=24 and r['x']<=b['width']-24 and r['y']<=b['height']-24,(r,b)
                 assert h.workspace.panel_layout==saved;samples+=1
         assert not errors,errors;assert 'torch' not in sys.modules
-        print(json.dumps({'real_mouse_snap_defaults_ctrl_inverse':'PASS','real_panel_save_reload_second_tab':'PASS','architecture_menu_same_tab_new_tab_hide':'PASS',
+        print(json.dumps({'launcher_palette_shared_stacking_native_clicks':'PASS','guidance_section_removed':'PASS',
+          'real_mouse_snap_defaults_ctrl_inverse':'PASS','real_panel_save_reload_second_tab':'PASS','architecture_menu_same_tab_new_tab_hide':'PASS',
           'ordinary_expanded_geometry':'PASS','font_viewport_samples':samples,'global_config_science_history_unchanged':'PASS','console_errors':errors,'host_torch':False}))
     finally:
         h.bridges.clear()

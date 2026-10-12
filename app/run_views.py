@@ -24,10 +24,18 @@ def _project(workspace, ref, record, attempt, offset, limit):
     expref = selection['experiment']
     experiment = workspace.get_spec('experiment', expref['id'], expref['revision'])
     pairing = next(p for p in experiment['data_tasks'] if p['id'] == selection['coordinates']['data_task'])
-    refs = {'model': selection['coordinates']['model'], 'dataset': pairing['dataset'], 'task': pairing['task']}
+    refs = {'dataset': pairing['dataset'], 'task': pairing['task']}
+    if resolved: refs = resolved['references']
+    elif selection['coordinates']['model'].get('kind') == 'model': refs['model'] = selection['coordinates']['model']
+    else:
+        from .family_axes import selected as selected_choice
+        refs['family'] = selected_choice(experiment['models'], selection['coordinates']['model'])['family']
     docs = {kind: workspace.get_spec(kind, value['id'], value['revision']) for kind, value in refs.items()}
     objects = {kind: {'reference': value, 'name': docs[kind]['name']} for kind, value in refs.items()}
-    objects['model']['parameters'] = validate_model(docs['model']['models'], docs['model']['root'])['parameters']
+    if 'model' in objects:
+        parameters = validate_model(docs['model']['models'], docs['model']['root'])['parameters']
+        objects['model']['parameters'] = parameters
+        if record['version'] >= 2: objects['model']['parameters_exact'] = str(parameters)
     objects['dataset']['observations'] = len(docs['dataset']['records'])
     manifest = resolved['manifest'] if resolved else None
     split = None if manifest is None else {

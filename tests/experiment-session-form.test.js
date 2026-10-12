@@ -44,6 +44,15 @@ test('actual experiment opens a header and seven bounded axes, never a complete 
   assert.deepEqual(f.requests.slice(1).map(r=>r.args.collection),collections);assert.ok(f.requests.slice(1).every(r=>r.args.limit===6&&!('draft' in r.args)));
   assert.equal(f.field('Maximum updates').value,'3');assert.equal(f.get('science-author-check').disabled,false);
 });
+
+test('selection version 3 is an exact explicit root edit, not inferred from raw bindings',async()=>{
+  const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2').querySelector('input');
+  edit(n,'3');const done=f.click('science-author-check');await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.requests[8].args.operations)),[
+    {op:'property',target:{kind:'document'},key:'version',text:'3'}]);
+  f.requests[8].resolve(header(1));await tick();f.requests[9].resolve(reference);await done;
+});
 test('focused unsafe integer literals survive native flush before Check',async()=>{
   const f=await opened(fixture()),n=f.field('Maximum updates');edit(n,'9007199254740993','input');f.root.activeElement=n;
   const done=f.click('science-author-check');await tick();assert.equal(n.disabled,true);assert.equal(f.requests[8].args.operations[0].text,'9007199254740993');
@@ -148,4 +157,80 @@ test('external role IDs keep literal spaces, commas, order and duplicates for na
   await opened(f,{splits:{rows:p.rows}});edit(f.field('train observation IDs','split'),'r,1\n r 2 \nr,1');const done=f.click('science-author-check');await tick();
   assert.equal(f.requests[8].args.operations[0].text,JSON.stringify(['r,1',' r 2 ','r,1']));f.requests[8].resolve(header(1));await tick();f.requests[9].reject(Error('duplicate IDs'));await done;
   assert.equal(f.field('train observation IDs','split').value,'r,1\n r 2 \nr,1');
+});
+test('family cards expose exact family choices and preserve ordered axis JSON integer tokens',async()=>{
+  const family={kind:'family',id:'family',revision:'f'.repeat(64)},props=[descriptor('id','width-depth',[2,0,0]),
+    descriptor('family',family,[2,0,1]),descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3])];
+  const f=await opened(fixture(),{models:{rows:[{ordinal:0,path:[2,0],properties:props}]}});
+  assert.ok(f.field('Exact family','model'));const n=f.field('Ordered binding axes JSON','model');
+  edit(n,'[{"symbol":"width","values":[9007199254740993,2]}]','input');f.root.activeElement=n;
+  const done=f.click('science-author-check');await tick();const op=f.requests[8].args.operations[0];
+  assert.equal(op.key,'axes');assert.equal(op.text,'[{"symbol":"width","values":[9007199254740993,2]}]');
+  f.requests[8].resolve(header(1));await tick();f.requests[9].reject(Error('Editor-range integer required'));await done;
+  assert.equal(n.value,'[{"symbol":"width","values":[9007199254740993,2]}]');assert.equal(f.form.active(),true);
+});
+test('adding family choice explicitly upgrades experiment grammar and inserts without changing other axes',async()=>{
+  const f=await opened(fixture()),done=f.button('Add family selection','models').onclick();await tick();
+  f.requests[8].resolve(page(f.requests[8],{path:[11]}));await tick();const operations=f.requests[9].args.operations;
+  assert.equal(JSON.stringify(operations[0]),JSON.stringify({op:'property',target:{kind:'document'},key:'version',text:'2'}));
+  assert.equal(operations[1].op,'insert-json');assert.equal(JSON.stringify(operations[1].path),'[11]');
+  const value=JSON.parse(operations[1].text);assert.equal(value.id,'entry');assert.equal(value.family.kind,'family');assert.deepEqual(value.axes,[]);
+  f.requests[9].resolve(header(1));await tick();replyPages(f,10);await done;
+});
+
+test('adding a family after a pending version 3 edit uses the fresh native page, not stale roots',async()=>{
+  const f=await opened(fixture());const n=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2').querySelector('input');
+  edit(n,'3');const done=f.button('Add family selection','models').onclick();await tick();
+  assert.equal(f.requests[8].args.operations[0].text,'3');f.requests[8].resolve(header(1));await tick();
+  f.requests[9].resolve(page(f.requests[9],{roots:[descriptor('version',3,[0])]}));await tick();
+  assert.equal(f.requests[10].args.operations[0].text,'3');f.requests[10].resolve(header(2));await tick();replyPages(f,11);await done;
+});
+test('family axis invalid JSON stays visible and blocks native Check',async()=>{
+  const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3])];
+  const f=await opened(fixture(),{models:{rows:[{ordinal:0,path:[2,0],properties:props}]}}),n=f.field('Ordered binding axes JSON','model');
+  edit(n,'[{"symbol":');await f.click('science-author-check');assert.equal(f.requests.length,8);assert.equal(n.value,'[{"symbol":');assert.ok('invalid' in n.dataset);
+});
+test('draft family candidate labels display bindings and exact decimal parameter counts',async()=>{
+  const f=await opened(fixture()),done=f.click('science-experiment-preview');await tick();const p=preview(f.requests[8]);
+  p.candidates[0].coordinates.model={id:'width-depth',bindings:{width:4,depth:3}};p.candidates[0].parameters_exact='9007199254740993';
+  f.requests[8].resolve(p);await done;const text=f.get('science-experiment-preview-rows').children[0].children.map(n=>n.textContent).join(' ');
+  assert.match(text,/width-depth.*width=4.*depth=3/);assert.match(text,/9007199254740993 trainable parameters/);
+});
+
+for(const policy of ['concrete-v1','runtime-spatial-v1','runtime-temporal-v1','runtime-temporal-v2'])test('explicit '+policy+' selection queues its exact grammar first and acknowledges its visible version',async()=>{
+  const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),
+    descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3]),descriptor('execution',null,null,false)];
+  const f=await opened(fixture(),{models:{roots:[descriptor('version',3,[0])],rows:[{ordinal:0,path:[2,0],properties:props}]}});
+  const mode=f.field('Family execution','model');assert.equal(mode.value,'concrete-v1');assert.equal(f.requests.length,8);
+  edit(mode,policy);const done=f.click('science-author-check');await tick();
+  assert.equal(JSON.stringify(f.requests[8].args.operations),JSON.stringify([
+    {op:'property',target:{kind:'document'},key:'version',text:policy==='runtime-temporal-v2'?'6':policy==='runtime-temporal-v1'?'5':'4'},
+    {op:'property',target:{kind:'entry',collection:'models',ordinal:0},key:'execution',text:JSON.stringify(policy)}]));
+  f.requests[8].resolve(header(1));await tick();f.requests[9].resolve(reference);await done;
+  const version=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2').querySelector('input');assert.equal(version.value,policy==='runtime-temporal-v2'?'6':policy==='runtime-temporal-v1'?'5':'4');
+  edit(mode,'runtime-spatial-v1');const again=f.click('science-author-check');await tick();
+  assert.equal(f.requests[10].args.operations.length,1);assert.equal(f.requests[10].args.operations[0].key,'execution');
+  f.requests[10].resolve(header(2));await tick();f.requests[11].resolve(reference);await again;
+});
+
+test('queued v2 upgrade survives a later concrete selection without silently downgrading',async()=>{
+  const props=[descriptor('id','f',[2,0,0]),descriptor('family',{kind:'family',id:'f',revision:'f'.repeat(64)},[2,0,1]),
+    descriptor('bindings',{},[2,0,2]),descriptor('axes',[],[2,0,3]),descriptor('execution',null,null,false)];
+  const f=await opened(fixture(),{models:{roots:[descriptor('version',3,[0])],rows:[{ordinal:0,path:[2,0],properties:props}]}});
+  const mode=f.field('Family execution','model');edit(mode,'runtime-temporal-v2');edit(mode,'concrete-v1');
+  const done=f.click('science-author-check');await tick();
+  assert.equal(JSON.stringify(f.requests[8].args.operations),JSON.stringify([
+    {op:'property',target:{kind:'document'},key:'version',text:'6'},
+    {op:'property',target:{kind:'entry',collection:'models',ordinal:0},key:'execution',text:'"concrete-v1"'}]));
+  f.requests[8].resolve(header(1));await tick();f.requests[9].resolve(reference);await done;
+});
+
+test('unknown version-seven text remains invalid and cannot flush to native Check',async()=>{
+  const f=await opened(fixture(),{models:{roots:[descriptor('version',6,[0])]} });
+  const version=f.get('science-experiment-bindings').querySelectorAll('label')
+    .find(n=>n.textContent==='Selection version · 4 spatial, 5 temporal-v1, 6 temporal-v2').querySelector('input');
+  edit(version,'7');await f.click('science-author-check');assert.equal(f.requests.length,8);
+  assert.equal(version.value,'7');assert.ok('invalid' in version.dataset);
 });

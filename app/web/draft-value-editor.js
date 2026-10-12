@@ -18,6 +18,7 @@
     window.LoomDatasetSessionForm?.stateChanged?.();
     window.LoomTaskSessionForm?.stateChanged?.();
     window.LoomExperimentSessionForm?.stateChanged?.();
+    window.LoomFamilySessionForm?.stateChanged?.();
     window.LoomScienceDocument?.stateChanged?.();
   }
   const valid=owner=>state===owner;

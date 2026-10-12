@@ -1,17 +1,44 @@
-# Visual Torch Workspace (.vtw): format specification, version 6
+# Visual Torch Workspace (.vtw): format specification, version 20
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
 app/file_sync.py, app/revisions.py and vpw_cli.py. The reusable GUI has a separate specification:
 [UI-AGENT-HANDOFF.md](UI-AGENT-HANDOFF.md).
 
+The local Stage D [family specialization checkpoint](architecture-families.md)
+retains immutable `family` and `specialization` revisions in the existing registry
+tables, alongside the exact frozen concrete model. Atomic CLI admission can also
+create ordinary editable drawings. These new closed document kinds require a
+version-7 container; they add no SQL table or sidecar. The
+[typed family editor](typed-family-sessions.md) uses transient owned sessions;
+[explicit shared parameters](shared-parameters.md) now require version9;
+[typed constructor choices](constructor-choices.md) require version10;
+[scoped Module constructors](scoped-constructors.md) require version11;
+[retained runtime H/W contracts](runtime-spatial-contracts.md) require version12;
+[explicit runtime task execution](runtime-task-execution.md) requires version13;
+[recurrent graph references](recurrent-graph-contract.md) require version14;
+[retained temporal families](temporal-families.md) require version15;
+[explicit temporal experiment execution](temporal-task-execution.md) requires version16;
+[projected/bidirectional LSTM ports](lstm-graph-contract.md) require version17.
+Its [guarded Qt/CLI authoring](lstm-authoring.md) adds no container/revision
+version or SQL table; it writes the same concrete operator and stable sockets.
+[Explicit fixed-T LSTM families](lstm-families.md) require version18.
+[Runtime-temporal-v2](runtime-temporal-v2.md) has an explicit backend API and
+concrete standalone source. [Family8/Specialization7](runtime-temporal-v2-families.md)
+retain this policy in container19, through shared CLI/owned Qt services and checked
+family exports. Direct [TaskBundle4](runtime-temporal-v2-tasks.md) execution is
+admitted without a new SQL/container grammar. [ExperimentSpec/RunRecord6](runtime-temporal-v2-experiments.md)
+explicitly retain v2 execution in container20, with actual worker/report/kernel
+routes through that same TaskBundle4 compiler.
+Runtime recurrent execution is not implied by finite tied uses.
+
 ## 1. Container, versioning and compatibility
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 6. The current reader accepts versions 1–6; opening
-an older file copies it into memory and upgrades the working version to 6.
-Opening alone never rewrites the source; explicit Save writes version 6.
+PRAGMA user_version = 20. The current reader accepts versions 1–20; opening
+an older file copies it into memory and upgrades the working version to 20.
+Opening alone never rewrites the source; explicit Save writes version 20.
 
 Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
@@ -23,7 +50,87 @@ validation. Version 6 adds closed experiment/run/report semantics to those same
 revision tables, checks exact dependencies and append-only terminal attempts,
 and captures actual split manifests. These are application semantics, not new
 SQL tables. A version-1–5 header containing experiment/run/report rows is rejected.
-Older binaries are not expected to open version 6;
+Version 7 adds exact family/specialization provenance to the same immutable
+registry. A version-1–6 header containing either new kind is rejected. Load/save
+re-resolve each specialization from its exact family revision and all explicit
+bindings, then compare its exact frozen model, not merely matching shapes/counts.
+Version 8 adds closed experiment/run document version 2 for ordered family
+binding axes and exact terminal specialization provenance, without SQL changes.
+An earlier container containing these version-2 records is rejected. See
+[family-experiment-axes.md](family-experiment-axes.md) for the complete grammar.
+Version9 adds explicit local share_with module identity and version-2 family/model
+documents without new SQL tables. Earlier headers containing shared drawings or
+these v2 documents are rejected. ModelRevision v1 cannot contain sharing fields;
+independent captures preserve v1 hashes. [shared-parameters.md](shared-parameters.md)
+specifies constructor/owner/unique checkpoint paths and finite tied-repeat rules.
+Version10 adds closed scalar constructor choices: family v3, specialization v2
+and experiment/run v3, without changing tables or ordinary concrete model
+versions. Earlier headers containing these documents fail; older integer-only
+grammars/hashes remain unchanged. See [constructor-choices.md](constructor-choices.md).
+Version11 adds family v4 scoped Module constructors and specialization v3's exact
+local context records, without table or concrete ModelRevision changes. Typed
+experiment/run v3 can already select these families. Earlier headers containing
+family v4 or specialization v3 fail; old grammar/hashes stay unchanged. See
+[scoped-constructors.md](scoped-constructors.md).
+Version12 adds family v5's optional root runtime_inputs declaration and
+specialization v4's mandatory canonical runtime witness (or null for fixed shapes).
+Load/save re-resolve that witness from the exact family and bindings; earlier
+headers containing these records fail. SQL tables, concrete ModelRevisions and
+fixed-shape worker/task contracts do not change. See
+[runtime-spatial-contracts.md](runtime-spatial-contracts.md) for the closed fields,
+dependency proof and actual-call guards.
+Version13 adds experiment/run v4's explicit family execution selection and exact
+runtime TaskBundle v2 provenance/identity. Earlier headers containing those v4
+records fail. Existing concrete experiments/bundles retain their old execution;
+there are no new SQL tables, ModelRevision semantics or report recipe version.
+See [runtime-task-execution.md](runtime-task-execution.md).
+Version14 adds closed `Recurrent` multiport references and ModelRevision v3's
+reachable transition closure. Earlier headers containing either new semantic
+feature fail. No SQL tables, family1–5 grammar, TaskBundle1, experiment/run or
+report recipe grammar changes. Existing concrete task execution can capture the
+new model revision. See [recurrent-graph-contract.md](recurrent-graph-contract.md).
+Guarded Qt/CLI [existing-interface edits](recurrent-interface-editing.md) use
+those same node documents, adding no SQL tables, metadata or format version.
+Version15 adds family v6's required nullable `runtime_policy` and specialization
+v5's required nullable temporal witness. Family6 permits explicit Recurrent
+references and scoped transition constructor bindings; a nonnull policy selects
+only `runtime-temporal-v1`. Load/save re-prove the exact witness against the
+retained family, bindings, constructor contexts and frozen model. Earlier headers
+containing family6 or specialization5 fail. No new SQL tables, experiment/run
+grammar or variable-T experiment execution are added by this version. See
+[temporal-families.md](temporal-families.md).
+Version16 adds ExperimentSpec/RunRecord v5's explicit runtime-temporal-v1 family
+execution choice and TaskBundle v3's exact temporal provenance. Earlier headers
+containing experiment/run v5 fail. No SQL table, TaskSpec, DatasetSpec or report
+recipe version changes. Existing concrete/spatial execution retains its explicit
+meaning. See [temporal-task-execution.md](temporal-task-execution.md).
+Version17 adds the closed LSTM v1 operator and ModelRevision v4, without SQL
+changes. Older headers containing these drawings/revisions fail closed. Existing
+family1–6 and spatial/temporal runtime policies do not gain LSTM semantics.
+See [LSTM graph contract](lstm-graph-contract.md) for explicit batch-leading
+hidden/cell adapters, projection/direction order, lengths and limits.
+Version18 introduces Family7's explicit LSTM constructor grammar and typed integer
+selection expressions, plus Specialization6's exact bindings/contexts/nullable
+runtime witness. Fixed LSTM families require a null policy; temporal-v1/spatial
+policies still reject LSTM. No SQL tables or model/task/experiment/protocol
+versions change. Earlier headers carrying Family7/Specialization6 refuse even
+without concrete materialization. See [LSTM families](lstm-families.md).
+Version19 introduces Family8's required nullable policy: null for fixed shapes,
+or exact version2/kind runtime-temporal-v2/root Input declarations. Specialization7
+retains the exact version3 temporal-v2 witness, bindings and constructor contexts;
+resolution6 carries dependency proof2 and its hash. ModelRevision4 stays unchanged.
+Earlier headers carrying Family8/Specialization7 refuse even without materialized
+graphs. No SQL table, TaskBundle/TaskSpec/DatasetSpec/ExperimentSpec/RunRecord,
+operator version or report recipe change. Old family1–7 and temporal-v1 semantics
+remain unchanged. See [runtime-v2 families](runtime-temporal-v2-families.md).
+Version20 admits ExperimentSpec/RunRecord6's explicit runtime-temporal-v2
+execution choice and exact TaskBundle4/RunIdentity4 family provenance. Even
+unmaterialized or concrete-policy experiment/run6 requires this container fence.
+The same owned editor/CLI/worker and captured notebook routes use the shared
+compiler and exact proof; no SQL tables, model/data/task/protocol/report recipe
+or operator version change. Old1–5 experiment/run identities and source archives
+remain unchanged. See [runtime-v2 experiments](runtime-temporal-v2-experiments.md).
+Older binaries are not expected to open version 20;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 
@@ -64,7 +171,7 @@ creates external evidence; no browser projection is a persisted scientific spec.
 TEXT payloads contain UTF-8 JSON without NaN/Infinity. The implemented DDL is:
 
 ```sql
-PRAGMA user_version = 6;
+PRAGMA user_version = 17;
 PRAGMA foreign_keys = ON;
 CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE architectures(
@@ -102,8 +209,26 @@ WHEN EXISTS(SELECT 1 FROM spec_revisions
 BEGIN SELECT RAISE(ABORT, 'Immutable revisions cannot be replaced'); END;
 ```
 
-Independent revision kinds are dataset, experiment, model, report, run and task
-(integer document version 1); other kinds/versions are rejected.
+Independent revision kinds are dataset, experiment, family, model, report, run,
+specialization and task
+(integer document version 1; experiment/run additionally support integer version
+2 in a version-8 or newer container; family/model additionally support integer
+2 in a version-9 or newer container; family/experiment/run additionally support
+integer version3 and specialization supports integer version2 in a version-10
+container; family additionally supports integer version4 and specialization
+integer version3 in a version-11 container; family additionally supports integer
+version5 and specialization integer version4 in a version-12 container;
+experiment/run additionally support integer version4 in a version-13 container;
+model additionally supports integer version3 in a version-14 container;
+family additionally supports integer version6 and specialization integer version5
+in a version-15 container; experiment/run additionally support integer version5
+in a version-16 container; model additionally supports integer version4
+in a version-17 container; family additionally supports integer version7 and
+specialization integer version6 in a version-18 container; family additionally
+supports integer version8 and specialization integer version7 in a version-19
+container; experiment/run additionally support integer version6 in a version-20
+container);
+other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
 retained revisions. Exact schemas, frozen reference closures, hash/guard checks,
@@ -111,8 +236,10 @@ working-copy-only migration, archive/reselection and undo retention are specifie
 in [revision-store.md](revision-store.md). Exact experiment, terminal run and report
 recipe schemas are in [experiment-objects.md](experiment-objects.md).
 Their JSON references are checked by the application on admission/load/save;
-only head→revision references are SQL foreign keys. This is a Stage C component,
-not the completed experiment GUI. Notebook artifacts are separately specified in
+only head→revision references are SQL foreign keys. The locally accepted Stage C
+GUI is specified in [experiment-gui.md](experiment-gui.md); the new D family
+grammar has read/import integration and a [typed family editor](typed-family-sessions.md).
+Notebook artifacts are separately specified in
 [notebook-reports.md](notebook-reports.md). Legacy datasets/runs keep their
 original meaning and existing APIs; no automatic typed-data interpretation occurs.
 
@@ -151,7 +278,8 @@ from datasets.payload; Workspace.put() accepts the materialized document.
 dataset: null deletes the current dataset. Unknown JSON fields survive normal
 round trips but do not acquire execution semantics.
 
-architecture_refs must exactly index every Module as (owner ID, node ID, ref ID).
+architecture_refs must exactly index every Module and Recurrent as
+(owner ID, node ID, ref ID).
 Targets must exist. A stale independent index is rejected; deleting a referenced
 target is blocked. Deleting an unreferenced architecture cascades its legacy
 data/runs, not independent revisions/frozen closures.
@@ -224,6 +352,8 @@ Current training tensors are float32.
 | Splitter | parts=[{output:port_id,features:size},...] | torch.split on last axis; positive sizes sum to incoming last-axis width; other axes preserved. |
 | Replicator | outputs=[port_id,...] | All ports alias the same full tensor; no clone or parameters. |
 | Module | ref | Independently instantiated graph reference; exact packed input shape match, canonical forward_tensor output. |
+| Recurrent | ref, sequence_inputs, states, sequence_outputs, optional controls | Explicit transition graph unroll; named state/sequence output ports, constant shared step weights, validated control adapters. See recurrent-graph-contract.md. |
+| LSTM | inputs, hidden_size, num_layers, bidirectional, proj_size, bias, optional lengths | Native stacked/projected/bidirectional LSTM with explicit sequence/initial-hidden/initial-cell source bindings and named sequence/hidden/cell returns. See lstm-graph-contract.md. |
 | Output | optional shape, label | Identity boundary. Shape asserts incoming dimensions; it never implicitly reshapes. |
 
 Structured operators use integer op_version=1. Missing version is interpreted
@@ -295,12 +425,21 @@ Direct split groups additionally specify axis_start/axis_stop. Extract higher-ra
 split slices on the last axis; flat start/stop is not sufficient. Replicas share
 canonical offsets. Other terminal groups use concatenated flat offsets.
 
-References currently expose one bundled socket pair, not independently wired
+Module references currently expose one bundled socket pair, not independently wired
 named ports. Each occurrence has independent weights. Reference cycles are
 rejected even when each internal DAG is acyclic. Its output presentation does not
 replace its canonical adapter.
 
-State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module
+Recurrent instead has explicitly bound incoming wire keys and named outgoing
+ports. Feedback is internal to its loop; the surrounding graph remains acyclic.
+Recurrent bodies occupy a registered `transition` submodule below the owner.
+
+LSTM has three fixed named output sockets and explicitly bound incoming sources.
+Its registered native parameters use LSTM gate/direction/projection names, without
+a transition-architecture reference. Hidden/cell graph states are batch-leading,
+and adapt to PyTorch's layer-leading states explicitly.
+
+State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent/LSTM
 and the six structured operators above,
 in topological order, nested through references. Boundary/Concat/router nodes
 do not occupy these operation indices. Paths can change after graph insertion/

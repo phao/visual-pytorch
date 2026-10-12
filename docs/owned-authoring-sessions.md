@@ -6,6 +6,9 @@ without sending complete drafts for Open/Check/Commit. The actual
 [chunked value editor](chunked-draft-values.md) use these sessions.
 The [typed task form](typed-task-sessions.md) and actual
 [experiment form](typed-experiment-sessions.md) also use these sessions.
+The local Stage D [architecture family form](typed-family-sessions.md) now uses
+the same owner/sequence/origin/staging/admission contract. New families may seed
+from a valid drawing; tokens remain transient, not new .vtw rows.
 This is not completion of
 resource convergence or a published feature.
 
@@ -64,7 +67,7 @@ The actual experiment form now uses them, with independent local axes/choices,
 literal queues and same-session raw children. Native preview projections omit full split manifests,
 protocols and role-ID arrays, without changing candidate-resolution semantics.
 
-Open accepts only dataset/task/experiment. `reference` selects exact immutable
+Open accepts only dataset/task/experiment/family. `reference` selects exact immutable
 base bytes and forbids a replacement `id`; without it, ordinary incomplete
 template/new-ID checks apply. Headers have `version: 1`,
 `scope: owned-authoring-session`, session/sequence, ordinary draft-envelope fields
@@ -99,8 +102,13 @@ document ID/version and response projection must pass before new bytes/sequence
 are published. A failed second operation/oversized header rolls back the entire
 batch. Scientific fields/records/ports/axes/transforms/selections are never sorted.
 
-Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID/
-version cannot change, and `revision` cannot be injected. Check/Commit run the
+Temporary schema-invalid JSON-shaped drafts are permitted. Stable document ID
+cannot change; family versions can explicitly advance through1..4 and experiment
+versions through1..3 for declared extensions, never decrease. Other kinds preserve their version.
+`revision` cannot be injected. See [constructor-choices.md](constructor-choices.md),
+[family-experiment-axes.md](family-experiment-axes.md) and
+[shared-parameters.md](shared-parameters.md).
+Check/Commit run the
 existing full grammar, dependency and captured-head checks; failure retains
 bytes/sequence. Successful admission uses the existing history wrapper; unchanged
 current content produces no SQL/dirty/history change. Undo restores heads while

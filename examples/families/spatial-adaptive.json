@@ -1,0 +1,42 @@
+{
+  "version": 5,
+  "id": "spatial-adaptive",
+  "name": "Grouped encoder with runtime image sizes",
+  "root": "cnn",
+  "runtime_inputs": {"input": [1, 2]},
+  "models": {
+    "cnn": {
+      "id": "cnn", "name": "Adaptive image head",
+      "graph": {
+        "input_order": ["input"],
+        "nodes": [
+          {"id": "input", "type": "Input", "shape": [4, 5, 6], "axes": ["C", "H", "W"]},
+          {"id": "conv", "type": "Conv2d", "out_channels": 8, "kernel_size": [3, 3], "padding": [1, 1], "groups": 2, "bias": true},
+          {"id": "activation", "type": "Activation", "activation": "Tanh"},
+          {"id": "pool", "type": "AdaptiveAvgPool2d", "output_size": [1, 1]},
+          {"id": "flatten", "type": "Flatten", "start_dim": 0, "end_dim": -1},
+          {"id": "head", "type": "Linear", "features": 3, "bias": true},
+          {"id": "output", "type": "Output"}
+        ],
+        "edges": [
+          {"from": "input", "to": "conv"}, {"from": "conv", "to": "activation"},
+          {"from": "activation", "to": "pool"}, {"from": "pool", "to": "flatten"},
+          {"from": "flatten", "to": "head"}, {"from": "head", "to": "output"}
+        ]
+      }
+    }
+  },
+  "symbols": [
+    {"id": "C", "scope": "cnn", "name": "channels", "default": 4, "minimum": 1, "maximum": 16},
+    {"id": "d", "scope": "cnn", "name": "encoder width", "default": 8, "minimum": 1, "maximum": 32},
+    {"id": "K", "scope": "cnn", "name": "outputs", "default": 3, "minimum": 1, "maximum": 8},
+    {"id": "g", "scope": "cnn", "name": "groups", "default": 2, "minimum": 1, "maximum": 8}
+  ],
+  "assignments": [
+    {"model": "cnn", "node": "input", "field": "shape", "value": [{"symbol": "C"}, 5, 6]},
+    {"model": "cnn", "node": "conv", "field": "out_channels", "value": {"symbol": "d"}},
+    {"model": "cnn", "node": "conv", "field": "groups", "value": {"symbol": "g"}},
+    {"model": "cnn", "node": "head", "field": "features", "value": {"symbol": "K"}}
+  ],
+  "repeats": [], "constructors": []
+}

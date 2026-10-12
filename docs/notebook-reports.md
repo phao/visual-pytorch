@@ -60,7 +60,7 @@ bundle/
   LICENSE
   README.txt
   requirements.txt
-  runtime/app/             complete 21-file numerical source closure
+  runtime/app/             complete 30-file current numerical source closure
   executions/<attempt>/   fresh artifacts from each explicit execution
 ```
 
@@ -81,13 +81,38 @@ validates these without regenerating splits. Execution policy records
 `cpu-float32-v1`, constrained mode, RAM percentage and optional worker timeout.
 Generation records Python/platform. There are no absolute private source paths.
 
-New bundles include `activations.py` in that copied closure. Genuine pre-extraction
-version-1 bundles retain their original 20-file closure and remain inspectable/
-executable without rewriting inputs. The verifier admits only these two supported
-file sets; a closure missing `activations.py` while core/operator/graph source
-explicitly imports it is rejected. This dependency guard is not a Python sandbox.
-The immutable pre-Softmax fixture and real fresh-kernel compatibility test are in
-`tests/fixtures/legacy-report-runtime-v1.md` and `tests/test_notebooks.py`.
+New bundles include `activations.py`, `families.py`, `family_records.py`,
+`family_axes.py`, `runtime_shapes.py`, `runtime_tasks.py` and `family_export.py`
+in the30-file copied closure, together with `recurrent.py`, `recurrent_nodes.py`
+and `temporal_shapes.py`. Genuine prior29-file runtimes are accepted only when
+captured source does not import the missing temporal helper; capturing it alone
+does not by itself select temporal experiment execution. Explicit ExperimentSpec5/
+TaskBundle3 now selects [temporal execution](temporal-task-execution.md) through
+this same captured runtime, including saved/rerun kernels and exact temporal
+runtime architecture/predictor artifacts. Genuine prior25-file runtimes are accepted only
+if captured source does not require the two new dependencies. Current-source
+omissions fail before a kernel. Explicit runtime tasks and per-run runtime
+architecture/predictor exports are specified in
+[runtime-task-execution.md](runtime-task-execution.md). Prior
+complete24-file runtimes are supported only when core does not import
+runtime_shapes.py; incomplete new source is rejected before kernel launch.
+The captured [runtime spatial API](runtime-spatial-contracts.md) now participates
+in explicitly opted-in dataset/report execution; concrete modes remain fixed.
+Prior complete 23-file runtimes are
+supported only when their source does not import family_axes.py; omitting it
+from new source is rejected before launch. [Family experiments](family-experiment-axes.md)
+capture lazy ordered binding coordinates and exact derived run provenance,
+including the generated model sources/predictors/curves in actual reruns.
+Genuine pre-family 21-file and pre-activation 20-file
+version-1 bundles retain their original closures and remain inspectable/executable
+without rewriting inputs. The verifier admits those historical sets only when
+the captured core/dependency sources do not require the absent modules. Removing
+only one family file is never a supported set. Omitting activations from new
+source is also rejected, before kernel launch. These AST dependency guards are
+compatibility checks, not a Python sandbox or authenticity mechanism.
+The two immutable fixtures and real fresh-kernel compatibility tests are in
+`tests/fixtures/legacy-report-runtime-v1.md`,
+`tests/fixtures/pre-family-report-runtime-v1.md` and `tests/test_notebooks.py`.
 
 The numerical runtime is copied, not imported from the producer checkout. Its
 closed file list is `app.notebooks.RUNTIME`, including presentation contracts.

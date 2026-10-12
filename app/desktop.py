@@ -26,7 +26,7 @@ from .file_sync import revision, stamp
 from .job_state import job_busy
 
 from PyQt6.QtCore import QObject, QSettings, QThread, QTimer, QUrl, Qt, pyqtSignal as Signal, pyqtSlot as Slot
-from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont
+from PyQt6.QtGui import QAction, QKeySequence, QIcon, QFont, QDesktopServices
 from PyQt6.QtWidgets import (QApplication, QFileDialog, QInputDialog, QMainWindow,
                             QMessageBox, QTabWidget, QDialog, QFormLayout, QDoubleSpinBox,
                             QSpinBox, QDialogButtonBox, QComboBox, QCheckBox)
@@ -71,7 +71,7 @@ class TrainingJob(QThread):
 
 
 class TaskTrainingJob(QThread):
-    """Frozen task worker adapter; draft selection UI is a later Stage C gate."""
+    """Frozen task worker adapter using the bundle's exact admitted version."""
     point = Signal(str)
     completed = Signal(str)
     failed = Signal(str)
@@ -92,8 +92,10 @@ class TaskTrainingJob(QThread):
     def run(self):
         try:
             from .transport import run_json_worker
+            from .task_execution import validate_bundle
+            validate_bundle(self.bundle)
             result = run_json_worker([self.python, '-u', '-m', 'app.worker'],
-                {'kind': 'task-v1', 'bundle': self.bundle, 'constrained': self.constrained,
+                {'kind': 'task-v'+str(self.bundle['version']), 'bundle': self.bundle, 'constrained': self.constrained,
                  'memory_limit_percent': self.memory_limit_percent},
                 on_progress=lambda point: self.point.emit(json.dumps(point, allow_nan=False)),
                 cancel=self.cancel, cwd=str(Path(__file__).resolve().parent.parent),
@@ -118,7 +120,8 @@ class Bridge(QObject):
             if len(payload) > 16_000_000:
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
-            if isinstance(req, dict) and req.get('action', '').startswith('scienceDraft'):
+            if isinstance(req, dict) and (req.get('action', '').startswith(('scienceDraft', 'scienceFamily')) or
+                                         req.get('action') in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}):
                 from .revisions import _parse
                 req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)
@@ -574,7 +577,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -604,6 +607,14 @@ class Window(QMainWindow):
 
     def _dispatch(self, req, bridge):
         action = req.get("action")
+        if action == 'openHelpResource':
+            resources={'pytorch-basics':'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
+                       'pytorch-nn':'https://docs.pytorch.org/docs/stable/nn.html'}
+            if set(req) != {'action','id'} or not isinstance(req['id'],str) or req['id'] not in resources:
+                raise ValueError('Unknown help resource.')
+            if not QDesktopServices.openUrl(QUrl(resources[req['id']])):
+                raise ValueError('Could not open the help resource in your browser.')
+            return True
         if action == "state":
             return self.state()
         if action == "newWorkspace":
@@ -707,6 +718,66 @@ class Window(QMainWindow):
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
+        if action in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}:
+            from .lstm_authoring import prepare, prepare_edit, build, build_edit, CREATE_TOKEN, EDIT_TOKEN
+            from .revisions import _parse
+            editing = action in {'lstmEditing','editLSTM'}
+            writing = action in {'addLSTM','editLSTM'}
+            fields = EDIT_TOKEN if editing else CREATE_TOKEN
+            expected = {'action','workspace_id','panel_scope','id'} | ({'node'} if editing else set())
+            if writing:
+                expected |= {'root_graph','root_model','options_json'}
+            if set(req) != expected:
+                raise ValueError('LSTM authoring has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen LSTM authoring.')
+            if not writing:
+                info = prepare_edit(models, req['id'], req['node']) if editing else prepare(models, req['id'])
+                return {**info,'workspace_id':wid,'panel_scope':self.workspace.panel_scope}
+            if not isinstance(req['options_json'],str) or len(req['options_json']) > 65536:
+                raise ValueError('LSTM options must be JSON text of at most 65536 characters.')
+            document,nid = (build_edit if editing else build)(models,{k:req[k] for k in fields},_parse(req['options_json']))
+            if document != models[document['id']]:
+                self.workspace.put(document);self.broadcast()
+            return {'id':document['id'],'node':nid,'workspace_id':wid,'panel_scope':self.workspace.panel_scope}
+        if action in {'recurrentEditing', 'editRecurrent'}:
+            from .recurrent_reconfiguration import prepare_edit, build_edit, TOKEN
+            from .revisions import _parse
+            expected = {'action', 'workspace_id', 'panel_scope', 'id', 'ref', 'node'}
+            if action == 'editRecurrent':
+                expected |= {'root_graph', 'root_model', 'transition', 'options_json'}
+            if set(req) != expected:
+                raise ValueError('Recurrent editing has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen recurrent editing.')
+            if action == 'recurrentEditing':
+                return {**prepare_edit(models, req['id'], req['node'], req['ref']),
+                        'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
+            if not isinstance(req['options_json'], str) or len(req['options_json']) > 65536:
+                raise ValueError('Recurrent interface JSON must be text of at most 65536 characters.')
+            document, nid = build_edit(models, {key: req[key] for key in TOKEN}, _parse(req['options_json']))
+            if document != models[document['id']]:
+                self.workspace.put(document)
+                self.broadcast()
+            return {'id': document['id'], 'node': nid, 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
+        if action in {'recurrentAuthoring', 'addRecurrent'}:
+            from .recurrent_authoring import prepare, build
+            expected = {'action', 'workspace_id', 'panel_scope', 'id', 'ref'}
+            if action == 'addRecurrent':expected |= {'root_graph', 'transition', 'options'}
+            if set(req) != expected:
+                raise ValueError('Recurrent authoring has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen recurrent authoring.')
+            if action == 'recurrentAuthoring':
+                return {**prepare(models, req['id'], req['ref']), 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
+            token = {key: req[key] for key in ('id', 'ref', 'root_graph', 'transition')}
+            document, nid = build(models, token, req['options'])
+            self.workspace.put(document)
+            self.broadcast()
+            return {'id': document['id'], 'node': nid, 'workspace_id': wid, 'panel_scope': self.workspace.panel_scope}
         if action == "describe":
             return self.describe(req["id"])
         if action == "generateData":
@@ -790,7 +861,7 @@ class Window(QMainWindow):
         try:
             from .evidence import dataset_report, checkpoint_report
             contract=validate_model(models,mid)
-            interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] == "Module"}
+            interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] in {"Module", "Recurrent"}}
             return {"valid": True, "contract": contract, "interfaces": interfaces,
                     'dataset_admission':dataset_report(models[mid],contract),
                     'checkpoint_status':checkpoint_report(models,mid),

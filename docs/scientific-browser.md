@@ -1,7 +1,7 @@
 # Exact scientific browsing — Stage C
 
 The scientific Experiment/history tab and `vpw_cli.py` share the read projections
-in `app/science_browser.py`. They inspect retained v6 registry objects, not a
+in `app/science_browser.py`. They inspect retained v7 registry objects, not a
 second database. None of these operations fits transforms, allocates a numerical
 model, trains, generates a notebook or changes stored bytes/heads/history. This
 workflow is locally integrated; it is not in the initial published prerelease.
@@ -14,7 +14,10 @@ acceptance, admission and retained-text semantics; browsing itself remains pure.
 ## Identity and limits
 
 An exact reference has exactly `kind`, `id`, `revision`. Kind is one of `dataset`,
-`experiment`, `model`, `report`, `run`, `task`; revision is a retained SHA-256.
+`experiment`, `family`, `model`, `report`, `run`, `specialization`, `task`;
+revision is a retained SHA-256. Families expose symbol/assignment/repeat counts
+and explicit supported capabilities; specializations expose pinned family/model
+references and resolved-binding count. Neither summary materializes a model.
 Summary/inspection never interpret missing/null revisions as a browsing head.
 Names label objects; they are not execution identities.
 
