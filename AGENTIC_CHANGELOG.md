@@ -1074,3 +1074,21 @@ No source edits occurred during the gate. Local integration follows; public
 unchanged. Full active goal remains incomplete because exact Neural MS-VAR and
 its owner/operator/loss/export/CLI contracts are not admitted. The worker's
 independently checked Gaussian HMM primitive remains separate, not a GUI feature.
+
+## 2026-10-13 01:19 -03:00 — Reviewed internal Gaussian filter on the MS-VAR branch
+
+Accepted LoRA9d91552 integrated under one held Git flock into clean main8ed5cf6,
+identical accepted tree79fd1c0; post55 affected checks5.740s pass. Public unchanged.
+Reviewed the sole worker's b564d7e240-line CPU Gaussian filter and all509 test
+lines; independently reran56 oracle/primitive checks0.759s. Initial-before-transition,
+previous→next normalized log rows, full Gaussian constants, signed density scores,
+safe structural-zero gradients, inactive-NaN sanitization, missing-emission state
+advance and explicit positive variance-floor transform agree with bounded path
+enumeration and actual float64 gradcheck. No dummy labels or smoothing.
+
+Integrated only into new visible task/neural-msvar at790e9cb, not main; post91
+primitive/oracle/UI/trainable-layout checks0.446s pass. Module import remains pure;
+this is an internal eager CPU numerical primitive, NOT graph/operator/owner/loss/
+worker/notebook/CLI admission. Full exact K5,p3,D3 neural MS-VAR, causal windows,
+appropriate trajectory evaluation and report CLI requests remain. Worker closed,
+all numerical processes terminal, no E/user-state/public operations.
