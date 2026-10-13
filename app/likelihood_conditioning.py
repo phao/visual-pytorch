@@ -32,22 +32,26 @@ def _analyse(models,mid,contract,cache,seed=None):
     nodes={n['id']:n for n in models[mid]['graph']['nodes']};values={};proofs={}
     incoming={nid:[] for nid in nodes}
     for edge in models[mid]['graph']['edges']:
-        incoming[edge['to']].append(edge['from']+('@'+edge['from_port'] if 'from_port' in edge else ''))
+        incoming[edge['to']].append((edge['from'],edge.get('from_port')))
     plan={item['id']:item for item in contract['plan']}
     for nid in contract['order']:
         node=nodes[nid];kind=node['type'];shape=contract['shapes'][nid]['output_shape']
         parts=[values[key] for key in incoming[nid]];value=_join(parts)
+        bindings={}
+        if kind in ('CausalLagWindow','GaussianFilter'):
+            keys={node+('@'+port if port is not None else ''):(node,port) for node,port in incoming[nid]}
+            bindings={role:keys[key] for role,key in node['inputs'].items()}
         before=contract['shapes'][nid].get('input_shape',[])
         if kind=='Input':
             value=_value(seed[nid]['deps'],seed[nid]['axis'],seed[nid]['filters'],seed[nid]['adaptive']) if seed is not None else _value({nid:'current'},0 if len(shape)>1 else None)
         elif kind in ('Constant','TensorParameter'):value=_value(adaptive=kind=='TensorParameter')
         elif kind=='CausalLagWindow':
-            observed=values[node['inputs']['observations']]
+            observed=values[bindings['observations']]
             deps={root:'past' if status!='mixed' and observed['axis']==0 else 'mixed'
                   for root,status in observed['deps'].items()}
             # Histories and controls are external context. They cannot repair a
             # history that already depends on the scored current/future value.
-            for role,key in node['inputs'].items():
+            for role,key in bindings.items():
                 if role=='observations':continue
                 for root,status in values[key]['deps'].items():
                     deps[root]='mixed' if root in observed['deps'] else status
@@ -75,25 +79,25 @@ def _analyse(models,mid,contract,cache,seed=None):
             if node.get('flatten',True) or value['axis']==len(before)-1:value=_mixed(value)
         elif kind=='Splitter':
             if value['axis']==len(before)-1:value=_mixed(value)
-            for part in node['parts']:values[nid+'@'+part['output']]=_value(value['deps'],value['axis'],value['filters'],value['adaptive'])
+            for part in node['parts']:values[(nid,part['output'])]=_value(value['deps'],value['axis'],value['filters'],value['adaptive'])
         elif kind=='Replicator':
-            for port in node['outputs']:values[nid+'@'+port]=_value(value['deps'],value['axis'],value['filters'],value['adaptive'])
+            for port in node['outputs']:values[(nid,port)]=_value(value['deps'],value['axis'],value['filters'],value['adaptive'])
         elif kind=='Module':
             child=plan[nid].get('runtime_contract') or cache.get(node['ref'])
             if child and len(child['input_groups'])<=1 and len(child['output_groups'])==1:
                 seeds={g['id']:value for g in child['input_groups']}
                 child_values,_=_analyse(models,node['ref'],child,cache,seeds)
-                value=child_values[child['output_groups'][0]['id']]
+                value=child_values[(child['output_groups'][0]['id'],None)]
             else:value=_mixed(value)
         elif kind=='GaussianFilter':
-            observed=values[node['inputs']['observations']];roots=set(observed['deps'])
+            observed=values[bindings['observations']];roots=set(observed['deps'])
             findings=[];context=set()
             if observed['adaptive']:
                 findings.append({'code':'ADAPTIVE_OBSERVATION_LIKELIHOOD','path':['architectures',mid,'nodes',nid,'inputs','observations'],
                     'message':'Scored observations pass through model parameters; no change-of-variables/Jacobian objective is declared.',
                     'repair':'Score an explicit external observation input; adaptive observation transforms need a separately specified density objective.'})
             for role in ('initial','transition','means','variances'):
-                parameter=values[node['inputs'][role]];context.update(set(parameter['deps'])-roots)
+                parameter=values[bindings[role]];context.update(set(parameter['deps'])-roots)
                 for root in sorted(roots & parameter['deps'].keys()):
                     if role=='initial' or parameter['deps'][root]!='past' or parameter['axis']!=0:
                         findings.append({'code':'NONCAUSAL_LIKELIHOOD','path':['architectures',mid,'nodes',nid,'inputs',role],
@@ -101,20 +105,20 @@ def _analyse(models,mid,contract,cache,seed=None):
                             'repair':'Use explicit causal lag features or an independent conditioning input; do not infer a density from a caption.'})
             # Context used by lag construction includes histories and controls.
             for role in ('transition','means','variances'):
-                context.update(set(values[node['inputs'][role]]['deps'])-roots)
+                context.update(set(values[bindings[role]]['deps'])-roots)
             proofs[nid]={'version':1,'status':'unproved' if findings else 'conditional',
                 'observation_inputs':sorted(roots),'conditioning_inputs':sorted(context),
                 'findings':findings,'scope':'supported causal paths; external inputs are explicitly supplied conditioning'}
-            joined=_join([values[key] for key in node['inputs'].values()])
+            joined=_join([values[key] for key in bindings.values()])
             for port in ('filtered','final','step_evidence','sequence_evidence'):
-                values[nid+'@'+port]=_value(joined['deps'],0 if port in ('filtered','step_evidence') else None,{nid},joined['adaptive'])
+                values[(nid,port)]=_value(joined['deps'],0 if port in ('filtered','step_evidence') else None,{nid},joined['adaptive'])
             value=joined
         else:
             value=_mixed(value)
             if kind in ('Conv2d','LSTM','Recurrent'):value['adaptive']=True
         for port in contract['shapes'][nid].get('ports',{}):
-            if nid+'@'+port not in values:values[nid+'@'+port]=_mixed(value)
-        values[nid]=value
+            if (nid,port) not in values:values[(nid,port)]=_mixed(value)
+        values[(nid,None)]=value
     return values,proofs
 
 
@@ -123,7 +127,7 @@ def attach(models,mid,contract,cache):
     result={}
     for group in contract['output_groups']:
         if group.get('representation')!='log-evidence':continue
-        filters=values[group['id']]['filters'];entries=[proofs[key] for key in sorted(filters) if key in proofs]
+        filters=values[(group['id'],None)]['filters'];entries=[proofs[key] for key in sorted(filters) if key in proofs]
         findings=[issue for entry in entries for issue in entry['findings']]
         result[group['id']]={'version':1,'status':'conditional' if entries and not findings else 'unproved',
             'observation_inputs':sorted({root for entry in entries for root in entry['observation_inputs']}),

@@ -22,11 +22,13 @@ def inspect_model(model,inputs,filter_id):
     if not hasattr(model,'intermediate_values'):raise ValueError('Model must expose checked graph intermediate_values.')
     if isinstance(inputs,dict) and set(inputs)=={g['id'] for g in contract['input_groups']}:
         inputs={g['name']:inputs[g['id']] for g in contract['input_groups']}
+    item=next(item for item in contract['plan'] if item['id']==filter_id)
+    source_map=dict(zip(plan['sources'],item['sources']))
     with torch.no_grad():
         values=model.intermediate_values(inputs)
         def read(key):
-            if key in values:return values[key]
-            node,port=key.rsplit('@',1);return values[node][port]
+            source=source_map[key];value=values[source['node']]
+            return value[source['port']] if source['port'] is not None else value
         bound={role:read(key) for role,key in plan['inputs'].items()}
         observations=bound['observations'];b,t,d=observations.shape;k=bound['initial'].shape[-1]
         lengths=bound['lengths'].reshape(b).to(torch.int64)

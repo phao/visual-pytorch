@@ -35,6 +35,18 @@ class LikelihoodConditioningTests(unittest.TestCase):
         self.assertEqual(proof['findings'][0]['path'][-1],'means')
         with self.assertRaisesRegex(GraphError,'conditioning refused'):self.checked(doc)
 
+    def test_literal_at_in_node_identity_preserves_density_roles(self):
+        doc=drawing(steps=3)
+        for node in doc['graph']['nodes']:
+            if node['id']=='means':node['id']='mean@reshape'
+            for role,source in node.get('inputs',{}).items():
+                if source=='means':node['inputs'][role]='mean@reshape'
+        for edge in doc['graph']['edges']:
+            for key in ('from','to'):
+                if edge[key]=='means':edge[key]='mean@reshape'
+        self.assertTrue(any(n['id']=='mean@reshape' for n in doc['graph']['nodes']))
+        self.assertEqual(self.checked(doc)['density_conditioning']['out_sequence_evidence']['status'],'conditional')
+
     def test_time_axis_normalization_of_past_features_is_not_a_causal_parameter(self):
         doc=drawing(steps=3)
         node=next(n for n in doc['graph']['nodes'] if n['id']=='transition_gelu')

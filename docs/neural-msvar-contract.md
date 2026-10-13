@@ -137,9 +137,12 @@ Real saved/rerun Jupyter kernels reproduce full-model checkpoints and metrics.
 Sandboxed Qt checks sockets, Inspector, native compact drag, history and reload;
 its host imports no Torch/NumPy.
 
-The complete requested scope is not yet finished. Broader trajectory diagnostics,
-CLI construction/planning/example-pack/doctor contracts and final integrated
-regression remain. There is no generic production Loss/Optimizer/Dataset canvas
+The original example has a [pinned manifest and explicit replay](example-packs.md).
+[Predictive-mixture diagnostics](density-diagnostics.md) explain actual state
+beliefs, mean/covariance and density, with separate causal-likelihood admission.
+[Shared recipes/edit previews/doctor](edit-planning.md) provide inspectable agent
+and desktop authoring without new workbenches. Final integrated regression
+and local main acceptance remain. There is no generic production Loss/Optimizer/Dataset canvas
 or deferred optimizer-resume/HPC feature in this milestone.
 
 Implementation references: [PyTorch Tensor.unfold](https://docs.pytorch.org/docs/stable/generated/torch.Tensor.unfold.html)

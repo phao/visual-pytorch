@@ -1,5 +1,13 @@
 # Agent and user CLI contract
 
+`example-check MANIFEST` verifies the original pinned neural MS-VAR example and
+saved scientific evidence without fitting, configuration reads or file edits.
+Only `--run` invokes its bounded isolated twelve-update replay; mismatch/failure
+has a nonzero exit status, and the source file is never saved. See
+[example packs](example-packs.md). Evidence-output contracts now expose
+supported [density conditioning](density-diagnostics.md); incompatible NLL
+paths and known probabilities used as class logits are refused before workers.
+
 Inspectable construction now supports workspace-free `template-list` and
 `template-show NAME`, plus `instantiate-template NAME --id ID [--options JSON]
 [--dry-run]`. `plan-edits JSON` and `apply JSON --dry-run` report the same located

@@ -1,5 +1,17 @@
 # Agentic changelog
 
+## 2026-10-13 14:04 -03:00 — Conditioning, predictive density and pinned example replay
+
+Implemented conservative likelihood interpretation and pre-worker refusals,
+because normalized mixture parameters are insufficient when they depend on the
+scored current observation. Captured sources include the proof; node/port identity
+is explicit internally. Added actual-model ephemeral mixture diagnostics and
+reviewed strict pinned example checks/opt-in replay, exposed through the CLI.
+No replay saves the source workspace; test interpreters are portable.
+Focused numerical/source/actual-notebook/CLI checks pass as documented in
+docs/development.md. Full final regression/local integration are still pending;
+loss remains prototype-only, tutorial waits for user format, no remote publication.
+
 ## 2026-10-13 12:48 -03:00 — Inspectable recipes and atomic edit planning
 
 Integrated reviewed worker8169946's five strict typed recipes and moved the

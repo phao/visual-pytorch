@@ -1,5 +1,30 @@
 # Development state and roadmap
 
+## 2026-10-13 14:04 -03:00 — Final MS-VAR interpretation and example replay closure
+
+Added a conservative, derived causal-conditioning proof for Gaussian evidence:
+normalized filter rows alone do not establish a likelihood when their parameters
+see the current observations. Supported causal paths and explicit external
+conditioning are distinguished from located unproved/adaptive-observation
+refusals before NLL execution. Captured family/notebook source includes the proof.
+Literal `@` in node identities is retained by explicit internal node/port pairs.
+
+Ephemeral predictive-mixture diagnostics report prior versus filtered beliefs,
+full mixture covariance, log density and execution/reset/scoring semantics from
+the actual model intermediates; they do not claim smoothing or state recovery.
+Reviewed and task-integrated the original example pack's strict read-only check
+and explicitly bounded replay. CLI `example-check` uses the canonical loader,
+does not fit by default, and never saves the source workspace. Replay tests use
+their active Torch interpreter instead of a workstation-specific path.
+
+Focused evidence includes 43 conditioning checks, 34 numerical/source routes,
+13 diagnostics, 18 pack/notebook checks (four actual saved/rerun kernels), and
+21 final port/CLI checks. Initial fixture/closure failures remain in campaign
+evidence. The additional literal-identity regression passes eight cases.
+Final full-source regression and local integration remain unverified here.
+Loss workbench stays a separate prototype; tutorial format remains user-led.
+No new public push, heavyweight execution, production workbench or user-file edits.
+
 ## 2026-10-13 12:48 -03:00 — Shared recipes, edit planning and application doctor
 
 Reviewed sole worker8169946 and integrated five pure inspectable recipes on the

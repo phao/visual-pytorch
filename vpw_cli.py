@@ -44,6 +44,10 @@ def main(argv=None):
     sub.add_parser('init', help='Create a new empty workspace; never overwrite an existing file')
     sub.add_parser('inspect', help='SQLite schema, architecture list, policy and revision')
     sub.add_parser('doctor',help='Read-only application file/graph integrity and interpreter metadata; no fitting')
+    pack=sub.add_parser('example-check',help='Read-only pinned example check; optional explicitly bounded replay')
+    pack.add_argument('manifest');pack.add_argument('--run',action='store_true')
+    pack.add_argument('--torch-python',default=sys.executable);pack.add_argument('--timeout',type=float,default=60.)
+    pack.add_argument('--memory-limit-percent',type=float)
     sub.add_parser('capabilities', help='Shared application capabilities and explicit limitations; no workspace read')
     sub.add_parser('format-schema', help='Actual in-memory SQLite creator/schema and compatibility; no workspace read')
     operator = sub.add_parser('operator-schema', help='Shared operator semantics with a real validated example closure; no workspace read')
@@ -236,6 +240,12 @@ def main(argv=None):
                 value=doctor(workspace)
                 print(json.dumps({'ok':value['status']=='ok','value':value},allow_nan=False))
                 return 0 if value['status']=='ok' else 1
+            if args.command=='example-check':
+                from app.example_packs import check,replay
+                value=replay(workspace,args.manifest,python=args.torch_python,timeout=args.timeout,
+                    memory_limit_percent=min(ram_percentage(args.memory_limit_percent),10.)) if args.run else check(workspace,args.manifest)
+                ok=not args.run or value['verified']
+                print(json.dumps({'ok':ok,'value':value},allow_nan=False));return 0 if ok else 1
             if args.command == 'prepare-lstm':
                 from app.lstm_authoring import prepare
                 value = prepare(workspace.models(),args.id)

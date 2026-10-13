@@ -4,6 +4,22 @@
 `examples/neural-msvar.vtw`. It adds no workspace registry kind or SQLite version.
 Opening the workspace, reading the JSON, or calling `check` never runs a fit.
 
+CLI checking is read-only and works in a standard-library host:
+
+```sh
+python vpw_cli.py examples/neural-msvar.vtw example-check examples/neural-msvar-pack.json
+```
+
+Replaying requires the explicit `--run` flag and a trusted numerical interpreter:
+
+```sh
+python vpw_cli.py examples/neural-msvar.vtw example-check examples/neural-msvar-pack.json --run --torch-python /path/to/torch/python --timeout 60 --memory-limit-percent 10
+```
+
+The CLI host remains separate from that worker and returns nonzero on mismatch
+or failure. Replay caps admission at10% available RAM, respecting a lower user
+setting/override. It never saves the source file or opens a GUI.
+
 This bounded version-1 format supports the original neural MS-VAR example only.
 Its producer source commit is
 `e086c5157d0a5fa221c53d7f3d896e34bbdf4f3a`, which introduced the committed workspace

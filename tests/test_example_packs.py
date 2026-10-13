@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -211,7 +212,7 @@ w.db.close()
             self.reject(document, '$.verification.budget')
             with patch('app.example_packs.execute_candidate', side_effect=AssertionError('execution')):
                 with self.assertRaisesRegex(GraphError, 'verification.budget'):
-                    replay(self.workspace, document, python='/home/pedro/miniforge3/bin/python', timeout=60)
+                    replay(self.workspace, document, python=sys.executable, timeout=60)
         document = pack(); document['verification']['budget']['max_updates'] = 25
         self.reject(document, '$.verification.budget')
         document = pack(); document['verification']['budget']['epochs'] = 1
@@ -221,15 +222,15 @@ w.db.close()
         for timeout in (None, True, 0, float('inf'), 61):
             with patch('app.example_packs.execute_candidate', side_effect=AssertionError('execution')):
                 with self.assertRaisesRegex(GraphError, 'timeout'):
-                    replay(self.workspace, MANIFEST, python='/home/pedro/miniforge3/bin/python', timeout=timeout)
+                    replay(self.workspace, MANIFEST, python=sys.executable, timeout=timeout)
         with self.assertRaisesRegex(GraphError, 'memory_limit_percent'):
-            replay(self.workspace, MANIFEST, python='/home/pedro/miniforge3/bin/python', timeout=60,
+            replay(self.workspace, MANIFEST, python=sys.executable, timeout=60,
                    memory_limit_percent=11)
 
     def test_transport_failure_is_reported_without_fake_evidence_or_source_changes(self):
         before = state(self.workspace)
         with patch('app.transport.run_json_worker', side_effect=WorkerError('bounded worker failure')):
-            result = replay(self.workspace, MANIFEST, python='/home/pedro/miniforge3/bin/python', timeout=60)
+            result = replay(self.workspace, MANIFEST, python=sys.executable, timeout=60)
         self.assertEqual(result['status'], 'failed')
         self.assertIs(result['verified'], False)
         self.assertIsNone(result['result'])
@@ -248,11 +249,11 @@ class ExamplePackReplayTests(unittest.TestCase):
                  patch.object(workspace.history, 'capture', side_effect=AssertionError('source history')),
                  patch('app.example_packs.execute_candidate', wraps=execute_candidate) as execute,
                  patch('app.transport.run_json_worker', wraps=run_json_worker) as worker):
-                result = replay(workspace, MANIFEST, python='/home/pedro/miniforge3/bin/python', timeout=60)
+                result = replay(workspace, MANIFEST, python=sys.executable, timeout=60)
             execute.assert_called_once()
             worker.assert_called_once()
             self.assertIsNot(execute.call_args.args[0], workspace)
-            self.assertEqual(worker.call_args.args[0], ['/home/pedro/miniforge3/bin/python', '-u', '-m', 'app.worker'])
+            self.assertEqual(worker.call_args.args[0], [sys.executable, '-u', '-m', 'app.worker'])
             self.assertEqual(worker.call_args.args[1]['bundle']['protocol']['budget'],
                              {'epochs': None, 'updates': 12, 'examples': None, 'seconds': None})
             self.assertEqual(result['status'], 'matched', result['error'])
