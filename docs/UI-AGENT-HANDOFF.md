@@ -1093,3 +1093,33 @@ These trusted-generated HTML report companions are not a reason to render arbitr
 artifact HTML in the editor's literal evidence cards. See Visual PyTorch's precise
 [report-figure-presentation.md](report-figure-presentation.md) for the tested pattern
 and font/frontend/accessibility/resource limits.
+
+## Owner-level retained initialization picker
+
+Keep the parameter-owner Inspector card separate from the architecture-wide
+bookkeeping. Canonical owners may be shared by multiple boxes. The card offers
+trainability, initializer editing and explicit block-local atomic reset. A
+collapsed retained-tensor section uses the same bounded searchable exact-revision
+picker as scientific forms, an explicit attempt number, paged source tensors and
+a guarded bind button. No latest/attempt/tensor is automatically chosen. Mark
+shape-incompatible rows disabled rather than hiding them. All source text enters
+the DOM as literal text, not HTML.
+
+Use one serialized scientific edit stream with ordinary diagram saves. Do not
+capture and later submit an old policy after a binding/freeze was accepted.
+Reconcile the authoritative policy/result fields into queued diagram snapshots,
+preserving concurrent geometry changes. Mutation failure must not poison the
+ordinary save queue. Guard workspace identity/reload scope/architecture/owner and
+busy state; native admission remains one undoable savepoint-backed operation.
+Exact tensor JSON must preserve signed zero through cloning and transport. Where
+JavaScript cannot preserve opaque numeric literal typing, ordinary geometry saves
+must preserve the authoritative policy on the server instead of rewriting it.
+Publish backend refusals through a surviving notification before rebuilding the
+Inspector, not only through a soon-detached inline error slot.
+
+The pinned-source note proves current initial-value bytes match a retained
+receipt. Its original destination model snapshot may differ from the current
+whole architecture after other owners are copied or the graph evolves. Do not
+conflate tensor lineage with model-revision equality or optimizer resume. Tooltip
+discloses exact receipt/model/run/checkpoint references. Full source/data/version
+semantics are domain-specific: [parameter-binding.md](parameter-binding.md).

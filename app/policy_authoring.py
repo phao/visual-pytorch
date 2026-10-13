@@ -89,6 +89,13 @@ def build(models, token, selector, changes_json):
     if not isinstance(changes_json, str) or len(changes_json.encode('utf-8')) > EDIT_LIMIT:
         raise GraphError('Parameter policy edit must be JSON of at most 64 KiB; use the CLI for larger exact values.')
     changes = _parse(changes_json)
+    return build_changes(models, token, selector, changes)
+
+
+def build_changes(models, token, selector, changes):
+    """Closed direct-data route for validated retained values beyond GUI text limit."""
+    if not isinstance(token, dict) or set(token) != set(TOKEN) or token != _context(models, token.get('id'), token.get('node')):
+        raise GraphError('Architecture changed; reopen parameter policy.')
     if not isinstance(changes, dict) or set(changes) - {'trainable', 'initializer'}:
         raise GraphError('Parameter policy edit has unsupported fields.')
     info = prepare(models, token['id'], token['node'])
@@ -112,10 +119,10 @@ def build(models, token, selector, changes_json):
         for key in matching:
             entry = policy['parameters'].setdefault(key, {})
             if value is None: entry.pop(field, None)
-            elif effective is None or value != effective[field] or field in entry: entry[field] = value
+            elif effective is None or digest(value) != digest(effective[field]): entry[field] = value
     for key in matching:
-        if not policy['parameters'][key]: policy['parameters'].pop(key)
-    if policy == original: return doc
+        if key in policy['parameters'] and not policy['parameters'][key]: policy['parameters'].pop(key)
+    if digest(policy) == digest(original): return doc
     doc['graph']['parameter_policy'] = policy
     prospective = dict(models); prospective[token['id']] = doc
     plan(prospective, token['id'])

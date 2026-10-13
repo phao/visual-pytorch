@@ -4,6 +4,22 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 22:31 -03:00 — Exact retained initialization and Binding1 lineage
+
+Added independent immutable Binding1/container25, pure preview/atomic source copy,
+retained model/source/value proof, no-op/rollback/version fences and CLI/Inspector
+selection. Model6/policy1 numerical semantics unchanged;25 adds no SQL table.
+Bounded source pages and current-byte receipt matching preserve sequential owner
+lineage without claiming whole-model equality. Real Qt picker/undo/save and
+72 affected Python/372 JS pass; source bytes, native/fresh-export upstream gradients
+and actual retained workers checked. Captured dependencies and old-runtime lists
+adapted; actual notebook/full final-tree gate still required. Reviewer identified
+signed-zero equality/transport and disappearing refusal defects, corrected with
+real negative-zero source and callback/native regressions. Geometry saves preserve
+opaque server policy; draft fields survive only same-identity redraws. Failed
+service/fixture/geometry/console/timing outcomes retained. Full LoRA showcase/
+comparisons/merge and exact MS-VAR remain; E deferred, no public/user-state changes.
+
 ## 2026-10-12 21:31 -03:00 — Exact retained parameter reader, not binding yet
 
 Added a pure source reader with mandatory run revision/attempt/checkpoint/path/ID

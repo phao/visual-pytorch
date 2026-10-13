@@ -156,7 +156,7 @@ def resolve(schema, policy=None, *, aliases=None):
         _require(type(trainable) is bool, 'trainable must be a boolean.')
         init = initializer(entry.get('initializer', {'kind': 'constructor'}), owners[owner]['shape'])
         normalized = {'trainable': trainable, 'initializer': init}
-        _require(owner not in declared or declared[owner] == normalized,
+        _require(owner not in declared or digest(declared[owner]) == digest(normalized),
                  'conflicting declarations for shared owner: ' + owner + '.')
         declared[owner] = normalized
     resolved, stored, trainable = {}, 0, 0

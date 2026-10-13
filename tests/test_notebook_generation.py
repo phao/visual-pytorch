@@ -36,6 +36,7 @@ class NotebookGenerationTests(unittest.TestCase):
         self.assertEqual(len(captured['payload']['preview']['candidates']), 8)
         self.assertEqual(set(captured['files']), {'payload.json', 'LICENSE', 'README.txt', 'requirements.txt'} |
                          {'runtime/app/' + n for n in RUNTIME})
+        self.assertTrue({'parameter_binding.py', 'parameter_sources.py', 'policy_authoring.py'} <= set(RUNTIME))
         self.assertFalse(list(self.root.iterdir()))
 
     def test_actual_isolated_generation_uses_captured_bytes_and_never_runs_cells(self):

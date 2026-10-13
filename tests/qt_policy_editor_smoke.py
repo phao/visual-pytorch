@@ -1,5 +1,6 @@
 """Actual sandboxed WebEngine policy controls, badges, history and private VTW."""
 import json
+import copy
 import os
 import sys
 import tempfile
@@ -57,7 +58,24 @@ def click(selector):
 def inspect(nid):js('document.querySelector(".node[data-id='+nid+']").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
 
 with tempfile.TemporaryDirectory() as folder:
-    h=Harness(Path(folder));page=Page(profile,view);view.setPage(page);channel=QWebChannel(page);channel.registerObject('host',h.bridge);page.setWebChannel(channel)
+    h=Harness(Path(folder));retained_source=None
+    if len(sys.argv)>2:
+        from policy_runtime_fixture import bundle
+        from evidence_fixture import experiment
+        from app.experiment_objects import execute_candidate, preview_experiment
+        from app.parameter_sources import inventory,read
+        b=bundle(updates=3); source_models,_=fixture()
+        source_models['lora']['graph']['parameter_policy']['parameters']['["base","weight"]']['initializer']['values']=[
+            [.6 if i==j else -0. for j in range(16)] for i in range(16)]
+        source_data=copy.deepcopy(b['dataset']);source_data.pop('revision',None)
+        source_task=copy.deepcopy(b['task']);source_task.pop('revision',None)
+        ref=experiment(h.workspace,copy.deepcopy(source_models['lora']),source_data,source_task,'retained-policy-source',updates=3)
+        exp=h.workspace.get_spec('experiment',ref['id'],ref['revision']);coordinates=preview_experiment(exp,h.workspace.get_spec)['candidates'][0]['coordinates']
+        retained=execute_candidate(h.workspace,ref,coordinates,'policy-source-run','Retained policy source',python=sys.argv[2],timeout=20)
+        assert retained['record']['attempts'][0]['status']=='completed',retained
+        rows=inventory(h.workspace,retained['reference'],attempt=1);tensor=next(p for p in rows['parameters'] if p['path']=='layer_1.weight')
+        retained_source={'run':rows['run'],'attempt':1,'checkpoint_id':rows['checkpoint_id'],'parameter':{k:tensor[k] for k in ('path','id')}}
+    page=Page(profile,view);view.setPage(page);channel=QWebChannel(page);channel.registerObject('host',h.bridge);page.setWebChannel(channel)
     url=QUrl.fromLocalFile(str(Path(__file__).parents[1]/'app/web/index.html'));url.setFragment('model=lora');view.setUrl(url);view.show()
     try:
         until('Boolean(window.loom?.document?.view.fitted)')
@@ -87,13 +105,73 @@ with tempfile.TemporaryDirectory() as folder:
         click('.policy-owner summary');js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250);assert view.grab().save(str(output/'02-adapter-initializer.png'))
         raw=h.workspace.db.serialize();count=len(h.workspace.history.undo_stack)
         js('document.querySelector("[data-policy-field=std]").value="0"');click('.policy-owner details button')
-        until('document.querySelector(".policy-owner .policy-error")?.textContent.includes("positive")')
+        until('document.querySelector("[data-policy-owner-error]")?.textContent.includes("positive")')
         assert h.workspace.db.serialize()==raw and len(h.workspace.history.undo_stack)==count
         click('[data-policy-reset-block]')
         until('!Object.hasOwn(window.loom.document.graph.parameter_policy.parameters,\'["A","weight"]\')')
         assert len(h.workspace.history.undo_stack)==count+1
         h.dispatch({'action':'undo'},h.bridge)
         until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.std===0.02')
+        if retained_source:
+            inspect('A');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("A")')
+            click('[data-parameter-source] summary')
+            until('document.querySelectorAll("[data-binding-run] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
+            click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-tensor]");const o=[...e.options].find(o=>o.textContent.startsWith("layer_1.weight "));e.value=o.value;e.dispatchEvent(new Event("change"))})()')
+            before=len(h.workspace.history.undo_stack);click('[data-binding-apply]')
+            until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.kind==="values"')
+            assert len(h.workspace.history.undo_stack)==before+1
+            copied=h.workspace.models()['lora']['graph']['parameter_policy']['parameters']['["A","weight"]']['initializer']['values']
+            assert copied==read(h.workspace,retained_source)['values']
+            refs=h.workspace.list_specs('parameter-binding');assert len(refs)==1
+            receipt=h.workspace.get_spec('parameter-binding',refs[0]['id'],refs[0]['revision'])
+            assert receipt['source']['run']==retained_source['run'] and receipt['optimizer_resume'] is False
+            assert plan(h.workspace.models(),'lora')['resolved']['owners']['["lora","A","weight"]']['trainable']
+            h.dispatch({'action':'undo'},h.bridge)
+            until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.std===0.02')
+            assert not h.workspace.list_specs('parameter-binding')
+            assert h.workspace.get_spec('parameter-binding',refs[0]['id'],refs[0]['revision'])==receipt
+            h.dispatch({'action':'redo'},h.bridge)
+            until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.kind==="values"')
+            inspect('A');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("A")')
+            js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250)
+            assert view.grab().save(str(output/'03-bound-retained-tensor.png'))
+            # A backend race/refusal must survive Inspector rebuilding.
+            click('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
+            click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-tensor]");e.value=[...e.options].find(o=>o.textContent.startsWith("layer_1.weight ")).value;e.dispatchEvent(new Event("change"))})()')
+            original=copy.deepcopy(h.workspace.models()['lora']);changed=copy.deepcopy(original)
+            changed['graph']['parameter_policy']['parameters']['["A","weight"]']['initializer']={'kind':'zeros'};h.workspace.put(changed)
+            raw=h.workspace.db.serialize();count=len(h.workspace.history.undo_stack);click('[data-binding-apply]')
+            until('!document.getElementById("toast").hidden && document.getElementById("toast-message").textContent.includes("Architecture changed")')
+            assert h.workspace.db.serialize()==raw and len(h.workspace.history.undo_stack)==count
+            h.workspace.put(original);h.broadcast()
+            inspect('base');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("base")')
+            click('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
+            click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
+            js('(()=>{const e=document.querySelector("[data-binding-tensor]");e.value=[...e.options].find(o=>o.textContent.startsWith("layer_0.weight ")).value;e.dispatchEvent(new Event("change"))})()')
+            click('[data-binding-apply]')
+            until('Object.is(window.loom.document.graph.parameter_policy.parameters[\'["base","weight"]\'].initializer.values[0][1],-0)')
+            # Actual native geometry save must not recode authoritative policy floats/zeros.
+            before_x=next(n for n in h.workspace.models()['lora']['graph']['nodes'] if n['id']=='base')['x']
+            point=js('(()=>{const r=document.querySelector(".node[data-id=base] .node-title").getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()')
+            target=view.focusProxy() or view;start=QPoint(round(point[0]),round(point[1]));end=start+QPoint(30,15)
+            QTest.mousePress(target,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,start);QTest.mouseMove(target,end,150);QTest.mouseRelease(target,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,end)
+            deadline=time.monotonic()+10
+            while next(n for n in h.workspace.models()['lora']['graph']['nodes'] if n['id']=='base')['x']==before_x and time.monotonic()<deadline:QTest.qWait(25)
+            assert next(n for n in h.workspace.models()['lora']['graph']['nodes'] if n['id']=='base')['x']!=before_x
+            import struct
+            value=h.workspace.models()['lora']['graph']['parameter_policy']['parameters']['["base","weight"]']['initializer']['values'][0][1]
+            assert struct.pack('<f',value)==b'\0\0\0\x80'
+            from app.parameter_binding import current_bindings
+            assert set(current_bindings(h.workspace,'lora'))=={'["base","weight"]','["A","weight"]'}
+            inspect('base')
+            until('document.querySelector(".policy-owner-title")?.textContent.startsWith("base") && document.getElementById("parameter-policy-editor").textContent.includes("Pinned tensor source")')
+            js('document.querySelector(".policy-owner")?.scrollIntoView({block:"start"})');QTest.qWait(250)
+            assert view.grab().save(str(output/'04-signed-zero-source.png'))
         h.workspace.save(Path(folder)/'saved.vtw');reopened=Workspace.load(Path(folder)/'saved.vtw')
         try:assert reopened.models()['lora']['graph']['parameter_policy']==h.workspace.models()['lora']['graph']['parameter_policy']
         finally:reopened.db.close()
@@ -101,7 +179,7 @@ with tempfile.TemporaryDirectory() as folder:
         assert 'torch' not in sys.modules and 'numpy' not in sys.modules
         print(json.dumps({'native_mouse_policy_controls':True,'badges':True,'undo_redo':True,
             'invalid_initializer_no_mutation':True,'atomic_block_reset_undo':True,'save_reload':True,'sandbox':True,
-            'host_torch':False,'user_config_untouched':True,'captures':2,'console_errors':errors}))
+            'host_torch':False,'user_config_untouched':True,'captures':4 if retained_source else 2,'retained_source_binding':bool(retained_source),'signed_zero_geometry_save':bool(retained_source),'backend_refusal_notice':bool(retained_source),'console_errors':errors}))
     finally:
         h.workspace.db.close()
         if h.workspace.history.directory:h.workspace.history.directory.cleanup()

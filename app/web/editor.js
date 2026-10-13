@@ -20,10 +20,11 @@
   let policyGeneration=0;
   let pendingPolicyOwner=null;
   let policyMutation=null;
+  let policyDraft=null;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
-  const clone = obj => JSON.parse(JSON.stringify(obj));
+  const clone = obj => window.LoomJSON.clone(obj);
   const esc = str => String(str).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const modelID = () => location.hash.startsWith("#model=") ? location.hash.slice(7) : null;
   const node = id => doc?.graph.nodes.find(n => n.id === id);
@@ -42,7 +43,7 @@
 
   function call(action, args = {}) {
     return new Promise((resolve, reject) => {
-      host.request(JSON.stringify({action, ...args}), answer => {
+      host.request(window.LoomJSON.stringify({action, ...args}), answer => {
         const result = JSON.parse(answer);
         if (result.ok) resolve(result.value);
         else reject(new Error(result.error));
@@ -252,7 +253,7 @@
         if(state.panel_scope!==policyEdit.scope)return;
         snapshot=window.LoomParameterPolicy.reconcile(snapshot,policyEdit.document);
       }
-      const answer = await safe("updateModel", {document: snapshot});
+      const answer = await safe("updateModel", {document: snapshot,preserve_parameter_policy:true});
       if (answer && doc?.id === mid) {
         description = answer;
         showDescription();
@@ -466,6 +467,10 @@
   };
 
   function renderInspector() {
+    const previousPolicy=$('parameter-policy-editor');
+    if(previousPolicy?.dataset.architecture&&previousPolicy.querySelector('.policy-owner'))policyDraft={
+      scope:previousPolicy.dataset.scope,model:previousPolicy.dataset.model,node:previousPolicy.dataset.node,
+      architecture:previousPolicy.dataset.architecture,owners:window.LoomParameterPolicy.drafts(previousPolicy)};
     const policyRequest=++policyGeneration;
     const n = node(selected), content = $("inspector-content");
     content.replaceChildren();
@@ -539,6 +544,7 @@
       const mid=doc.id,nid=n.id,context={workspace_id:state.workspace_id,panel_scope:state.panel_scope};
       syncQueue.then(()=>call('parameterPolicy',{...context,id:mid,node:nid})).then(info=>{
         if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)return;
+        const policySection=$('parameter-policy-editor');Object.assign(policySection.dataset,{architecture:info.architecture,scope:context.panel_scope,model:mid,node:nid});
         function policyEdit(action,args){
             if(busy())throw new Error('Stop the current run before editing.');
             if(policyMutation)throw new Error('Wait for the current parameter policy edit.');
@@ -548,23 +554,33 @@
               try{
                 const updated=await call(action,{...context,id:mid,node:nid,architecture:info.architecture,...args});
                 transaction.document=updated.document;
+                if(updated.binding)toast('Bound initial tensor · attempt '+updated.binding.source.attempt+' · '+updated.binding.source.checkpoint_id.slice(0,12)+' · trainability preserved.');
                 const authoritative=await call('state');
                 if(authoritative.panel_scope===context.panel_scope&&doc?.id===mid){
                   authoritative.models[mid]=window.LoomParameterPolicy.reconcile(doc,updated.document);
                   hydrate(authoritative);
                 }
-              }finally{if(policyMutation===transaction)policyMutation=null;if(state.panel_scope===context.panel_scope)renderInspector();}
+              }catch(error){toast(error.message,true);throw error;}
+              finally{if(policyMutation===transaction)policyMutation=null;if(state.panel_scope===context.panel_scope)renderInspector();}
             });
             syncQueue=operation.catch(()=>{});
             return operation;
         }
         window.LoomParameterPolicy.mount($('parameter-policy-editor'),info,{busy:()=>busy()||Boolean(policyMutation),
-          commit:(selector,changes)=>policyEdit('editParameterPolicy',{selector,changes_json:JSON.stringify(changes)}),
+          commit:(selector,changes)=>policyEdit('editParameterPolicy',{selector,changes_json:window.LoomJSON.stringify(changes)}),
           resetBlock:()=>policyEdit('resetBlockParameterPolicy',{}),
+          binding:{
+            call,workspace:()=>context.workspace_id,busy:()=>busy()||Boolean(policyMutation),toast,
+            valid:()=>policyRequest===policyGeneration&&doc?.id===mid&&selected===nid&&state.panel_scope===context.panel_scope,
+            inventory:(run,attempt,offset)=>call('parameterSourceInventory',{...context,id:mid,node:nid,architecture:info.architecture,run,attempt,offset}),
+            bind:(selector,source)=>policyEdit('bindParameter',{selector,source})
+          },
           openDefinition:async definition=>{
             if(definition.model===doc?.id){selected=definition.node;updateSelection();renderInspector();}
             else{pendingPolicyOwner=definition;if(!await safe('openModel',{id:definition.model,newTab:false}))pendingPolicyOwner=null;}
           }});
+        if(policyDraft?.scope===context.panel_scope&&policyDraft.model===mid&&policyDraft.node===nid&&policyDraft.architecture===info.architecture)
+          window.LoomParameterPolicy.restore(policySection,policyDraft.owners);
       }).catch(error=>{if(policyRequest===policyGeneration&&$('parameter-policy-editor'))$('parameter-policy-editor').textContent=error.message;});
     }
     if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);

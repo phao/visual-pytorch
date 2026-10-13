@@ -89,3 +89,22 @@ def read(workspace, selection):
                   'status': selected['status'], 'completed_updates': result['counts']['completed_updates'],
                   'optimizer_resume': False}
     return {'source': descriptor, 'values': values}
+
+
+def inventory_page(workspace, run, *, attempt, offset=0, limit=25):
+    """Bounded metadata projection; exact checkpoint validation is still complete."""
+    from .science_browser import encoded, MAX_BYTES
+    _require(_integer(offset) and _integer(limit, 1, 25), 'Parameter page offset/limit invalid; limit1–25.')
+    full = inventory(workspace, run, attempt=attempt)
+    parameters = full.pop('parameters')
+    result = {**full, 'scope': 'retained-parameter-page', 'offset': offset, 'limit': limit,
+              'total': len(parameters), 'parameters': [], 'next_offset': None, 'byte_limit': MAX_BYTES}
+    for row in parameters[offset:offset + limit]:
+        result['parameters'].append(row)
+        end = offset + len(result['parameters']); result['next_offset'] = end if end < len(parameters) else None
+        if len(encoded(result)) > MAX_BYTES:
+            result['parameters'].pop(); break
+    end = offset + len(result['parameters']); result['next_offset'] = end if end < len(parameters) else None
+    _require(bool(result['parameters']) or offset >= len(parameters), 'Parameter metadata cannot fit this GUI page; use exact CLI source selection.')
+    _require(len(encoded(result)) <= MAX_BYTES, 'Parameter metadata page exceeds byte limit.')
+    return result

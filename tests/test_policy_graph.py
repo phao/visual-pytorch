@@ -77,7 +77,7 @@ class PolicyGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(GraphError, 'unknown'): safety_report(models, mid)
 
     def test_container24_and_older_policy_containers_refuse_without_disk_write(self):
-        self.assertEqual(VERSION, 24); self.assertNotIn(21, SUPPORTED_VERSIONS); self.assertNotIn(22, SUPPORTED_VERSIONS)
+        self.assertGreaterEqual(VERSION, 24); self.assertNotIn(21, SUPPORTED_VERSIONS); self.assertNotIn(22, SUPPORTED_VERSIONS)
         models, mid = fixture()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'lora.vtw'; workspace = Workspace()
@@ -86,6 +86,12 @@ class PolicyGraphTests(unittest.TestCase):
             reopened = Workspace.load(path)
             try: self.assertEqual(reopened.models()[mid]['graph']['parameter_policy'], models[mid]['graph']['parameter_policy'])
             finally: reopened.db.close()
+            with sqlite3.connect(path) as db: db.execute('PRAGMA user_version=24')
+            before = hashlib.sha256(path.read_bytes()).hexdigest()
+            reopened = Workspace.load(path)
+            try: self.assertEqual(reopened.models()[mid]['graph']['parameter_policy'], models[mid]['graph']['parameter_policy'])
+            finally: reopened.db.close()
+            self.assertEqual(before, hashlib.sha256(path.read_bytes()).hexdigest())
             for version in (20, 21, 22, 23):
                 with sqlite3.connect(path) as db: db.execute('PRAGMA user_version=' + str(version))
                 before = hashlib.sha256(path.read_bytes()).hexdigest()

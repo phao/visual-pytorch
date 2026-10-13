@@ -1,8 +1,9 @@
-# Exact retained parameter sources — internal source-half contract
+# Exact retained parameter sources — source-half contract
 
 `app.parameter_sources.inventory(workspace, run_reference, attempt=number)` lists
 the chosen checkpoint's native state-dict paths, exact semantic owner IDs, shapes
-and float32 dtype. Attempt is mandatory: no mutable latest head or attempt is
+and float32 dtype; `inventory_page` bounds GUI projections to25 rows/64KiB.
+Attempt is mandatory: no mutable latest head or attempt is
 selected. `read(workspace, selection)` returns a detached JSON tensor and an
 identity descriptor. Selection is a closed object:
 
@@ -50,16 +51,17 @@ which is pinned separately.
 
 ## Deliberate limits
 
-This component reads only. Validation recomputes deterministic train-only
+This reader component reads only. Validation recomputes deterministic train-only
 preprocessing to check the captured checkpoint; it does not mutate persisted
 preprocessing. It does not initialize a destination model, alter
 trainability, create a binding specification, restore preprocessing or optimizer
 state, launch inference/training, create a split, or write SQL. It imports no
-Torch/NumPy/Qt in a fresh reader process. There is no CLI/GUI source selector yet,
-and this descriptor is **not** admitted parameter-policy/`.vtw` specification
-syntax. Next: version-fenced immutable binding receipt plus atomic guarded
-destination edits, persistence, CLI and Inspector controls. The existing exact
-values initializer remains independently valid but does not claim source lineage.
+Torch/NumPy/Qt in a fresh reader process. The descriptor is admitted only as the
+closed `source` inside independent Binding1/container25; it is not a graph policy
+initializer kind. The separate [binding service](parameter-binding.md) performs
+guarded atomic destination edits, persistence and CLI/Inspector selection. The
+ordinary exact-values initializer remains independently valid without claiming
+source lineage.
 
 Six bounded tests use one actual three-update retained worker fit and an explicit
 failed retry, plus SQL/RNG/no-execution guards, changed heads, refusal, fresh

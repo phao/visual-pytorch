@@ -22,8 +22,8 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 24
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24}
+VERSION = 25
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -618,6 +618,8 @@ class Workspace:
                 raise GraphError('Experiment/run/report revisions require a version-6 container.')
             if version < 7 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind IN ('family','specialization') LIMIT 1").fetchone():
                 raise GraphError('Family/specialization revisions require a version-7 container.')
+            if version < 25 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-binding' LIMIT 1").fetchone():
+                raise GraphError('Parameter-binding specifications require a version-25 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
             if version < 24:
                 from .revisions import _parse

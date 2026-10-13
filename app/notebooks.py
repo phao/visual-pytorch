@@ -30,6 +30,7 @@ RUNTIME = ('__init__.py', 'activations.py', 'core.py', 'datasets.py', 'evidence.
            'task_runtime.py', 'task_training.py', 'tensor_data.py', 'transport.py', 'worker.py')
 RUNTIME += ('recurrent.py', 'recurrent_nodes.py', 'temporal_shapes.py', 'lstm_nodes.py', 'temporal_shapes_v2.py')
 RUNTIME += ('parameter_policy.py', 'policy_graph.py', 'parameter_execution.py')
+RUNTIME += ('parameter_binding.py', 'parameter_sources.py', 'policy_authoring.py')
 FORMAT = 'visual-pytorch-report-bundle'
 
 
@@ -291,7 +292,11 @@ def verify_bundle(root):
         sets=sets+tuple(v-{'runtime/app/'+dependency} for v in sets)
     policy_paths = {'runtime/app/' + n for n in ('parameter_policy.py', 'policy_graph.py', 'parameter_execution.py')}
     sets = sets + tuple(v - policy_paths for v in sets)
-    _require(set(manifest['files']) in sets,
+    # Genuine older closures lack the entire binding group. Normalize presence
+    # only for this set check; the AST guards below still require every imported
+    # dependency. Avoid multiplying all historical variants by another2^3.
+    binding_paths = {'runtime/app/' + n for n in ('parameter_binding.py', 'parameter_sources.py', 'policy_authoring.py')}
+    _require(set(manifest['files']) | binding_paths in sets,
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
         part = PurePosixPath(relative); path = root / relative
@@ -332,7 +337,7 @@ def verify_bundle(root):
         _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                          n.module == 'runtime_shapes' for n in ast.walk(tree)),
                  'This report runtime requires its captured runtime_shapes.py dependency.')
-    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution'):
+    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution', 'parameter_binding', 'parameter_sources', 'policy_authoring'):
         if 'runtime/app/'+dependency+'.py' not in manifest['files']:
             import ast
             for relative in manifest['files']:

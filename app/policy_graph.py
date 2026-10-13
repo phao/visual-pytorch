@@ -98,7 +98,8 @@ def plan(models, mid):
                 if 'initializer' in fields: fields['initializer'] = initializer(fields['initializer'], owners[target]['shape'])
                 previous = merged.setdefault(target, {})
                 for field, value in fields.items():
-                    _require(field not in previous or previous[field] == value,
+                    from .evidence import digest
+                    _require(field not in previous or digest(previous[field]) == digest(value),
                              'conflicting explicit declarations for shared owner: ' + target + '.')
                     previous[field] = value
         for node in graph['nodes']:

@@ -1,6 +1,6 @@
 # Versioned initialization and trainability
 
-Current development branch: `.vtw`24, ModelRevision6, Family10 and
+Current development branch: `.vtw`25, ModelRevision6, Family10 and
 Specialization9. This is under construction, not an announcement of a public
 release or complete LoRA/MS-VAR implementation.
 
@@ -157,9 +157,9 @@ optimizer eligibility; freezing does not detach the input gradient path.
 
 ## Remaining work
 
-Compatible immutable retained-base binding, complete requested LoRA
-workspace/comparisons/merged inference artifact,
-broader frozen regression/integration and exact Neural MS-VAR remain. Explicit
-values do not yet implement a source-checkpoint selector. Existing Experiment UI
+Exact retained source selection and copied initialization now use independent
+[Binding1 receipts](parameter-binding.md), without widening initializer syntax.
+Complete requested LoRA workspace/comparisons/merged inference artifact,
+broader frozen regression/integration and exact Neural MS-VAR remain. Existing Experiment UI
 is preserved; the separate Loss-workbench study is a design prototype, not a new
 production board. Stage E remains deferred.

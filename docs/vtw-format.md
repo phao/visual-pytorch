@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 24
+# Visual Torch Workspace (.vtw): format specification, version 25
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,13 +36,21 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 24. The current reader accepts versions 1–20,23 and24;
+PRAGMA user_version = 25. The current reader accepts versions 1–20,23–25;
 opening an older supported file copies it into memory and upgrades the working
-version to 24. Opening alone never rewrites the source; explicit Save writes
-version 24. Versions 21/22 belong to the deliberately deferred execution branch
+version to 25. Opening alone never rewrites the source; explicit Save writes
+version 25. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
-Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
+Other versions are rejected. Version25 adds independent immutable
+`parameter-binding` version1 receipts in the existing revision/head tables,
+including full exact source/destination/value agreement validation. Any retained
+binding row requires25, even with no selected head. Policy-only24 remains valid;
+policies retain their introduction fence24. There is no new SQL table or numerical
+model-policy grammar. The complete closed record, atomic admission, CLI/Inspector
+and undo contracts are specified in [parameter-binding.md](parameter-binding.md).
+
+Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
 without changing SQL tables. Version 4 adds versioned structured operators,
 optional named sample axes and a checked recorded structured dataset adapter,
