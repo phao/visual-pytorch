@@ -2941,3 +2941,29 @@ Floating-panel geometry and visibility remain session-only. Moving remaining
 workspace-specific layout state into `.vtw` is an open portability item. Rich
 experiments/notebook reporting, symbolic/recurrent composition and detached jobs
 remain roadmap work; none are implied by this release's screenshots.
+# 2026-10-12 — Verified parameter-policy and retained-binding integration
+
+Local main3fc3e88069f3fdb1723ecf434160b25322b34823 integrates
+task/parameter-policy through frozen587e79fa4149d96254b1b16fe353e26d96a99259.
+Merge tree17713d433bfa68dab472033eb07b6a76e5a6adde exactly equals the frozen
+tree. Full1404 cases556.403s pass (1401 executed/three unchanged Qt skips), all372
+JS pass, native dispatcher and actual sandboxed Qt source binding/geometry/undo/
+refusal/save-reload pass. Four captured notebook cases27.681s at executable-parent
+aa4066e include actual old/new kernels and new missing-dependency refusals; child
+changes only harness/changelog, not product code. Post-merge28 checks8.063s pass.
+
+Container25 adds independent Binding1 lineage in existing immutable registry
+tables, not optimizer resume or a new numerical policy grammar. Model6/policy1
+source values, freezing, owner-only optimizer state, scope/repeat guards and
+native/generated/task/worker/checkpoint/family/notebook routes are implemented.
+Source-copy shape/dtype/source-ref/value identity, atomic rollback/no-op, signed
+zero transport/equality, surviving refusal notices and same-identity pending-form
+preservation are guarded. No public push, user-file/config edits or app restart.
+
+Not complete: actual requested lora.vtw related architectures, fair fixed-base/
+fixed-data comparisons, explicit merged/adapter inference provenance package and
+the exact Neural MS-VAR latent-state likelihood model. Loss-workbench sketches
+are a separate design prototype, not an installed generic workbench. Keep E
+deferred and existing Experiment/UI/label-feedback boundaries intact. See the
+exact [binding contract](parameter-binding.md), [policy](parameter-policy.md),
+[source reader](retained-parameter-sources.md) and portable GUI handoff.
