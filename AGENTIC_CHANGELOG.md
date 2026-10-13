@@ -4,6 +4,15 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 23:10 -03:00 — Actual LoRA teaching graphs and comparison recipes
+
+Added pure reusable graph/data generation for supplied synthetic base, ranks1/2/4,
+folded wrapper and two-layer adapted/base/full-finetuned MLP, because the report
+requires an actual related-architecture workspace rather than separate fixtures.
+Three checks0.308s pass: every graph valid, exact frozen/trainable counts, rank
+shape/scale regeneration and fixed dataset/task/split/protocol across comparisons.
+No fits or complete lora.vtw/merge yet; execution/derivation next. Full goal active.
+
 ## 2026-10-12 22:51 -03:00 — Verified local policy/binding integration
 
 Frozen587e79f full1404/556.403s pass,1401 executed/three original native-covered
