@@ -89,9 +89,17 @@ Open [examples/neural-msvar.vtw](examples/neural-msvar.vtw) for the actual causa
 K=5, p=3, D=3 neural MS-VAR: 1,315 learned parameters, unlabelled trajectory data,
 exact Gaussian filtering and target-free sequence likelihood. Its twelve-update
 fit is a bounded sanity check, not statistical recovery. Native, standalone,
-worker and real saved/rerun notebook paths are checked. Reset/execution and
-missing-history semantics remain unfinished. See the
+worker and real saved/rerun notebook paths are checked. An explicit controlled
+variant supports execution, reset and emission-scoring masks with supplied reset
+histories, plus learned log variance. Unknown continuous autoregressive history
+is refused rather than silently imputed or called exact marginalization. See the
 [precise computation and limits](docs/neural-msvar-contract.md).
+
+Agent authoring includes inspectable typed recipes, read-only edit planning,
+stable port contracts and application integrity checks. The original example's
+pinned manifest can be checked without fitting; replay requires an explicit run
+flag and bounded budget. See [construction recipes](docs/construction-recipes.md),
+[edit planning](docs/edit-planning.md) and [example checks](docs/example-packs.md).
 
 ![Real Qt diagram of the causal neural MS-VAR, with the lag block compacted](assets/screenshots/neural-msvar-causal.png)
 
