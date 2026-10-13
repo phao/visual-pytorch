@@ -1064,3 +1064,13 @@ enumerated Gaussian HMM reference was reviewed/integrated;31 site-packages-free
 checks0.009s pass. Reference-only, not an admitted HMM/MS-VAR application feature.
 Final broad LoRA regression remains; full Neural MS-VAR still requires production
 operators/objective/provenance/CLI routes. No E/user-state/public push changes.
+
+## 2026-10-13 01:06 -03:00 — Frozen small-LoRA workflow accepted
+
+Full frozen89db3d8 regression1470/655.968s passes,1467 executed plus three
+native export skips separately executed3/0.165s in Qt Python.372 JS cases pass;
+actual new LoRA Qt/worker/CLI and notebook checks and old parameter layout pass.
+No source edits occurred during the gate. Local integration follows; public
+unchanged. Full active goal remains incomplete because exact Neural MS-VAR and
+its owner/operator/loss/export/CLI contracts are not admitted. The worker's
+independently checked Gaussian HMM primitive remains separate, not a GUI feature.

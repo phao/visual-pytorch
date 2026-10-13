@@ -3030,3 +3030,21 @@ rows are previous→next, Gaussian constants/variances explicit, missing emissio
 still advance state, prefixes are filtered not smoothed. This is test reference
 only; app discovery still correctly reports latent likelihood unsupported.
 Final broad frozen regression is next, not yet an integration/full feature claim.
+
+## 2026-10-13 01:06 -03:00 — Frozen LoRA acceptance verified
+
+Frozen executable89db3d8952c3efd8ff89e76e31733dc16a723bb0,
+tree8119567e1eb6072c3d19acac3501aeed8beda9f6, stayed unchanged through the
+full1470-Python/655.968s regression:1467 executed, three native export cases
+skipped in the numerical interpreter. All three ran explicitly in system Qt
+Python and passed0.165s. All372 JS cases pass9594.727137ms. Actual new LoRA
+Qt/worker/layout/CLI/save-reload, real four-candidate saved/rerun notebook kernels,
+signed-zero temporal/nonexact-scale inference, and original legacy parameter
+layout all pass with their bounded evidence. No user workspace/config/app restart,
+public push or E changes. This accepts the requested small LoRA workflow,
+not general pretrained Transformer adaptation or the full active goal.
+
+The independent HMM worker's b564d7e primitive remains separately unmerged:
+no graph/operator/owner/task/loss/CLI admission yet. Full Neural MS-VAR remains
+next after local LoRA integration; keep separate workbench TYPES and the
+standalone loss design study. Do not infer MS-VAR support from a numerical kernel.
