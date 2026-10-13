@@ -1092,3 +1092,18 @@ this is an internal eager CPU numerical primitive, NOT graph/operator/owner/loss
 worker/notebook/CLI admission. Full exact K5,p3,D3 neural MS-VAR, causal windows,
 appropriate trajectory evaluation and report CLI requests remain. Worker closed,
 all numerical processes terminal, no E/user-state/public operations.
+
+## 2026-10-13 01:57 -03:00 — Internal tensor sources without dummy inputs
+
+Reviewed sole worker540cf83's pure normalization/lazy CPU float32 Constant and
+TensorParameter constructors and all193+410 lines. Constants keep signed-zero
+literal/fill data in a nonpersistent buffer, no optimizer owner; Parameter has
+one zero-default value owner and existing external policy compatibility. Explicit
+batch expansion takes no dummy input; numerical admission precedes allocation
+while large compact shape editing remains pure. App-free emission shares the
+inspected constructor.21 independently rerun cases0.858s pass; integrated only
+on task/neural-msvar116b403, not main. Removed a process-global interop reset
+from test import;80 source/filter/reference/layout checks1.313s and explicit
+import after prior Torch work pass. No graph/operator/schema/GUI/CLI admission,
+new Source fit or full MS-VAR completion. Full route/version/owner/RAM/source-root
+closure remains; no E/user-state/public changes.

@@ -19,7 +19,9 @@ from torch import nn
 from app import tensor_sources as sources
 
 torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
+# Do not reset the process-wide interop pool during test-module import: another
+# suite may already have started work. Fresh subprocesses configure their own
+# pool explicitly; these bounded eager tests use one numerical thread.
 
 
 def node(kind='Constant', shape=Ellipsis, **fields):
