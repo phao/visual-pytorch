@@ -8,7 +8,7 @@ import time
 from .datasets import _require
 from .evidence import digest
 from .task_execution import checkpoint_for, resolve_run, run_identity, compile_task_model
-from .task_runtime import MetricAccumulator, forward_ports, head_terms, tensor_batch
+from .task_runtime import MetricAccumulator, forward_ports, head_terms, tensor_batch, validate_forward_outputs
 
 
 def train_task(bundle, progress=None, cancel=None, *, constrained=True,
@@ -37,7 +37,8 @@ def train_task(bundle, progress=None, cancel=None, *, constrained=True,
 
     def terms_for(batch):
         predictions = forward_ports(model, batch['inputs'], prepared['contract'])
-        return {h['id']: head_terms(predictions[h['port']], batch['targets'][h['id']],
+        validate_forward_outputs(predictions, prepared['contract'], task)
+        return {h['id']: head_terms(predictions[h['port']], batch['targets'].get(h['id']),
                                    batch['masks'][h['id']], batch['sample_weights'][h['id']], h['loss']) for h in heads}
 
     def evaluate(role, cid):
@@ -145,7 +146,7 @@ def train_task(bundle, progress=None, cancel=None, *, constrained=True,
         if status == 'completed':
             status = 'failed'; reason = 'evaluation_error'; failure = evaluation_error
         checkpoint = checkpoint_for(bundle, prepared['fitted'], model); cid = digest(checkpoint)
-    return {'version': 1, 'kind': 'task-training-result', 'status': status, 'stop_reason': reason,
+    return {'version': 2 if task['version'] == 2 else 1, 'kind': 'task-training-result', 'status': status, 'stop_reason': reason,
             'failure': failure, 'evaluation_error': evaluation_error, 'identity': run_identity(bundle),
             'bundle': bundle, 'checkpoint': checkpoint, 'checkpoint_id': cid, 'counts': counts,
             'history': history, 'final_metrics': final_metrics, 'elapsed_seconds': max(0., clock() - started),

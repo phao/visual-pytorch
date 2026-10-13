@@ -1,5 +1,33 @@
 # Development state and roadmap
 
+## 2026-10-13 03:53 -03:00 — Probability diagrams and concrete likelihood tasks
+
+Task/neural-msvar admits LogSoftmax/Softplus/PositiveVariance/GaussianFilter,
+four represented outputs, closed roles, pre-conversion shape/budget checks and
+actual native/export/family/Qt paths. Probability grammar uses container28/
+Model8/Family12/Spec11. The inspected14-block p0 HMM is not full neural MS-VAR.
+
+Concrete TaskSpec2/Bundle5/Result2/container29 adds signed target-free NLL,
+diagnostic coverage, no target columns, real worker/checkpoint/export replay
+and pure signed result admission. Runtime-family and supervised Experiment
+versions explicitly refuse this successor. CLI uses actual bundle versions.
+Signed curves preserve negative values.118 focused cases73.109s pass, including
+30 bounded updates with negative NLL, exact replay and archived-header refusal.
+Final42/4.228s and16 likelihood/report cases3.680s pass. The latter follows a
+nonexistent-module command error, not a renderer failure. Actual rendered signed
+curve inspection corrected the NLL caption and all-negative zero tick.
+The initial46-case command had one fixture assumption failure: a wide Gaussian
+did not reach negative NLL in30 updates; explicit narrow-density initialization
+now exercises signed density without changing reduction code.
+
+Earlier probability30/28.935s,375JS and sandboxedQt acceptance passed. Frozen
+source parent7f43fb8 full1544/670.655s had obsolete-version/nullary fixture errors;
+an independently foundSpec10 dispatch gap was fixed too, with18 focused checks.
+This is not a corrected-child full-suite claim. Next close runtime-family/
+Experiment/notebook likelihood, causal K5,p3,D3 MS-VAR and remaining CLI report
+priorities. LoRA accepted locally; full goal incomplete, no public push or user
+workspace/config/app restart.
+
 ## 2026-10-13 02:39 -03:00 — Real tensor-source admission for exact MS-VAR groundwork
 
 Visible task/neural-msvar now admits Constant/TensorParameter roots, real value

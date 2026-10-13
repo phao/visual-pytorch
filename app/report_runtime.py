@@ -200,9 +200,9 @@ def metric_rows(view, workspace):
         for role, population in run['metrics'].items():
             for hid, metric in population['heads'].items():
                 head = next(h for h in task['heads'] if h['id'] == hid)
-                field = next(f for f in dataset['fields'] if f['id'] == head['field'])
+                field = next((f for f in dataset['fields'] if f['id'] == head.get('field')), {})
                 rows.append(base | {'population': role, 'head': hid, 'loss': metric['kind'],
-                    'units': field.get('unit', ''), 'target_transforms': json.dumps(head['transforms'], sort_keys=True),
+                    'units': field.get('unit', ''), 'target_transforms': json.dumps(head.get('transforms', []), sort_keys=True),
                     'value': metric['value'] if metric['value'] is not None else '',
                     'denominator': metric['denominator'], 'observations': metric['evaluated_records']})
     return rows
@@ -278,6 +278,10 @@ def curve_svg(summary, result, hid, context):
         return None
     max_x = max(1, max(p['update'] for p in history))
     max_y = max(1e-12, max(y for x, y in points) * 1.05)
+    min_y = min(0., min(y for x, y in points) * 1.05)
+    if min_y < 0 and all(y <= 0 for x, y in points):
+        max_y = 0.
+    span_y = max_y - min_y
     kind = history[-1]['metrics']['train']['heads'][hid]['kind']
     title = context['model'] + ' / ' + hid + ' / ' + kind
     retention = result['history_retention']
@@ -285,7 +289,9 @@ def curve_svg(summary, result, hid, context):
         'Run ' + summary['reference']['id'] + '; revision ' + summary['reference']['revision'],
         'Final checkpoint ' + result['checkpoint_id'],
         'Dataset: ' + context['dataset'] + '. Weighted population mean; individual heads, not the combined objective.',
-        'Source target unit: ' + (context['unit'] or 'unspecified') + '. Target transforms: ' + json.dumps(context['transforms'], sort_keys=True) + '. Loss is in transformed target space.',
+        ('Density uses the declared observation measure; no target transforms. Negative NLL is valid.'
+         if kind == 'negative-log-likelihood' else
+         'Source target unit: ' + (context['unit'] or 'unspecified') + '. Target transforms: ' + json.dumps(context['transforms'], sort_keys=True) + '. Loss is in transformed target space.'),
         'Retained ' + str(len(history)) + ' / ' + str(retention['observed_points']) + ' observations; discarded ' + str(retention['discarded_points']) + '. Missing values break lines; no smoothing or confidence intervals.',
         'Every point evaluates one checkpoint over its named population. Test metrics are final-only and are not plotted. Exact checkpoints, denominators and counts are in the companion CSV.']
     caption_lines = [line for caption in captions for line in _wrap_lines(caption, 84)]
@@ -310,7 +316,7 @@ def curve_svg(summary, result, hid, context):
     for fraction in (0, .25, .5, .75, 1):
         y = bottom - 224 * fraction
         elements += ['<line x1="72" y1="' + str(y) + '" x2="732" y2="' + str(y) + '" stroke="#d5dee5"/>',
-                     '<text x="64" y="' + str(y + 4) + '" text-anchor="end">' + format(max_y * fraction, '.4g') + '</text>']
+                     '<text x="64" y="' + str(y + 4) + '" text-anchor="end">' + format(min_y + span_y * fraction, '.4g') + '</text>']
     for x in sorted(set(round(max_x * fraction) for fraction in (0, .25, .5, .75, 1))):
         px = 72 + 660 * x / max_x
         anchor = 'start' if x == 0 else 'end' if x == max_x else 'middle'
@@ -324,7 +330,7 @@ def curve_svg(summary, result, hid, context):
             if y is None:
                 if segments[-1]: segments.append([])
                 continue
-            segments[-1].append((72 + 660 * x / max_x, bottom - 224 * y / max_y))
+            segments[-1].append((72 + 660 * x / max_x, bottom - 224 * (y - min_y) / span_y))
         for segment in filter(None, segments):
             xy = ' '.join(format(x, '.6f') + ',' + format(y, '.6f') for x, y in segment)
             elements.append('<polyline data-population="' + role + '" fill="none" stroke="' + color +
@@ -391,9 +397,9 @@ def curves(payload, view, directory):
                                     for k in ('model', 'dataset', 'task')]
             for hid in heads:
                 head = next(h for h in task['heads'] if h['id'] == hid)
-                field = next(f for f in dataset['fields'] if f['id'] == head['field'])
+                field = next((f for f in dataset['fields'] if f['id'] == head.get('field')), {})
                 svg = curve_svg(summary, result, hid, {'model': model['name'], 'dataset': dataset['name'],
-                    'unit': field.get('unit', ''), 'transforms': head['transforms']})
+                    'unit': field.get('unit', ''), 'transforms': head.get('transforms', [])})
                 if svg is None:
                     continue
                 path = Path(directory) / ('curve-' + digest({'run': summary['reference'], 'head': hid})[:24] + '.svg')

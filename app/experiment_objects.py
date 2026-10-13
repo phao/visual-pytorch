@@ -256,6 +256,8 @@ class _PreviewResolution:
         return self.documents[kind][1]
 
     def check(self, refs, model, dataset, task, runtime=None):
+        _require(task['version'] == 1,
+                 'Existing Experiment versions are supervised-only; target-free likelihood experiments need a new explicit contract.')
         model_key=(refs['model']['id'],refs['model']['revision'])
         if runtime is not None:model_key=(*model_key,refs['dataset']['revision'],refs['task']['revision'],digest(runtime))
         if self.contract is None or self.contract[0]!=model_key:

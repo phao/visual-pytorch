@@ -22,8 +22,8 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 28
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28}
+VERSION = 29
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -623,6 +623,11 @@ class Workspace:
             if version < 26 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-derivation' LIMIT 1").fetchone():
                 raise GraphError('Parameter-derivation specifications require a version-26 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 29:
+                from .revisions import _parse
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='task'"):
+                    if _parse(text)['version'] >= 2:
+                        raise GraphError('Target-free likelihood task revisions require a version-29 container.')
             if version < 28:
                 from .revisions import _parse
                 if any(n['type'] in PROBABILITY_OPERATORS or n['type']=='Activation' and n.get('activation') in ('LogSoftmax','Softplus')

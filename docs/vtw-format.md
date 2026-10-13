@@ -1,4 +1,9 @@
-# Visual Torch Workspace (.vtw): format specification, version 28
+# Visual Torch Workspace (.vtw): format specification, version 29
+
+Container29 admits [target-free likelihood TaskSpec2](likelihood-task-contract.md)
+in immutable task revisions, including archived revisions. Older headers refuse
+these bytes. SQL tables/columns are unchanged. Concrete execution uses TaskBundle5
+and signed TaskResult2; existing supervised versions retain their meaning.
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,10 +41,10 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 28. The current reader accepts versions 1–20,23–28;
+PRAGMA user_version = 29. The current reader accepts versions 1–20,23–29;
 opening an older supported file copies it into memory and upgrades the working
-version to 28. Opening alone never rewrites the source; explicit Save writes
-version 28. Versions 21/22 belong to the deliberately deferred execution branch
+version to 29. Opening alone never rewrites the source; explicit Save writes
+version 29. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
 Other versions are rejected. Version28 adds LogSoftmax/Softplus, explicit-floor

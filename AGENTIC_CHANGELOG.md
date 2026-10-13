@@ -1167,3 +1167,21 @@ Latest30/28.935s, earlier66/4.730s and40/18.803s plus375JS pass. No new target-f
 task, signed metric grammar, causal p3 MS-VAR or full probability source-wide gate
 claim. Legacy synthetic/packed MSE refuses filter graphs. Full objective active;
 next exact signed likelihood task and causal K5,p3,D3 model, not another primitive.
+
+## 2026-10-13 03:56 -03:00 — Concrete target-free signed likelihood execution
+
+Admitted TaskSpec2/Bundle5/Result2/container29 with proven log-evidence binding,
+explicit diagnostics, no fabricated target columns, signed additive NLL and
+strict legacy nonnegative checks. Real worker, native/standalone checkpoint
+replay, CLI exact-version dispatch and pure result admission agree. All outputs
+are checked; only proven log-probability diagnostics allow structural -Inf.
+Signed report curves retain negative losses. Sole read-only reviewer identified
+export target-field assumptions, result/plot sign assumptions and unchecked
+diagnostics; these are corrected.118 focused tests73.109s and final42/4.228s pass;
+initial wide-density fixture assumption failure is retained. Runtime-family/
+Experiment/notebook likelihood successors explicitly remain unadmitted. No full
+new-suite/main/public or full Neural MS-VAR completion claim. Plotting guidance
+influenced signed bounds and explicit numerical coordinate checks. Final16
+likelihood/report cases3.680s pass; a prior command's nonexistent test-module
+name is retained as a command error. Visual review corrected a target-oriented
+caption for NLL and placed zero at the upper bound for all-negative curves.

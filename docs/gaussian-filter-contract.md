@@ -98,12 +98,12 @@ current bundles require imported dependencies before kernel startup.
 
 Known operator representations appear in CLI port contracts when proven and are
 never inferred from labels. Sequence evidence is signed: narrow Gaussian densities
-can exceed1. The application does **not yet admit a target-free likelihood task**;
-its existing metric/result contracts remain supervised/nonnegative. Legacy
+can exceed1. Concrete target-free training now has the explicit
+[TaskSpec2 / Bundle5 / Result2 contract](likelihood-task-contract.md); supervised
+contracts retain their original meaning. Legacy
 synthetic/packed-MSE controls refuse filter graphs rather than fabricate valid
-integer controls or pretend MSE fits hidden states. The next implementation must
-close target-free objectives, signed evidence reductions, diagnostic-output
-exemption, actual worker/checkpoint/predictor/notebook paths and causal p3 windows.
+integer controls or pretend MSE fits hidden states. Runtime-family/Experiment/
+notebook likelihood contracts and causal p3 windows still need implementation.
 
 ## Checked evidence and limits
 
@@ -115,5 +115,6 @@ Latest30 focused cases28.935s and375 JavaScript cases pass; earlier66 cases and4
 route cases pass (three native-only skips). Actual sandboxed Qt tests cover native
 palette click, visible internals, six inputs/four outputs, Inspector, failed-edit
 no-write, undo/redo/save-reload; the host imports no numerical runtime. Existing
-policy saved/rerun Jupyter kernels still replay exactly. No new Gaussian
-likelihood-training worker/kernel acceptance or full source-wide PASS is claimed.
+policy saved/rerun Jupyter kernels still replay exactly. The separate likelihood
+contract records real concrete worker/checkpoint/export acceptance, not Gaussian
+notebook-kernel or full source-wide acceptance.

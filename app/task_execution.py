@@ -15,7 +15,7 @@ from .datasets import (_apply_step, _column, _flat, _integer, _keys, _number,
 from .evidence import digest, parameter_schema
 from .memory import available_memory, estimate_memory, memory_percent
 from .revisions import frozen_document
-from .task_runtime import forward_ports
+from .task_runtime import forward_ports, validate_forward_outputs
 from .runtime_tasks import record_shapes
 
 
@@ -71,6 +71,9 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
     if runtime is not None:
         sv=runtime['specialization'].get('version')
         result.update(version=4 if sv in (7,8,9,10,11) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
+    if task['version'] == 2:
+        _require(runtime is None, 'TaskSpec2 currently requires a concrete specialization; runtime-family likelihood is not admitted yet.')
+        result['version'] = 5
     validate_bundle(result)
     return result
 
@@ -79,7 +82,9 @@ def validate_bundle(bundle):
     _require(isinstance(bundle,dict),'TaskBundle must be a closed object.')
     _keys(bundle, ('version', 'model', 'dataset', 'task', 'manifest', 'protocol')+
           (('runtime',) if bundle.get('version') in (2,3,4) else ()), context='TaskBundle')
-    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3,4),'TaskBundle supports integer versions1–4.')
+    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3,4,5),'TaskBundle supports integer versions1–5.')
+    _require((bundle['version'] == 5) == (bundle['task'].get('version') == 2),
+             'TaskSpec2 requires TaskBundle5; older bundles retain supervised-only task meaning.')
     for kind in ('model', 'dataset', 'task'):
         _require('revision' in bundle[kind], 'Execution requires exact frozen ' + kind + ' revision.')
         frozen_document(kind, bundle[kind])
@@ -113,6 +118,8 @@ def run_identity(bundle):
         result.update(version=3,compiler='native-runtime-temporal-v1',runtime=digest(bundle['runtime']))
     elif bundle['version']==4:
         result.update(version=4,compiler='native-runtime-temporal-v2',runtime=digest(bundle['runtime']))
+    elif bundle['version']==5:
+        result.update(version=5, task_runtime='signed-additive-v2')
     if bundle['model']['version'] >= 6:
         from .policy_graph import plan
         result['parameter_policy'] = plan(bundle['model']['models'], bundle['model']['root'])['resolved']['identity']
@@ -288,7 +295,7 @@ def _predict_records(model, input_spec, fitted, records):
               for g in contract['input_groups']}
     with torch.no_grad():
         result = forward_ports(model, inputs, contract)
-    _require(all(bool(torch.isfinite(v).all()) for v in result.values()), 'Inference arithmetic produced nonfinite outputs.')
+    validate_forward_outputs(result, contract, input_spec['task'])
     return result
 
 
@@ -314,7 +321,7 @@ def _helper_source(helper):
 def generate_task_architecture(bundle, *, constrained=True, memory_limit_percent=10.):
     """The exact execution compiler, distinct from the constructor-baseline export."""
     contract=validate_bundle(bundle)
-    if bundle['version']==1:
+    if bundle['version'] in (1,5):
         return generate_code(bundle['model']['models'],bundle['model']['root'])
     from .family_export import family_source
     architecture=family_source(bundle['runtime']['family'],constrained=constrained,
@@ -331,7 +338,7 @@ def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limi
     """
     check_task_checkpoint(bundle, checkpoint, constrained=constrained, memory_limit_percent=memory_limit_percent)
     helpers = (_require, _integer, _number, _flat, _unflatten, _value, _column, _apply_step, record_shapes,
-               fitted_inputs, forward_ports, _predict_records)
+               fitted_inputs, forward_ports, validate_forward_outputs, _predict_records)
     architecture=generate_task_architecture(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     source = ['# Visual PyTorch trained task inference; GPL-3.0-only. No training occurs.',
               'import copy', 'import math', 'MAX_FLOAT32 = 3.4028234663852886e38','MAX_INTEGER = 2**53 - 1',
@@ -340,12 +347,14 @@ def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limi
     fields = {binding['field'] for binding in bundle['task']['inputs']}
     input_spec = {'dataset': {'fields': [f for f in bundle['dataset']['fields'] if f['id'] in fields]},
                   'task': {'inputs': bundle['task']['inputs']}}
+    if bundle['task']['version'] == 2:
+        input_spec['task'].update(version=2, diagnostic_outputs=bundle['task']['diagnostic_outputs'])
     if bundle['version'] in (2,3,4):
         from .runtime_tasks import input_policy
         input_spec['runtime_policy']=input_policy(bundle)
     source.extend([f'_input_spec = {input_spec!r}', f'_fitted = {checkpoint["fitted"]!r}',
                    f'task_specification = {bundle["task"]!r}',
-                   f'target_fields = {[f for f in bundle["dataset"]["fields"] if f["id"] in {h["field"] for h in bundle["task"]["heads"]}]!r}',
+                   f'target_fields = {[f for f in bundle["dataset"]["fields"] if f["id"] in {h["field"] for h in bundle["task"]["heads"] if "field" in h}]!r}',
                    f'_weights = {checkpoint["weights"]!r}', f'checkpoint_identity = {checkpoint["identity"]!r}',
                    "model.load_state_dict({k: torch.tensor(v, dtype=torch.float32, device='cpu') for k,v in _weights.items()}, strict=True)",
                    'model.eval()', 'def predict_records(records):',

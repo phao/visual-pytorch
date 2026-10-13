@@ -546,7 +546,7 @@ def main(argv=None):
                     bundle = task_bundle(model, dataset, task, manifest, read_json(args.protocol))
                     resolve_run(bundle, constrained=workspace.constrained_mode, memory_limit_percent=percentage)
                     value = run_json_worker([args.torch_python, '-u', '-m', 'app.worker'],
-                        {'kind': 'task-v1', 'bundle': bundle, 'constrained': workspace.constrained_mode,
+                        {'kind': 'task-v'+str(bundle['version']), 'bundle': bundle, 'constrained': workspace.constrained_mode,
                          'memory_limit_percent': percentage}, cwd=str(Path(__file__).resolve().parent))
                 else:
                     value = prepare(dataset, task, contract, manifest,

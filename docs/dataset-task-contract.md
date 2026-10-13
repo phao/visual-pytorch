@@ -1,5 +1,8 @@
 # Typed datasets and tasks — Stage C work in progress
 
+See [likelihood tasks](likelihood-task-contract.md) for the explicit target-free
+successor. TaskSpec1 below is unchanged.
+
 This is the executable first inline adapter, not completion of Stage C. It is
 available through Python/CLI and the Stage C [typed scientific GUI](experiment-gui.md),
 including exact experiment selections and train-free draft preview. Independent
