@@ -58,7 +58,7 @@ class LagDeclarationTests(unittest.TestCase):
         self.assertEqual(cl.normalized(node(10**100))['lags'], 10**100)
         invalid = [None, [], {}, {'type': 'CausalLagWindow'}, node(type='Other')]
         invalid += [node(p) for p in (None, True, False, 0, -1, 2., '2', [2])]
-        invalid += [node(op_version=v) for v in (True, False, 1., '1', None, 0, 2)]
+        invalid += [node(op_version=v) for v in (True, False, 1., '1', None, 0, 3)]
         invalid += [node(**{key: None}) for key in
                     ('shape', 'dtype', 'device', 'trainable', 'share_with', 'padding',
                      'order', 'reset', 'reset_mask', 'execution_mask', 'emission_mask',

@@ -12,9 +12,9 @@ from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, ch
 from .revisions import KINDS
 
 _RULES = {
-    'CausalLagWindow': 'Explicit observed history and prefix lengths; preceding p vectors only, oldest to newest. No current/future leakage, reset, missing-history imputation or trainable owners.',
+    'CausalLagWindow': 'Explicit observed history and prefix lengths; preceding p vectors only, oldest to newest. Version 2 adds execution masks and resets with explicit reset histories. No current/future leakage, missing-history imputation or trainable owners.',
     'GaussianFilter': 'Exact diagonal-Gaussian log-space filtering; explicit previous-to-next transition rows and initial law before first transition. No regime labels, smoothing, hidden variance floor or trainable parameters. Named posterior/evidence ports.',
-    'PositiveVariance': 'Elementwise softplus(raw,beta=1,threshold=20) plus explicitly declared positive float32 floor. Shape/axes preserved; no clipping or learned parameters.',
+    'PositiveVariance': 'Version 1 uses softplus(raw,beta=1,threshold=20) plus an explicit positive float32 floor. Version 2 requires exp or softplus and an explicit nonnegative floor; exp with floor zero is literal exp(log variance). Shape/axes preserved; overflow/nonpositive results refuse, never clip.',
     'Constant': 'Declared immutable CPU float32 sample tensor; explicit fill or rectangular values; no incoming data, no learnable parameters. Expand as a batch view, never a dataset input.',
     'TensorParameter': 'Declared CPU float32 sample tensor; one zero-default nn.Parameter value owner. Graph policy initializes/freezes it; compatible share_with reuses the exact owner. No incoming data.',
     'Add': 'Ordered elementwise sum, at least two identical sample shapes and axes; no broadcasting, flattening or learned parameters.',
@@ -43,7 +43,7 @@ _LEGACY_FIELDS = {
     'Linear': {'features', 'bias'}, 'Activation': {'activation', 'dim'},
     'Reshape': {'shape'}, 'Module': {'ref','batch_only'}, 'Concat': {'sources', 'flatten'},
     'Constant': {'shape','axes','fill','values'}, 'TensorParameter': {'shape','axes'},
-    'PositiveVariance':{'positive_floor'},
+    'PositiveVariance':{'positive_floor','transform'},
     'GaussianFilter':{'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
     'Splitter': {'parts'}, 'Replicator': {'outputs'},
 }
@@ -194,18 +194,21 @@ def operator_schema(kind):
     actual_defaults = {k: v for k, v in operators.normalized(minimal).items() if k not in minimal}
     if kind == 'Linear': actual_defaults['bias'] = True
     if kind == 'Concat': actual_defaults['flatten'] = True
-    return _header('operator-schema', type=kind, op_versions=[1] if strict else None,
+    return _header('operator-schema', type=kind, op_versions=[1,2] if kind in operators.PROBABILITY_OPERATORS else [1] if strict else None,
         fields={'common': sorted(operators.COMMON), 'semantic': sorted(fields),
             'required': sorted(required | {'id', 'type'}),
             'optional': sorted((set(fields) | operators.COMMON) - required - {'id', 'type'}),
             'required_in_example': sorted(set(node) - operators.COMMON),
             'unknown_policy': 'refuse' if strict else 'legacy-permissive; extras do not establish executable semantics',
             'alternatives': ['Input: declare shape or features (shape takes precedence)'] if kind == 'Input' else ['Constant: exactly one of fill or values'] if kind == 'Constant' else [],
-            'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else []},
+            'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else
+                ['op_version2 requires transform=exp|softplus; positive_floor may be exactly zero. Version1 refuses transform and requires a positive floor.'] if kind=='PositiveVariance' else
+                ['op_version2 permits execution_mask and reset_mask; reset_mask requires explicit reset_history. Version1 has only observations/history/lengths.'] if kind=='CausalLagWindow' else
+                ['op_version2 permits execution_mask and reset_mask. Emission masks are distinct from execution, prefix lengths and task loss masks.'] if kind=='GaussianFilter' else []},
         defaults=actual_defaults, defaults_scope='shared normalizer plus legacy bias/flatten defaults; required fields are not defaults',
         shape_rule=_RULES[kind], batch_axis='implicit leading B; sample-axis indices exclude B',
         ports={'incoming': 'none' if kind == 'Input' or kind in operators.SOURCE_TYPES else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
-               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent','GaussianFilter'} else 'exactly one',
+               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent','GaussianFilter','CausalLagWindow'} else 'exactly one',
                'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent','GaussianFilter'} else 'one tensor with ordinary fan-out'},
         sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM', 'TensorParameter'},
                  'binding': 'share_with resolves one compatible local canonical owner; not weight freezing'},
@@ -243,6 +246,14 @@ def capabilities():
             'family_version':13,'specialization_version':12,
             'roles':['observations','history','lengths'],'order':'oldest-to-newest; excludes current observation',
             'controls':'explicit prefix lengths; no missing-history imputation or resets'},
+        controlled_sequences={'op_version':2,'container_version':32,'model_revision_version':10,
+            'family_version':14,'specialization_version':13,
+            'operators':['CausalLagWindow','GaussianFilter','PositiveVariance'],
+            'execution':'skips transition, density and lag-history update; belief carries unchanged',
+            'reset':'only executed resets apply, before features and transition; supplied initial law and explicit lag reset history',
+            'emission':'advances transition and lag history without density evidence; executed observations still require finite causal history',
+            'loss':'separate explicit TaskSpec2 inclusion mask; all-invalid population is unavailable, not a fit',
+            'variance':'explicit exp|softplus plus declared nonnegative floor; no implicit clamp'},
         unavailable={
             'TrainableParameter': 'not an accepted spelling; use TensorParameter',
             'msvar_missing_history_integration': 'not admitted; explicit observed causal history is required',

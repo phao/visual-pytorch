@@ -22,8 +22,8 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 31
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31}
+VERSION = 32
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31,32}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -623,6 +623,13 @@ class Workspace:
             if version < 26 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-derivation' LIMIT 1").fetchone():
                 raise GraphError('Parameter-derivation specifications require a version-26 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 32:
+                from .revisions import _parse
+                if any(n['type'] in PROBABILITY_OPERATORS and n.get('op_version',1)==2 for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Controlled/logvariance operator drawings require a version-32 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model':10,'family':14,'specialization':13}[kind]:
+                        raise GraphError('Controlled/logvariance revisions require a version-32 container.')
             if version < 31:
                 from .revisions import _parse
                 if any(n['type']=='CausalLagWindow' for m in loaded.values() for n in m['graph']['nodes']):
@@ -987,7 +994,7 @@ def generate_code(models, model_id):
                 from .positive_variance import constructor_args
                 op=f'_PositiveVariance(**{constructor_args(node)!r})'
             elif node['type']=='CausalLagWindow':
-                op=f'_CausalLagWindow({node["lags"]!r})'
+                op=f'_CausalLagWindow({node["lags"]!r}, op_version={node.get("op_version",1)!r}, bindings={node["inputs"]!r})'
             elif node['type']=='GaussianFilter':
                 op=f'_GaussianFilter({contract["shapes"][node["id"]]["gaussian"]!r})'
             elif node["type"] == "Reshape":
@@ -1103,7 +1110,7 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             layer=build(node)
         elif node['type']=='CausalLagWindow':
             from .lag_nodes import runtime_class
-            layer=runtime_class(nn)(node['lags'])
+            layer=runtime_class(nn)(node['lags'],op_version=node.get('op_version',1),bindings=node['inputs'])
         elif node['type']=='GaussianFilter':
             from .gaussian_nodes import runtime_class
             layer=runtime_class(nn)(contract['shapes'][node['id']]['gaussian'])

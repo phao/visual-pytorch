@@ -484,6 +484,8 @@
     if (n.type === "Linear") {
       html += '<label class="inspect-label" for="features">Output features</label><input id="features" class="inspect-input" type="number" min="1" value="' + n.features + '"' + (busy() ? ' disabled' : '') + '><label class="inspect-bias"><input id="bias" type="checkbox"' + (n.bias ? ' checked' : '') + (busy() ? ' disabled' : '') + '>Learn a bias b</label>';
       html += '<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'<br>A [' + n.features + ', ' + (s?.input_shape.at(-1) || "?") + ']<br>'+(n.bias!==false?'b ['+n.features+']':'Bias off · no b')+'</div><p class="inspect-note">Linear mixes only the last axis. Earlier dimensions are preserved and share the same weights.</p>';
+    } else if(n.type==='PositiveVariance' && n.op_version===2){
+      html+='<label class="inspect-label" for="variance-transform">Variance parameterization</label><select id="variance-transform"'+(busy()?' disabled':'')+'>'+['exp','softplus'].map(value=>'<option value="'+value+'"'+(n.transform===value?' selected':'')+'>'+value+'</option>').join('')+'</select><label class="inspect-label" for="variance-floor">Explicit variance floor · zero allowed</label><input id="variance-floor" class="inspect-input" type="number" min="0" step="any" value="'+n.positive_floor+'"'+(busy()?' disabled':'')+'><div class="contract-card">operator version 2<br>'+(n.transform==='exp'?'variance = exp(log variance)':'variance = softplus(raw)')+(n.positive_floor?' + '+n.positive_floor:' · no hidden floor')+'</div><p class="inspect-note">The output is variance, not standard deviation. Overflow or a nonpositive result is refused, never clamped.</p>';
     } else if (T.types.includes(n.type)) {
       for(const [key,kind] of Object.entries(T.definitions[n.type].fields)){
         const value=n[key] ?? T.definitions[n.type].defaults[key],id='op-'+key;
@@ -493,9 +495,10 @@
       }
       html+='<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+(s?.output_axes?'<br>axes '+esc(s.output_axes.join(', ')):'')+(s?.operator?.weight_shape?'<br>W ['+s.operator.weight_shape.join(', ')+']':'')+'<br>operator version 1</div><p class="inspect-note">'+esc(T.definitions[n.type].explanation)+'</p>';
     } else if(n.type==='CausalLagWindow'){
-      html+='<div class="contract-card">'+n.lags+' preceding observations · oldest to newest<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">At time t, uses only the preceding observations and explicitly supplied initial history. The current observation is excluded. Prefix padding is inactive. No hidden carry, missing-history imputation or reset.</p>';
+      html+='<div class="contract-card">'+n.lags+' preceding observations · oldest to newest<br>input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+'</div><p class="inspect-note">At time t, uses only preceding observations and explicitly supplied history. The current observation is excluded. Prefix padding is inactive. '+(n.op_version===2?'Skipped execution does not update history. Executed resets replace history before constructing features; reset histories must be supplied explicitly.':'Version 1 has no resets.')+' No hidden carry or missing-history imputation.</p>';
       for(const row of R.bindings(n))html+='<div class="contract-card">'+esc(row.role)+' ← '+esc(row.source)+'</div>';
     } else if(n.type==='GaussianFilter'){
+      if(n.op_version===2)html+='<p class="inspect-note">Version 2: skipped execution preserves belief and contributes zero evidence. An executed reset restores the supplied initial law before transition. Resets on skipped or padded slots are ignored. Controls apply only within this call.</p>';
       html+='<div class="contract-card">Exact diagonal-Gaussian filter<br>K '+(s?.gaussian?.states??'?')+' · D '+(s?.gaussian?.dimensions??'?')+' · T '+(s?.gaussian?.steps??'?')+'</div><p class="inspect-note">Initial law is before the first transition; rows are from_state, columns to_state. Variance is positive variance, not a standard deviation or log variance. Missing emissions advance belief without density evidence; they are not execution or loss masks.</p><p class="inspect-note">Outputs are posterior log probabilities and signed log evidence, not known regime labels. No smoothing or hidden carry.</p><label class="inspect-label" for="gaussian-config">Role bindings and formats · JSON</label><textarea id="gaussian-config" class="inspect-input" maxlength="2000"'+(busy()?' disabled':'')+'>'+esc(window.LoomJSON.stringify(Object.fromEntries(['inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'].map(k=>[k,n[k]]))))+'</textarea><button id="apply-gaussian-config"'+(busy()?' disabled':'')+'>Apply checked bindings</button>';
     } else if (['Constant','TensorParameter'].includes(n.type)) {
       html += '<div class="contract-card">'+esc(n.type)+' '+shapeText(n.shape)+'<br>dtype float32 · no incoming data</div><p class="inspect-note">'+(n.type==='Constant'?'Immutable graph data, not optimizer weights. Storage still counts toward RAM.':'One tensor owner shared across batch observations. Zero default; initialize or freeze it using the parameter policy below.')+'</p>';
@@ -553,6 +556,12 @@
       html+='<section id="parameter-policy-editor"><p class="inspect-note">Loading parameter owners…</p></section>';
     }
     content.innerHTML = html;
+    if($('variance-transform'))$('variance-transform').onchange=()=>{n.transform=$('variance-transform').value;invalidateRun();persist();};
+    if($('variance-floor'))$('variance-floor').onchange=()=>{
+      const text=$('variance-floor').value.trim(),value=Number(text),rounded=Math.fround(value);
+      if(!text||!Number.isFinite(rounded)||value<0||value>0&&rounded===0){toast('Choose an explicit nonnegative representable float32 floor.',true);return;}
+      n.positive_floor=rounded;invalidateRun();persist();
+    };
     if($('apply-gaussian-config'))$('apply-gaussian-config').onclick=async()=>{
       if(busy())return;
       try{await syncQueue;const fields=JSON.parse($('gaussian-config').value);

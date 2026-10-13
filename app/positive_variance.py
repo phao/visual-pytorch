@@ -1,8 +1,9 @@
-"""Closed PositiveVariance v1 helper; graph admission and registration are external.
+"""Closed PositiveVariance v1/v2 helper; graph admission is external.
 
 Normalization and runtime emission use only the standard library. Build imports
 Torch lazily and owns no parameters or buffers. Forward computes precisely
-functional.softplus(raw, beta=1, threshold=20) + the explicit float32 floor.
+functional.softplus(raw, beta=1, threshold=20) + the explicit float32 floor in v1.
+Version 2 explicitly chooses exp or softplus and permits an exactly zero floor.
 CPU strided float32 is the application contract; float64 supports reference and
 gradient checks. Overflow is rejected, never clipped. The default one-million
 element guard bounds this primitive's work, not whole-model memory admission.
@@ -22,13 +23,13 @@ class PositiveVarianceError(ValueError):
     """Invalid declaration, unsupported input or allocation budget."""
 
 
-def _floor(value):
+def _floor(value, allow_zero=False):
     if type(value) not in (int, float):
         raise PositiveVarianceError('positive_floor must be an explicit finite positive float32-range number.')
-    if not 0 < value <= FLOAT32_MAX:
+    if not (0 <= value <= FLOAT32_MAX if allow_zero else 0 < value <= FLOAT32_MAX):
         raise PositiveVarianceError('positive_floor must be finite, positive and representable in float32.')
     number = struct.unpack('!f', struct.pack('!f', float(value)))[0]
-    if not math.isfinite(number) or number <= 0:
+    if not math.isfinite(number) or (number < 0 if allow_zero else number <= 0) or value>0 and number==0:
         raise PositiveVarianceError('positive_floor must remain positive in float32; no clamping is performed.')
     return number
 
@@ -49,40 +50,46 @@ def _budget(count, max_elements, admitted_elements):
 
 
 def normalized(node):
-    """Validate v1 without Torch; canonicalize the required floor to float32.
+    """Validate the versioned declaration without Torch; canonicalize its floor.
 
     Missing op_version defaults to 1. Presentation metadata is opaque and copied.
     No trainable, sharing, shape, dtype or Softplus tuning fields are accepted.
     """
     if not isinstance(node, dict) or node.get('type') != 'PositiveVariance':
         raise PositiveVarianceError('operator type must be PositiveVariance.')
-    if set(node) - COMMON - {'positive_floor'}:
-        raise PositiveVarianceError('PositiveVariance has unsupported fields; it has no trainable parameters or sharing.')
     version = node.get('op_version', 1)
-    if type(version) is not int or version != 1:
-        raise PositiveVarianceError('PositiveVariance supports integer op_version 1 only.')
+    if type(version) is not int or version not in (1,2):
+        raise PositiveVarianceError('PositiveVariance supports integer op_version1/2.')
+    if set(node) - COMMON - {'positive_floor'} - ({'transform'} if version==2 else set()):
+        raise PositiveVarianceError('PositiveVariance has unsupported fields; it has no trainable parameters or sharing.')
+    if version==2 and node.get('transform') not in ('exp','softplus'):
+        raise PositiveVarianceError('PositiveVariance2 requires an explicit exp or softplus transform.')
     if 'positive_floor' not in node:
         raise PositiveVarianceError('PositiveVariance requires an explicit positive_floor; there is no default.')
-    floor = _floor(node['positive_floor'])
+    floor = _floor(node['positive_floor'], allow_zero=version==2)
     result = copy.deepcopy(node)
-    result.update(op_version=1, positive_floor=floor)
+    result.update(op_version=version, positive_floor=floor)
     return result
 
 
 def constructor_args(node):
     """Pure constructor data, shared by eager and app-free runtime paths."""
-    return {'positive_floor': normalized(node)['positive_floor']}
+    n=normalized(node)
+    return {'positive_floor':n['positive_floor'],**({'transform':n['transform']} if n['op_version']==2 else {})}
 
 
 def runtime_class(nn):
     """Use the caller's nn; construction allocates no tensors and has no state."""
     class PositiveVariance(nn.Module):
-        def __init__(self, *, positive_floor, max_elements=DEFAULT_MAX_ELEMENTS,
+        def __init__(self, *, positive_floor, transform=None, max_elements=DEFAULT_MAX_ELEMENTS,
                      admitted_elements=None):
-            floor = _floor(positive_floor)
+            if transform is not None and transform not in ('exp','softplus'):
+                raise PositiveVarianceError('Choose an explicit exp or softplus variance transform.')
+            floor = _floor(positive_floor, allow_zero=transform is not None)
             _limit(max_elements, admitted_elements)
             super().__init__()
             self.positive_floor = floor
+            self.transform=transform or 'softplus';self.explicit_transform=transform is not None
             self.max_elements = max_elements
             self.admitted_elements = admitted_elements
 
@@ -95,12 +102,13 @@ def runtime_class(nn):
                 raise PositiveVarianceError('raw must be a strided CPU float32 or float64 tensor.')
             # Guard before finite-check masks, scalar tensor or output allocation.
             _budget(raw.numel(), self.max_elements, self.admitted_elements)
-            floor = _floor(self.positive_floor)
+            floor = _floor(self.positive_floor, allow_zero=self.explicit_transform)
             if not bool(torch.isfinite(raw).all()):
                 raise PositiveVarianceError('raw must be finite.')
-            result = torch.nn.functional.softplus(raw, beta=1, threshold=20) + floor
-            if not bool(torch.isfinite(result).all()):
-                raise FloatingPointError('PositiveVariance exceeds input dtype range; no clipping is performed.')
+            value=raw.exp() if self.transform=='exp' else torch.nn.functional.softplus(raw,beta=1,threshold=20)
+            result=value if floor==0 else value+floor
+            if not bool(torch.isfinite(result).all()) or not bool((result>0).all()):
+                raise FloatingPointError('PositiveVariance overflows/underflows input dtype range; no clipping is performed.')
             return result
 
     return PositiveVariance
@@ -121,8 +129,16 @@ def runtime_source():
     explicit admitted_elements if appropriate. No graph or registry is emitted.
     """
     import inspect
+    import ast
+    from .task_execution import _helper_source
     definitions = (PositiveVarianceError, _floor, _limit, _budget, runtime_class)
     prelude = ('import math\nimport struct\n'
                f'FLOAT32_MAX = {FLOAT32_MAX!r}\n'
                f'DEFAULT_MAX_ELEMENTS = {DEFAULT_MAX_ELEMENTS!r}\n\n')
-    return prelude + '\n\n'.join(inspect.getsource(obj) for obj in definitions)
+    error_source=inspect.getsource(PositiveVarianceError);error_class=ast.parse(error_source).body[0]
+    if (not isinstance(error_class,ast.ClassDef) or len(error_class.bases)!=1 or
+        not isinstance(error_class.bases[0],ast.Name) or error_class.bases[0].id!='ValueError' or
+        any(not isinstance(stmt,ast.Pass) and not (isinstance(stmt,ast.Expr) and isinstance(stmt.value,ast.Constant)
+            and isinstance(stmt.value.value,str)) for stmt in error_class.body)):
+        raise PositiveVarianceError('Exception source changed; restart before exporting.')
+    return prelude+error_source+'\n\n'+'\n\n'.join(_helper_source(f) for f in definitions[1:])

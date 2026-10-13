@@ -1,5 +1,36 @@
 # Development state and roadmap
 
+## 2026-10-13 12:15 -03:00 — Explicit sequence controls and learned log variance
+
+Controlled CausalLagWindow2/GaussianFilter2 distinguish execution, reset,
+emission scoring and TaskSpec2 loss masks. Executed resets occur before feature
+construction/transition, use supplied lag history/initial law, and skipped resets
+are ignored. PositiveVariance2 explicitly selects exp or softplus and permits a
+declared zero floor; exp with zero is literal variance=exp(log variance), with
+overflow/nonpositive results refused, never clipped. Container32/Model10/
+Family14/Specialization13 preserve prior meanings. The controlled example builder
+is opt-in, does not train by default and never overwrites.
+
+81 focused native/export/worker/checkpoint/family/discovery/kernel checks pass
+in 8.729s, including independent path enumeration, gradients, unused NaNs,
+all-invalid loss and empty B/T. An added empty-batch witness found and fixed an
+actual lost-T output shape; the failing log is retained. Earlier resumed-command
+failures were a nonexistent Workspace.get fixture and missing test import paths;
+the corrected commands pass without weakening contracts. 375 JavaScript tests
+pass. Real sandboxed Qt covers six lag inputs, nine filter inputs/four outputs,
+exp/zero-floor Inspector, native compact drag, undo/redo and reload, with no Torch
+in the host and no console errors.
+
+Two real notebook tests execute four saved/rerun Jupyter kernels in 181.311s.
+Controlled checkpoint41d9fd2b and unchanged original checkpoint0fabd0b4 reproduce
+their exact metrics/predictors; six/seven code cells each, no source workspace
+mutation. This is focused acceptance, not a full-suite/main/public release claim.
+Trajectory diagnostics, CLI construction/planning/example-pack/doctor and final
+integrated regression remain. Genuine unknown autoregressive history is refused,
+not silently imputed or called exact marginalization. Separate Loss-workbench
+study remains a prototype; E and pending production workbench/UI changes remain
+outside this implementation.
+
 ## 2026-10-13 04:33 -03:00 — Full causal model and real likelihood-family notebooks
 
 Task/neural-msvar now composes the requestedK5,p3,D3 model from23 real blocks,

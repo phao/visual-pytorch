@@ -13,6 +13,7 @@ packed output. Only an external admission may raise it via admitted_elements.
 Normalization, description and checked source emission do not import Torch.
 """
 import copy
+from .sequence_controls import lag_run
 
 DEFAULT_MAX_ELEMENTS = 1_000_000
 MAX_DIMENSION = 2**53 - 1
@@ -62,17 +63,18 @@ def normalized(node):
     if set(node) - COMMON - {'lags'}:
         raise CausalLagWindowError('CausalLagWindow has unsupported fields; only lags and common presentation are allowed.')
     version = node.get('op_version', 1)
-    if type(version) is not int or version != 1:
-        raise CausalLagWindowError('CausalLagWindow supports integer op_version 1 only.')
+    if type(version) is not int or version not in (1,2):
+        raise CausalLagWindowError('CausalLagWindow supports integer op_version1/2.')
     lags = _lags(node.get('lags'))
     result = copy.deepcopy(node)
-    result.update(op_version=1, lags=lags)
+    result.update(op_version=version, lags=lags)
     return result
 
 
 def constructor_args(node):
     """Pure kwargs shared by eager and standalone construction."""
-    return {'lags': normalized(node)['lags']}
+    n=normalized(node)
+    return {'lags':n['lags'],**({'op_version':2} if n['op_version']==2 else {})}
 
 
 def describe(node):
@@ -87,15 +89,22 @@ def runtime_class(nn):
     """Construct a stateless module with the caller's nn; no tensor allocation."""
     class CausalLagWindow(nn.Module):
         def __init__(self, *, lags, max_elements=DEFAULT_MAX_ELEMENTS,
-                     admitted_elements=None):
+                     admitted_elements=None, op_version=1):
             lags = _lags(lags)
             _limit(max_elements, admitted_elements)
+            if type(op_version) is not int or op_version not in (1,2):raise CausalLagWindowError('Unsupported causal operator version.')
             super().__init__()
             self.lags = lags
             self.max_elements = max_elements
             self.admitted_elements = admitted_elements
+            self.op_version=op_version
 
-        def forward(self, observations, initial_history, lengths):
+        def forward(self, observations, initial_history, lengths, **controls):
+            if self.op_version==2:
+                try:return lag_run(observations,initial_history,lengths,lags=self.lags,
+                    max_elements=self.max_elements,admitted_elements=self.admitted_elements,**controls)
+                except ValueError as error:raise CausalLagWindowError(str(error)) from error
+            if controls:raise TypeError('CausalLagWindow1 does not accept sequence controls.')
             import torch
             p = _lags(self.lags)
             for name, value in (('observations', observations),
@@ -163,6 +172,7 @@ def runtime_source():
     import inspect
     import ast
     from .task_execution import _helper_source
+    from . import sequence_controls as controls
     definitions = (CausalLagWindowError, _lags, _limit, _budget, runtime_class)
     prelude = (f'DEFAULT_MAX_ELEMENTS = {DEFAULT_MAX_ELEMENTS!r}\n'
                f'MAX_DIMENSION = {MAX_DIMENSION!r}\n\n')
@@ -173,4 +183,5 @@ def runtime_source():
         any(not isinstance(stmt,ast.Pass) and not (isinstance(stmt,ast.Expr) and
             isinstance(stmt.value,ast.Constant) and isinstance(stmt.value.value,str)) for stmt in error_class.body)):
         raise CausalLagWindowError('Exception source changed; restart before exporting.')
-    return prelude + error_source + '\n\n' + '\n\n'.join(_helper_source(obj) for obj in definitions[1:])
+    functions=(controls._float_roles,controls._mask_role,controls._prefix_role,controls.lag_run,*definitions[1:])
+    return prelude + error_source + '\n\n' + '\n\n'.join(_helper_source(obj) for obj in functions)

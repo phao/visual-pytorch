@@ -4,22 +4,23 @@ import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from app.core import Workspace,GraphError
-from app.neural_msvar import drawing,dataset,likelihood_task
+from app.neural_msvar import drawing,dataset,likelihood_task,controlled_drawing,controlled_dataset,controlled_task
 from app.family_records import retain
 from app.task_execution import training_protocol
 from app.experiment_objects import execute_candidate,selection_at
 
 
-def build(path, *, run=False):
+def build(path, *, run=False, controlled=False):
     path=Path(path)
     if path.exists():raise GraphError('Example builder never overwrites an existing file.')
     workspace=Workspace()
     try:
-        model=drawing();workspace.put(model)
-        refs=retain(workspace,family={'version':13,'id':'neural-msvar-family','name':'Neural MS-VAR family',
+        model=(controlled_drawing if controlled else drawing)();workspace.put(model)
+        inputs={key:[0] for key in ('observations','execution_mask','reset_mask','emission_mask','reset_history')} if controlled else {'observations':[0]}
+        refs=retain(workspace,family={'version':14 if controlled else 13,'id':'neural-msvar-family','name':'Neural MS-VAR family',
             'root':model['id'],'models':{model['id']:model},'symbols':[],'assignments':[],'repeats':[],
-            'runtime_policy':{'version':2,'kind':'runtime-temporal-v2','inputs':{'observations':[0]}}},materialize=False)
-        data=workspace.put_spec('dataset',dataset());task=workspace.put_spec('task',likelihood_task())
+            'runtime_policy':{'version':2,'kind':'runtime-temporal-v2','inputs':inputs}},materialize=False)
+        data=workspace.put_spec('dataset',(controlled_dataset if controlled else dataset)());task=workspace.put_spec('task',(controlled_task if controlled else likelihood_task)())
         experiment={'version':7,'id':'neural-msvar-sanity','name':'Bounded unlabelled sequence-density study',
             'question':'Does a causal five-state trivariate neural MS-VAR learn conditional sequence density?',
             'models':[{'id':'msvar','family':refs['family'],'bindings':{},'axes':[],'execution':'runtime-temporal-v2'}],
@@ -43,4 +44,5 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',required=True)
     parser.add_argument('--run',action='store_true',help='Explicitly execute one bounded twelve-update sanity fit')
-    args=parser.parse_args();build(args.output,run=args.run)
+    parser.add_argument('--controlled',action='store_true',help='Explicit execution/reset/emission controls and literal learned log variance')
+    args=parser.parse_args();build(args.output,run=args.run,controlled=args.controlled)

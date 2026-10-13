@@ -4,6 +4,21 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-13 12:15 -03:00 — Controlled neural MS-VAR and literal log variance
+
+Implemented explicit execution/reset/emission controls with supplied reset
+histories, unchanged skipped-step beliefs and causal observed-history updates,
+because distinct statistical operations must not be conflated. PositiveVariance2
+adds explicit exp/softplus and zero-floor declarations; older operators retain
+their meaning through container32/Model10/Family14/Spec13 admission fences.
+Native/export/worker/checkpoint/family/discovery and guarded Qt authoring agree;
+the controlled builder is no-run by default and refuses overwrite. Fixed an
+independently exposed empty-batch time-axis loss. 81 focused Python checks,
+375JS and sandboxed Qt pass. Four real saved/rerun notebook kernels reproduce
+controlled41d9fd2b/original0fabd0b4 checkpoints, metrics and predictors. Full
+regression/main integration and report CLI/trajectory closure remain; no push,
+HPC, user workspace/config edits or production Loss-workbench integration.
+
 ## 2026-10-12 23:08 -03:00 — Actual LoRA teaching graphs and comparison recipes
 
 Added pure reusable graph/data generation for supplied synthetic base, ranks1/2/4,

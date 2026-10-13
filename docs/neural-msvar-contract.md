@@ -61,13 +61,70 @@ CausalLagWindow1 has three exact role bindings: observations, history, lengths.
 Diagram controls are float32 tensors `[B,1]` containing exact integer lengths;
 the checked adapter converts them to int64 `[B]`. Shapes and conservative work
 are checked before conversion/masks. The numerical kernel then sanitizes inactive
-padding before windowing. No automatic missing-history imputation or resets exist.
+padding before windowing. Version 1 has no missing-history imputation or resets.
 Source export verifies actual helper definitions and isolates constructor namespaces.
 
 Causal grammar uses ModelRevision9, Family13, Specialization12 and container31;
 older headers/models/families refuse it. Likelihood uses TaskSpec2, concrete
 Bundle5 or temporal-v2 Bundle6, Result2, Experiment7 and Run7. The original
 supervised versions keep meaning. Report1 recipes consume those exact references.
+
+## Explicit controlled version
+
+`python examples/build_neural_msvar.py --output NEW.vtw --controlled` creates
+the 27-block controlled variant without training; add `--run` for the bounded
+sanity fit. The existing bundled example and version-1 factory retain their
+original softplus-plus-floor interpretation. The controlled variant uses
+`PositiveVariance2(transform="exp", positive_floor=0)` on learned log variances:
+the emitted variance is exactly `exp(raw)`, not a standard deviation. A declared
+positive floor is also supported, but is never inserted implicitly. Nonfinite
+inputs, overflow and nonpositive underflow refuse rather than clamp. Choosing
+softplus instead requires an explicit version-2 transform declaration.
+
+The controlled graph has the same 1,315 learned elements; four extra inputs
+declare execution, reset, emission and reset-history controls. Role bindings
+are ordered and explicit, with one physical edge per unique source:
+
+| Role | Diagram shape including B | Meaning |
+|---|---|---|
+| lengths | `[B,1]` | Exact integer prefix end; converted to int64 `[B]` |
+| execution_mask | `[B,T]` | Exact 0/1; whether transition, emission and observed-history update execute |
+| reset_mask | `[B,T]` | Exact 0/1; reset before an executed step, ignored on skipped/padded slots |
+| emission_mask | `[B,T]` | Exact 0/1; whether that executed observation contributes density evidence |
+| reset_history | `[B,T,p,D]` | Explicit oldest-to-newest observed context at executed resets |
+| TaskSpec2 loss mask | Declared dataset field | Objective inclusion, not filter execution or resetting |
+
+The lag block resets to supplied history **before** constructing features and
+appends the current observation **after** producing its features. Skipped steps
+produce zero features and leave observed history unchanged. The filter resets
+to its supplied initial law **before** transition; skipped steps preserve belief
+and have zero evidence. Evidence sums over the executed reset segments. An
+emission-masked executed step still advances the transition and observed history.
+Reset histories must be paired with a reset mask; no reset context is inferred.
+Controls are per-call; there is no hidden cross-call state.
+
+These are distinct statistical operations. Skipping execution changes the
+sequence clock to executed observations; it is not a missing-data integration.
+An emission-masked observation may be excluded from scoring while remaining a
+known, finite covariate for future autoregressive features. If it is genuinely
+unobserved, exact marginalization of that continuous history through nonlinear
+transition networks is **not** implemented: the lag block refuses nonfinite
+executed observations. Supplying observed context is an explicit conditioning
+assumption, not a claim to have integrated unknown histories. Unused padded or
+skipped numerical roles are sanitized before evaluation at these primitives;
+upstream ordinary NN operations are not automatically mask-aware.
+
+The controlled synthetic fixture is an execution/replay witness, not a claim
+that its teacher obeys the fitted reset law. Its loss mask includes trajectories
+with scored executed observations; an all-invalid population is unavailable,
+has zero optimizer updates and no fabricated objective. Existing TaskSpec2
+numerator/denominator and multi-head coefficient semantics are unchanged.
+
+These operators require ModelRevision10, Family14, Specialization13 and
+container32, including retained/archived versions. Runtime-temporal-v2 families
+may vary only T across observations and time-varying control/history arrays;
+K, D and p stay constructor dimensions. There are no new SQL tables, task,
+result, Experiment or Run versions for these controls.
 
 ## Verification and remaining scope
 
@@ -80,8 +137,7 @@ Real saved/rerun Jupyter kernels reproduce full-model checkpoints and metrics.
 Sandboxed Qt checks sockets, Inspector, native compact drag, history and reload;
 its host imports no Torch/NumPy.
 
-The complete requested scope is not yet finished. Reset/execution semantics,
-autoregressive missing-history conditioning, broader trajectory diagnostics,
+The complete requested scope is not yet finished. Broader trajectory diagnostics,
 CLI construction/planning/example-pack/doctor contracts and final integrated
 regression remain. There is no generic production Loss/Optimizer/Dataset canvas
 or deferred optimizer-resume/HPC feature in this milestone.

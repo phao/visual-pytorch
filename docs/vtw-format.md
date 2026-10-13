@@ -1,4 +1,10 @@
-# Visual Torch Workspace (.vtw): format specification, version 31
+# Visual Torch Workspace (.vtw): format specification, version 32
+
+Container32 admits controlled CausalLagWindow2/GaussianFilter2 and explicit
+PositiveVariance2 transforms, Model10/Family14/Specialization13. Tables/columns
+are unchanged. Older headers refuse these operators and retained revisions;
+version-1 semantics remain unchanged. See [neural MS-VAR](neural-msvar-contract.md)
+for execution, reset, emission and loss-mask distinctions.
 
 Container31 admits CausalLagWindow1/Model9/Family13/Specialization12. Container30
 admits likelihood Experiment7/Run7. SQL tables/columns remain unchanged. Exact
@@ -47,10 +53,10 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 31. The current reader accepts versions 1–20,23–31;
+PRAGMA user_version = 32. The current reader accepts versions 1–20,23–32;
 opening an older supported file copies it into memory and upgrades the working
-version to 31. Opening alone never rewrites the source; explicit Save writes
-version 31. Versions 21/22 belong to the deliberately deferred execution branch
+version to 32. Opening alone never rewrites the source; explicit Save writes
+version 32. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
 Other versions are rejected. Version28 adds LogSoftmax/Softplus, explicit-floor

@@ -14,10 +14,11 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from app.core import Workspace,validate_model,VERSION
 from app.config import Config
 from app.desktop import Window,Bridge
-from app.neural_msvar import drawing
+from app.neural_msvar import drawing,controlled_drawing
 
 assert not os.environ.get('QTWEBENGINE_DISABLE_SANDBOX')
 assert '--no-sandbox' not in os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS','')
+controlled=os.environ.get('VTW_TEST_CONTROLLED')=='1'
 app=QApplication(['full-msvar-smoke']);view=QWebEngineView();view.resize(1700,1100)
 profile=QWebEngineProfile(view);errors=[]
 class Page(QWebEnginePage):
@@ -27,7 +28,7 @@ class Harness(QObject):
     state=Window.state;describe=Window.describe;dispatch=Window.dispatch
     def __init__(self,path):
         super().__init__();self.config=Config(path/'config.json');self.workspace=Workspace()
-        self.workspace.put(drawing());self.workspace.save(path/'start.vtw')
+        self.workspace.put(controlled_drawing() if controlled else drawing());self.workspace.save(path/'start.vtw')
         self.job=None;self.rendering={};self.torch_python='';self.bridge=Bridge(self,view)
     def recent_files(self):return []
     def broadcast(self,kind='state',payload=None,**kwargs):self.bridge.send(kind,self.state() if kind=='state' else payload)
@@ -56,11 +57,16 @@ with tempfile.TemporaryDirectory() as temporary:
     try:
         until('Boolean(window.loom?.document?.view.fitted)')
         until('document.getElementById("validation-message").textContent.includes("Valid")')
-        assert js('document.querySelectorAll(".node[data-id=lags] .port-in").length')==3
+        assert js('document.querySelectorAll(".node[data-id=lags] .port-in").length')==(6 if controlled else 3)
         assert js('document.querySelectorAll(".node[data-id=lags] .port-out").length')==1
-        assert js('document.querySelectorAll(".node[data-id=filter] .port-in").length')==6
+        assert js('document.querySelectorAll(".node[data-id=filter] .port-in").length')==(9 if controlled else 6)
         assert js('document.querySelectorAll(".node[data-id=filter] .port-out").length')==4
         assert js('getComputedStyle(document.querySelector(".node[data-id=filter] .node-header")).fill')!='rgb(0, 0, 0)'
+        if controlled:
+            js('document.querySelector(".node[data-id=variances]").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
+            until('Boolean(document.getElementById("variance-transform"))')
+            assert js('document.getElementById("variance-transform").value')=='exp'
+            assert js('document.getElementById("variance-floor").value')=='0'
         js('document.querySelector(".node[data-id=lags]").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
         until('document.getElementById("inspector-content").textContent.includes("current observation is excluded")')
         js('document.activeElement?.blur();document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));window.loom.perform("fit")')
@@ -81,8 +87,8 @@ with tempfile.TemporaryDirectory() as temporary:
         assert validate_model(loaded.models(),'neural-msvar')['parameters']==1315;loaded.db.close()
         assert not any(name.split('.')[0] in ('torch','numpy') for name in sys.modules)
         output=Path(os.environ.get('VTW_TEST_CAPTURE',str(folder/'msvar.png')));view.grab().save(str(output))
-        print(json.dumps({'status':'PASS','model':'K5/p3/D3','parameters':1315,'causal_sockets':[3,1],
-            'filter_sockets':[6,4],'native_compact_drag':True,'undo_redo':True,'save_reload':True,
+        print(json.dumps({'status':'PASS','model':'K5/p3/D3','controlled':controlled,'parameters':1315,'causal_sockets':[6 if controlled else 3,1],
+            'filter_sockets':[9 if controlled else 6,4],'native_compact_drag':True,'undo_redo':True,'save_reload':True,
             'host_torch':False,'sandbox':True,'container':VERSION,'console_errors':errors}),flush=True)
     finally:
         h.workspace.db.close();view.close();page.deleteLater();profile.deleteLater();QTest.qWait(100)

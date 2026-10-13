@@ -100,3 +100,58 @@ def likelihood_task():
         'inputs':[{'port':p,'field':p,'transforms':[]} for p in ('observations','history','lengths')],
         'heads':[{'id':'sequence-nll','port':'out_sequence_evidence','loss':'negative-log-likelihood','weight':1.}],
         'diagnostic_outputs':['out_filtered','out_final','out_step_evidence','out_transition','out_means','out_variances']}
+
+
+def controlled_drawing(*,steps=12,states=5,lags=3,dimensions=3,hidden=32):
+    """Explicit controls and literal learned log variances; legacy drawing unchanged."""
+    doc=drawing(steps=steps,states=states,lags=lags,dimensions=dimensions,hidden=hidden)
+    doc['name']+=' · explicit controls and log variance'
+    graph=doc['graph'];nodes={n['id']:n for n in graph['nodes']}
+    nodes['variances'].update(op_version=2,transform='exp',positive_floor=0.)
+    nodes['raw_variances']['label']='Learned state log variances'
+    nodes['lags']['op_version']=2;nodes['filter']['op_version']=2
+    for i,(role,shape,axes) in enumerate((('execution_mask',[steps],['T']),('reset_mask',[steps],['T']),
+        ('emission_mask',[steps],['T']),('reset_history',[steps,lags,dimensions],['T','lag','D']))):
+        graph['nodes'].append({'id':role,'type':'Input','label':role.replace('_',' '),'shape':shape,'axes':axes,
+                               'x':-190,'y':40+140*i})
+        graph['input_order'].append(role)
+    for target,roles in (('lags',('execution_mask','reset_mask','reset_history')),
+                         ('filter',('execution_mask','reset_mask','emission_mask'))):
+        for role in roles:
+            nodes[target]['inputs'][role]=role;graph['edges'].append({'from':role,'to':target})
+    return doc
+
+
+def controlled_dataset(**kwargs):
+    """Finite observed covariates; evidence omission is not missing-history imputation.
+
+    The supplied reset history is declared conditioning. This bounded synthetic
+    diagnostic dataset is not a claim that the teacher has the student's law.
+    """
+    result=dataset(**kwargs)
+    steps,dimensions=result['fields'][0]['shape'];lags=result['fields'][1]['shape'][0]
+    result['fields'] += [{'id':role,'dtype':'bool','shape':[steps],'axes':['T']}
+                        for role in ('execution_mask','reset_mask','emission_mask')]
+    result['fields'] += [{'id':'reset_history','dtype':'float32','shape':[steps,lags,dimensions],'axes':['T','lag','D']},
+                         {'id':'loss_valid','dtype':'bool','shape':[]}]
+    for row in result['records']:
+        values=row['values'];length=int(values['lengths'][0]);history=[list(y) for y in values['history']]
+        execute=[t<length and t!=1 for t in range(steps)]
+        reset=[execute[t] and t==4 for t in range(steps)]
+        emission=[t!=2 for t in range(steps)];reset_histories=[]
+        for t in range(steps):
+            reset_histories.append([list(y) for y in history] if reset[t] else [[0.]*dimensions for _ in range(lags)])
+            if execute[t]:history=(history+[list(values['observations'][t])])[-lags:]
+        values.update(execution_mask=execute,reset_mask=reset,emission_mask=emission,reset_history=reset_histories,
+                      loss_valid=any(e and m for e,m in zip(execute,emission)))
+    result['provenance'].update(controls='Execution, state/history reset, emission-score inclusion and loss inclusion are distinct.',
+        missingness='All executed observation histories are observed; no missing-past marginalization is claimed.')
+    return result
+
+
+def controlled_task():
+    result=likelihood_task();result['name']='Conditional controlled-sequence likelihood'
+    result['inputs'] += [{'port':role,'field':role,'transforms':[]}
+        for role in ('execution_mask','reset_mask','emission_mask','reset_history')]
+    result['heads'][0]['mask']='loss_valid'
+    return result

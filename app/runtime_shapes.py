@@ -114,13 +114,16 @@ def _dependency_specification(models, mid, declared, *, temporal=False, temporal
                 if (merged(bound[node['inputs']['observations']][1:]) or
                     merged(bound[node['inputs']['history']]) or merged(bound[node['inputs']['lengths']])):
                     raise GraphError(location+': causal history/feature/control shapes must be fixed independently of runtime T.')
+                for role in ('execution_mask','reset_mask','reset_history'):
+                    if role in node['inputs'] and merged(bound[node['inputs'][role]][1:]):
+                        raise GraphError(location+': causal reset/control feature dimensions must be fixed independently of runtime T.')
                 current=[time,frozenset()]
                 guards.append({'path':location,'rule':'causal-oldest-to-newest; explicit-history; exact-prefix; no-current-observation'})
             elif kind == 'GaussianFilter':
                 role=dict(zip(c['shapes'][nid]['gaussian']['sources'],parts))
                 time=role[node['inputs']['observations']][0]
                 for name,key in node['inputs'].items():
-                    dynamic_time=name in ('observations','emission_mask') or name in ('transition','means','variances') and node[{'transition':'transition_mode','means':'mean_mode','variances':'variance_mode'}[name]]=='sequence'
+                    dynamic_time=name in ('observations','emission_mask','execution_mask','reset_mask') or name in ('transition','means','variances') and node[{'transition':'transition_mode','means':'mean_mode','variances':'variance_mode'}[name]]=='sequence'
                     if merged(role[key][1:] if dynamic_time else role[key]):
                         raise GraphError(location+': Gaussian state/coordinate/control dimensions must be independent of runtime axes.')
                 current={'filtered':[time,frozenset()],'final':[frozenset()],

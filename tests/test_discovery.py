@@ -17,6 +17,17 @@ import vpw_cli
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_controlled_sequence_versions_and_roles_are_discoverable_without_execution(self):
+        value=discovery.capabilities()['controlled_sequences']
+        self.assertEqual((value['container_version'],value['model_revision_version'],
+                          value['family_version'],value['specialization_version']),(32,10,14,13))
+        for kind in value['operators']:
+            schema=discovery.operator_schema(kind)
+            self.assertEqual(schema['op_versions'],[1,2])
+            self.assertTrue(schema['fields']['conditional'])
+        self.assertIn('transform',discovery.operator_schema('PositiveVariance')['fields']['semantic'])
+        self.assertIn('role bindings',discovery.operator_schema('CausalLagWindow')['ports']['incoming'])
+
     def cli(self, *args):
         out = io.StringIO()
         with redirect_stdout(out): result = vpw_cli.main(list(args))

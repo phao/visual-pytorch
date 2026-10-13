@@ -35,7 +35,7 @@ TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
     Output={'shape'}, Linear={'features', 'bias'}, Reshape={'shape'},
     Activation={'activation', 'dim'}, Module={'ref','batch_only'}, Concat={'sources', 'flatten'},
     Constant={'shape','axes','fill','values'}, TensorParameter={'shape','axes'},
-    PositiveVariance={'positive_floor'}, GaussianFilter={'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
+    PositiveVariance={'positive_floor','transform'}, GaussianFilter={'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
     CausalLagWindow={'inputs','lags'},
     Splitter={'parts'}, Replicator={'outputs'},
     Recurrent={'ref', 'sequence_inputs', 'states', 'sequence_outputs', 'controls'},
@@ -218,10 +218,10 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
-         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9, 10, 11,12,13) else ()),
+         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9, 10, 11,12,13,14) else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12,13), 'Family supports integer version 1 through 13.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12,13,14), 'Family supports integer version 1 through 14.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -237,6 +237,8 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
+                require(doc['version']>=14 or not (node['type'] in {'GaussianFilter','CausalLagWindow','PositiveVariance'} and node.get('op_version',1)==2),
+                        'Controlled/logvariance operators require Family14.')
                 require(doc['version']>=13 or node['type']!='CausalLagWindow','Causal lag templates require explicit Family13.')
                 require(doc['version']>=12 or node['type'] not in {'PositiveVariance','GaussianFilter'} and
                         not (node['type']=='Activation' and node.get('activation') in ('LogSoftmax','Softplus')),
@@ -245,14 +247,15 @@ def validate_family(doc):
                         not (node['type'] == 'Module' and node.get('batch_only') is True),
                         'Tensor sources and nullary Module templates require explicit Family11.')
                 require(node['type'] not in {'Add', 'Scale'} or doc['version'] >= 9, 'Add/Scale templates require explicit Family9.')
-                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9,10,11,12,13), 'Family versions 1–6 do not support LSTM templates; use explicit family7 or later.')
-                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9,10,11,12,13),
+                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9,10,11,12,13,14), 'Family versions 1–6 do not support LSTM templates; use explicit family7 or later.')
+                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9,10,11,12,13,14),
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
                 require(doc['version'] >= 2 or 'share_with' not in node,
                         'Explicit shared templates require family version 2.')
-                require('op_version' not in node or (type(node['op_version']) is int and node['op_version'] == 1),
+                require('op_version' not in node or (type(node['op_version']) is int and
+                        (node['op_version']==1 or doc['version']>=14 and node['type'] in {'GaussianFilter','CausalLagWindow','PositiveVariance'} and node['op_version']==2)),
                         'Block ' + node['id'] + ': unsupported operator version.')
                 require(node['type'] != 'Activation' or node['activation'] in ('Softmax','LogSoftmax') or 'dim' not in node,
                         'Block ' + node['id'] + ': dim applies only to Softmax.')
@@ -286,7 +289,7 @@ def validate_family(doc):
                 'Family temporal policy requires integer version1 and kind runtime-temporal-v1; LSTM needs a later runtime grammar.')
         from .temporal_shapes import declaration
         declaration(models, doc['root'], value['inputs'])
-    if doc['version'] in (8,9,10,11,12,13) and doc['runtime_policy'] is not None:
+    if doc['version'] in (8,9,10,11,12,13,14) and doc['runtime_policy'] is not None:
         value = doc['runtime_policy']
         keys(value, ('version', 'kind', 'inputs'), where='Family temporal-v2 policy')
         require(type(value['version']) is int and value['version'] == 2 and value['kind'] == 'runtime-temporal-v2',
@@ -608,7 +611,7 @@ def specialize(doc, supplied=None):
             result.update(version=5 if doc['version']==7 else 4, runtime=None if spec is None else {
                 'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
-        elif doc['version'] in (8,9,10,11,12,13):
+        elif doc['version'] in (8,9,10,11,12,13,14):
             from .temporal_shapes_v2 import specification
             policy = doc['runtime_policy']
             spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None

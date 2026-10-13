@@ -6,7 +6,7 @@
 })(typeof globalThis!=="undefined"?globalThis:this,()=>{
   const multiport=n=>['Recurrent','LSTM','GaussianFilter'].includes(n?.type);
   const multiInput=n=>multiport(n)||n?.type==='CausalLagWindow';
-  const bindings=n=>n.type==='CausalLagWindow'?['observations','history','lengths'].map(role=>({role,input:role,source:n.inputs[role]})):n.type==='GaussianFilter'?['observations','initial','transition','means','variances','lengths','emission_mask'].filter(role=>n.inputs[role]).map(role=>({role,input:role,source:n.inputs[role]})):n.type==='LSTM'?[
+  const bindings=n=>n.type==='CausalLagWindow'?['observations','history','lengths','execution_mask','reset_mask','reset_history'].filter(role=>n.inputs[role]).map(role=>({role,input:role,source:n.inputs[role]})):n.type==='GaussianFilter'?['observations','initial','transition','means','variances','lengths','emission_mask','execution_mask','reset_mask'].filter(role=>n.inputs[role]).map(role=>({role,input:role,source:n.inputs[role]})):n.type==='LSTM'?[
     ...['sequence','hidden','cell'].map(role=>({role:role==='sequence'?'Sequence':'Initial '+role,input:role,source:n.inputs[role]})),
     ...(n.lengths?[{...n.lengths,role:'lengths'}]:[]),
   ]:[

@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 import torch
 from app.core import Workspace
-from app.neural_msvar import drawing,dataset,likelihood_task
+from app.neural_msvar import drawing,dataset,likelihood_task,controlled_drawing,controlled_dataset,controlled_task
 from app.family_records import retain
 from app.task_execution import training_protocol,restore_task_predictor
 from app.experiment_objects import execute_candidate,selection_at,candidate_bundle
@@ -15,13 +15,21 @@ from app.notebooks import create_bundle,execute_bundle,verify_bundle
 
 class NeuralMSVARNotebookTests(unittest.TestCase):
     def test_full_k5_p3_d3_worker_and_actual_saved_rerun_kernels(self):
+        self._kernels(False)
+
+    def test_controlled_full_model_literal_logvariance_and_actual_kernels(self):
+        self._kernels(True)
+
+    def _kernels(self,controlled):
         workspace=Workspace();workspace.set_constrained_mode(False);self.addCleanup(workspace.db.close)
         self.addCleanup(lambda:workspace.history.directory.cleanup() if workspace.history.directory else None)
-        model=drawing(steps=5)
-        retained=retain(workspace,family={'version':13,'id':'full-msvar-family','name':'Full neural MS-VAR',
+        model=(controlled_drawing if controlled else drawing)(steps=5)
+        declaration={key:[0] for key in ('observations','execution_mask','reset_mask','emission_mask','reset_history')} if controlled else {'observations':[0]}
+        retained=retain(workspace,family={'version':14 if controlled else 13,'id':'full-msvar-family','name':'Full neural MS-VAR',
             'root':model['id'],'models':{model['id']:model},'symbols':[],'assignments':[],'repeats':[],
-            'runtime_policy':{'version':2,'kind':'runtime-temporal-v2','inputs':{'observations':[0]}}},materialize=True)
-        d=workspace.put_spec('dataset',dataset(steps=5,trajectories=12));t=workspace.put_spec('task',likelihood_task())
+            'runtime_policy':{'version':2,'kind':'runtime-temporal-v2','inputs':declaration}},materialize=True)
+        d=workspace.put_spec('dataset',(controlled_dataset if controlled else dataset)(steps=5,trajectories=12))
+        t=workspace.put_spec('task',(controlled_task if controlled else likelihood_task)())
         experiment={'version':7,'id':'full-msvar-trial','name':'Conditional sequence density',
             'question':'Can the full causal 5-state 3-lag trivariate model replay exact learned density?',
             'models':[{'id':'neural','family':retained['family'],'bindings':{},'axes':[],'execution':'runtime-temporal-v2'}],
@@ -35,7 +43,7 @@ class NeuralMSVARNotebookTests(unittest.TestCase):
         executed=execute_candidate(workspace,ref,selected,'fit','Bounded full MS-VAR check',python=sys.executable,timeout=30)
         attempt=executed['record']['attempts'][0];self.assertEqual(attempt['status'],'completed',attempt['error'])
         result=attempt['result'];frozen=candidate_bundle(workspace.get_spec('experiment',ref['id'],ref['revision']),selected,workspace.get_spec)
-        self.assertEqual(frozen['model']['version'],9);self.assertEqual(frozen['version'],6)
+        self.assertEqual(frozen['model']['version'],10 if controlled else 9);self.assertEqual(frozen['version'],6)
         rows=[r['values'] for r in frozen['dataset']['records'][-2:]]
         expected=restore_task_predictor(frozen,result['checkpoint'],constrained=False)(rows)
         with tempfile.TemporaryDirectory() as temporary:
@@ -54,7 +62,7 @@ class NeuralMSVARNotebookTests(unittest.TestCase):
                 namespace={};exec(next(root.glob('predictor-*.py')).read_text(),namespace)
                 for key,value in expected.items():torch.testing.assert_close(namespace['predict_records'](rows)[key],value,rtol=0,atol=0)
                 self.assertEqual(workspace.db.serialize(),before)
-                print(json.dumps({'test':'full-K5-p3-D3-msvar-kernel','mode':mode,'checkpoint_id':result['checkpoint_id'],
+                print(json.dumps({'test':'full-K5-p3-D3-msvar-kernel','controlled':controlled,'mode':mode,'checkpoint_id':result['checkpoint_id'],
                                   'cells':actual['execution']['executed_code_cells'],'parameters':1315}),flush=True)
 
 
