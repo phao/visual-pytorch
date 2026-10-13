@@ -65,15 +65,31 @@ provenance and checked standalone export. The bounded A–D roadmap is verified,
 including projected/bidirectional LSTM and a complete padded CNN/recurrent example;
 see [Stage D acceptance and limits](docs/stage-d-acceptance.md).
 Durable detached/remote/distributed execution is deferred and is not included in
-this public source. LoRA and neural MS-VAR are requested future additions, not
-implemented capabilities. These are development
+this public source. Current development adds the small
+[LoRA teaching workspace](docs/lora-workflow.md), executable weight freezing and
+initialization, checked inference merging and exact-base adapter export.
+Exact neural MS-VAR remains unimplemented. These are development
 capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 The current local development checkpoint adds [ordered Add and fixed Scale](docs/arithmetic-blocks.md),
 shared CLI contract discovery and Ctrl-click output branch selection for insertion.
-These primitives are not complete LoRA or neural MS-VAR support. New saves use
-`.vtw23`; the deferred execution branch's21/22 files are not accepted by this reader.
+The LoRA example is a synthetic linear/MLP workflow, not a Transformer benchmark.
+New saves use container26; the extension remains `.vtw`. The deferred execution
+branch's21/22 files are not accepted by this reader.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
+
+Open [examples/lora.vtw](examples/lora.vtw) to explore a supplied frozen base,
+rank1/2/4 adapters, reusable adapted layers, a two-layer adapted MLP and explicitly
+merged inference. The six retained200-update fits and two separately identified
+zero-update baselines are real synthetic checks. Saved and fresh-rerun notebooks,
+CLI and GUI reproduce the checked rank2 checkpoint; this is not a claim of
+general LoRA superiority. See the [workflow and limits](docs/lora-workflow.md).
+
+![Real application: frozen Base W₀ and trainable A/B branches in the synthetic LoRA example](assets/screenshots/lora-expanded.png)
+
+This actual Qt capture shows the initial rank2 graph:256 frozen plus64 trainable
+elements. The drawing is an initialization template; its saved training evidence
+and explicitly merged inference map are separate artifacts.
 
 ![Real application: a completed saved-result notebook, with exact recipe, input index and retained artifact receipts](assets/screenshots/notebook-evidence.png)
 

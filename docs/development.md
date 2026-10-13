@@ -2967,3 +2967,84 @@ are a separate design prototype, not an installed generic workbench. Keep E
 deferred and existing Experiment/UI/label-feedback boundaries intact. See the
 exact [binding contract](parameter-binding.md), [policy](parameter-policy.md),
 [source reader](retained-parameter-sources.md) and portable GUI handoff.
+
+## 2026-10-12 23:50 -03:00 — Actual LoRA delivery checkpoint, not full feature acceptance
+
+The preparation generator and comparison driver now produce16 related drawings
+including a genuinely derived merged map, two zero-update native baseline
+evaluation artifacts and six real200-update retained fits. Linear ranks1/2/4 and
+full fine-tuning share fixed supplied synthetic W0, data/task/split/protocol;
+adapted/full MLP share a second fixed comparison. This is a small teaching fixture,
+not reproduction of pretrained Transformer benchmarks.
+
+The new [exact-base inference package](lora-inference-package.md) includes base,
+A/B, stable ports, exact retained source descriptors and byte/value hashes.
+Export/verification do not import numerical libraries. Fresh standalone inference
+and merged-weight oracle checks preserve input gradients and reject corrupt,
+missing or mismatched source bytes. CLI export preserves the source workspace.
+Six package checks and32 source-level UI guards pass in14.562s; the actual saved
+example validates all revisions, preserves its original file, and matches native
+checkpoint predictions exactly on seven checked inputs. Its frozen merged map
+has maximum absolute difference1.1920928955078125e-7 under the declared fixture
+tolerance. Container26/Derivation1 and immutable-source admission are specified
+in [parameter-derivation.md](parameter-derivation.md).
+
+Remaining acceptance: actual complete-example GUI interaction/worker and fresh
+notebook kernels, broad final regression, example publication and artifact
+replay/provenance packaging. Existing earlier notebook/native tests remain valid
+for their own source, but are not claimed as new complete-example acceptance.
+Neural MS-VAR still requires exact Gaussian latent filtering, target-free signed
+likelihood losses, causal VAR/neural transitions and report CLI gaps. The existing
+supervised regime demo does not implement those. Separate workbench TYPES and
+the standalone loss design study remain the agreed direction; production
+Experiment-panel replacement, label changes, E, public push and user-state
+changes remain out of this checkpoint.
+
+## 2026-10-13 00:40 -03:00 — Actual LoRA route acceptance before frozen broad gate
+
+The requested public `examples/lora.vtw` and baseline/comparison JSON artifacts
+are committed locally, not pushed. Clear W0/A/B/scale/Add display labels were
+added without rewriting frozen models or retained evidence. Fresh result-report
+and explicit-rerun Jupyter kernels reproduce four original200-update checkpoints,
+metrics and checked predictions;19 actual code cells total. A real sandboxed
+Qt worker and CLI launch the same frozen rank2 selection/manifest and reproduce
+the original200-update checkpoint, parameter-policy receipt and metrics.
+Native compact-icon drag/undo/redo/Space expansion, private persistence and role
+badges pass. Software-rendering capture is real. Offscreen GPU crash and Qt
+double-click injection producing two ordinary browser clicks are distinct retained
+harness limitations; no native browser double-click claim is inferred.
+
+The portable package now has an actual temporal rank3 source test with signed-zero
+base and nonexact4/3 scale: native/checkpoint/output/input-gradient parity and
+independent merged tolerance pass. Four new/existing cases5.728s. The LoRA review
+also exposed learnable-height sizing counting frozen storage; corrected read-only
+unique trainable-owner projection serves GUI layout and optional CLI --trainable,
+leaving default stored counts and RAM unchanged.23 affected cases5.850s and actual
+LoRA layout/worker persistence pass. Documentation and screenshot identities are
+in [the workflow](lora-workflow.md).
+
+One worker added an independent bounded standard-library enumerated Gaussian HMM
+reference and31 analytic/refusal tests. Main reviewed all code and reran with
+site packages disabled:0.009s pass. Initial belief precedes first transition;
+rows are previous→next, Gaussian constants/variances explicit, missing emissions
+still advance state, prefixes are filtered not smoothed. This is test reference
+only; app discovery still correctly reports latent likelihood unsupported.
+Final broad frozen regression is next, not yet an integration/full feature claim.
+
+## 2026-10-13 01:06 -03:00 — Frozen LoRA acceptance verified
+
+Frozen executable89db3d8952c3efd8ff89e76e31733dc16a723bb0,
+tree8119567e1eb6072c3d19acac3501aeed8beda9f6, stayed unchanged through the
+full1470-Python/655.968s regression:1467 executed, three native export cases
+skipped in the numerical interpreter. All three ran explicitly in system Qt
+Python and passed0.165s. All372 JS cases pass9594.727137ms. Actual new LoRA
+Qt/worker/layout/CLI/save-reload, real four-candidate saved/rerun notebook kernels,
+signed-zero temporal/nonexact-scale inference, and original legacy parameter
+layout all pass with their bounded evidence. No user workspace/config/app restart,
+public push or E changes. This accepts the requested small LoRA workflow,
+not general pretrained Transformer adaptation or the full active goal.
+
+The independent HMM worker's b564d7e primitive remains separately unmerged:
+no graph/operator/owner/task/loss/CLI admission yet. Full Neural MS-VAR remains
+next after local LoRA integration; keep separate workbench TYPES and the
+standalone loss design study. Do not infer MS-VAR support from a numerical kernel.

@@ -4,6 +4,27 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 23:08 -03:00 — Actual LoRA teaching graphs and comparison recipes
+
+Added pure reusable graph/data generation for supplied synthetic base, ranks1/2/4,
+folded wrapper and two-layer adapted/base/full-finetuned MLP, because the report
+requires an actual related-architecture workspace rather than separate fixtures.
+Three checks0.308s pass: every graph valid, exact frozen/trainable counts, rank
+shape/scale regeneration and fixed dataset/task/split/protocol across comparisons.
+No fits or complete lora.vtw/merge yet; execution/derivation next. Full goal active.
+
+## 2026-10-12 23:31 -03:00 — Explicit checked LoRA inference derivation
+
+Added closed Derivation1/container26 with exact same-checkpoint base/A/B sources,
+flat bias-free LoRA topology/freezing/scale proof, deterministic bounded binary32
+merge, immutable output model and atomic new-drawing admission. Preserve ports,
+sample shapes/axes and reject bias, stale/forged sources/output and destructive
+overwrite.26 corrected source/graph/binding cases41.719s and8 numerical/port cases
+40.901s pass;30 execution/capture/discovery cases11.066s pass. Earlier alpha-overflow
+and stale current-header assertion failures retained; actual old25 binding loads
+remain checked. Captured closure/CLI updated. Actual worker example integration,+packaging/full final-tree gate and native workspace/CLI/notebook acceptance remain;
+full LoRA/MS-VAR goal active, E deferred, no public/user-state changes.
+
 ## 2026-10-12 22:51 -03:00 — Verified local policy/binding integration
 
 Frozen587e79f full1404/556.403s pass,1401 executed/three original native-covered
@@ -997,3 +1018,59 @@ through Git. Source/history and test evidence remain; other worktrees, public
 refs, user files/config and running app were not changed. The existing desktop
 launcher targets this visible checkout without re-registration. This changes the
 local launchable version, not Stage C integration or public release status.
+
+## 2026-10-12 23:50 -03:00 — Exact-base LoRA package and explicit merge specification
+
+Added a portable inference export containing the mandatory exact base plus A/B,
+source/checkpoint/owner identities, bounded deterministic merge witness and a
+self-contained CPU float32 predictor. Export and verification stay numerical-free;
+no task transforms or optimizer resume are claimed. CLI exports exclusive new
+directories; scientific browsing includes derivation receipts alphabetically.
+Updated the container26/Derivation1 specification without changing SQL tables.
+Six package checks plus32 UI guards pass in14.562s. The actual generated16-model/
+six-run workspace validates; its200-update rank2 checkpoint and portable predictor
+match exactly on checked inputs, with merged maximum error1.1920928955078125e-7.
+Earlier failed fixture/mapping/source-order checks are retained. Full stage
+regression, actual complete-example GUI/notebook acceptance, and full MS-VAR remain.
+
+## 2026-10-12 23:54 -03:00 — Corrected independent LoRA export review findings
+
+One read-only subagent found that FIFO metadata could block a read and deterministic
+oversized/invalid metadata could refuse only after creation. Regular-file checks
+now use nonblocking, no-follow descriptors with bounded reads; complete metadata,
+source-size, tensor and merge contracts are admitted before any mkdir. Actual FIFO/
+symlink loader refusals and oversized/invalid pre-create cases pass with the eight
+package checks plus32 UI guards40/14.439s. Earlier parent71 focused cases97.348s
+passes for its exact5d81fd3 source, not a corrected-child full regression. Reviewer
+closed; no second simultaneous subagent or production UI redesign.
+
+## 2026-10-13 00:40 -03:00 — Actual LoRA example, route parity and learnable layout
+
+Added the requested public example locally:16 related drawings, six real200-update
+fits, separately identified native zero-update baselines, actual merge and clear
+initial-versus-trained documentation. Display labels preserve all frozen evidence
+and scientific identities. Actual saved/rerun kernels reproduce four original
+checkpoints/metrics/predictions; real Qt icon drag/undo/Space,200-update worker,
+save/reload and CLI frozen-selection/policy/metric equality pass. Graphics and
+mouseDClick-injection harness failures are retained separately, not hidden.
+An actual rank3 temporal package verifies signed-zero base, nonexact alpha/r,
+native predictions/input gradients and merged tolerance; four cases5.728s pass.
+
+Fixed the discovered learnable-height mismatch: layout now counts unique trainable
+owners, excluding frozen weights and duplicate aliases while RAM/storage counts
+remain unchanged. CLI --trainable shares this read-only projection;23 focused
+cases5.850s and actual LoRA layout/worker/save-reload pass. One subagent's pure
+enumerated Gaussian HMM reference was reviewed/integrated;31 site-packages-free
+checks0.009s pass. Reference-only, not an admitted HMM/MS-VAR application feature.
+Final broad LoRA regression remains; full Neural MS-VAR still requires production
+operators/objective/provenance/CLI routes. No E/user-state/public push changes.
+
+## 2026-10-13 01:06 -03:00 — Frozen small-LoRA workflow accepted
+
+Full frozen89db3d8 regression1470/655.968s passes,1467 executed plus three
+native export skips separately executed3/0.165s in Qt Python.372 JS cases pass;
+actual new LoRA Qt/worker/CLI and notebook checks and old parameter layout pass.
+No source edits occurred during the gate. Local integration follows; public
+unchanged. Full active goal remains incomplete because exact Neural MS-VAR and
+its owner/operator/loss/export/CLI contracts are not admitted. The worker's
+independently checked Gaussian HMM primitive remains separate, not a GUI feature.

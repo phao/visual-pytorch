@@ -15,7 +15,7 @@ from .datasets import _identifier, _keys, _require, _version, validate_dataset, 
 from .evidence import PRESENTATION, digest, identity, pin_input_order
 from .operators import normalized
 
-KINDS = ('dataset', 'experiment', 'family', 'model', 'parameter-binding', 'report', 'run', 'specialization', 'task')
+KINDS = ('dataset', 'experiment', 'family', 'model', 'parameter-binding', 'parameter-derivation', 'report', 'run', 'specialization', 'task')
 SCHEMA = {
     'spec_revisions': """CREATE TABLE spec_revisions(
         kind TEXT NOT NULL, id TEXT NOT NULL, revision TEXT NOT NULL,
@@ -170,7 +170,10 @@ def validate_model_document(doc):
 def frozen_document(kind, doc):
     """Closed validation plus private immutable JSON revision; no hidden repair."""
     _kind(kind)
-    if kind == 'parameter-binding':
+    if kind == 'parameter-derivation':
+        from .parameter_derivation import validate
+        validator = validate
+    elif kind == 'parameter-binding':
         from .parameter_binding import validate
         validator = validate
     elif kind in ('experiment', 'run', 'report'):
@@ -312,7 +315,7 @@ class RevisionStore:
         _require(row is not None, 'Requested immutable revision does not exist.')
         doc = frozen_document(kind, _parse(row[0]))
         _require(doc['id'] == sid and doc['revision'] == revision, 'Retained revision identity mismatch.')
-        if kind in ('experiment', 'run', 'report', 'specialization', 'parameter-binding'):
+        if kind in ('experiment', 'run', 'report', 'specialization', 'parameter-binding', 'parameter-derivation'):
             from .experiment_objects import validate_dependencies
             validate_dependencies(kind, doc, self.get)
         return doc

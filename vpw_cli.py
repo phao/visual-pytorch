@@ -52,6 +52,13 @@ def apply_edits(workspace, edits):
             ref = admit_run(workspace, edit['document'], select=edit.get('select', True))
             results.append({'op': kind, 'reference': ref})
             continue
+        elif kind == 'derive-lora-merge':
+            from app.parameter_derivation import admit
+            from app.datasets import _keys
+            _keys(edit, ('op', 'sources'), ('alpha', 'id', 'name'), 'Derive-LoRA-merge edit')
+            results.append({'op': kind, **admit(workspace, edit['sources'], alpha=edit.get('alpha', 4.),
+                model_id=edit.get('id', 'lora-merged'), name=edit.get('name', 'LoRA merged inference · explicitly derived'))})
+            continue
         elif kind == 'bind-parameter':
             from app.parameter_binding import admit
             from app.datasets import _keys
@@ -214,6 +221,14 @@ def main(argv=None):
     binding_preview.add_argument('token', help='Exact destination token JSON file or -')
     binding_preview.add_argument('selector', help='Canonical relative JSON component selector')
     binding_preview.add_argument('source', help='Exact retained selection JSON file')
+    merge_preview = sub.add_parser('preview-lora-merge', help='Prove exact retained flat LoRA merge without writing or numerical import')
+    merge_preview.add_argument('sources', help='JSON file with exact base/A/B retained selections')
+    merge_preview.add_argument('--alpha', type=float, default=4.)
+    merge_preview.add_argument('--id', default='lora-merged'); merge_preview.add_argument('--name', default='LoRA merged inference · explicitly derived')
+    lora_export = sub.add_parser('export-lora-package', help='Export raw inference with exact base AND adapter; no execution or workspace edits')
+    lora_export.add_argument('sources', help='JSON file with exact base/A/B retained selections')
+    lora_export.add_argument('output', help='NEW package directory; never overwritten')
+    lora_export.add_argument('--alpha', type=float, default=4.)
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -239,6 +254,8 @@ def main(argv=None):
     for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
+        if command == 'parameter-counts':
+            p.add_argument('--trainable', action='store_true', help='Unique optimizer-owned elements by visible block; frozen/alias blocks count zero')
     specs = sub.add_parser('spec-list', help='Independent object browsing heads or all retained revisions')
     from app.revisions import KINDS
     specs.add_argument('--kind', choices=KINDS)
@@ -405,6 +422,12 @@ def main(argv=None):
             elif args.command == 'prepare-parameter-binding':
                 from app.policy_authoring import prepare
                 value = prepare(workspace.models(), args.id, args.node)
+            elif args.command == 'preview-lora-merge':
+                from app.parameter_derivation import preview
+                value = preview(workspace, read_json(args.sources), alpha=args.alpha, model_id=args.id, name=args.name)
+            elif args.command == 'export-lora-package':
+                from app.lora_artifacts import prepare, write_new_package
+                value = write_new_package(prepare(workspace, read_json(args.sources), alpha=args.alpha), args.output)
             elif args.command == 'retained-parameters':
                 from app.parameter_sources import inventory
                 value = inventory(workspace, {'kind': 'run', 'id': args.id, 'revision': args.revision}, attempt=args.attempt)
@@ -412,10 +435,15 @@ def main(argv=None):
                 from app.parameter_binding import preview
                 value = preview(workspace, read_json(args.token), args.selector, read_json(args.source))
             elif args.command == 'parameter-counts':
-                from app.presentation import block_parameter_counts
-                models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)
-                interfaces={n['id']:validate_model(models,n['ref']) for n in model['graph']['nodes'] if n['type']=='Module'}
-                value={'id':args.id,'counts':block_parameter_counts(model,contract,interfaces)}
+                models=workspace.models()
+                if args.trainable:
+                    from app.policy_authoring import trainable_block_counts
+                    value={'id':args.id,'counts':trainable_block_counts(models,args.id),'scope':'unique-trainable-owners'}
+                else:
+                    from app.presentation import block_parameter_counts
+                    model=models[args.id];contract=validate_model(models,args.id)
+                    interfaces={n['id']:validate_model(models,n['ref']) for n in model['graph']['nodes'] if n['type']=='Module'}
+                    value={'id':args.id,'counts':block_parameter_counts(model,contract,interfaces)}
             elif args.command == 'spec-list':
                 value = workspace.list_specs(args.kind, args.all_revisions)
             elif args.command == 'spec-show':

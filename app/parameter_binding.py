@@ -23,12 +23,7 @@ def _tensor_descriptor(doc):
     resolve({'selected': {'id': 'shape-check', 'shape': doc['shape']}})
 
 
-def validate(doc):
-    _keys(doc, ('version', 'id', 'name', 'source', 'destination', 'optimizer_resume'), ('revision',), 'ParameterBinding')
-    _require(type(doc['version']) is int and doc['version'] == 1 and _identifier(doc['id']) and _identifier(doc['name']),
-             'ParameterBinding requires version1, stable ID and name.')
-    _require(doc['optimizer_resume'] is False, 'Parameter binding is initialization, never optimizer resume.')
-    source = doc['source']
+def validate_source(source):
     _keys(source, ('version', 'kind', 'run', 'attempt', 'checkpoint_id', 'model', 'parameter', 'shape',
                   'dtype', 'values_sha256', 'value_format', 'status', 'completed_updates', 'optimizer_resume'), context='Binding source')
     _require(type(source['version']) is int and source['version'] == 1 and source['kind'] == 'retained-run-parameter',
@@ -41,6 +36,14 @@ def validate(doc):
              _integer(source['completed_updates']) and source['optimizer_resume'] is False,
              'Retained binding source fields are invalid.')
     _tensor_descriptor(source)
+
+
+def validate(doc):
+    _keys(doc, ('version', 'id', 'name', 'source', 'destination', 'optimizer_resume'), ('revision',), 'ParameterBinding')
+    _require(type(doc['version']) is int and doc['version'] == 1 and _identifier(doc['id']) and _identifier(doc['name']),
+             'ParameterBinding requires version1, stable ID and name.')
+    _require(doc['optimizer_resume'] is False, 'Parameter binding is initialization, never optimizer resume.')
+    source = doc['source']; validate_source(source)
     destination = doc['destination']
     _keys(destination, ('model', 'selector', 'id', 'shape', 'dtype', 'values_sha256', 'value_format'), context='Binding destination')
     reference(destination['model'], 'model'); _tensor_descriptor(destination)

@@ -210,6 +210,9 @@ def _get(resolve, ref):
 
 
 def dependencies(kind, doc):
+    if kind == 'parameter-derivation':
+        from .parameter_derivation import dependencies as derivation_dependencies
+        return derivation_dependencies(doc)
     if kind == 'parameter-binding':
         from .parameter_binding import dependencies as binding_dependencies
         return binding_dependencies(doc)
@@ -409,6 +412,9 @@ def candidate_bundle(experiment, coordinates, resolve, *, saved_manifest=None):
 def validate_dependencies(kind, doc, resolve):
     for ref in dependencies(kind, doc):
         _get(resolve, ref)
+    if kind == 'parameter-derivation':
+        from .parameter_derivation import check_dependencies
+        check_dependencies(doc, resolve)
     if kind == 'parameter-binding':
         from .parameter_binding import check_dependencies
         check_dependencies(doc, resolve)

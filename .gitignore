@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.vtw
 *.vtw-*
+*.vtw.lock
 *.tloom
 *.tloom-*
 /test-artifacts/

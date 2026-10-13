@@ -83,6 +83,25 @@ def block_summary(models, mid):
             for nid, owner in owners.items() if owner in counts}
 
 
+def trainable_block_counts(models, mid):
+    """Visible-block optimizer ownership, counting each canonical owner once.
+
+    Frozen storage still belongs to memory and stored-count contracts; only
+    learnable-height presentation consumes this projection. Nested owners are
+    attributed to their visible root Module/Recurrent block, not T occurrences.
+    """
+    import math
+    resolved = _resolved(models, mid)
+    counts = {node['id']: 0 for node in models[mid]['graph']['nodes']}
+    for sid, row in resolved['owners'].items():
+        block = json.loads(sid)[1]
+        if block not in counts: raise GraphError('Parameter owner has no visible root block.')
+        if row['trainable']: counts[block] += math.prod(row['shape'])
+    if sum(counts.values()) != resolved['counts']['trainable']:
+        raise GraphError('Visible learnable counts disagree with unique optimizer owners.')
+    return {nid: str(count) for nid, count in counts.items()}
+
+
 def build(models, token, selector, changes_json):
     if not isinstance(token, dict) or set(token) != set(TOKEN) or token != _context(models, token.get('id'), token.get('node')):
         raise GraphError('Architecture changed; reopen parameter policy.')

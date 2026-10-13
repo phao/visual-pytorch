@@ -1,5 +1,14 @@
 # Application captures
 
+`lora-expanded.png` is an actual private sandboxed Qt capture of
+`examples/lora.vtw`, using `tests/qt_lora_example_smoke.py` with GPU rendering
+disabled. It shows the initialized, not automatically trained, rank2 graph:
+256 frozen base elements plus64 trainable adapter elements. Six actual fits,
+separate native baseline artifacts and the explicit merged map are retained in
+the example. The desktop probe verifies native compact-icon drag,
+undo/redo/Space expansion, a real200-update worker, exact saved checkpoint/metric
+parity and private save/reload without touching the source workspace or config.
+
 These are actual offscreen Qt WebEngine captures using private synthetic test
 workspaces and an off-the-record browser profile, not AI-generated UI mockups.
 

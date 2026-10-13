@@ -35,6 +35,13 @@ def declarations(selector):
 
 
 class UIContractTests(unittest.TestCase):
+    def test_parameter_derivations_are_browsable_in_alphabetic_scientific_list(self):
+        html = (ROOT / 'app/web/index.html').read_text()
+        select = re.search(r'<select id="science-kind">(.*?)</select>', html, re.S)[1]
+        labels = re.findall(r'<option[^>]*>(.*?)</option>', select)
+        self.assertEqual(labels, sorted(labels, key=str.casefold))
+        self.assertIn('<option value="parameter-derivation">Parameter derivations</option>', select)
+
     def test_inspector_omits_architecture_total_without_removing_local_layer_contracts(self):
         html = (ROOT / 'app/web/index.html').read_text()
         js = (ROOT / 'app/web/editor.js').read_text()
