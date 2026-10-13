@@ -39,6 +39,8 @@ Shared parameters may be charged repeatedly here; they are never constructed
 repeatedly. Nested transition charges are multiplied by outer T, so admission
 does not overlook retained inner BPTT graphs. Memoization bounds traversal by
 actual contract contexts rather than expanding shared reference paths.
+Fixed source buffers are charged once in the whole-graph buffer component,
+not as newly allocated owners on every transition step.
 """
     if dtype_bytes != 4 or type(dtype_bytes) is not int:
         raise GraphError('Runtime-temporal-v1 admission supports CPU float32 only.')
@@ -66,7 +68,7 @@ actual contract contexts rather than expanding shared reference paths.
                                                  memory_limit_percent=memory_limit_percent, training=gradients)
                 # Already charge learned parameters in the whole-graph report.
                 total += sum(v for k,v in value['components'].items() if k not in
-                             {'runtime_headroom', 'parameters_optimizer_evidence', 'parameters_construction'})
+                             {'runtime_headroom', 'parameters_optimizer_evidence', 'parameters_construction', 'buffers'})
                 total += recurrent['steps'] * charge(child_key, contract(models, child_key, cache=cache))
         memo[context] = total
         return total
