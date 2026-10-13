@@ -22,8 +22,8 @@ from .activations import ACTIVATIONS, activation_name, normalize_activation, sof
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 30
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30}
+VERSION = 31
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -623,6 +623,13 @@ class Workspace:
             if version < 26 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-derivation' LIMIT 1").fetchone():
                 raise GraphError('Parameter-derivation specifications require a version-26 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 31:
+                from .revisions import _parse
+                if any(n['type']=='CausalLagWindow' for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('CausalLagWindow drawings require a version-31 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model':9,'family':13,'specialization':12}[kind]:
+                        raise GraphError('Causal lag revisions require a version-31 container.')
             if version < 30:
                 from .revisions import _parse
                 for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind IN ('experiment','run')"):
@@ -822,7 +829,7 @@ def _graph_values(module, x, contract, *, batch_size=None):
             layer = getattr(module, item['layer'])
             if kind in {'Constant', 'TensorParameter'}:
                 value = layer(batch)
-            elif kind == 'GaussianFilter':
+            elif kind in ('GaussianFilter','CausalLagWindow'):
                 value = layer(*parts)
             elif kind == 'Module' and not parts:
                 child = item.get('runtime_contract', layer.contract)
@@ -902,6 +909,12 @@ def generate_code(models, model_id):
         from .positive_variance import runtime_source
         lines.extend(['_variance_namespace = {}',f'exec({runtime_source()!r}, _variance_namespace)',
                       '_PositiveVariance = _variance_namespace["runtime_class"](nn)'])
+    if any(n['type']=='CausalLagWindow' for m in models.values() for n in m['graph']['nodes']):
+        from .causal_lags import runtime_source as kernel_source
+        from .lag_nodes import runtime_source as adapter_source
+        lines.extend(['_lag_kernel_namespace = {}',f'exec({kernel_source()!r}, _lag_kernel_namespace)',
+                      '_lag_adapter_namespace = {}',f'exec({adapter_source()!r}, _lag_adapter_namespace)',
+                      '_CausalLagWindow = _lag_adapter_namespace["runtime_class"](nn, _lag_kernel_namespace["runtime_class"])'])
     if any(n['type']=='GaussianFilter' for m in models.values() for n in m['graph']['nodes']):
         from .gaussian_nodes import runtime_source
         lines.extend(['_gaussian_namespace = {}',f'exec({runtime_source()!r}, _gaussian_namespace)',
@@ -973,6 +986,8 @@ def generate_code(models, model_id):
             elif node['type']=='PositiveVariance':
                 from .positive_variance import constructor_args
                 op=f'_PositiveVariance(**{constructor_args(node)!r})'
+            elif node['type']=='CausalLagWindow':
+                op=f'_CausalLagWindow({node["lags"]!r})'
             elif node['type']=='GaussianFilter':
                 op=f'_GaussianFilter({contract["shapes"][node["id"]]["gaussian"]!r})'
             elif node["type"] == "Reshape":
@@ -1086,6 +1101,9 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
         elif node['type']=='PositiveVariance':
             from .positive_variance import build
             layer=build(node)
+        elif node['type']=='CausalLagWindow':
+            from .lag_nodes import runtime_class
+            layer=runtime_class(nn)(node['lags'])
         elif node['type']=='GaussianFilter':
             from .gaussian_nodes import runtime_class
             layer=runtime_class(nn)(contract['shapes'][node['id']]['gaussian'])

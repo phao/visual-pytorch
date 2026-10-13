@@ -122,7 +122,8 @@ def model_document(models, mid):
                   for m in closure.values() for n in m['graph']['nodes'])
     probability = any(n['type'] in {'PositiveVariance','GaussianFilter'} or n['type']=='Activation' and
                       n.get('activation') in ('LogSoftmax','Softplus') for m in closure.values() for n in m['graph']['nodes'])
-    result = {'version': 8 if probability else 7 if sources else 6 if policy else 5 if arithmetic else 4 if lstm else 3 if recurrent else 2 if shared else 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
+    causal=any(n['type']=='CausalLagWindow' for m in closure.values() for n in m['graph']['nodes'])
+    result = {'version': 9 if causal else 8 if probability else 7 if sources else 6 if policy else 5 if arithmetic else 4 if lstm else 3 if recurrent else 2 if shared else 1, 'id': mid, 'name': models[mid]['name'], 'root': mid, 'models': closure,
               'architecture_hash': identity(closure, mid)['architecture']}
     validate_model_document(result)
     return result
@@ -130,7 +131,7 @@ def model_document(models, mid):
 
 def validate_model_document(doc):
     _keys(doc, ('version', 'id', 'name', 'root', 'models', 'architecture_hash'), ('revision',), 'ModelRevision')
-    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7,8), 'ModelRevision supports integer versions 1–8.')
+    _require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7,8,9), 'ModelRevision supports integer versions 1–9.')
     _require(_identifier(doc['id']) and _identifier(doc['name']) and doc['root'] == doc['id'] and
              isinstance(doc['models'], dict) and doc['root'] in doc['models'], 'Frozen model needs a root and reachable closure.')
     closure = doc['models']
@@ -151,6 +152,8 @@ def validate_model_document(doc):
     _require(doc['version'] >= 5 or not any(n['type'] in {'Add', 'Scale'} for m in closure.values() for n in m['graph']['nodes']),
              'Add/Scale graph blocks require ModelRevision version 5.')
     from .policy_graph import present, plan
+    _require(doc['version'] >= 9 or not any(n['type']=='CausalLagWindow' for m in closure.values() for n in m['graph']['nodes']),
+             'CausalLagWindow requires ModelRevision9.')
     _require(doc['version'] >= 8 or not any(n['type'] in {'PositiveVariance','GaussianFilter'} or
              n['type']=='Activation' and n.get('activation') in ('LogSoftmax','Softplus') for m in closure.values() for n in m['graph']['nodes']),
              'Probability/filter operators require ModelRevision version 8.')

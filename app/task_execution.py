@@ -70,11 +70,11 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
               'manifest': copy.deepcopy(manifest), 'protocol': validate_protocol(protocol)}
     if runtime is not None:
         sv=runtime['specialization'].get('version')
-        result.update(version=4 if sv in (7,8,9,10,11) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
+        result.update(version=4 if sv in (7,8,9,10,11,12) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
     if task['version'] == 2:
         if runtime is not None:
-            _require(runtime['family']['version'] == 12 and runtime['specialization']['version'] == 11,
-                     'Runtime likelihood requires probability Family12/Specialization11 temporal-v2 proof.')
+            _require((runtime['family']['version'],runtime['specialization']['version']) in ((12,11),(13,12)),
+                     'Runtime likelihood requires exact probability/causal family-specialization temporal-v2 proof.')
         result['version'] = 6 if runtime is not None else 5
     validate_bundle(result)
     return result
@@ -88,8 +88,8 @@ def validate_bundle(bundle):
     _require((bundle['version'] in (5,6)) == (bundle['task'].get('version') == 2),
              'TaskSpec2 requires TaskBundle5/6; older bundles retain supervised-only task meaning.')
     if bundle['version'] == 6:
-        _require(bundle['runtime']['family']['version'] == 12 and bundle['runtime']['specialization']['version'] == 11,
-                 'Runtime likelihood requires probability Family12/Specialization11 temporal-v2 proof.')
+        _require((bundle['runtime']['family']['version'],bundle['runtime']['specialization']['version']) in ((12,11),(13,12)),
+                 'Runtime likelihood requires exact probability/causal family-specialization temporal-v2 proof.')
     for kind in ('model', 'dataset', 'task'):
         _require('revision' in bundle[kind], 'Execution requires exact frozen ' + kind + ' revision.')
         frozen_document(kind, bundle[kind])

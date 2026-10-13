@@ -5,7 +5,8 @@
   else root.LoomRecurrent=api;
 })(typeof globalThis!=="undefined"?globalThis:this,()=>{
   const multiport=n=>['Recurrent','LSTM','GaussianFilter'].includes(n?.type);
-  const bindings=n=>n.type==='GaussianFilter'?['observations','initial','transition','means','variances','lengths','emission_mask'].filter(role=>n.inputs[role]).map(role=>({role,input:role,source:n.inputs[role]})):n.type==='LSTM'?[
+  const multiInput=n=>multiport(n)||n?.type==='CausalLagWindow';
+  const bindings=n=>n.type==='CausalLagWindow'?['observations','history','lengths'].map(role=>({role,input:role,source:n.inputs[role]})):n.type==='GaussianFilter'?['observations','initial','transition','means','variances','lengths','emission_mask'].filter(role=>n.inputs[role]).map(role=>({role,input:role,source:n.inputs[role]})):n.type==='LSTM'?[
     ...['sequence','hidden','cell'].map(role=>({role:role==='sequence'?'Sequence':'Initial '+role,input:role,source:n.inputs[role]})),
     ...(n.lengths?[{...n.lengths,role:'lengths'}]:[]),
   ]:[
@@ -17,7 +18,7 @@
   const ports=n=>n.type==='GaussianFilter'?['filtered','final','step_evidence','sequence_evidence']:n.type==='LSTM'?['sequence','hidden','cell']:[...(n.sequence_outputs||[]),...(n.states||[])].map(row=>row.port);
   function replaceSource(n,oldKey,newKey){
     if(typeof newKey!=='string'||!newKey)throw Error('Choose a named source socket.');
-    if(n.type==='GaussianFilter'){for(const role of Object.keys(n.inputs))if(n.inputs[role]===oldKey)n.inputs[role]=newKey;return;}
+    if(['GaussianFilter','CausalLagWindow'].includes(n.type)){for(const role of Object.keys(n.inputs))if(n.inputs[role]===oldKey)n.inputs[role]=newKey;return;}
     if(n.type==='LSTM'){
       for(const role of ['sequence','hidden','cell'])if(n.inputs[role]===oldKey)n.inputs[role]=newKey;
       if(n.lengths?.source===oldKey)n.lengths.source=newKey;
@@ -46,5 +47,5 @@
       if(typeof info[key]!=='string'||!/^[0-9a-f]{64}$/.test(info[key]))throw Error('Recurrent editing response lacks an exact closure token.');
     return editToken(info);
   }
-  return {multiport,bindings,sources,ports,replaceSource,portTitle,editToken,editResponse};
+  return {multiport,multiInput,bindings,sources,ports,replaceSource,portTitle,editToken,editResponse};
 });

@@ -36,7 +36,7 @@
   }
   function replaceSource(n,oldKey,newKey){
     if(['Concat','Add'].includes(n.type))n.sources=n.sources.map(key=>key===oldKey?newKey:key);
-    if(R.multiport(n))R.replaceSource(n,oldKey,newKey);
+    if(R.multiInput(n))R.replaceSource(n,oldKey,newKey);
   }
   function unusedLabel(doc, type, prefix, first = 1) {
     const used = new Set(doc.graph.nodes.filter(n => n.type === type).map(n => (n.label || n.id).trim()));
@@ -66,7 +66,8 @@
   function slots(n, output) {
     if ((output && n.type === "Output") || (!output && (['Input','Constant','TensorParameter'].includes(n.type) || n.type==='Module' && n.batch_only===true))) return [];
     if (!output && ["Concat","Add"].includes(n.type)) return [...n.sources,null];
-    if(R.multiport(n))return output?R.ports(n):R.sources(n);
+    if(!output && R.multiInput(n))return R.sources(n);
+    if(output && R.multiport(n))return R.ports(n);
     if (output && routers(n)) return outputs(n);
     return [null];
   }
@@ -211,7 +212,7 @@
     if(multiOutput(a) && (!fromPeer || !outputPorts(a).includes(fromPeer)))throw new Error("Choose a declared output socket.");
     if(!multiOutput(a) && fromPeer!==null)throw new Error('This box has no named output socket.');
     const key=fromPeer ? from+'@'+fromPeer : from;
-    if(R.multiport(b)) {
+    if(R.multiInput(b)) {
       if(!R.sources(b).includes(toPeer))throw new Error('Choose a declared recurrent input socket.');
       // Replace just this physical source binding; other argument wires stay put.
       doc.graph.edges=doc.graph.edges.filter(e=>!(e.to===to && sourceKey(e)===toPeer));
@@ -259,12 +260,12 @@
     const index=draft.graph.edges.findIndex(e=>sameWire(e,edge));
     const found=draft.graph.edges[index],dest=node(draft,to);
     if(!found || !node(draft,found.from) || !dest)throw new Error('Connection or destination no longer exists.');
-    if(found.to===to && (!R.multiport(dest) || toPeer===sourceKey(found)))return false;
+    if(found.to===to && (!R.multiInput(dest) || toPeer===sourceKey(found)))return false;
     if(!slots(dest,false).length || to===found.from)throw new Error('Choose a valid input socket.');
     if(draft.graph.edges.some(e=>!sameWire(e,found) && sameWire(e,{...found,to})))
       throw new Error('That source is already connected to this destination.');
     const occupied=draft.graph.edges.some(e=>e.to===to);
-    if(R.multiport(dest) && (!R.sources(dest).includes(toPeer) || draft.graph.edges.some(e=>e.to===to && sourceKey(e)===toPeer)))
+    if(R.multiInput(dest) && (!R.sources(dest).includes(toPeer) || draft.graph.edges.some(e=>e.to===to && sourceKey(e)===toPeer)))
       throw new Error('Choose an empty declared recurrent input socket.');
     if((!['Concat','Add','Recurrent','LSTM'].includes(dest.type) && occupied) || (['Concat','Add'].includes(dest.type) && toPeer!==null))
       throw new Error('That input is occupied. Choose an empty socket (the last socket on Concat).');
@@ -275,7 +276,7 @@
       draft.graph.edges.filter(e=>e.from===current && !sameWire(e,found)).forEach(e=>todo.push(e.to));
     }
     removeWire(draft,found);
-    if(found.to===to && R.multiport(dest)) {
+    if(found.to===to && R.multiInput(dest)) {
       // The old argument stays visibly disconnected; moving to another socket
       // must not silently bind both arguments to the one remaining wire.
       R.replaceSource(dest,sourceKey(found),'disconnected/'+id());
@@ -308,7 +309,7 @@
     for(const join of doc.graph.nodes.filter(n=>['Concat','Add'].includes(n.type))){
       join.sources=[...new Set(join.sources.flatMap(key=>key===nid || key.startsWith(nid+'@') ? sourceKey?[sourceKey]:[] : [key]))];
     }
-    if(bypass)for(const recurrent of doc.graph.nodes.filter(R.multiport))
+    if(bypass)for(const recurrent of doc.graph.nodes.filter(R.multiInput))
       for(const key of R.sources(recurrent))if(key===nid || key.startsWith(nid+'@'))R.replaceSource(recurrent,key,sourceKey);
     return incoming[0]?.from || doc.graph.nodes[0]?.id || null;
   }

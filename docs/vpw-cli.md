@@ -41,7 +41,7 @@ representations when known, never label guesses. `GaussianFilter` forward can
 return signed sequence evidence; a target-free likelihood training task is not
 yet admitted. Exact scope and limitations: [filter contract](gaussian-filter-contract.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container29). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container31). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute

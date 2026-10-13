@@ -62,11 +62,16 @@ def dataset(*, trajectories=24, steps=12, states=5, lags=3, dimensions=3, seed=2
     the student drawing implements its own learned 9→32→25 transition network.
     This small synthetic study does not establish identifiability or calibration.
     """
+    from .core import GraphError
+    if (any(type(v) is not int or v<1 for v in (trajectories,steps,states,lags,dimensions)) or
+        type(seed) is not int or not 0<=seed<=2**31-1 or
+        trajectories*((steps+lags)*dimensions+steps*states)>1_000_000):
+        raise GraphError('Synthetic MS-VAR study needs positive exact dimensions, explicit seed and bounded data work.')
     rng=random.Random(seed);records=[]
     for i in range(trajectories):
         history=[[rng.gauss(0,.15) for _ in range(dimensions)] for _ in range(lags)]
         past=[list(row) for row in history];state=rng.randrange(states);values=[]
-        valid=steps-i%3
+        valid=max(0,steps-i%3)
         for t in range(valid):
             features=[v for row in past[-lags:] for v in row]
             logits=[(1.2 if k==state else 0.) + .25*math.tanh(features[(k+state)%len(features)]) for k in range(states)]

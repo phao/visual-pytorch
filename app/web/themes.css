@@ -51,9 +51,12 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 .node.Constant rect{fill:var(--node-module);stroke:var(--amber)}
 .node.TensorParameter .node-header{fill:var(--purple)}.node.TensorParameter .node-type-icon{stroke:var(--purple)}
 .node.Constant .node-header{fill:var(--amber)}.node.Constant .node-type-icon{stroke:var(--amber)}
-.node.GaussianFilter rect,.node.PositiveVariance rect{fill:var(--node-output);stroke:var(--accent)}
-.node.GaussianFilter .node-header,.node.PositiveVariance .node-header{fill:var(--accent)}
-.node.GaussianFilter .node-type-icon,.node.PositiveVariance .node-type-icon{stroke:var(--accent)}
+.node.GaussianFilter rect,.node.PositiveVariance rect{fill:var(--node-output);stroke:var(--mint)}
+.node.GaussianFilter .node-header,.node.PositiveVariance .node-header{fill:var(--mint)}
+.node.GaussianFilter .node-type-icon,.node.PositiveVariance .node-type-icon{stroke:var(--mint)}
+.node.CausalLagWindow rect{fill:var(--node-input);stroke:var(--blue)}
+.node.CausalLagWindow .node-header,.node.CausalLagWindow .node-type-icon{fill:none;stroke:var(--blue)}
+.node.CausalLagWindow .node-header{fill:var(--blue);stroke:none}
 .node.Conv2d rect{fill:var(--node-linear);stroke:var(--purple)}
 .node.AvgPool2d rect,.node.MaxPool2d rect,.node.AdaptiveAvgPool2d rect{fill:var(--node-output);stroke:var(--mint)}
 .node.Flatten rect,.node.Permute rect{fill:var(--node-reshape);stroke:var(--mint)}

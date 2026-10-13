@@ -10,7 +10,7 @@ TENSOR_OPERATORS = frozenset({
     'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute',
 })
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
-PROBABILITY_OPERATORS = frozenset({'PositiveVariance','GaussianFilter'})
+PROBABILITY_OPERATORS = frozenset({'PositiveVariance','GaussianFilter','CausalLagWindow'})
 LAYER_TYPES = TENSOR_OPERATORS | SOURCE_TYPES | PROBABILITY_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
 ARITHMETIC_OPERATORS = frozenset({'Add', 'Scale'})
 BLOCK_TYPES = LAYER_TYPES | ARITHMETIC_OPERATORS | {'Input', 'Output', 'Concat', 'Splitter', 'Replicator'}
@@ -46,6 +46,9 @@ def normalized(node):
     """Explicit defaults/pairs for new operators only; preserve legacy documents."""
     from .core import GraphError
     kind = node['type']
+    if kind == 'CausalLagWindow':
+        from .lag_nodes import normalized as lag_normalized
+        return lag_normalized(node)
     if kind == 'GaussianFilter':
         from .gaussian_nodes import normalized as gaussian_normalized
         return gaussian_normalized(node)

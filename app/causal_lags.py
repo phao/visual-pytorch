@@ -161,7 +161,16 @@ def runtime_source():
     The emitted closure has no app, registry, graph or presentation dependencies.
     """
     import inspect
+    import ast
+    from .task_execution import _helper_source
     definitions = (CausalLagWindowError, _lags, _limit, _budget, runtime_class)
     prelude = (f'DEFAULT_MAX_ELEMENTS = {DEFAULT_MAX_ELEMENTS!r}\n'
                f'MAX_DIMENSION = {MAX_DIMENSION!r}\n\n')
-    return prelude + '\n\n'.join(inspect.getsource(obj) for obj in definitions)
+    error_source=inspect.getsource(CausalLagWindowError)
+    error_class=ast.parse(error_source).body[0]
+    if (not isinstance(error_class,ast.ClassDef) or len(error_class.bases)!=1 or
+        not isinstance(error_class.bases[0],ast.Name) or error_class.bases[0].id!='ValueError' or
+        any(not isinstance(stmt,ast.Pass) and not (isinstance(stmt,ast.Expr) and
+            isinstance(stmt.value,ast.Constant) and isinstance(stmt.value.value,str)) for stmt in error_class.body)):
+        raise CausalLagWindowError('Exception source changed; restart before exporting.')
+    return prelude + error_source + '\n\n' + '\n\n'.join(_helper_source(obj) for obj in definitions[1:])

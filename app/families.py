@@ -21,6 +21,7 @@ FIELDS = {
     'Permute': {'dims'}, 'Activation': {'dim'},
     'LSTM': {'hidden_size', 'num_layers', 'proj_size'},
     'Constant': {'shape'}, 'TensorParameter': {'shape'},
+    'CausalLagWindow': {'lags'},
 }
 ARRAY_FIELDS = {'shape', 'kernel_size', 'stride', 'padding', 'dilation', 'output_size', 'dims'}
 CHOICE_FIELDS = {
@@ -35,6 +36,7 @@ TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
     Activation={'activation', 'dim'}, Module={'ref','batch_only'}, Concat={'sources', 'flatten'},
     Constant={'shape','axes','fill','values'}, TensorParameter={'shape','axes'},
     PositiveVariance={'positive_floor'}, GaussianFilter={'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
+    CausalLagWindow={'inputs','lags'},
     Splitter={'parts'}, Replicator={'outputs'},
     Recurrent={'ref', 'sequence_inputs', 'states', 'sequence_outputs', 'controls'},
     LSTM={'inputs', 'hidden_size', 'num_layers', 'proj_size', 'bias', 'bidirectional', 'lengths'})
@@ -196,7 +198,7 @@ def _chain(model, repeat):
     require(isinstance(chain, list) and 1 <= len(chain) <= 62 and
             all(isinstance(n, str) for n in chain) and len(set(chain)) == len(chain),
             where + ': nodes must be an ordered nonempty unique chain.')
-    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES - {'Recurrent', 'LSTM', 'Constant', 'TensorParameter','GaussianFilter'} and
+    require(all(n in lookup and lookup[n]['type'] in LAYER_TYPES - {'Recurrent', 'LSTM', 'Constant', 'TensorParameter','GaussianFilter','CausalLagWindow'} and
                 not lookup[n].get('batch_only',False) for n in chain),
             where + ': repeat only unary operation blocks, not graph boundaries/routers.')
     selected = set(chain)
@@ -216,10 +218,10 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
-         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9, 10, 11,12) else ()),
+         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9, 10, 11,12,13) else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12), 'Family supports integer version 1 through 12.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12,13), 'Family supports integer version 1 through 13.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
@@ -235,6 +237,7 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
+                require(doc['version']>=13 or node['type']!='CausalLagWindow','Causal lag templates require explicit Family13.')
                 require(doc['version']>=12 or node['type'] not in {'PositiveVariance','GaussianFilter'} and
                         not (node['type']=='Activation' and node.get('activation') in ('LogSoftmax','Softplus')),
                         'Probability/filter templates require explicit Family12.')
@@ -242,8 +245,8 @@ def validate_family(doc):
                         not (node['type'] == 'Module' and node.get('batch_only') is True),
                         'Tensor sources and nullary Module templates require explicit Family11.')
                 require(node['type'] not in {'Add', 'Scale'} or doc['version'] >= 9, 'Add/Scale templates require explicit Family9.')
-                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9,10,11,12), 'Family versions 1–6 do not support LSTM templates; use explicit family7 or later.')
-                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9,10,11,12),
+                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9,10,11,12,13), 'Family versions 1–6 do not support LSTM templates; use explicit family7 or later.')
+                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9,10,11,12,13),
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
@@ -283,7 +286,7 @@ def validate_family(doc):
                 'Family temporal policy requires integer version1 and kind runtime-temporal-v1; LSTM needs a later runtime grammar.')
         from .temporal_shapes import declaration
         declaration(models, doc['root'], value['inputs'])
-    if doc['version'] in (8,9,10,11,12) and doc['runtime_policy'] is not None:
+    if doc['version'] in (8,9,10,11,12,13) and doc['runtime_policy'] is not None:
         value = doc['runtime_policy']
         keys(value, ('version', 'kind', 'inputs'), where='Family temporal-v2 policy')
         require(type(value['version']) is int and value['version'] == 2 and value['kind'] == 'runtime-temporal-v2',
@@ -444,7 +447,7 @@ def _expanded(models, repeats, bindings):
                               for role, source in dest['inputs'].items()}
             if dest.get('lengths') and dest['lengths']['source'] == old_source:
                 dest['lengths']['source'] = new_source
-        elif dest['type']=='GaussianFilter':
+        elif dest['type'] in ('GaussianFilter','CausalLagWindow'):
             dest['inputs']={role:new_source if source==old_source else source for role,source in dest['inputs'].items()}
         ingress, egress = dict(incoming, to=first), dict(outgoing, **{'from': last})
         model['graph']['edges'] = [e for e in model['graph']['edges'] if e['from'] not in body and e['to'] not in body] + [ingress] + wires + [egress]
@@ -605,7 +608,7 @@ def specialize(doc, supplied=None):
             result.update(version=5 if doc['version']==7 else 4, runtime=None if spec is None else {
                 'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
-        elif doc['version'] in (8,9,10,11,12):
+        elif doc['version'] in (8,9,10,11,12,13):
             from .temporal_shapes_v2 import specification
             policy = doc['runtime_policy']
             spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None

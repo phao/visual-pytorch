@@ -63,8 +63,10 @@ def topology(model):
             keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
             if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
                 raise GraphError(n['type'] + ' sources must list at least two incoming source keys exactly once, in order.')
-        elif n['type'] in {'Recurrent', 'LSTM', 'GaussianFilter'}:
-            if n['type'] == 'GaussianFilter':
+        elif n['type'] in {'Recurrent', 'LSTM', 'GaussianFilter','CausalLagWindow'}:
+            if n['type'] == 'CausalLagWindow':
+                from .lag_nodes import sources
+            elif n['type'] == 'GaussianFilter':
                 from .gaussian_nodes import sources
             elif n['type'] == 'LSTM':
                 from .lstm_nodes import sources
@@ -179,8 +181,10 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
         if kind in {'Concat', 'Add'}:
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
-        if kind in {'Recurrent', 'LSTM','GaussianFilter'}:
-            if kind == 'GaussianFilter':
+        if kind in {'Recurrent', 'LSTM','GaussianFilter','CausalLagWindow'}:
+            if kind == 'CausalLagWindow':
+                from .lag_nodes import sources
+            elif kind == 'GaussianFilter':
                 from .gaussian_nodes import sources
             elif kind == 'LSTM':
                 from .lstm_nodes import sources
@@ -233,6 +237,13 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             normalized(n)
             affine = matrix_affine = False
             origin = (nid,None)
+        elif kind == 'CausalLagWindow':
+            from .lag_nodes import describe as lag_describe
+            bound={(edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']):
+                   (result[1],source_axes(result[0])) for edge,result in zip(incoming,resolved)}
+            lag=lag_describe(n,bound);current=lag['output_shape'];axes=lag['output_axes']
+            item['causal_lag']=lag;representation=None;origin=(nid,None)
+            activation_elements+=lag['work_elements'];affine=matrix_affine=False
         elif kind == 'GaussianFilter':
             from .gaussian_nodes import describe as gaussian_describe
             bound = {}

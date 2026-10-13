@@ -12,6 +12,7 @@ from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, ch
 from .revisions import KINDS
 
 _RULES = {
+    'CausalLagWindow': 'Explicit observed history and prefix lengths; preceding p vectors only, oldest to newest. No current/future leakage, reset, missing-history imputation or trainable owners.',
     'GaussianFilter': 'Exact diagonal-Gaussian log-space filtering; explicit previous-to-next transition rows and initial law before first transition. No regime labels, smoothing, hidden variance floor or trainable parameters. Named posterior/evidence ports.',
     'PositiveVariance': 'Elementwise softplus(raw,beta=1,threshold=20) plus explicitly declared positive float32 floor. Shape/axes preserved; no clipping or learned parameters.',
     'Constant': 'Declared immutable CPU float32 sample tensor; explicit fill or rectangular values; no incoming data, no learnable parameters. Expand as a batch view, never a dataset input.',
@@ -37,6 +38,7 @@ _RULES = {
     'Permute': 'Reorder each sample axis exactly once; batch is fixed first. This changes values, not just shape labels.',
 }
 _LEGACY_FIELDS = {
+    'CausalLagWindow':{'inputs','lags'},
     'Input': {'features', 'shape', 'axes'}, 'Output': {'shape'},
     'Linear': {'features', 'bias'}, 'Activation': {'activation', 'dim'},
     'Reshape': {'shape'}, 'Module': {'ref','batch_only'}, 'Concat': {'sources', 'flatten'},
@@ -68,7 +70,12 @@ def _example(kind):
     else:
         target = 'op'
         edges = [{'from': 'x', 'to': 'op'}, {'from': 'op', 'to': 'y'}]
-        if kind=='GaussianFilter':
+        if kind=='CausalLagWindow':
+            nodes=[{'id':'observations','type':'Input','shape':[3,1]},
+                   {'id':'history','type':'Input','shape':[2,1]}, {'id':'lengths','type':'Input','shape':[1]}]
+            node.update(lags=2,inputs={role:role for role in ('observations','history','lengths')})
+            edges=[{'from':role,'to':'op'} for role in ('observations','history','lengths')]+[{'from':'op','to':'y'}]
+        elif kind=='GaussianFilter':
             from .gaussian_nodes import ROLES
             shapes={'observations':[3,1],'initial':[2],'transition':[3,2,2],
                     'means':[3,2,1],'variances':[2,1],'lengths':[1]}
@@ -140,6 +147,8 @@ def _example(kind):
     for model in models.values(): check_document(model)
     contract = validate_model(models, mid)
     witness={'root':mid,'models':models,'node':target}
+    if kind=='CausalLagWindow':
+        witness['input_values']={'observations':[[0.],[.1],[.2]],'history':[[-.2],[-.1]],'lengths':[3.]}
     if kind=='GaussianFilter':
         witness['input_values']={'observations':[[0.],[0.],[0.]],'initial':[.5,.5],
             'transition':[[[.5,.5],[.5,.5]]]*3,'means':[[[0.],[1.]]]*3,
@@ -166,6 +175,7 @@ def operator_schema(kind):
     else: fields = operators.FIELDS.get(kind, _LEGACY_FIELDS.get(kind, set()))
     strict = kind in operators.TENSOR_OPERATORS | operators.SOURCE_TYPES | operators.PROBABILITY_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
     required = {
+        'CausalLagWindow':{'inputs','lags'},
         'Add': {'sources'}, 'Scale': {'coefficient'},
         'Constant': {'shape'}, 'TensorParameter': {'shape'},
         'PositiveVariance':{'positive_floor'},
@@ -225,13 +235,17 @@ def capabilities():
             'initial':'before-first-transition','transition_orientation':'previous-to-next',
             'scope':'exact forward filtering and concrete target-free likelihood training',
             'controls':['prefix-lengths','missing-whole-emission-mask']},
-        likelihood_task={'task_version':2,'bundle_version':5,'result_version':2,'container_version':29,
+        likelihood_task={'task_version':2,'bundle_versions':[5,6],'result_version':2,'container_version':29,
             'loss':'negative-log-likelihood','required_representation':'log-evidence',
-            'scope':'concrete only; runtime-family and Experiment successors not admitted',
+            'scope':'concrete and temporal-v2 families; Experiment7/Run7/container30; real portable notebooks',
             'diagnostics':'explicit stable output IDs; no fabricated targets'},
+        causal_lags={'op_version':1,'container_version':31,'model_revision_version':9,
+            'family_version':13,'specialization_version':12,
+            'roles':['observations','history','lengths'],'order':'oldest-to-newest; excludes current observation',
+            'controls':'explicit prefix lengths; no missing-history imputation or resets'},
         unavailable={
             'TrainableParameter': 'not an accepted spelling; use TensorParameter',
-            'runtime_family_likelihood_experiment': 'not admitted; concrete TaskSpec2 likelihood is available',
+            'msvar_missing_history_integration': 'not admitted; explicit observed causal history is required',
             'optimizer_resume': 'deferred Stage E, not part of this source'},
         limitations=['Shapes alone do not establish output representation or loss compatibility.',
             'Current cross-entropy expects logits; the checker does not prove an upstream tensor is logits.',

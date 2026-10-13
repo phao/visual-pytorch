@@ -1,5 +1,38 @@
 # Development state and roadmap
 
+## 2026-10-13 04:33 -03:00 — Full causal model and real likelihood-family notebooks
+
+Task/neural-msvar now composes the requestedK5,p3,D3 model from23 real blocks,
+including3-input causal lag windows,9→32→GELU→25 neural transition rows, affine
+9→15 means, state variance and initial law:1315 learned elements, eight owners.
+The primitive worker's15 tests1.871s were reviewed; source export then hardened
+to verify loaded helper meaning. Full20 native/export/causal/discovery cases
+3.079s pass with independent625-path likelihood/posterior enumeration and
+matched gradients.44 final cases64.033s pass;375JS pass. Source/binding RAM
+proof now prohibits runtime state/coordinate/history/control dimensions.
+
+Family likelihood Bundle6/Experiment7/Run7/container30 and causal Model9/
+Family13/Spec12/container31 close exact native/worker/restore/captured-source
+routes. Thirty likelihood-family/old-temporal/report cases80.790s pass after a
+fixture used the wrong node-shape field.21 source/likelihood/full-model notebook
+route cases140.346s pass, with real saved/rerun full-model Jupyter kernels6/7
+cells, exact checkpoint0fabd0b4 and metrics/predictors; no source workspace edits.
+An initial33-case full-model command had two named-vs-stable-port fixture errors,
+fixed by the existing shared forward_ports adapter, not changing label semantics.
+
+Sandboxed real Qt PASS covers3/1 lag and6/4 filter sockets, inspection, native
+compact drag, undo/redo and save/reload without numerical imports in host.
+Visual inspection exposed an undefined theme accent token in probability boxes;
+corrected to mint and native probe rechecked. Public local example is real
+examples/neural-msvar.vtw with one twelve-update fit, checkpoint9d788485,
+trajectory-grouped split and no regime labels. Actual screenshot is labelled.
+
+No full new-suite/main/public acceptance claim. Reset/execution semantics,
+autoregressive missing-history conditioning, literal log-variance option,
+trajectory diagnostics and report CLI2–6 remain. LoRA accepted locally and loss
+study delivered; full goal stays active. Pending workbench/UI feedback and E
+remain out of scope; no user config/workspace/app restart or remote action.
+
 ## 2026-10-13 03:53 -03:00 — Probability diagrams and concrete likelihood tasks
 
 Task/neural-msvar admits LogSoftmax/Softplus/PositiveVariance/GaussianFilter,

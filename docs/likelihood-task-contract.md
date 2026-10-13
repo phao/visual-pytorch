@@ -1,8 +1,10 @@
 # Target-free Gaussian likelihood tasks
 
 TaskSpec 2 adds target-free negative-log-likelihood heads and diagnostic outputs.
-TaskSpec 1 retains supervised-only meaning. Current execution uses a concrete
-ModelRevision, TaskBundle 5 and TaskResult 2 in container 29. Policy checkpoints
+TaskSpec 1 retains supervised-only meaning. Concrete execution uses TaskBundle5;
+temporal-v2 probability/causal families use TaskBundle6. Both use TaskResult2.
+TaskSpec2 needs container29, Experiment7/Run7 need container30 and causal graphs
+need container31. Policy checkpoints
 keep their existing version-2 receipts; identity names `signed-additive-v2`.
 Older bundles cannot carry TaskSpec 2.
 
@@ -52,13 +54,15 @@ declared diagnostics with proven `log-probabilities` may contain structural
 negative infinity. NaN and positive infinity are invalid; evidence and optimized
 outputs remain finite. Metrics/results remain finite JSON. Restored and
 standalone predictors carry identical diagnostic rules and no target fields.
-The worker request is `task-v5`; CLI `train-stored` selects the actual bundle
+Worker requests are `task-v5` or `task-v6`; CLI selects the actual bundle
 version. Signed report curves include negative losses within linear bounds.
 
-Runtime-family likelihood bundles and existing supervised Experiment versions
-explicitly refuse this task pending successor contracts. Full notebook/Experiment
-integration, causal autoregression, resets, trajectory evaluation and complete
-neural MS-VAR remain; no production workbench redesign is implied.
+Runtime likelihood carries exact Family12/Spec11 or Family13/Spec12 temporal-v2
+proof. Experiment7 and Run7 admit this task; older versions explicitly refuse it.
+Both actual saved and rerun notebooks reproduce Gaussian and full causal MS-VAR
+checkpoints/metrics/predictors. See [neural MS-VAR](neural-msvar-contract.md).
+Resets, execution/missing-history semantics and further report contracts remain;
+no production workbench redesign is implied.
 
 Reproduce with `PYTHONPATH=.:tests python -m unittest tests.test_likelihood_task -v`.
 Tests cover real training, independent signed reductions/gradients, worker replay,

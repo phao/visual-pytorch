@@ -1185,3 +1185,18 @@ influenced signed bounds and explicit numerical coordinate checks. Final16
 likelihood/report cases3.680s pass; a prior command's nonexistent test-module
 name is retained as a command error. Visual review corrected a target-oriented
 caption for NLL and placed zero at the upper bound for all-negative curves.
+
+## 2026-10-13 04:33 -03:00 — Real causal neural MS-VAR and notebook routes
+
+Closed likelihood Bundle6/Experiment7/Run7 and composed actualK5,p3,D3 from
+editable lag/transition/affine mean/variance/initial/filter blocks with1315
+elements, Model9/Family13/Spec12/container31. Causal kernel worker source/tests
+fully reviewed and integrated; main verified source lowering and diagram roles,
+budgets, temporal dependencies and GUI sockets/icons. Independent625-path oracle,
+causal no-leak and native/export gradients pass.44 final/64.033s,20 initial/
+3.079s,30 family/80.790s,21 actual kernel/source routes140.346s and375JS pass.
+Native Qt compact drag/history/reload passes with sandbox and no Torch in host.
+Visual undefined-accent defect fixed. Real twelve-update local example and actual
+capture added; source/scalar RNG/binding identities preserved. Fixture failures
+remain in private evidence. Resets/execution/missing-history/logvariance/CLI/full
+regression remain; not full-goal/main/public acceptance, no E/user-state changes.
