@@ -4,6 +4,15 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 22:51 -03:00 — Verified local policy/binding integration
+
+Frozen587e79f full1404/556.403s pass,1401 executed/three original native-covered
+Qt skips;372 JS/native real binding/4 captured notebook/post-merge28 checks pass.
+Local main3fc3e88 merges the verified branch with identical tree17713d4, because
+the policy and exact retained initialization foundation now meets its bounded
+route gates. Public origin unchanged, no user-state/E changes. Full LoRA artifacts/
+comparisons/merge and exact MS-VAR remain. This note changes only documentation.
+
 ## 2026-10-12 22:35 -03:00 — Frozen Qt disclosure-state test correction
 
 aa4066e captured4 notebook checks27.681s pass, including actual old/new kernels
