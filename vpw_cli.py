@@ -225,6 +225,10 @@ def main(argv=None):
     merge_preview.add_argument('sources', help='JSON file with exact base/A/B retained selections')
     merge_preview.add_argument('--alpha', type=float, default=4.)
     merge_preview.add_argument('--id', default='lora-merged'); merge_preview.add_argument('--name', default='LoRA merged inference · explicitly derived')
+    lora_export = sub.add_parser('export-lora-package', help='Export raw inference with exact base AND adapter; no execution or workspace edits')
+    lora_export.add_argument('sources', help='JSON file with exact base/A/B retained selections')
+    lora_export.add_argument('output', help='NEW package directory; never overwritten')
+    lora_export.add_argument('--alpha', type=float, default=4.)
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -419,6 +423,9 @@ def main(argv=None):
             elif args.command == 'preview-lora-merge':
                 from app.parameter_derivation import preview
                 value = preview(workspace, read_json(args.sources), alpha=args.alpha, model_id=args.id, name=args.name)
+            elif args.command == 'export-lora-package':
+                from app.lora_artifacts import prepare, write_new_package
+                value = write_new_package(prepare(workspace, read_json(args.sources), alpha=args.alpha), args.output)
             elif args.command == 'retained-parameters':
                 from app.parameter_sources import inventory
                 value = inventory(workspace, {'kind': 'run', 'id': args.id, 'revision': args.revision}, attempt=args.attempt)

@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 25
+# Visual Torch Workspace (.vtw): format specification, version 26
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,13 +36,21 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 25. The current reader accepts versions 1–20,23–25;
+PRAGMA user_version = 26. The current reader accepts versions 1–20,23–26;
 opening an older supported file copies it into memory and upgrades the working
-version to 25. Opening alone never rewrites the source; explicit Save writes
-version 25. Versions 21/22 belong to the deliberately deferred execution branch
+version to 26. Opening alone never rewrites the source; explicit Save writes
+version 26. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
-Other versions are rejected. Version25 adds independent immutable
+Other versions are rejected. Version26 adds independent immutable
+`parameter-derivation` version1 receipts for explicit checked LoRA inference
+merges in the existing revision/head tables. Any retained derivation requires26,
+including archived revisions with no head. Source/destination identities,
+topology, deterministic float32 values and atomic admission are specified in
+[parameter-derivation.md](parameter-derivation.md). No policy/binding grammar or
+SQL table changes; their original introduction fences remain in force.
+
+Version25 adds independent immutable
 `parameter-binding` version1 receipts in the existing revision/head tables,
 including full exact source/destination/value agreement validation. Any retained
 binding row requires25, even with no selected head. Policy-only24 remains valid;

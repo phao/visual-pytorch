@@ -2967,3 +2967,35 @@ are a separate design prototype, not an installed generic workbench. Keep E
 deferred and existing Experiment/UI/label-feedback boundaries intact. See the
 exact [binding contract](parameter-binding.md), [policy](parameter-policy.md),
 [source reader](retained-parameter-sources.md) and portable GUI handoff.
+
+## 2026-10-12 23:50 -03:00 — Actual LoRA delivery checkpoint, not full feature acceptance
+
+The preparation generator and comparison driver now produce16 related drawings
+including a genuinely derived merged map, two zero-update native baseline
+evaluation artifacts and six real200-update retained fits. Linear ranks1/2/4 and
+full fine-tuning share fixed supplied synthetic W0, data/task/split/protocol;
+adapted/full MLP share a second fixed comparison. This is a small teaching fixture,
+not reproduction of pretrained Transformer benchmarks.
+
+The new [exact-base inference package](lora-inference-package.md) includes base,
+A/B, stable ports, exact retained source descriptors and byte/value hashes.
+Export/verification do not import numerical libraries. Fresh standalone inference
+and merged-weight oracle checks preserve input gradients and reject corrupt,
+missing or mismatched source bytes. CLI export preserves the source workspace.
+Six package checks and32 source-level UI guards pass in14.562s; the actual saved
+example validates all revisions, preserves its original file, and matches native
+checkpoint predictions exactly on seven checked inputs. Its frozen merged map
+has maximum absolute difference1.1920928955078125e-7 under the declared fixture
+tolerance. Container26/Derivation1 and immutable-source admission are specified
+in [parameter-derivation.md](parameter-derivation.md).
+
+Remaining acceptance: actual complete-example GUI interaction/worker and fresh
+notebook kernels, broad final regression, example publication and artifact
+replay/provenance packaging. Existing earlier notebook/native tests remain valid
+for their own source, but are not claimed as new complete-example acceptance.
+Neural MS-VAR still requires exact Gaussian latent filtering, target-free signed
+likelihood losses, causal VAR/neural transitions and report CLI gaps. The existing
+supervised regime demo does not implement those. Separate workbench TYPES and
+the standalone loss design study remain the agreed direction; production
+Experiment-panel replacement, label changes, E, public push and user-state
+changes remain out of this checkpoint.

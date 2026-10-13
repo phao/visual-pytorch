@@ -1018,3 +1018,17 @@ through Git. Source/history and test evidence remain; other worktrees, public
 refs, user files/config and running app were not changed. The existing desktop
 launcher targets this visible checkout without re-registration. This changes the
 local launchable version, not Stage C integration or public release status.
+
+## 2026-10-12 23:50 -03:00 — Exact-base LoRA package and explicit merge specification
+
+Added a portable inference export containing the mandatory exact base plus A/B,
+source/checkpoint/owner identities, bounded deterministic merge witness and a
+self-contained CPU float32 predictor. Export and verification stay numerical-free;
+no task transforms or optimizer resume are claimed. CLI exports exclusive new
+directories; scientific browsing includes derivation receipts alphabetically.
+Updated the container26/Derivation1 specification without changing SQL tables.
+Six package checks plus32 UI guards pass in14.562s. The actual generated16-model/
+six-run workspace validates; its200-update rank2 checkpoint and portable predictor
+match exactly on checked inputs, with merged maximum error1.1920928955078125e-7.
+Earlier failed fixture/mapping/source-order checks are retained. Full stage
+regression, actual complete-example GUI/notebook acceptance, and full MS-VAR remain.
