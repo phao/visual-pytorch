@@ -68,15 +68,17 @@ Durable detached/remote/distributed execution is deferred and is not included in
 this public source. Current development adds the small
 [LoRA teaching workspace](docs/lora-workflow.md), executable weight freezing and
 initialization, checked inference merging and exact-base adapter export.
-Exact neural MS-VAR remains unimplemented. These are development
+Exact neural MS-VAR with target-free sequence likelihood is also implemented
+and verified in this source. These are development
 capabilities, not additions to the initial prerelease. See [development](docs/development.md) and the
 [verified first CNN workflow](docs/cnn-workflow.md).
 The current local development checkpoint adds [ordered Add and fixed Scale](docs/arithmetic-blocks.md),
 shared CLI contract discovery and Ctrl-click output branch selection for insertion.
 The LoRA example is a synthetic linear/MLP workflow, not a Transformer benchmark.
-New saves use container31; the extension remains `.vtw`. The deferred execution
+New saves use container32; the extension remains `.vtw`. The deferred execution
 branch's21/22 files are not accepted by this reader.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
+The separate loss-workbench design prototype is not included in this app release.
 
 Open [examples/lora.vtw](examples/lora.vtw) to explore a supplied frozen base,
 rank1/2/4 adapters, reusable adapted layers, a two-layer adapted MLP and explicitly

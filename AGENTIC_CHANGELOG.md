@@ -1,5 +1,14 @@
 # Agentic changelog
 
+## 2026-10-13 14:54 -03:00 — Correct public README before authorized push
+
+User requested publication of the accepted version, explicitly excluding the
+separate Loss-workbench prototype and deferred Stage E. Verified all20 Stage E
+branch tips are unmerged and deferred continuation/detached/distributed modules
+and prototype files are absent from main. Fixed two obsolete README claims:
+actual MS-VAR support and container32. Documentation only; executable/example
+bytes remain those of the accepted full regression. No publication claim yet.
+
 ## 2026-10-13 14:44 -03:00 — Accept and locally integrate LoRA/MS-VAR scope
 
 Frozen67e3d13 full1681-test discovery1153.271s PASS, with six native-covered
