@@ -1,5 +1,35 @@
 # Development state and roadmap
 
+## 2026-10-13 14:44 -03:00 — LoRA/MS-VAR scope accepted and integrated locally
+
+Frozen67e3d13f8af457f8470fc841fcb57a2434955e89 completed the entire1681-test
+Python discovery in1153.271s:1675 executed PASS, six Qt-dependent skips explicitly
+covered by six native0.280s checks. No source edits during the gate. Both old CLI
+rebinding failures now pass without changed assertions. Native/worker/standalone/
+family routes and actual saved/rerun MS-VAR notebook kernels are included.
+
+Local main mergef725f1902de09bb0fa721933e2eca02b47aa9d7d has the identical tested
+tree3687e0b6006f8ee5c523f28165dc7fc7f0763487 and retains accepted LoRA8ed5cf6
+in ancestry. Held product integration flock across clean target/tip checks,
+merge and exact tree/ancestry verification. Post-merge54 Python cases3.053s,
+six native0.290s and375JS9840.492534ms pass. Real controlled Qt diagram/compact
+drag/history/reload/sockets were previously checked with the same UI source,
+sandbox enabled and no host numerical imports. Failure/source evidence is retained
+privately; no user workspace/configuration, installed app restart or remote push.
+
+This accepts the requested small linear LoRA workflow, genuine neural MS-VAR,
+explicit controls/log variance, conservative likelihood interpretation, ephemeral
+predictive density diagnostics and report CLI priorities1–6. It does not imply
+universal density inference for arbitrary graphs, physical regime recovery,
+general pretrained Transformer adaptation or heavyweight Stage E.
+
+The independent Loss-workbench design remains a private standalone prototype,
+with three distinct sketches, precise reductions/regularization, SVG/captures and
+21 toy semantic tests; its Markdown/images are organized under prototype/docs.
+No production Loss/Dataset/Optimizer workbench redesign is integrated. Tutorial
+format and further UI/experiment/family steering remain user-led. Documentation
+after this acceptance changes no executable model or retained example bytes.
+
 ## 2026-10-13 14:21 -03:00 — Legacy dataset rebinding import repaired
 
 Frozen b625fca full discovery completed1681 tests1152.329s with exactly two

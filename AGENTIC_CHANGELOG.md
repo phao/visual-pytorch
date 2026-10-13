@@ -1,5 +1,15 @@
 # Agentic changelog
 
+## 2026-10-13 14:44 -03:00 — Accept and locally integrate LoRA/MS-VAR scope
+
+Frozen67e3d13 full1681-test discovery1153.271s PASS, with six native-covered
+skips. Integrated under held product flock as mainf725f19 with identical tested
+tree and LoRA acceptance in ancestry. Post-merge54 Python3.053s, six native0.290s
+and375JS9840.492534ms pass. Updated public README to describe explicit controls,
+history refusals and safe agent authoring rather than obsolete unfinished claims.
+No runtime changes in this acceptance note, remote publication or user-state edits.
+Loss remains a separately documented prototype; tutorial/new workbenches/E deferred.
+
 ## 2026-10-13 14:21 -03:00 — Restore shared executor dataset-rebind import
 
 Restored validate_model import after the frozen1681-test broad run exposed two
