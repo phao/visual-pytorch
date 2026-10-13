@@ -15,6 +15,8 @@ class LoRAExampleTests(unittest.TestCase):
             self.assertEqual(c, {'stored': 256 + 32 * rank, 'trainable': 32 * rank, 'frozen': 256})
             self.assertEqual(next(n for n in models[mid]['graph']['nodes'] if n['type'] == 'Scale')['coefficient'], ALPHA / rank)
             self.assertFalse(any(n['type'] == 'Activation' for n in models[mid]['graph']['nodes']))
+            labels = {node['id']: node.get('label') for node in models[mid]['graph']['nodes']}
+            self.assertEqual([labels[key] for key in ('base', 'A', 'B')], ['Base W₀', 'Adapter A', 'Adapter B'])
         self.assertEqual(plan(models, 'lora-reusable')['resolved']['counts'], plan(models, 'lora-r2')['resolved']['counts'])
         self.assertEqual(plan(models, 'mlp-adapter')['resolved']['counts'], {'stored': 640, 'trainable': 128, 'frozen': 512})
 

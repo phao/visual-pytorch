@@ -16,16 +16,16 @@ def linear(mid, *, rank=None, seed=17, diagonal=.6, train_base=False):
     _require(_integer(seed, 0, 2**31 - 1) and type(train_base) is bool, 'LoRA seed/trainability invalid.')
     _require(rank is None or _integer(rank, 1, DIMENSION), 'LoRA rank must be integer1–16, not a caption.')
     nodes = [{'id': 'x', 'type': 'Input', 'shape': [DIMENSION], 'label': 'x', 'x': 60, 'y': 200},
-             {'id': 'base', 'type': 'Linear', 'features': DIMENSION, 'bias': False, 'x': 300, 'y': 90 if rank else 200}]
+             {'id': 'base', 'type': 'Linear', 'label': 'Base W₀', 'features': DIMENSION, 'bias': False, 'x': 300, 'y': 90 if rank else 200}]
     parameters = {owner_key(['base', 'weight']): {'trainable': train_base,
         'initializer': {'kind': 'values', 'dtype': 'float32', 'values': synthetic_base(diagonal)}}}
     pairs = [('x', 'base')]
     if rank is not None:
         _require(not train_base, 'Teaching adapter keeps its supplied base frozen.')
-        nodes += [{'id': 'A', 'type': 'Linear', 'features': rank, 'bias': False, 'x': 300, 'y': 310},
-                  {'id': 'B', 'type': 'Linear', 'features': DIMENSION, 'bias': False, 'x': 510, 'y': 310},
-                  {'id': 'scale', 'type': 'Scale', 'coefficient': ALPHA / rank, 'op_version': 1, 'x': 720, 'y': 310},
-                  {'id': 'sum', 'type': 'Add', 'sources': ['base', 'scale'], 'op_version': 1, 'x': 930, 'y': 200}]
+        nodes += [{'id': 'A', 'type': 'Linear', 'label': 'Adapter A', 'features': rank, 'bias': False, 'x': 300, 'y': 310},
+                  {'id': 'B', 'type': 'Linear', 'label': 'Adapter B', 'features': DIMENSION, 'bias': False, 'x': 510, 'y': 310},
+                  {'id': 'scale', 'type': 'Scale', 'label': 'α/r scale', 'coefficient': ALPHA / rank, 'op_version': 1, 'x': 720, 'y': 310},
+                  {'id': 'sum', 'type': 'Add', 'label': 'Base + adapter', 'sources': ['base', 'scale'], 'op_version': 1, 'x': 930, 'y': 200}]
         parameters[owner_key(['A', 'weight'])] = {'trainable': True, 'initializer': {'kind': 'normal', 'seed': seed, 'mean': 0., 'std': .05}}
         parameters[owner_key(['B', 'weight'])] = {'trainable': True, 'initializer': {'kind': 'zeros'}}
         pairs += [('x', 'A'), ('A', 'B'), ('B', 'scale'), ('base', 'sum'), ('scale', 'sum')]
