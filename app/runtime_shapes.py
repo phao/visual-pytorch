@@ -68,7 +68,15 @@ def _dependency_specification(models, mid, declared, *, temporal=False, temporal
         for item in c['plan']:
             nid, kind = item['id'], item['type']; node = lookup[nid]; location = path + '/' + nid
             parts = [values[s['node']][s['port']] if s['port'] is not None else values[s['node']] for s in item['sources']]
-            before = parts[0] if parts else inputs[nid]; current = list(before)
+            # Sources own fixed sample dimensions. They have no incoming wire
+            # and are not root Inputs, even when their axes include H/W or T.
+            if kind in {'Constant', 'TensorParameter'}:
+                before = [frozenset() for _ in c['shapes'][nid]['output_shape']]
+            elif kind == 'Module' and node.get('batch_only') is True:
+                before = []
+            else:
+                before = parts[0] if parts else inputs[nid]
+            current = list(before)
             if kind == 'Linear':
                 if before[-1]:
                     repair = ('. Bind T or keep time out of the learned last-axis width with an explicit reduction/adapter.' if temporal else
@@ -195,6 +203,9 @@ def admission(c, batch_size, *, constrained=True, memory_limit_percent=DEFAULT_M
     # optimizers/caches are outside this estimate, not a claimed allocator limit.
     components = {'runtime_headroom':(256 if gradients else 64)*MIB,
                   'parameters':(32 if gradients else 2)*dtype_bytes*c['parameters'],
+                  # Fixed source storage plus conservative copy/construction
+                  # headroom; expanded batch views do not own B copies.
+                  'buffers':2*dtype_bytes*c.get('buffer_elements',0),
                   'activations':(4 if gradients else 2)*dtype_bytes*batch_size*c['activation_elements'],
                   'convolution_workspace':(8 if gradients else 2)*dtype_bytes*batch_size*c.get('convolution_workspace_elements',0),
                   'boundary_packing':2*dtype_bytes*batch_size*(c['inputs']+c['outputs'])}
@@ -252,6 +263,11 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
         for node in frozen[key]['graph']['nodes']:
             if node['type'] in {'Module', 'Recurrent'}: capture(node['ref'])
     capture(mid)
+    has_sources = any(node['type'] in {'Constant', 'TensorParameter'}
+                      for model in frozen.values() for node in model['graph']['nodes'])
+    # core.compile_model owns native construction: source owners must use
+    # tensor_sources.build(admitted_elements=prod(shape)) after whole-model admission.
+    # Reuse those owners here, including aliases and parameter-policy receipts.
     baseline = compile_model(frozen,mid,constrained=False)
     if temporal:
         # Retain the caller's admission policy also inside recurrent wrappers.
@@ -264,6 +280,8 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
         def __init__(self):
             super().__init__(OrderedDict(baseline.named_children()))
             self._runtime_spec = copy.deepcopy(spec)
+            self.constrained = constrained
+            self.memory_limit_percent = memory_percent(memory_limit_percent)
             if hasattr(baseline, 'parameter_policy_receipt'):
                 self.parameter_policy_receipt = copy.deepcopy(baseline.parameter_policy_receipt)
 
@@ -299,21 +317,33 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
             if temporal and any(p.dtype != torch.float32 for p in parts):
                 raise GraphError(('Runtime-temporal-v2' if temporal_v2 else 'Runtime-temporal-v1') +
                                  ' requires dense CPU float32 inputs, including explicit control adapters.')
+            if has_sources and any(p.dtype != torch.float32 for p in parts):
+                raise GraphError('Tensor sources require dense CPU float32 runtime inputs and storage.')
             if any(p.ndim < 2 for p in parts) or len({p.shape[0] for p in parts}) != 1:
                 raise GraphError('Runtime named inputs must have one common positive batch size B.')
-            if len({p.dtype for p in parts}) != 1 or any(p.device.type != 'cpu' or p.dtype != parts[0].dtype for p in self.parameters()):
-                raise GraphError('Runtime inputs and learned parameters must have the same CPU floating dtype; move/cast them explicitly.')
+            if len({p.dtype for p in parts}) != 1 or any(p.device.type != 'cpu' or p.dtype != parts[0].dtype
+                                                       for p in (*self.parameters(), *self.buffers())):
+                raise GraphError('Runtime inputs, learned parameters and buffers must have the same CPU floating dtype; move/cast them explicitly.')
             shapes = {g['id']:list(p.shape[1:]) for g,p in zip(groups,parts)}
-            return self.preview_shapes(shapes,batch_size=parts[0].shape[0],dtype_bytes=parts[0].element_size(),
-                                       gradients=torch.is_grad_enabled())['contract']
+            c = self.preview_shapes(shapes,batch_size=parts[0].shape[0],dtype_bytes=parts[0].element_size(),
+                                    gradients=torch.is_grad_enabled())['contract']
+            return c, parts[0].shape[0]
+
+        def _runtime_values(self,x):
+            c, batch_size = self._call_contract(x)
+            # Pass B explicitly to source kernels; never treat a predecessor's
+            # data or the runtime H/W/T dimensions as their constructor shape.
+            values = (_graph_values(self,x,c,batch_size=batch_size) if has_sources else
+                      _graph_values(self,x,c))
+            return c, values
 
         def intermediate_values(self,x):
-            c = self._call_contract(x); return _graph_values(self,x,c)
+            return self._runtime_values(x)[1]
 
         def forward_tensor(self,x):
-            c = self._call_contract(x); return _graph_tensor(_graph_values(self,x,c),c)
+            c, values = self._runtime_values(x); return _graph_tensor(values,c)
 
         def forward(self,x):
-            c = self._call_contract(x); values = _graph_values(self,x,c); groups = c['output_groups']
+            c, values = self._runtime_values(x); groups = c['output_groups']
             return values[groups[0]['id']] if len(groups) == 1 else {g['name']:values[g['id']] for g in groups}
     return RuntimeGraph()
