@@ -4,6 +4,13 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 21:23 -03:00 — Frozen GUI test wait correction
+
+Frozen0b2cb18 passes60 Python/367 JS/native dispatcher checks. Its WebEngine
+rerun revealed the harness dereferencing a temporarily absent owner-card title
+after rehydration. Made the polling predicate null-safe without changing product
+behavior; retained failed log. Corrected frozen native rerun still required.
+
 ## 2026-10-12 21:16 -03:00 — Guarded Inspector parameter policies
 
 Added canonical-owner freeze/initialization controls, defining-box navigation and
