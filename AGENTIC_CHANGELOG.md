@@ -4,7 +4,21 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
-## 2026-10-12 21:23 -03:00 — Frozen GUI test wait correction
+## 2026-10-12 21:24 -03:00 — Review corrections for policy edits and repair
+
+Sole reviewer found an accepted-policy/ordinary-save race, alias-backed declaration
+editing gap, multiple-outdated initializer dead end and orphaned bias dead end.
+Serialized policy mutations with ordinary snapshots and reconciled only the
+authoritative policy field, preserving concurrent diagram edits even when the
+subsequent state read fails. Owner edits now change/reset all same-scope alias
+contributors; explicit block-local atomic reset repairs multiple obsolete tensors
+without deleting other blocks/descendant policies.79 focused Python/368 JS and
+native dispatcher pass; actual callback delayed-ack race tested. First WebEngine
+review run reached initialization but its error predicate selected the new empty
+block-reset error slot; corrected owner-local selector, retained failure. Final
+frozen native verification remains required; no whole-goal completion claimed.
+
+## 2026-10-12 21:18 -03:00 — Frozen GUI test wait correction
 
 Frozen0b2cb18 passes60 Python/367 JS/native dispatcher checks. Its WebEngine
 rerun revealed the harness dereferencing a temporarily absent owner-card title

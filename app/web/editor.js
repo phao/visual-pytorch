@@ -19,6 +19,7 @@
   let recurrentEditGeneration=0;
   let policyGeneration=0;
   let pendingPolicyOwner=null;
+  let policyMutation=null;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
@@ -241,12 +242,16 @@
 
   function persist() {
     if (!doc) return Promise.resolve();
-    const snapshot = clone(doc), mid = doc.id;
+    let snapshot = clone(doc);const mid = doc.id,policyEdit=policyMutation?.id===mid?policyMutation:null;
     snapshot.view={x:0,y:0,zoom:1}; // Keep viewport state out of persisted edits/history.
     state.models[mid] = clone(snapshot);
     state.dirty = true;
     header();
     syncQueue = syncQueue.then(async () => {
+      if(policyEdit?.document){
+        if(state.panel_scope!==policyEdit.scope)return;
+        snapshot=window.LoomParameterPolicy.reconcile(snapshot,policyEdit.document);
+      }
       const answer = await safe("updateModel", {document: snapshot});
       if (answer && doc?.id === mid) {
         description = answer;
@@ -534,15 +539,28 @@
       const mid=doc.id,nid=n.id,context={workspace_id:state.workspace_id,panel_scope:state.panel_scope};
       syncQueue.then(()=>call('parameterPolicy',{...context,id:mid,node:nid})).then(info=>{
         if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)return;
-        window.LoomParameterPolicy.mount($('parameter-policy-editor'),info,{busy,
-          commit:async(selector,changes)=>{
+        function policyEdit(action,args){
             if(busy())throw new Error('Stop the current run before editing.');
+            if(policyMutation)throw new Error('Wait for the current parameter policy edit.');
             if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)throw new Error('Selection changed; reopen parameter policy.');
-            await syncQueue;
-            const updated=await call('editParameterPolicy',{...context,id:mid,node:nid,architecture:info.architecture,selector,changes_json:JSON.stringify(changes)});
-            if(doc?.id!==mid)return;
-            hydrate(await call('state'));
-          },
+            const transaction={id:mid,scope:context.panel_scope,document:null};policyMutation=transaction;
+            const operation=syncQueue.then(async()=>{
+              try{
+                const updated=await call(action,{...context,id:mid,node:nid,architecture:info.architecture,...args});
+                transaction.document=updated.document;
+                const authoritative=await call('state');
+                if(authoritative.panel_scope===context.panel_scope&&doc?.id===mid){
+                  authoritative.models[mid]=window.LoomParameterPolicy.reconcile(doc,updated.document);
+                  hydrate(authoritative);
+                }
+              }finally{if(policyMutation===transaction)policyMutation=null;if(state.panel_scope===context.panel_scope)renderInspector();}
+            });
+            syncQueue=operation.catch(()=>{});
+            return operation;
+        }
+        window.LoomParameterPolicy.mount($('parameter-policy-editor'),info,{busy:()=>busy()||Boolean(policyMutation),
+          commit:(selector,changes)=>policyEdit('editParameterPolicy',{selector,changes_json:JSON.stringify(changes)}),
+          resetBlock:()=>policyEdit('resetBlockParameterPolicy',{}),
           openDefinition:async definition=>{
             if(definition.model===doc?.id){selected=definition.node;updateSelection();renderInspector();}
             else{pendingPolicyOwner=definition;if(!await safe('openModel',{id:definition.model,newTab:false}))pendingPolicyOwner=null;}

@@ -4,7 +4,7 @@ import json
 from .core import GraphError, validate_model
 from .evidence import digest, identity, parameter_schema
 from .graph import parameter_owners
-from .parameter_policy import initializer, resolve
+from .parameter_policy import graph_aliases, initializer, resolve
 from .policy_graph import expansion_bound, owner_key, plan, present
 from .revisions import _parse
 
@@ -65,6 +65,8 @@ def prepare(models, mid, nid):
                        'definition': {'model': current, 'node': parts[-2]},
                        'shared': canonical != nid})
     return {**context, 'owners': sorted(owners, key=lambda row: row['selector']), 'policy_error': policy_error,
+            'has_local_policy': any(json.loads(key)[0] in {block for block, target in parameter_owners(models[mid]).items() if target == canonical}
+                for key in models[mid]['graph'].get('parameter_policy', {}).get('parameters', {})),
             'note': 'Initial parameters for a new run, not optimizer resume. Explicit conflicts across shared/reference scopes refuse.'}
 
 
@@ -95,20 +97,43 @@ def build(models, token, selector, changes_json):
     effective = None if info['policy_error'] else _resolved(models, token['id'])['owners'][selected['id']]
     doc = copy.deepcopy(models[token['id']])
     policy = doc['graph'].get('parameter_policy', {'version': 1, 'parameters': {}})
-    previous = policy['parameters'].get(selector, {})
-    entry = copy.deepcopy(previous)
+    aliases = graph_aliases(models, token['id'])
+    matching = [key for key in policy['parameters']
+                if aliases.get(owner_key([token['id']] + json.loads(key)), owner_key([token['id']] + json.loads(key))) == selected['id']]
+    if not matching: matching = [selector]
+    original = copy.deepcopy(policy)
     for field, value in changes.items():
-        if value is None: entry.pop(field, None); continue
-        if field == 'trainable':
-            if type(value) is not bool: raise GraphError('Trainable must be boolean.')
-        else: value = initializer(value, selected['shape'])
+        if value is not None:
+            if field == 'trainable':
+                if type(value) is not bool: raise GraphError('Trainable must be boolean.')
+            else: value = initializer(value, selected['shape'])
         # Do not create a declaration/history edit merely to redisplay the
         # effective inherited default. Explicit pinning remains possible by CLI.
-        if effective is None or value != effective[field] or field in previous: entry[field] = value
-    if entry == previous: return doc
-    if entry: policy['parameters'][selector] = entry
-    else: policy['parameters'].pop(selector, None)
+        for key in matching:
+            entry = policy['parameters'].setdefault(key, {})
+            if value is None: entry.pop(field, None)
+            elif effective is None or value != effective[field] or field in entry: entry[field] = value
+    for key in matching:
+        if not policy['parameters'][key]: policy['parameters'].pop(key)
+    if policy == original: return doc
     doc['graph']['parameter_policy'] = policy
+    prospective = dict(models); prospective[token['id']] = doc
+    plan(prospective, token['id'])
+    return doc
+
+
+def reset_block(models, token):
+    """Explicit atomic local-scope reset, including orphaned tensor selectors."""
+    if not isinstance(token, dict) or set(token) != set(TOKEN) or token != _context(models, token.get('id'), token.get('node')):
+        raise GraphError('Architecture changed; reopen parameter policy.')
+    info = prepare(models, token['id'], token['node'])
+    doc = copy.deepcopy(models[token['id']])
+    if not info['has_local_policy']: return doc
+    owners = parameter_owners(doc); canonical = owners[token['node']]
+    blocks = {block for block, owner in owners.items() if owner == canonical}
+    entries = doc['graph']['parameter_policy']['parameters']
+    for key in list(entries):
+        if json.loads(key)[0] in blocks: del entries[key]
     prospective = dict(models); prospective[token['id']] = doc
     plan(prospective, token['id'])
     return doc

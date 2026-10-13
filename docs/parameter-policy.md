@@ -143,8 +143,13 @@ Edits are guarded against stale architecture identity, selected owner, workspace
 identity and same-path reload scope. A successful change uses desktop undo/redo;
 a no-op does not create history or SQL writes. Busy training refuses edits.
 Shape-valid graphs with outdated initializer dimensions can expose a repair
-editor, marked unverified until the policy validates. This does not promise a
-general repair tool for malformed tensor graphs or orphaned selectors.
+editor, marked unverified until the policy validates. Reset this block's local
+policies explicitly clears that block's local trainability/initialization fields
+in one validated change, including aliases and declarations for removed tensors.
+This permits atomic repair of several outdated initializers without accepting an
+invalid intermediate policy. Other blocks and referenced definitions remain
+unchanged; descendant conflicts still refuse. It is not a general tensor-graph
+repair tool.
 
 Expanded boxes report Frozen/Trainable/Mixed alongside bias state. Compact
 summaries retain bias and abbreviated frozen/mixed status. These labels describe

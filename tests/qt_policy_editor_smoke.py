@@ -49,7 +49,10 @@ def until(source):
         QTest.qWait(25)
     raise AssertionError('UI timeout: '+source)
 def click(selector):
-    point=js('(()=>{const e=document.querySelector('+json.dumps(selector)+');e.scrollIntoView({block:"nearest"});const r=e.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()')
+    until('Boolean(document.querySelector('+json.dumps(selector)+')) && !document.querySelector('+json.dumps(selector)+').disabled')
+    js('document.querySelector('+json.dumps(selector)+').scrollIntoView({block:"nearest"})')
+    QTest.qWait(100)
+    point=js('(()=>{const r=document.querySelector('+json.dumps(selector)+').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()')
     QTest.mouseClick(view.focusProxy() or view,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,QPoint(round(point[0]),round(point[1])))
 def inspect(nid):js('document.querySelector(".node[data-id='+nid+']").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
 
@@ -84,15 +87,20 @@ with tempfile.TemporaryDirectory() as folder:
         click('.policy-owner summary');js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250);assert view.grab().save(str(output/'02-adapter-initializer.png'))
         raw=h.workspace.db.serialize();count=len(h.workspace.history.undo_stack)
         js('document.querySelector("[data-policy-field=std]").value="0"');click('.policy-owner details button')
-        until('document.querySelector(".policy-error").textContent.includes("positive")')
+        until('document.querySelector(".policy-owner .policy-error")?.textContent.includes("positive")')
         assert h.workspace.db.serialize()==raw and len(h.workspace.history.undo_stack)==count
+        click('[data-policy-reset-block]')
+        until('!Object.hasOwn(window.loom.document.graph.parameter_policy.parameters,\'["A","weight"]\')')
+        assert len(h.workspace.history.undo_stack)==count+1
+        h.dispatch({'action':'undo'},h.bridge)
+        until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.std===0.02')
         h.workspace.save(Path(folder)/'saved.vtw');reopened=Workspace.load(Path(folder)/'saved.vtw')
         try:assert reopened.models()['lora']['graph']['parameter_policy']==h.workspace.models()['lora']['graph']['parameter_policy']
         finally:reopened.db.close()
         h.config.save.assert_not_called();assert not errors,errors
         assert 'torch' not in sys.modules and 'numpy' not in sys.modules
         print(json.dumps({'native_mouse_policy_controls':True,'badges':True,'undo_redo':True,
-            'invalid_initializer_no_mutation':True,'save_reload':True,'sandbox':True,
+            'invalid_initializer_no_mutation':True,'atomic_block_reset_undo':True,'save_reload':True,'sandbox':True,
             'host_torch':False,'user_config_untouched':True,'captures':2,'console_errors':errors}))
     finally:
         h.workspace.db.close()

@@ -579,7 +579,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','editParameterPolicy','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -720,21 +720,26 @@ class Window(QMainWindow):
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
-        if action in {'parameterPolicy', 'editParameterPolicy'}:
-            from .policy_authoring import prepare, build, TOKEN
-            writing = action == 'editParameterPolicy'
+        if action in {'parameterPolicy', 'editParameterPolicy', 'resetBlockParameterPolicy'}:
+            from .policy_authoring import prepare, build, reset_block, TOKEN
+            writing = action != 'parameterPolicy'
             expected = {'action', 'workspace_id', 'panel_scope', 'id', 'node'}
-            if writing: expected |= {'architecture', 'selector', 'changes_json'}
+            if writing: expected.add('architecture')
+            if action == 'editParameterPolicy': expected |= {'selector', 'changes_json'}
             if set(req) != expected:
                 raise ValueError('Parameter policy request has missing or unsupported fields.')
             wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
             if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
                 raise ValueError('Workspace changed; reopen parameter policy.')
             if writing:
-                doc = build(models, {key: req[key] for key in TOKEN}, req['selector'], req['changes_json'])
+                token = {key: req[key] for key in TOKEN}
+                doc = reset_block(models, token) if action == 'resetBlockParameterPolicy' else build(models, token, req['selector'], req['changes_json'])
                 if doc != models[req['id']]: self.workspace.put(doc)
                 self.broadcast(exclude=bridge)
-            return prepare(self.workspace.models(), req['id'], req['node'])
+            current = self.workspace.models()
+            result = prepare(current, req['id'], req['node'])
+            if writing: result['document'] = current[req['id']]
+            return result
         if action in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}:
             from .lstm_authoring import prepare, prepare_edit, build, build_edit, CREATE_TOKEN, EDIT_TOKEN
             from .revisions import _parse

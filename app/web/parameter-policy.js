@@ -22,12 +22,27 @@
     }
     return value;
   }
+  function reconcile(snapshot,authoritative){
+    if(snapshot.id!==authoritative.id)throw new Error('Cannot reconcile different architectures.');
+    const result=JSON.parse(JSON.stringify(snapshot));
+    if(Object.hasOwn(authoritative.graph,'parameter_policy'))result.graph.parameter_policy=JSON.parse(JSON.stringify(authoritative.graph.parameter_policy));
+    else delete result.graph.parameter_policy;
+    return result;
+  }
   function mount(container,info,options){
     const document=container.ownerDocument;
     function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
     container.replaceChildren();
     container.append(element('h4','Parameter policy'),element('p','Initial values for a new run; not optimizer resume. Frozen weights still pass input gradients.','inspect-note'));
     if(info.policy_error)container.append(element('p','Policy needs repair: '+info.policy_error,'policy-error'));
+    if(info.has_local_policy){
+      const reset=element('button','Reset this block’s local policies');reset.type='button';reset.disabled=options.busy();
+      reset.dataset.policyResetBlock='true';
+      reset.title='Explicitly remove local trainability and initialization declarations for this block, including shared aliases and obsolete tensors. Referenced definitions and other blocks are unchanged.';
+      const error=element('p','','policy-error');error.setAttribute('role','alert');
+      reset.onclick=async()=>{if(options.busy())return;try{await options.resetBlock();}catch(e){error.textContent=e.message;}};
+      container.append(reset,error);
+    }
     if(!info.owners.length){container.append(element('p','This block owns no learned parameters.','inspect-note'));return;}
     for(const owner of info.owners){
       const card=element('div',undefined,'policy-owner');card.dataset.policySelector=owner.selector;
@@ -72,5 +87,5 @@
     }
     container.append(element('p',info.note,'inspect-note'));
   }
-  return {kinds,defaultInitializer,parse,mount};
+  return {kinds,defaultInitializer,parse,reconcile,mount};
 });
