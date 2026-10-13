@@ -69,8 +69,8 @@ def contract(model,dataset,task,runtime, *, execution=None):
 
 def input_policy(bundle):
     model=bundle['model'];baseline=validate_model(model['models'],model['root'])
-    if bundle['version'] in (3,4):
-        kind='runtime-temporal-v2' if bundle['version']==4 else 'runtime-temporal-v1'
+    if bundle['version'] in (3,4,6):
+        kind='runtime-temporal-v2' if bundle['version'] in (4,6) else 'runtime-temporal-v1'
         actual=contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],execution=kind)
         return {'kind':kind,'runtime_temporal':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
                 'baseline_input_groups':copy.deepcopy(baseline['input_groups']),

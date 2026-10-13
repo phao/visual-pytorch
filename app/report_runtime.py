@@ -172,7 +172,7 @@ def run_report(payload, directory):
                                                 record['selection']['experiment']['revision'])
                 bundle = candidate_bundle(experiment, record['selection']['coordinates'], workspace.get_spec,
                                           saved_manifest=record['resolved']['manifest'])
-                if bundle['version'] in (2,3,4):
+                if bundle['version'] in (2,3,4,6):
                     new_file(directory / ('runtime-architecture-' + summary['reference']['revision'] + '.py'),
                              generate_task_architecture(bundle,constrained=False))
                 new_file(directory / ('predictor-' + summary['reference']['revision'] + '.py'),
@@ -307,7 +307,7 @@ def curve_svg(summary, result, hid, context):
                 '<desc id="' + desc_id + '">' + escape(' '.join(captions)) + '</desc>',
                 '<metadata>' + escape(json.dumps({'version': 1, 'run': summary['reference'], 'head': hid,
                     'final_checkpoint': result['checkpoint_id'], 'context': context, 'series': series,
-                    'x_range': [0, max_x], 'y_range': [0, max_y], 'scale': 'linear',
+                    'x_range': [0, max_x], 'y_range': [min_y, max_y], 'scale': 'linear',
                     'retention': retention}, sort_keys=True, allow_nan=False)) + '</metadata>',
                 '<rect width="760" height="' + str(height) + '" fill="#f7fafc"/>',
                 '<g font-family="sans-serif" font-size="14" fill="#203040">']

@@ -72,8 +72,10 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
         sv=runtime['specialization'].get('version')
         result.update(version=4 if sv in (7,8,9,10,11) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
     if task['version'] == 2:
-        _require(runtime is None, 'TaskSpec2 currently requires a concrete specialization; runtime-family likelihood is not admitted yet.')
-        result['version'] = 5
+        if runtime is not None:
+            _require(runtime['family']['version'] == 12 and runtime['specialization']['version'] == 11,
+                     'Runtime likelihood requires probability Family12/Specialization11 temporal-v2 proof.')
+        result['version'] = 6 if runtime is not None else 5
     validate_bundle(result)
     return result
 
@@ -81,20 +83,23 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
 def validate_bundle(bundle):
     _require(isinstance(bundle,dict),'TaskBundle must be a closed object.')
     _keys(bundle, ('version', 'model', 'dataset', 'task', 'manifest', 'protocol')+
-          (('runtime',) if bundle.get('version') in (2,3,4) else ()), context='TaskBundle')
-    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3,4,5),'TaskBundle supports integer versions1–5.')
-    _require((bundle['version'] == 5) == (bundle['task'].get('version') == 2),
-             'TaskSpec2 requires TaskBundle5; older bundles retain supervised-only task meaning.')
+          (('runtime',) if bundle.get('version') in (2,3,4,6) else ()), context='TaskBundle')
+    _require(type(bundle['version']) is int and bundle['version'] in (1,2,3,4,5,6),'TaskBundle supports integer versions1–6.')
+    _require((bundle['version'] in (5,6)) == (bundle['task'].get('version') == 2),
+             'TaskSpec2 requires TaskBundle5/6; older bundles retain supervised-only task meaning.')
+    if bundle['version'] == 6:
+        _require(bundle['runtime']['family']['version'] == 12 and bundle['runtime']['specialization']['version'] == 11,
+                 'Runtime likelihood requires probability Family12/Specialization11 temporal-v2 proof.')
     for kind in ('model', 'dataset', 'task'):
         _require('revision' in bundle[kind], 'Execution requires exact frozen ' + kind + ' revision.')
         frozen_document(kind, bundle[kind])
     validate_protocol(bundle['protocol'])
     from .datasets import check_manifest, validate_task
     model = bundle['model']; contract = validate_model(model['models'], model['root'])
-    if bundle['version'] in (2,3,4):
+    if bundle['version'] in (2,3,4,6):
         from .runtime_tasks import contract as runtime_contract
         contract=runtime_contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],
-                                  execution='runtime-temporal-v2' if bundle['version']==4 else
+                                  execution='runtime-temporal-v2' if bundle['version'] in (4,6) else
                                   'runtime-temporal-v1' if bundle['version']==3 else 'runtime-spatial-v1')
     validate_task(bundle['task'], bundle['dataset'], contract)
     check_manifest(bundle['dataset'], bundle['manifest'])
@@ -120,6 +125,9 @@ def run_identity(bundle):
         result.update(version=4,compiler='native-runtime-temporal-v2',runtime=digest(bundle['runtime']))
     elif bundle['version']==5:
         result.update(version=5, task_runtime='signed-additive-v2')
+    elif bundle['version']==6:
+        result.update(version=6, compiler='native-runtime-temporal-v2',
+                      runtime=digest(bundle['runtime']), task_runtime='signed-additive-v2')
     if bundle['model']['version'] >= 6:
         from .policy_graph import plan
         result['parameter_policy'] = plan(bundle['model']['models'], bundle['model']['root'])['resolved']['identity']
@@ -132,8 +140,8 @@ def compile_task_model(bundle, *, constrained=True, memory_limit_percent=10.):
     contract = validate_bundle(bundle)
     from .core import compile_model
     spec=bundle['model'];decl=None
-    if bundle['version'] in (2,3,4):decl=bundle['runtime']['specialization']['runtime']['inputs']
-    policy=({'runtime_temporal_v2':decl} if bundle['version']==4 else
+    if bundle['version'] in (2,3,4,6):decl=bundle['runtime']['specialization']['runtime']['inputs']
+    policy=({'runtime_temporal_v2':decl} if bundle['version'] in (4,6) else
             {'runtime_temporal':decl} if bundle['version']==3 else {'runtime_inputs':decl})
     return compile_model(spec['models'],spec['root'],constrained,
                          memory_limit_percent=memory_limit_percent,**policy,
@@ -167,8 +175,8 @@ def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     memory['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (
         8192 + 512 * point_rows * len(bundle['task']['heads']))
-    if bundle['version'] in (3,4):
-        if bundle['version']==4:
+    if bundle['version'] in (3,4,6):
+        if bundle['version'] in (4,6):
             from .temporal_shapes_v2 import admission as temporal_admission
         else:
             from .temporal_shapes import admission as temporal_admission
@@ -176,7 +184,7 @@ def resolve_run(bundle, *, constrained=True, memory_limit_percent=10., available
         extra=temporal_admission(model['models'],model['root'],contract,size,constrained=False,
                                  memory_limit_percent=percentage,gradients=True)
         memory['components']['recurrent_unrolls']=extra['memory']['components']['recurrent_unrolls']
-        if bundle['version']==4:
+        if bundle['version'] in (4,6):
             # Whole-tree v2 owners/gates are ADDITIONAL to collation, outputs,
             # metric history and head supervision, never a replacement for them.
             memory['components']['parameters_optimizer_evidence']=max(
@@ -271,7 +279,7 @@ def restore_task_predictor(bundle, checkpoint, *, constrained=True, memory_limit
         model = compile_task_model(bundle,constrained=constrained,memory_limit_percent=memory_limit_percent)
     model.load_state_dict({k: torch.tensor(v, dtype=torch.float32, device='cpu') for k, v in checkpoint['weights'].items()}, strict=True)
     model.eval()
-    if bundle['version'] in (2,3,4):
+    if bundle['version'] in (2,3,4,6):
         from .runtime_tasks import input_policy
         bundle['runtime_policy']=input_policy(bundle)
     class Predictor:
@@ -349,7 +357,7 @@ def generate_task_predictor(bundle, checkpoint, *, constrained=True, memory_limi
                   'task': {'inputs': bundle['task']['inputs']}}
     if bundle['task']['version'] == 2:
         input_spec['task'].update(version=2, diagnostic_outputs=bundle['task']['diagnostic_outputs'])
-    if bundle['version'] in (2,3,4):
+    if bundle['version'] in (2,3,4,6):
         from .runtime_tasks import input_policy
         input_spec['runtime_policy']=input_policy(bundle)
     source.extend([f'_input_spec = {input_spec!r}', f'_fitted = {checkpoint["fitted"]!r}',

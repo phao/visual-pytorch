@@ -182,8 +182,8 @@ def validate_result(bundle, result):
         expected['components']['parameter_policy_initialization'] = 256 * resolved['counts']['stored'] + 4096 * len(resolved['owners'])
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     expected['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (8192 + 512 * point_rows * len(bundle['task']['heads']))
-    if bundle['version'] in (3,4):
-        if bundle['version']==4:
+    if bundle['version'] in (3,4,6):
+        if bundle['version'] in (4,6):
             from .temporal_shapes_v2 import admission as temporal_admission
         else:
             from .temporal_shapes import admission as temporal_admission
@@ -191,7 +191,7 @@ def validate_result(bundle, result):
         extra=temporal_admission(model['models'],model['root'],prepared['contract'],size,constrained=False,
                                  memory_limit_percent=memory['limit_percent'],gradients=True)
         expected['components']['recurrent_unrolls']=extra['memory']['components']['recurrent_unrolls']
-        if bundle['version']==4:
+        if bundle['version'] in (4,6):
             expected['components']['parameters_optimizer_evidence']=max(
                 expected['components']['parameters_optimizer_evidence'],extra['memory']['components']['parameters'])
             expected['components']['lstm_unrolls']=extra['memory']['components']['lstm_unrolls']

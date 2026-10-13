@@ -124,6 +124,10 @@ class LikelihoodTaskTests(unittest.TestCase):
                         {'model': 'Gaussian HMM', 'dataset': 'Unlabelled trajectories', 'unit': '', 'transforms': []})
         self.assertIn('negative-log-likelihood', svg)
         self.assertIn('>-', svg)
+        import xml.etree.ElementTree as ET
+        metadata = json.loads(next(e.text for e in ET.fromstring(svg) if e.tag.endswith('metadata')))
+        self.assertLess(metadata['y_range'][0],0.)
+        self.assertEqual(metadata['y_range'][1],0.)
         axes = re.search(r'<path d="M 72 ([\d.]+) V ([\d.]+) H 732"', svg)
         top, bottom = map(float, axes.groups())
         for coordinates in re.findall(r'<polyline[^>]*points="([^"]+)"', svg):
