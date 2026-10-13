@@ -668,11 +668,9 @@ class Window(QMainWindow):
                 n.setdefault('x',0);n.setdefault('y',0)
                 if n['type']=='Linear':n.setdefault('bias',True)
             if req['graph']!=expected:raise ValueError('Architecture changed; retry parameter sizing after its edits are saved.')
-            from .presentation import block_parameter_counts
-            contract=validate_model(models,mid)
-            interfaces={n['id']:validate_model(models,n['ref']) for n in models[mid]['graph']['nodes'] if n['type']=='Module'}
+            from .policy_authoring import trainable_block_counts
             return {'workspace_id':wid,'panel_scope':self.workspace.panel_scope,'id':mid,
-                    'counts':block_parameter_counts(models[mid],contract,interfaces)}
+                    'counts':trainable_block_counts(models,mid)}
         if action == "setConstrainedMode":
             if job_busy(self.job):
                 raise ValueError("Stop the current run before changing its safety mode.")

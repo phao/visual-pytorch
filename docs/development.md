@@ -2999,3 +2999,34 @@ supervised regime demo does not implement those. Separate workbench TYPES and
 the standalone loss design study remain the agreed direction; production
 Experiment-panel replacement, label changes, E, public push and user-state
 changes remain out of this checkpoint.
+
+## 2026-10-13 00:40 -03:00 — Actual LoRA route acceptance before frozen broad gate
+
+The requested public `examples/lora.vtw` and baseline/comparison JSON artifacts
+are committed locally, not pushed. Clear W0/A/B/scale/Add display labels were
+added without rewriting frozen models or retained evidence. Fresh result-report
+and explicit-rerun Jupyter kernels reproduce four original200-update checkpoints,
+metrics and checked predictions;19 actual code cells total. A real sandboxed
+Qt worker and CLI launch the same frozen rank2 selection/manifest and reproduce
+the original200-update checkpoint, parameter-policy receipt and metrics.
+Native compact-icon drag/undo/redo/Space expansion, private persistence and role
+badges pass. Software-rendering capture is real. Offscreen GPU crash and Qt
+double-click injection producing two ordinary browser clicks are distinct retained
+harness limitations; no native browser double-click claim is inferred.
+
+The portable package now has an actual temporal rank3 source test with signed-zero
+base and nonexact4/3 scale: native/checkpoint/output/input-gradient parity and
+independent merged tolerance pass. Four new/existing cases5.728s. The LoRA review
+also exposed learnable-height sizing counting frozen storage; corrected read-only
+unique trainable-owner projection serves GUI layout and optional CLI --trainable,
+leaving default stored counts and RAM unchanged.23 affected cases5.850s and actual
+LoRA layout/worker persistence pass. Documentation and screenshot identities are
+in [the workflow](lora-workflow.md).
+
+One worker added an independent bounded standard-library enumerated Gaussian HMM
+reference and31 analytic/refusal tests. Main reviewed all code and reran with
+site packages disabled:0.009s pass. Initial belief precedes first transition;
+rows are previous→next, Gaussian constants/variances explicit, missing emissions
+still advance state, prefixes are filtered not smoothed. This is test reference
+only; app discovery still correctly reports latent likelihood unsupported.
+Final broad frozen regression is next, not yet an integration/full feature claim.

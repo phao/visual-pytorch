@@ -45,6 +45,12 @@ export an exact retained-run predictor or inspect the merged inference drawing.
 Folding, dragging and resizing change presentation, not computation. Space toggles
 the selected block; Ctrl+Z/Ctrl+Shift+Z undo/redo edits.
 
+Layout's “Size by learnable parameters” counts only unique optimizer-owned
+elements: the frozen base collapses while A and B remain expanded. Stored
+parameter and RAM counts still include the base. CLI `parameter-counts ID`
+retains stored counts; `parameter-counts ID --trainable` exposes the same
+learnable projection as the Layout panel.
+
 ## Real checks, not full training infrastructure
 
 The Experiment panel's scientific browser contains two fixed comparisons:

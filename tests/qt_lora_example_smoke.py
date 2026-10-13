@@ -129,6 +129,8 @@ try:
     assert actual['result']['counts']['completed_updates'] == 200
     assert actual['result']['checkpoint_id'] == baseline['checkpoint_id']
     assert actual['result']['final_metrics'] == baseline['final_metrics']
+    js('window.loom.perform("layout");document.getElementById("layout-expanded-section").open=true;document.getElementById("layout-expanded-parameter_sizing").checked=true;document.getElementById("expand-all").click()')
+    until('window.loom.document.graph.nodes.find(n=>n.id==="base").collapsed && ["A","B"].every(id=>{const n=window.loom.document.graph.nodes.find(n=>n.id===id);return !n.collapsed&&n.height})')
     with (output / 'worker-snapshot.json').open('x') as stream: json.dump(snapshot, stream, allow_nan=False)
     with (output / 'worker-result.json').open('x') as stream: json.dump(actual, stream, allow_nan=False)
     h.workspace.save(output / 'final.vtw', require_new=True); restored = Workspace.load(output / 'final.vtw')
@@ -137,7 +139,7 @@ try:
     assert source.read_bytes() == original and 'torch' not in sys.modules and not errors
     print(json.dumps({'status': 'PASS', 'real_example': True, 'dual_paths_and_roles': True,
         'native_compact_icon_drag_undo_and_space_expand': True, 'real_gui_worker_updates': 200,
-        'exact_original_checkpoint_and_metrics': True, 'save_reload': True,
+        'exact_original_checkpoint_and_metrics': True, 'learnable_layout_excludes_frozen_storage': True, 'save_reload': True,
         'untouched_source_and_config': True, 'host_torch': False, 'console_errors': errors}), flush=True)
 finally:
     if h.job and h.job.isRunning(): h.job.stop(); h.job.wait(15000)

@@ -85,6 +85,12 @@ zero-update baselines are real synthetic checks. Saved and fresh-rerun notebooks
 CLI and GUI reproduce the checked rank2 checkpoint; this is not a claim of
 general LoRA superiority. See the [workflow and limits](docs/lora-workflow.md).
 
+![Real application: frozen Base W₀ and trainable A/B branches in the synthetic LoRA example](assets/screenshots/lora-expanded.png)
+
+This actual Qt capture shows the initial rank2 graph:256 frozen plus64 trainable
+elements. The drawing is an initialization template; its saved training evidence
+and explicitly merged inference map are separate artifacts.
+
 ![Real application: a completed saved-result notebook, with exact recipe, input index and retained artifact receipts](assets/screenshots/notebook-evidence.png)
 
 This real Qt capture shows a saved-result notebook executed in a fresh kernel:

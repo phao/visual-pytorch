@@ -1043,3 +1043,24 @@ symlink loader refusals and oversized/invalid pre-create cases pass with the eig
 package checks plus32 UI guards40/14.439s. Earlier parent71 focused cases97.348s
 passes for its exact5d81fd3 source, not a corrected-child full regression. Reviewer
 closed; no second simultaneous subagent or production UI redesign.
+
+## 2026-10-13 00:40 -03:00 — Actual LoRA example, route parity and learnable layout
+
+Added the requested public example locally:16 related drawings, six real200-update
+fits, separately identified native zero-update baselines, actual merge and clear
+initial-versus-trained documentation. Display labels preserve all frozen evidence
+and scientific identities. Actual saved/rerun kernels reproduce four original
+checkpoints/metrics/predictions; real Qt icon drag/undo/Space,200-update worker,
+save/reload and CLI frozen-selection/policy/metric equality pass. Graphics and
+mouseDClick-injection harness failures are retained separately, not hidden.
+An actual rank3 temporal package verifies signed-zero base, nonexact alpha/r,
+native predictions/input gradients and merged tolerance; four cases5.728s pass.
+
+Fixed the discovered learnable-height mismatch: layout now counts unique trainable
+owners, excluding frozen weights and duplicate aliases while RAM/storage counts
+remain unchanged. CLI --trainable shares this read-only projection;23 focused
+cases5.850s and actual LoRA layout/worker/save-reload pass. One subagent's pure
+enumerated Gaussian HMM reference was reviewed/integrated;31 site-packages-free
+checks0.009s pass. Reference-only, not an admitted HMM/MS-VAR application feature.
+Final broad LoRA regression remains; full Neural MS-VAR still requires production
+operators/objective/provenance/CLI routes. No E/user-state/public push changes.

@@ -1,5 +1,12 @@
 # Agent and user CLI contract
 
+`parameter-counts MODEL --trainable` returns decimal counts of unique trainable
+owners per visible block and scope `unique-trainable-owners`. Frozen storage and
+shared alias-only blocks contribute zero; Module/Recurrent descendants are
+attributed once to their root visible block. This is the GUI learnable-height
+layout projection, not a tensor allocation or training run. Without the flag,
+the existing stored-count output is unchanged.
+
 Exact retained initialization supports `prepare-parameter-binding MODEL NODE`,
 `retained-parameters RUN REVISION --attempt N`, read-only
 `preview-parameter-binding token.json SELECTOR source.json`, and ordered `apply`

@@ -1,5 +1,11 @@
 # Layout profiles and compact block summaries
 
+Learnable-height sizing counts unique trainable owners, not stored weights.
+Frozen and alias-only blocks collapse; nested Module/Recurrent owners count once
+under their visible root block. Storage/optimizer/RAM counts remain separate.
+The guarded native panel and CLI `parameter-counts ID --trainable` use one pure
+projection. Default CLI `parameter-counts ID` preserves its stored-count contract.
+
 Layout is a major floating panel in the alphabetically ordered PANELS pack.
 All Blocks Collapsed and All Blocks Expanded are separate collapsible sections,
 each with its own options and Minimize all/Expand all action.

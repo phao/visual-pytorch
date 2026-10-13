@@ -254,6 +254,8 @@ def main(argv=None):
     for command in ('show','validate','parameter-counts','export','export-trained'):
         p = sub.add_parser(command)
         p.add_argument('id')
+        if command == 'parameter-counts':
+            p.add_argument('--trainable', action='store_true', help='Unique optimizer-owned elements by visible block; frozen/alias blocks count zero')
     specs = sub.add_parser('spec-list', help='Independent object browsing heads or all retained revisions')
     from app.revisions import KINDS
     specs.add_argument('--kind', choices=KINDS)
@@ -433,10 +435,15 @@ def main(argv=None):
                 from app.parameter_binding import preview
                 value = preview(workspace, read_json(args.token), args.selector, read_json(args.source))
             elif args.command == 'parameter-counts':
-                from app.presentation import block_parameter_counts
-                models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)
-                interfaces={n['id']:validate_model(models,n['ref']) for n in model['graph']['nodes'] if n['type']=='Module'}
-                value={'id':args.id,'counts':block_parameter_counts(model,contract,interfaces)}
+                models=workspace.models()
+                if args.trainable:
+                    from app.policy_authoring import trainable_block_counts
+                    value={'id':args.id,'counts':trainable_block_counts(models,args.id),'scope':'unique-trainable-owners'}
+                else:
+                    from app.presentation import block_parameter_counts
+                    model=models[args.id];contract=validate_model(models,args.id)
+                    interfaces={n['id']:validate_model(models,n['ref']) for n in model['graph']['nodes'] if n['type']=='Module'}
+                    value={'id':args.id,'counts':block_parameter_counts(model,contract,interfaces)}
             elif args.command == 'spec-list':
                 value = workspace.list_specs(args.kind, args.all_revisions)
             elif args.command == 'spec-show':
