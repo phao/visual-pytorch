@@ -6,6 +6,9 @@
 })(typeof globalThis!=="undefined"?globalThis:this,()=>{
   // UI edits concrete specs; shapes/constructor checks remain backend authority.
   const definitions={
+    PositiveVariance:{defaults:{positive_floor:.01},fields:{positive_floor:'positive-scalar'},
+      explanation:'Softplus(raw) plus this explicit positive variance floor. It preserves shape and axes, has no learned weights and never clips variance. This is variance, not standard deviation or log variance.',
+      equation:'variance = softplus(raw) + ε',tex:'v=\\operatorname{softplus}(r)+\\varepsilon'},
     Scale:{defaults:{coefficient:2},fields:{coefficient:'scalar'},
       explanation:'Multiply every entry by this fixed coefficient. Shapes, axes and batch B are preserved. This block has no learned weights; changing the coefficient is an architecture edit, not training.',
       equation:'y = c x · c fixed',tex:'y=cx,\\quad c\\text{ fixed}'},
@@ -41,9 +44,10 @@
     const kind=definitions[type]?.fields[key];
     if(!kind)throw new Error("Unsupported operator field.");
     if(kind==="bool"){if(typeof text!=="boolean")throw new Error("Use a checkbox value.");return text;}
-    if(kind==='scalar'){
+    if(kind==='scalar'||kind==='positive-scalar'){
       const raw=String(text).trim(),value=Number(raw);
       if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)||!Number.isFinite(value)||Math.abs(value)>3.4028234663852886e38||Number.isInteger(value)&&!Number.isSafeInteger(value))throw new Error('Use a finite float32-range coefficient; integer values must be editor-exact.');
+      if(kind==='positive-scalar'&&(!Number.isFinite(Math.fround(value))||Math.fround(value)<=0))throw Error('The floor must remain finite and positive in float32; no clamping.');
       return value;
     }
     const tokens=String(text).trim().split(/[,\s]+/);

@@ -16,7 +16,9 @@ class DiscoveryExecutionTests(unittest.TestCase):
                 exec(compile(source, 'discovery-standalone-' + kind, 'exec'), namespace)
                 exported = namespace['model']
                 exported.load_state_dict(native.state_dict(), strict=True)
-                values = {group['id']: torch.full((2, *group['shape']), .25, dtype=torch.float32)
+                values = {group['id']: (torch.tensor(witness['input_values'][group['id']],dtype=torch.float32)
+                                       .unsqueeze(0).expand(2,*group['shape']) if 'input_values' in witness else
+                                       torch.full((2, *group['shape']), .25, dtype=torch.float32))
                           for group in native.contract['input_groups']}
                 native.eval(); exported.eval()
                 with torch.no_grad():

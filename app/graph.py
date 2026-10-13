@@ -63,8 +63,10 @@ def topology(model):
             keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
             if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
                 raise GraphError(n['type'] + ' sources must list at least two incoming source keys exactly once, in order.')
-        elif n['type'] in {'Recurrent', 'LSTM'}:
-            if n['type'] == 'LSTM':
+        elif n['type'] in {'Recurrent', 'LSTM', 'GaussianFilter'}:
+            if n['type'] == 'GaussianFilter':
+                from .gaussian_nodes import sources
+            elif n['type'] == 'LSTM':
                 from .lstm_nodes import sources
             else:
                 from .recurrent_nodes import sources
@@ -148,6 +150,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
     buffer_elements = 0
     buffer_counts = {}
     has_tensor_sources = any(n['type'] in SOURCE_TYPES for n in order)
+    has_gaussian_filter=any(n['type']=='GaussianFilter' for n in order)
 
     def source(edge):
         src = edge['from']
@@ -165,6 +168,10 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         entry = shapes[src['node']]
         return entry.get('port_axes', {}).get(src['port'], entry['output_axes'])
 
+    def source_representation(src):
+        entry=shapes[src['node']]
+        return entry.get('port_representations',{}).get(src['port'],entry.get('representation'))
+
     for n in order:
         kind, nid = n['type'], n['id']
         previous_params = params
@@ -172,8 +179,10 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
         if kind in {'Concat', 'Add'}:
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
-        if kind in {'Recurrent', 'LSTM'}:
-            if kind == 'LSTM':
+        if kind in {'Recurrent', 'LSTM','GaussianFilter'}:
+            if kind == 'GaussianFilter':
+                from .gaussian_nodes import sources
+            elif kind == 'LSTM':
                 from .lstm_nodes import sources
             else:
                 from .recurrent_nodes import sources
@@ -184,6 +193,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         current = list(before)
         axes = source_axes(resolved[0][0]) if resolved else axes_for(n, len(before))
         operator = None
+        representation=source_representation(resolved[0][0]) if resolved else None
+        normalization_axis=None
         item = {'id': nid, 'type': kind, 'sources': [r[0] for r in resolved]}
         origin = resolved[0][2] if resolved else (nid, None)
         if kind == 'Input':
@@ -200,6 +211,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             matrix_affine = False
             origin = (nid, None)
         elif kind == 'Linear':
+            representation=None
             width = feature_count(n['features'])
             current = before[:-1] + [width]
             params += before[-1] * width + (width if n.get('bias', True) else 0)
@@ -208,18 +220,56 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         elif kind == 'Activation':
             from .activations import normalize_activation
             normalize_activation(n)
-            if n['activation'] == 'Softmax':
+            if n['activation'] in ('Softmax','LogSoftmax'):
                 from .activations import softmax_axis
-                softmax_axis(n, len(before))
+                normalization_axis=softmax_axis(n,len(before))
+                representation='probabilities' if n['activation']=='Softmax' else 'log-probabilities'
+            else:representation=None
             affine = False
             origin = (nid, None)
+        elif kind == 'PositiveVariance':
+            representation='positive-variance'
+            from .operators import normalized
+            normalized(n)
+            affine = matrix_affine = False
+            origin = (nid,None)
+        elif kind == 'GaussianFilter':
+            from .gaussian_nodes import describe as gaussian_describe
+            bound = {}
+            for edge,result in zip(incoming,resolved):
+                key=edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']
+                bound[key]=(result[1],source_axes(result[0]))
+            gaussian=gaussian_describe(n,bound)
+            for role in ('initial','transition'):
+                src=next(result[0] for edge,result in zip(incoming,resolved) if
+                         (edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from'])==n['inputs'][role])
+                metadata=shapes[src['node']];known=source_representation(src)
+                expected=n[role+'_representation']
+                if known is not None and known!=expected:
+                    raise GraphError('GaussianFilter '+role+' format disagrees with its upstream representation.')
+                axis=metadata.get('normalization_axis')
+                required=0 if role=='initial' else 1 if n['transition_mode']=='shared' else 2
+                if axis is not None and axis!=required:
+                    raise GraphError('GaussianFilter transition columns/initial state axis must be normalized, not from_state or batch.')
+            representation=None
+            item['gaussian']=gaussian
+            outputs,port_axes=gaussian['ports'],gaussian['port_axes']
+            ports[nid]=outputs
+            current=[sum(math.prod(s) for s in outputs.values())]
+            axes=None
+            activation_elements += gaussian['work_elements']
+            ops += gaussian['steps']
+            affine=matrix_affine=False
+            for port in outputs:origins[(nid,port)]=(nid,port)
         elif kind == 'Reshape':
             current = reshape_shape(before, n.get('shape'))
             if input_shapes is not None:
                 item['runtime_reshape'] = list(current)
             axes = None
+            representation=None
             origin = (nid, None)
         elif kind == 'Add':
+            representation=None
             from .operators import normalized
             normalized(n)
             if any(r[1] != before or source_axes(r[0]) != axes for r in resolved):
@@ -227,11 +277,13 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             matrix_affine = False
             origin = (nid, None)
         elif kind == 'Scale':
+            representation=None
             from .operators import normalized
             item['coefficient'] = normalized(n)['coefficient']
             matrix_affine = False
             origin = (nid, None)
         elif kind in TENSOR_OPERATORS:
+            representation=None
             operator = describe(n, before, axes)
             current, axes = operator['output_shape'], operator['output_axes']
             if kind == 'Conv2d':
@@ -241,6 +293,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             matrix_affine = matrix_affine and operator['matrix_affine']
             origin = (nid, None)
         elif kind == 'Module':
+            representation=None
             child_shapes = None
             if input_shapes is not None:
                 child_inputs = [v for v in topology(models[n['ref']]) if v['type'] == 'Input']
@@ -261,6 +314,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             params += ref['parameters']
             buffer_elements += ref.get('buffer_elements', 0)
             has_tensor_sources = has_tensor_sources or ref.get('has_tensor_sources', False)
+            has_gaussian_filter=has_gaussian_filter or ref.get('has_gaussian_filter',False)
             activation_elements += ref['activation_elements']
             convolution_workspace_elements += ref['convolution_workspace_elements']
             ops += ref['operations']
@@ -270,6 +324,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             matrix_affine = matrix_affine and ref['matrix_affine']
             origin = (nid, None)
         elif kind == 'Recurrent':
+            representation=None
             from .recurrent_nodes import describe as recurrent_describe
             child = contract(models, n['ref'], (*ancestry, mid), cache, _runtime_contexts=_runtime_contexts)
             bound = {}
@@ -287,6 +342,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             params += child['parameters']
             buffer_elements += child.get('buffer_elements', 0)
             has_tensor_sources = has_tensor_sources or child.get('has_tensor_sources', False)
+            has_gaussian_filter=has_gaussian_filter or child.get('has_gaussian_filter',False)
             activation_elements += recurrent['steps'] * child['activation_elements']
             convolution_workspace_elements += recurrent['steps'] * child['convolution_workspace_elements']
             ops += recurrent['steps'] * child['operations']
@@ -298,6 +354,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             for row in n['states']:
                 origins[(nid, row['port'])] = (nid, 'state/' + row['input'])
         elif kind == 'LSTM':
+            representation=None
             from .lstm_nodes import describe as lstm_describe
             bound = {}
             for edge, result in zip(incoming, resolved):
@@ -316,6 +373,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             for port in outputs:
                 origins[(nid, port)] = (nid, port)
         elif kind == 'Concat':
+            representation=None
             item['flatten'] = n.get('flatten', True)
             if item['flatten']:
                 current = [sum(math.prod(r[1]) for r in resolved)]
@@ -348,10 +406,15 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         shapes[nid] = {'input': before[-1] if before else 0, 'output': current[-1],
                        'input_shape': list(before), 'output_shape': list(current),
                        'output_axes': axes}
+        if representation is not None:shapes[nid]['representation']=representation
+        if normalization_axis is not None:shapes[nid]['normalization_axis']=normalization_axis
         if kind == 'Recurrent':
             shapes[nid].update(ports=outputs, port_axes=port_axes, recurrent=recurrent)
         if kind == 'LSTM':
             shapes[nid].update(ports=outputs, port_axes=port_axes, lstm=lstm)
+        if kind == 'GaussianFilter':
+            shapes[nid].update(ports=outputs,port_axes=port_axes,gaussian=gaussian,
+                               port_representations=gaussian['representations'])
         if operator is not None:
             shapes[nid]['operator'] = operator
         origins[(nid, None)] = origin
@@ -359,7 +422,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         if kind in LAYER_TYPES:
             item['layer'] = f'layer_{operation_index}'
             operation_index += 1
-            if kind not in {'Module', 'Recurrent', 'LSTM'}:
+            if kind not in {'Module', 'Recurrent', 'LSTM','GaussianFilter'}:
                 ops += 1
         elif kind in {'Concat', 'Add', 'Scale', 'Splitter', 'Replicator'}:
             ops += 1
@@ -403,6 +466,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         axes = shapes[g['id']]['output_axes']
         if axes is not None:
             g['axes'] = axes
+        if shapes[g['id']].get('representation') is not None:g['representation']=shapes[g['id']]['representation']
     output_items = [p for p in plan if p['type'] == 'Output']
     shared_source = output_items[0]['sources'][0]['node']
     router = lookup[shared_source]
@@ -457,6 +521,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
               'activation_elements': activation_elements,
               'buffer_elements': buffer_elements,
               'has_tensor_sources': has_tensor_sources,
+              **({'has_gaussian_filter':True} if has_gaussian_filter else {}),
               'convolution_workspace_elements': convolution_workspace_elements,
               'input_groups': groups, 'output_groups': out_groups, 'output_mode': mode,
               'plan': plan, 'tensor_source': tensor_source}

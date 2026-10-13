@@ -52,7 +52,8 @@ def present(models, mid, seen=None):
     if mid in seen: return False
     seen.add(mid)
     graph = models[mid]['graph']
-    return 'parameter_policy' in graph or any(n['type'] in {'Constant', 'TensorParameter'} or
+    return 'parameter_policy' in graph or any(n['type'] in {'Constant', 'TensorParameter','PositiveVariance','GaussianFilter'} or
+        n['type']=='Activation' and n.get('activation') in ('LogSoftmax','Softplus') or
         n['type'] == 'Module' and n.get('batch_only') is True for n in graph['nodes']) or any(present(models, n['ref'], seen)
         for n in graph['nodes'] if n['type'] in {'Module', 'Recurrent'})
 

@@ -1150,3 +1150,20 @@ task_bundle dispatch missed newly admitted Specialization10; now selects
 TaskBundle4/temporal-v2 explicitly. Added real source-family native/worker parity.
 This is a source-route fix, not a likelihood or completed MS-VAR claim. Existing
 full failure log remains preserved; corrected child still needs its own gate.
+
+## 2026-10-13 03:37 -03:00 — Real probability/filter graph admission, target-free task next
+
+Reviewed sole workerc25d737's source/tests and integrated probability helpers,
+then admitted actual LogSoftmax/Softplus/PositiveVariance/GaussianFilter native,
+plain-export/runtime/family/CLI/Qt paths with container28/Model8/Family12/Spec11.
+Explicit shared/sequence modes avoid per-time fake owners; posterior/evidence
+ports and inferred representations preserve real computation and signed evidence.
+Independent review reproduced raw-role broadcasting and probability conversion
+before admission; both fixed/tested. Private generated namespaces avoid constructor
+collisions. Actual editable two-state p0 HMM component has visible source/transform
+internals; guarded bad binding edits preserve SQLite. Qt native palette/socket/
+Inspector/undo/save checks pass without Torch/NumPy in host or sandbox disabling.
+Latest30/28.935s, earlier66/4.730s and40/18.803s plus375JS pass. No new target-free
+task, signed metric grammar, causal p3 MS-VAR or full probability source-wide gate
+claim. Legacy synthetic/packed MSE refuses filter graphs. Full objective active;
+next exact signed likelihood task and causal K5,p3,D3 model, not another primitive.

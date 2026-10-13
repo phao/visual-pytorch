@@ -1,9 +1,9 @@
 "use strict";
 const test=require('node:test'),assert=require('node:assert/strict');
 const H=require('../app/web/building-block-help.js'),T=require('../app/web/tensor-operators.js');
-test('All 21 palette entries have concrete non-executing teaching descriptions',()=>{
+test('All 23 palette entries have concrete non-executing teaching descriptions',()=>{
   const keys=Object.keys(H.names),before=JSON.stringify(T.definitions);
-  assert.equal(keys.length+T.types.length,21);
+  assert.equal(keys.length+T.types.length,23);
   for(const id of keys){const h=H.describe(id);assert.equal(h.name,H.names[id]);assert.ok(h.paragraphs.length>=3);assert.ok(h.paragraphs.every(p=>typeof p==='string' && p.length>30));}
   for(const type of T.types){const h=H.describe('add-tensor-'+type,{tensorType:type});assert.equal(h.name,type);assert.equal(h.tex,T.definitions[type].tex);assert.ok(h.paragraphs[0].includes(T.definitions[type].explanation));}
   assert.equal(JSON.stringify(T.definitions),before);

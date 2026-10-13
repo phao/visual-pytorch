@@ -208,14 +208,14 @@
     renderExperiment();
     renderResults();
     const running = busy();
-    $("train").disabled = running || !description?.valid || !description?.contract?.parameters || !doc.dataset || description?.run_safety?.allowed === false || description?.dataset_admission?.allowed === false;
+    $("train").disabled = running || !description?.valid || description?.contract?.has_gaussian_filter || !description?.contract?.parameters || !doc.dataset || description?.run_safety?.allowed === false || description?.dataset_admission?.allowed === false;
     $("stop").hidden = !running;
     $("add-linear").disabled = running;
     $("add-model").disabled = running;
-    $("generate-data").disabled = running || !description?.valid || !description?.contract?.inputs || description?.model_safety?.allowed === false;
+    $("generate-data").disabled = running || !description?.valid || description?.contract?.has_gaussian_filter || !description?.contract?.inputs || description?.model_safety?.allowed === false;
     $("import-data").disabled = running || !description?.valid;
     $("rename-model").disabled = running;
-    for (const id of ["add-activation", "activation-select", "target-kind", "add-reshape", "add-concat", "add-input", "add-output",'add-constant','add-tensor-parameter']) $(id).disabled = running;
+    for (const id of ["add-activation", "activation-select", "target-kind", "add-reshape", "add-concat", "add-input", "add-output",'add-constant','add-tensor-parameter','add-gaussian']) $(id).disabled = running;
     for (const id of ["add-splitter", "add-replicator"]) $(id).disabled = running || !description?.valid;
   }
 
@@ -324,12 +324,12 @@
       let line;
       if (['Input','Constant','TensorParameter'].includes(n.type)) line = shapeText(n.shape || [n.features]);
       else if (n.type === "Output") line = shapeText(s?.output_shape || n.shape);
-      else if(R.multiport(n))line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??s?.lstm?.steps??'?');
+      else if(R.multiport(n))line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??s?.lstm?.steps??s?.gaussian?.steps??'?');
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
-      const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const arithmeticNote=n.type==='Constant'?'Immutable · float32 · no data input':n.type==='TensorParameter'?'Shared across batch · '+n.shape.reduce((a,b)=>a*b,1)+' params':n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
+      const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (['Softmax','LogSoftmax'].includes(n.activation)?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
+      const arithmeticNote=n.type==='GaussianFilter'?'Exact filter · initial before transition · 0 params':n.type==='PositiveVariance'?'Explicit floor '+n.positive_floor+' · 0 params':n.type==='Constant'?'Immutable · float32 · no data input':n.type==='TensorParameter'?'Shared across batch · '+n.shape.reduce((a,b)=>a*b,1)+' params':n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
       const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):arithmeticNote;
       const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
       const policy=description?.parameter_blocks?.[n.id];
@@ -342,7 +342,7 @@
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
-          n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape','Constant','TensorParameter'].includes(n.type)?line:
+          n.type==='Activation'?(['Softmax','LogSoftmax'].includes(n.activation)?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape','Constant','TensorParameter'].includes(n.type)?line:
           R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
@@ -492,6 +492,8 @@
           '<label class="inspect-label" for="'+id+'">'+esc(label)+(kind==='pair' || kind==='padding'?' · H, W':'')+'</label><input data-op-field="'+key+'" id="'+id+'" class="inspect-input" value="'+esc(Array.isArray(value)?value.join(', '):value)+'"'+(busy()?' disabled':'')+'>';
       }
       html+='<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+(s?.output_axes?'<br>axes '+esc(s.output_axes.join(', ')):'')+(s?.operator?.weight_shape?'<br>W ['+s.operator.weight_shape.join(', ')+']':'')+'<br>operator version 1</div><p class="inspect-note">'+esc(T.definitions[n.type].explanation)+'</p>';
+    } else if(n.type==='GaussianFilter'){
+      html+='<div class="contract-card">Exact diagonal-Gaussian filter<br>K '+(s?.gaussian?.states??'?')+' · D '+(s?.gaussian?.dimensions??'?')+' · T '+(s?.gaussian?.steps??'?')+'</div><p class="inspect-note">Initial law is before the first transition; rows are from_state, columns to_state. Variance is positive variance, not a standard deviation or log variance. Missing emissions advance belief without density evidence; they are not execution or loss masks.</p><p class="inspect-note">Outputs are posterior log probabilities and signed log evidence, not known regime labels. No smoothing or hidden carry.</p><label class="inspect-label" for="gaussian-config">Role bindings and formats · JSON</label><textarea id="gaussian-config" class="inspect-input" maxlength="2000"'+(busy()?' disabled':'')+'>'+esc(window.LoomJSON.stringify(Object.fromEntries(['inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'].map(k=>[k,n[k]]))))+'</textarea><button id="apply-gaussian-config"'+(busy()?' disabled':'')+'>Apply checked bindings</button>';
     } else if (['Constant','TensorParameter'].includes(n.type)) {
       html += '<div class="contract-card">'+esc(n.type)+' '+shapeText(n.shape)+'<br>dtype float32 · no incoming data</div><p class="inspect-note">'+(n.type==='Constant'?'Immutable graph data, not optimizer weights. Storage still counts toward RAM.':'One tensor owner shared across batch observations. Zero default; initialize or freeze it using the parameter policy below.')+'</p>';
       if(n.type==='Constant'){
@@ -506,7 +508,7 @@
       html += '<div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'</div><p class="inspect-note">Preserve the number of elements in each sample. One dimension may be -1, inferred from the incoming tensor. Batch B never changes.</p>';
     } else if (n.type === "Activation") {
       html += '<label class="inspect-label">Activation</label><select id="node-activation"' + (busy() ? ' disabled' : '') + '>' + Object.keys(activationInfo).sort().map(key => '<option' + (key === n.activation ? ' selected' : '') + '>' + key + '</option>').join('') + '</select><div class="contract-card">'+shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)+'<br>0 trainable parameters</div><p class="inspect-note">' + esc(activationInfo[n.activation][1]) + '</p><p class="inspect-note">Activations give the network nonlinear expressive power.</p>';
-      if(n.activation==='Softmax'){
+      if(['Softmax','LogSoftmax'].includes(n.activation)){
         const rank=s?.input_shape?.length,dim=n.dim??-1;
         const resolved=rank?((dim%rank)+rank)%rank:null;
         html+='<label class="inspect-label" for="softmax-dim">Normalization axis · sample dimensions</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+(busy()?' disabled':'')+'><p class="inspect-note">Axis numbers exclude batch B. Default −1 is the last axis; 0 is the first sample axis.'+(resolved===null?' Connect the input to validate this axis.':' PyTorch dim = '+(resolved+1)+(s?.output_axes?.[resolved]?' ('+esc(s.output_axes[resolved])+')':'')+'.')+'</p>';
@@ -548,6 +550,14 @@
       html+='<section id="parameter-policy-editor"><p class="inspect-note">Loading parameter owners…</p></section>';
     }
     content.innerHTML = html;
+    if($('apply-gaussian-config'))$('apply-gaussian-config').onclick=async()=>{
+      if(busy())return;
+      try{await syncQueue;const fields=JSON.parse($('gaussian-config').value);
+        const allowed=['inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'];
+        if(Object.keys(fields).some(k=>!allowed.includes(k))||allowed.some(k=>!(k in fields)))throw Error('Use all six checked configuration fields; no extra fields.');
+        await call('editGaussian',{id:doc.id,node:n.id,architecture:description.architecture,fields,workspace_id:state.workspace_id,panel_scope:state.panel_scope});hydrate(await call('state'));}
+      catch(error){toast(error.message,true);}
+    };
     if($('parameter-policy-editor')){
       const mid=doc.id,nid=n.id,context={workspace_id:state.workspace_id,panel_scope:state.panel_scope};
       syncQueue.then(()=>call('parameterPolicy',{...context,id:mid,node:nid})).then(info=>{
@@ -649,7 +659,7 @@
     if ($("bias")) $("bias").onchange = () => { n.bias = $("bias").checked; invalidateRun(); persist(); };
     if ($("node-activation")) $("node-activation").onchange = () => {
       n.activation = $("node-activation").value;
-      if(n.activation==='Softmax')n.dim=-1;else delete n.dim;
+      if(['Softmax','LogSoftmax'].includes(n.activation))n.dim=-1;else delete n.dim;
       invalidateRun(); persist();
     };
     if($('softmax-dim'))$('softmax-dim').onchange=()=>{
@@ -718,7 +728,7 @@
     const block = {id, type, x: after.x + 245, y: after.y};
     const sourceShape=G.tensorShape(after,shape(after),port);
     if (type === "Linear") Object.assign(block, {features: sourceShape?.at(-1) || 1, bias: true});
-    else if (type === "Activation") {block.activation = $("activation-select").value;if(block.activation==='Softmax')block.dim=-1;}
+    else if (type === "Activation") {block.activation = $("activation-select").value;if(['Softmax','LogSoftmax'].includes(block.activation))block.dim=-1;}
     else if (type === "Reshape") block.shape = sourceShape || [-1];
     else if(T.types.includes(type))Object.assign(block,T.defaults(type,sourceShape));
     else if (["Concat","Add"].includes(type)) {block.sources=[port?after.id+"@"+port:after.id];if(type==='Concat')block.flatten=true;else block.op_version=1;}
@@ -1302,6 +1312,14 @@
   $("add-activation").onclick = () => insertBlock("Activation");
   $('add-constant').onclick=()=>insertSource('Constant');
   $('add-tensor-parameter').onclick=()=>insertSource('TensorParameter');
+  $('add-gaussian').onclick=async()=>{
+    if(!doc||busy())return;
+    try{await syncQueue;const id=doc.id,info=await call('describe',{id});
+      if(!info.valid)throw Error('Repair the current architecture before adding the checked component.');
+      const result=await call('addGaussian',{id,architecture:info.architecture,workspace_id:state.workspace_id,panel_scope:state.panel_scope});
+      hydrate(await call('state'));selected=result.node;selectedPort=null;selectedWire=null;await describe();floating.open('inspector-panel');fit();}
+    catch(error){toast(error.message,true);}
+  };
   $("add-reference").onclick = () => {const ref=$("reference-select").value,child=state.models[ref];
     if(child && !child.graph.nodes.some(n=>n.type==='Input'))insertSource('Module',ref);else insertBlock('Module',ref);};
   $('add-recurrent').onclick = recurrentDialog;

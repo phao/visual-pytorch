@@ -580,7 +580,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','bindParameter','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','bindParameter','addRecurrent','editRecurrent','addLSTM','editLSTM','addGaussian','editGaussian','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -762,6 +762,24 @@ class Window(QMainWindow):
             if writing: result['document'] = current[req['id']]
             if action == 'bindParameter': result['binding'] = receipt
             return result
+        if action=='addGaussian':
+            if set(req)!={'action','id','architecture','workspace_id','panel_scope'}:
+                raise ValueError('Gaussian component authoring needs exact workspace and architecture context.')
+            if req['workspace_id']!=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0] or req['panel_scope']!=self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen Gaussian authoring.')
+            from .gaussian_authoring import add
+            document,nid=add(models,req['id'],req['architecture'])
+            self.workspace.put(document);self.broadcast()
+            return {'id':req['id'],'node':nid,'scope':'exact HMM p=0 component; no task/training or neural MS-VAR'}
+        if action=='editGaussian':
+            if set(req)!={'action','id','node','architecture','fields','workspace_id','panel_scope'}:
+                raise ValueError('Filter editing needs exact workspace/node context and closed fields.')
+            if req['workspace_id']!=self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0] or req['panel_scope']!=self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen filter inspection.')
+            from .gaussian_authoring import edit
+            document=edit(models,req['id'],req['node'],req['architecture'],req['fields'])
+            self.workspace.put(document);self.broadcast()
+            return {'id':req['id'],'node':req['node']}
         if action in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}:
             from .lstm_authoring import prepare, prepare_edit, build, build_edit, CREATE_TOKEN, EDIT_TOKEN
             from .revisions import _parse
@@ -904,11 +922,12 @@ class Window(QMainWindow):
         models = self.workspace.models()
         try:
             percentage=self.config.values['memory_limit_percent'] if hasattr(self,'config') else DEFAULT_MEMORY_LIMIT_PERCENT
-            from .evidence import dataset_report, checkpoint_report
+            from .evidence import dataset_report, checkpoint_report, identity
             contract=validate_model(models,mid)
             from .policy_authoring import block_summary
             interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] in {"Module", "Recurrent"}}
             return {"valid": True, "contract": contract, "interfaces": interfaces,
+                    'architecture':identity(models,mid)['architecture'],
                     'parameter_blocks': block_summary(models, mid),
                     'dataset_admission':dataset_report(models[mid],contract),
                     'checkpoint_status':checkpoint_report(models,mid),

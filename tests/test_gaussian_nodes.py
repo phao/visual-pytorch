@@ -9,7 +9,7 @@ from app import gaussian_nodes as g
 def node():
     return {'id':'filter','type':'GaussianFilter','inputs':{r:r for r in g.ROLES},
         'initial_representation':'probabilities','transition_representation':'probabilities',
-        'variance_mode':'shared'}
+        'transition_mode':'sequence','mean_mode':'sequence','variance_mode':'shared'}
 
 
 def incoming():
@@ -60,6 +60,27 @@ class GaussianNodeTests(unittest.TestCase):
         result=g._log_probabilities(probability)
         self.assertTrue(torch.isneginf(result[0,1]));result[0,0].backward()
         self.assertTrue(torch.equal(probability.grad,torch.tensor([[1.,0.]])))
+
+    def test_wrong_batch_or_missing_batch_does_not_broadcast(self):
+        import torch
+        p=g.describe(node(),incoming())
+        parts=[torch.zeros(2,3,1),torch.full((2,2),.5),torch.full((2,3,2,2),.5),
+               torch.zeros(2,3,2,1),torch.ones(2,2,1),torch.full((2,1),3.)]
+        for index,value in ((2,torch.full((2,2),.5)),(4,torch.ones(1,2,1))):
+            bad=list(parts);bad[index]=value
+            with self.assertRaisesRegex(ValueError,'exact shape'):g.forward(bad,p)
+
+    def test_budget_precedes_probability_conversion(self):
+        import torch
+        from unittest.mock import patch
+        n=node();shapes={'observations':([4096,1],None),'initial':([4],None),
+            'transition':([4096,4,4],None),'means':([4096,4,1],None),
+            'variances':([4,1],None),'lengths':([1],None)}
+        p=g.describe(n,shapes)
+        parts=[torch.zeros(1,4096,1),torch.full((1,4),.25),torch.full((1,4096,4,4),.25),
+               torch.zeros(1,4096,4,1),torch.ones(1,4,1),torch.full((1,1),4096.)]
+        with patch.object(g,'_log_probabilities',side_effect=AssertionError('allocated before admission')):
+            with self.assertRaisesRegex(ValueError,'before adapter'):g.forward(parts,p)
 
 
 if __name__=='__main__':unittest.main()

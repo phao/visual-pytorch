@@ -35,7 +35,13 @@ create these boxes and change declared shape/literal fields; parameter policies
 initialize, freeze or share the actual tensor owner. Nullary Module calls require
 explicit `batch_only:true`. See [tensor sources](tensor-source-kernel.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container27). It needs Python
+`operator-schema GaussianFilter` and `operator-schema PositiveVariance` describe
+the actual closed computation and input/port modes. `ports` carries inferred
+representations when known, never label guesses. `GaussianFilter` forward can
+return signed sequence evidence; a target-free likelihood training task is not
+yet admitted. Exact scope and limitations: [filter contract](gaussian-filter-contract.md).
+
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container28). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute

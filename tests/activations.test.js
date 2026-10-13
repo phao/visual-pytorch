@@ -1,8 +1,8 @@
 "use strict";
 const test=require('node:test'),assert=require('node:assert/strict');
 const A=require('../app/web/activations.js'),H=require('../app/web/building-block-help.js');
-test('Five alphabetical choices retain elementwise meanings and explicit Softmax normalization',()=>{
-  assert.deepEqual(Object.keys(A.info),['GELU','ReLU','Sigmoid','Softmax','Tanh']);
+test('Seven alphabetical choices retain elementwise meanings and explicit normalization',()=>{
+  assert.deepEqual(Object.keys(A.info),['GELU','LogSoftmax','ReLU','Sigmoid','Softmax','Softplus','Tanh']);
   for(const key of Object.keys(A.info)){assert.ok(A.info[key][0]);assert.ok(A.info[key][1]);assert.ok(A.tex[key]);}
   const body=H.describe('add-activation',{activation:'Softmax'}).paragraphs.join(' ');
   assert.ok(body.includes('[B, N]'));assert.ok(body.includes('each row sums to 1'));

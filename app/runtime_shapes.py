@@ -106,6 +106,15 @@ def _dependency_specification(models, mid, declared, *, temporal=False, temporal
                 current = [merged([p[i] for p in parts]) for i in range(len(before))]
                 guards.append({'path':location,'rule':'add-identical-shapes-and-axes-no-broadcast'})
             elif kind == 'Scale': current = list(before)
+            elif kind == 'PositiveVariance':current=list(before)
+            elif kind == 'GaussianFilter':
+                role=dict(zip(c['shapes'][nid]['gaussian']['sources'],parts))
+                time=role[node['inputs']['observations']][0]
+                if any(dep for deps in role.values() for dep in deps[1:]):
+                    raise GraphError(location+': Gaussian state/coordinate dimensions must be independent of runtime axes.')
+                current={'filtered':[time,frozenset()],'final':[frozenset()],
+                         'step_evidence':[time],'sequence_evidence':[frozenset()]}
+                guards.append({'path':location,'rule':'equal-T; exact-state-coordinate-roles; positive-variance; initial-before-transition'})
             elif kind == 'Splitter':
                 current = {pid:before[:-1]+[frozenset()] for pid in item['ports']}
                 guards.append({'path':location,'rule':'last-axis-equals-declared-part-sum'})

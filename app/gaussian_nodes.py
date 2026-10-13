@@ -12,7 +12,7 @@ ROLES = ('observations','initial','transition','means','variances','lengths')
 OPTIONAL_ROLES = ('emission_mask',)
 PORTS = ('filtered','final','step_evidence','sequence_evidence')
 COMMON = {'id','type','label','x','y','width','height','collapsed','op_version'}
-FIELDS = {'inputs','initial_representation','transition_representation','variance_mode'}
+FIELDS = {'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'}
 
 
 def normalized(node):
@@ -29,8 +29,9 @@ def normalized(node):
     for key in ('initial_representation','transition_representation'):
         if node.get(key) not in ('probabilities','log-probabilities'):
             raise GraphError('GaussianFilter must explicitly declare '+key+' as probabilities or log-probabilities; no inferred logits.')
-    if node.get('variance_mode') not in ('shared','sequence'):
-        raise GraphError('GaussianFilter variance_mode is explicit shared [K,D] or sequence [T,K,D]; values are positive variances, not logs or standard deviations.')
+    for field in ('transition_mode','mean_mode','variance_mode'):
+        if node.get(field) not in ('shared','sequence'):
+            raise GraphError('GaussianFilter '+field+' must explicitly select shared across T or one tensor per sequence step.')
     return dict(copy.deepcopy(node),op_version=1)
 
 
@@ -55,14 +56,18 @@ def describe(node, incoming):
     steps,dimensions=observed;states=initial[0]
     expected={'observations':([steps,dimensions],['time','coordinate']),
               'initial':([states],['state']),
-              'transition':([steps,states,states],['time','from_state','to_state']),
-              'means':([steps,states,dimensions],['time','state','coordinate']),
+              'transition':([states,states],['from_state','to_state']) if n['transition_mode']=='shared' else
+                           ([steps,states,states],['time','from_state','to_state']),
+              'means':([states,dimensions],['state','coordinate']) if n['mean_mode']=='shared' else
+                      ([steps,states,dimensions],['time','state','coordinate']),
               'variances':([states,dimensions],['state','coordinate']) if n['variance_mode']=='shared' else
                           ([steps,states,dimensions],['time','state','coordinate']),
               'lengths':([1],None),'emission_mask':([steps],['time'])}
     for role,(shape,axes) in bound.items():
         required,names=expected[role]
-        if shape!=required or axes is not None and names is not None and axes!=names:
+        semantic={'T':'time','D':'coordinate'}
+        actual=[semantic.get(a,a) for a in axes] if axes is not None else None
+        if shape!=required or actual is not None and names is not None and actual!=names:
             raise GraphError('GaussianFilter '+role+' needs sample shape '+str(required)+
                              (' with unnamed axes or '+str(names) if names is not None else '')+'.')
     output_shapes={'filtered':[steps,states],'final':[states],
@@ -76,7 +81,8 @@ def describe(node, incoming):
             'work_elements':steps*(8*states*states+16*states*dimensions+12*states+4*dimensions+8)+4*states,
             'sources':sources(n),'inputs':copy.deepcopy(n['inputs']),
             'initial_representation':n['initial_representation'],
-            'transition_representation':n['transition_representation'],'variance_mode':n['variance_mode']}
+            'transition_representation':n['transition_representation'],'transition_mode':n['transition_mode'],
+            'mean_mode':n['mean_mode'],'variance_mode':n['variance_mode']}
 
 
 def _log_probabilities(value):
@@ -91,15 +97,31 @@ def _log_probabilities(value):
     return torch.where(positive,safe.log(),torch.full_like(value,-math.inf))
 
 
-def forward(parts, plan):
+def _forward(parts, plan, kernel):
     """Parameter-free CPU float32 diagram projection; explicit axis conventions."""
     import torch
-    from .gaussian_filter import filter_diagonal_gaussian_hmm
     bound={role:parts[plan['sources'].index(key)] for role,key in plan['inputs'].items()}
     if any(not isinstance(v,torch.Tensor) or v.device.type!='cpu' or v.dtype!=torch.float32 or
            v.layout!=torch.strided for v in bound.values()):
         raise ValueError('GaussianFilter graph roles are dense CPU float32 tensors; controls use explicit exact adapters.')
-    observed=bound['observations'];batch,steps,dimensions=observed.shape
+    observed=bound['observations'];initial=bound['initial']
+    if observed.ndim!=3 or initial.ndim!=2:
+        raise ValueError('GaussianFilter needs observations [B,T,D] and initial [B,K], with no implicit batch broadcasting.')
+    batch,steps,dimensions=observed.shape;states=initial.shape[1]
+    if states<1 or dimensions<1:
+        raise ValueError('GaussianFilter needs positive K and D.')
+    expected={'initial':(batch,states),'transition':(batch,states,states) if plan['transition_mode']=='shared' else (batch,steps,states,states),
+        'means':(batch,states,dimensions) if plan['mean_mode']=='shared' else (batch,steps,states,dimensions),
+        'variances':(batch,states,dimensions) if plan['variance_mode']=='shared' else (batch,steps,states,dimensions),
+        'lengths':(batch,1),'emission_mask':(batch,steps)}
+    for role,value in bound.items():
+        if role!='observations' and tuple(value.shape)!=expected[role]:
+            raise ValueError('GaussianFilter '+role+' must have exact shape '+str(expected[role])+', including B; no broadcasting.')
+    # Same numerical-work admission as the shared filter, BEFORE logarithms,
+    # control conversion, masks or expanded allocations in this adapter.
+    work=max(batch,1)*(max(steps,1)*(8*states*states+16*states*dimensions+12*states+4*dimensions+8)+4*states)
+    if steps>4096 or work>1_000_000:
+        raise ValueError('GaussianFilter work budget exceeded before adapter allocations.')
     length_values=bound['lengths']
     if (tuple(length_values.shape)!=(batch,1) or not bool(torch.isfinite(length_values).all()) or
             not bool(((length_values==length_values.trunc()) & (length_values>=0) & (length_values<=steps)).all())):
@@ -111,7 +133,8 @@ def forward(parts, plan):
         if not bool(((mask==0)|(mask==1)).all()):
             raise ValueError('GaussianFilter emission_mask requires exact 0/1 [B,T] values; not an execution or loss mask.')
         emission=mask.to(torch.bool)
-    initial=bound['initial'];transition=bound['transition']
+    transition=bound['transition']
+    if plan['transition_mode']=='shared':transition=transition[:,None].expand(batch,steps,*transition.shape[1:])
     if plan['initial_representation']=='probabilities': initial=_log_probabilities(initial)
     if plan['transition_representation']=='probabilities':
         # Inactive padded probabilities may be NaN; sanitize before logs, just
@@ -122,11 +145,18 @@ def forward(parts, plan):
         transition=_log_probabilities(transition)
     variance=bound['variances']
     if plan['variance_mode']=='shared':variance=variance[:,None].expand(batch,steps,*variance.shape[1:])
-    result=filter_diagonal_gaussian_hmm(observed,log_initial=initial,log_transition=transition,
-        means=bound['means'],positive_variances=variance,lengths=lengths,emission_mask=emission)
+    means=bound['means']
+    if plan['mean_mode']=='shared':means=means[:,None].expand(batch,steps,*means.shape[1:])
+    result=kernel(observed,log_initial=initial,log_transition=transition,
+        means=means,positive_variances=variance,lengths=lengths,emission_mask=emission)
     return {'filtered':result.filtered_log_probs,'final':result.final_log_probs,
             'step_evidence':result.step_log_evidence,
             'sequence_evidence':result.sequence_log_likelihood[:,None]}
+
+
+def forward(parts,plan):
+    from .gaussian_filter import filter_diagonal_gaussian_hmm
+    return _forward(parts,plan,filter_diagonal_gaussian_hmm)
 
 
 def runtime_class(nn):
@@ -136,3 +166,19 @@ def runtime_class(nn):
         def forward(self,*parts):
             return forward(parts,self.plan)
     return GaussianFilter
+
+
+def runtime_source():
+    """Capture checked native helper meanings in an app-free private namespace."""
+    import inspect
+    from . import gaussian_filter as kernel
+    from .task_execution import _helper_source
+    functions=(kernel._cpu_tensor,kernel._finite,kernel._safe_logsumexp,
+               kernel._normalized_logs,kernel.filter_diagonal_gaussian_hmm,
+               _log_probabilities,_forward,runtime_class)
+    prelude=('from dataclasses import dataclass\nimport math\n'+
+             f'MAX_WORK_ELEMENTS = {kernel.MAX_WORK_ELEMENTS!r}\n'+
+             f'MAX_STEPS = {kernel.MAX_STEPS!r}\n'+f'_LOG_TWO_PI = {kernel._LOG_TWO_PI!r}\n')
+    return (prelude+inspect.getsource(kernel.GaussianFilterResult)+'\n'+
+            '\n\n'.join(_helper_source(f) for f in functions)+'\n'+
+            'forward = lambda parts, plan: _forward(parts, plan, filter_diagonal_gaussian_hmm)\n')

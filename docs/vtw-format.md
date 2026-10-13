@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 27
+# Visual Torch Workspace (.vtw): format specification, version 28
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,13 +36,21 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 27. The current reader accepts versions 1–20,23–27;
+PRAGMA user_version = 28. The current reader accepts versions 1–20,23–28;
 opening an older supported file copies it into memory and upgrades the working
-version to 27. Opening alone never rewrites the source; explicit Save writes
-version 27. Versions 21/22 belong to the deliberately deferred execution branch
+version to 28. Opening alone never rewrites the source; explicit Save writes
+version 28. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
-Other versions are rejected. Version27 admits closed-v1 `Constant` and
+Other versions are rejected. Version28 adds LogSoftmax/Softplus, explicit-floor
+PositiveVariance and a closed multiport GaussianFilter, Model8/Family12/Spec11
+fences and inferred operator output representations. Earlier headers containing
+these drawings or retained/archived new versions refuse. No SQL tables or
+TaskSpec loss/optimizer grammar changes. The precise computation, axes, controls,
+shared/sequence modes, guards and current training limitation are specified in
+[Gaussian filter contract](gaussian-filter-contract.md).
+
+Version27 admits closed-v1 `Constant` and
 `TensorParameter` roots and explicit `Module.batch_only:true` nullary calls,
 ModelRevision7, Family11 and Specialization10. Sources do not become dataset
 inputs. Constants are graph literals/nonpersistent buffers; learned sources

@@ -12,6 +12,8 @@ from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, ch
 from .revisions import KINDS
 
 _RULES = {
+    'GaussianFilter': 'Exact diagonal-Gaussian log-space filtering; explicit previous-to-next transition rows and initial law before first transition. No regime labels, smoothing, hidden variance floor or trainable parameters. Named posterior/evidence ports.',
+    'PositiveVariance': 'Elementwise softplus(raw,beta=1,threshold=20) plus explicitly declared positive float32 floor. Shape/axes preserved; no clipping or learned parameters.',
     'Constant': 'Declared immutable CPU float32 sample tensor; explicit fill or rectangular values; no incoming data, no learnable parameters. Expand as a batch view, never a dataset input.',
     'TensorParameter': 'Declared CPU float32 sample tensor; one zero-default nn.Parameter value owner. Graph policy initializes/freezes it; compatible share_with reuses the exact owner. No incoming data.',
     'Add': 'Ordered elementwise sum, at least two identical sample shapes and axes; no broadcasting, flattening or learned parameters.',
@@ -39,6 +41,8 @@ _LEGACY_FIELDS = {
     'Linear': {'features', 'bias'}, 'Activation': {'activation', 'dim'},
     'Reshape': {'shape'}, 'Module': {'ref','batch_only'}, 'Concat': {'sources', 'flatten'},
     'Constant': {'shape','axes','fill','values'}, 'TensorParameter': {'shape','axes'},
+    'PositiveVariance':{'positive_floor'},
+    'GaussianFilter':{'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
     'Splitter': {'parts'}, 'Replicator': {'outputs'},
 }
 
@@ -64,7 +68,17 @@ def _example(kind):
     else:
         target = 'op'
         edges = [{'from': 'x', 'to': 'op'}, {'from': 'op', 'to': 'y'}]
-        if kind in operators.SOURCE_TYPES:
+        if kind=='GaussianFilter':
+            from .gaussian_nodes import ROLES
+            shapes={'observations':[3,1],'initial':[2],'transition':[3,2,2],
+                    'means':[3,2,1],'variances':[2,1],'lengths':[1]}
+            nodes=[{'id':role,'type':'Input','shape':shapes[role]} for role in ROLES]
+            node.update(inputs={role:role for role in ROLES},initial_representation='probabilities',
+                        transition_representation='probabilities',transition_mode='sequence',mean_mode='sequence',variance_mode='shared')
+            edges=[{'from':role,'to':'op'} for role in ROLES]
+            edges.append({'from':'op','from_port':'sequence_evidence','to':'y'})
+        elif kind=='PositiveVariance':node.update(positive_floor=.01)
+        elif kind in operators.SOURCE_TYPES:
             nodes = []
             node['shape'] = [2]
             if kind == 'Constant': node['fill'] = 0.
@@ -125,7 +139,12 @@ def _example(kind):
     models[mid] = _model(mid, nodes, edges)
     for model in models.values(): check_document(model)
     contract = validate_model(models, mid)
-    return {'root': mid, 'models': models, 'node': target}, contract
+    witness={'root':mid,'models':models,'node':target}
+    if kind=='GaussianFilter':
+        witness['input_values']={'observations':[[0.],[0.],[0.]],'initial':[.5,.5],
+            'transition':[[[.5,.5],[.5,.5]]]*3,'means':[[[0.],[1.]]]*3,
+            'variances':[[1.],[1.]],'lengths':[3.]}
+    return witness, contract
 
 
 def operator_schema(kind):
@@ -141,11 +160,16 @@ def operator_schema(kind):
     elif kind == 'LSTM':
         from .lstm_nodes import FIELDS
         fields = FIELDS
+    elif kind == 'GaussianFilter':
+        from .gaussian_nodes import FIELDS
+        fields=FIELDS
     else: fields = operators.FIELDS.get(kind, _LEGACY_FIELDS.get(kind, set()))
-    strict = kind in operators.TENSOR_OPERATORS | operators.SOURCE_TYPES | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
+    strict = kind in operators.TENSOR_OPERATORS | operators.SOURCE_TYPES | operators.PROBABILITY_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
     required = {
         'Add': {'sources'}, 'Scale': {'coefficient'},
         'Constant': {'shape'}, 'TensorParameter': {'shape'},
+        'PositiveVariance':{'positive_floor'},
+        'GaussianFilter':{'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
         'Input': set(), 'Output': set(), 'Linear': {'features'}, 'Activation': {'activation'},
         'Module': {'ref'}, 'Reshape': {'shape'}, 'Concat': {'sources'}, 'Splitter': {'parts'},
         'Replicator': {'outputs'}, 'Conv2d': {'out_channels', 'kernel_size'},
@@ -171,8 +195,8 @@ def operator_schema(kind):
         defaults=actual_defaults, defaults_scope='shared normalizer plus legacy bias/flatten defaults; required fields are not defaults',
         shape_rule=_RULES[kind], batch_axis='implicit leading B; sample-axis indices exclude B',
         ports={'incoming': 'none' if kind == 'Input' or kind in operators.SOURCE_TYPES else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
-               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent'} else 'exactly one',
-               'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent'} else 'one tensor with ordinary fan-out'},
+               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent','GaussianFilter'} else 'exactly one',
+               'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent','GaussianFilter'} else 'one tensor with ordinary fan-out'},
         sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM', 'TensorParameter'},
                  'binding': 'share_with resolves one compatible local canonical owner; not weight freezing'},
         activations=sorted(ACTIVATIONS) if kind == 'Activation' else [],
@@ -197,9 +221,13 @@ def capabilities():
         tensor_sources={'operators':['Constant','TensorParameter'], 'model_revision_version':7,
             'family_version':11, 'specialization_version':10, 'nullary_call':'model(batch_size=B); no dummy input',
             'constant_storage':'nonpersistent buffer reconstructed from immutable graph; charged to RAM'},
+        gaussian_filter={'container_version':28,'model_revision_version':8,'family_version':12,'specialization_version':11,
+            'initial':'before-first-transition','transition_orientation':'previous-to-next',
+            'scope':'exact forward likelihood/filtering; no target-free training task yet',
+            'controls':['prefix-lengths','missing-whole-emission-mask']},
         unavailable={
             'TrainableParameter': 'not an accepted spelling; use TensorParameter',
-            'latent_sequence_likelihood': 'not implemented; supervised heads are not filtering',
+            'latent_sequence_likelihood_objective': 'not implemented; forward filter evidence is not yet a target-free training task',
             'optimizer_resume': 'deferred Stage E, not part of this source'},
         limitations=['Shapes alone do not establish output representation or loss compatibility.',
             'Current cross-entropy expects logits; the checker does not prove an upstream tensor is logits.',
@@ -235,7 +263,7 @@ def port_contract(models, mid):
     return {'version': 1, 'kind': 'visual-pytorch-port-contract', 'scope': 'read-current-graph-contract-only',
         'id': mid, 'inputs': copy.deepcopy(c['input_groups']), 'outputs': copy.deepcopy(c['output_groups']),
         'dtype': 'float32', 'batch_axis': 'implicit B', 'packing': 'contract order; never alphabetically reorder ports',
-        'output_representation': 'not explicitly declared in current graph grammar; do not infer from labels',
+        'output_representation': 'not explicitly declared for unknown tensors; known operator semantics appear per output group when proven, never inferred from labels',
         'execution_plan': copy.deepcopy(c['plan']),
         'referenced_interfaces': [interfaces[key] for key in sorted(interfaces)],
         'nodes': [{'id': n['id'], 'type': n['type'], 'shape_contract': copy.deepcopy(c['shapes'][n['id']]),
