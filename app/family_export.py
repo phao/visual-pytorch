@@ -18,7 +18,7 @@ from .memory import memory_percent
 CORE = ('GraphError', 'feature_count', 'tensor_shape', 'input_shape', 'reshape_shape',
         'ordered_nodes', 'operation_nodes', 'boundary_groups', 'validate_model',
         'safety_report', 'preflight', 'check_document', '_pack_inputs', '_graph_values',
-        '_graph_tensor', '_recurrent_graph_forward', '_lstm_graph_forward', 'compile_model', '_parameter_setup')
+        '_graph_tensor', '_recurrent_graph_forward', '_lstm_graph_forward', 'compile_model', '_parameter_setup', '_source_batch_admission')
 EVIDENCE = ('digest', 'legacy_input_order', 'pin_input_order', 'graph_signature',
             'identity', 'parameter_schema')
 
@@ -33,13 +33,13 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution')}
+               for n in ('likelihood_conditioning','sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math
 from collections import OrderedDict
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory, estimate_memory, format_bytes
-from .operators import ARITHMETIC_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
+from .operators import ARITHMETIC_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
 from .activations import activation_name, normalize_activation, softmax_axis
 MAX_INTEGER = 2**53 - 1''')
     sources['evidence'] = _selected(folder / 'evidence.py', EVIDENCE, '''import hashlib
@@ -59,7 +59,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
                   'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
-                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10) else {}),
+                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10,11,12,13,14) else {}),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -116,7 +116,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'parameter_policy', 'policy_graph', 'parameter_execution', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
+            for child in ('likelihood_conditioning','sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'parameter_policy', 'policy_graph', 'parameter_execution', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:
@@ -150,8 +150,8 @@ def _semantic_schema(runtime, resolved, family):
                 visit(node['ref'], path + '.', components + ['call', node['id']])
             elif node['type'] == 'Recurrent':
                 visit(node['ref'], path + '.transition.', components + ['recurrent', node['id']])
-            elif node['type'] in {'Linear', 'Conv2d'}:
-                for kind in ('weight', 'bias'):
+            elif node['type'] in {'Linear', 'Conv2d','TensorParameter'}:
+                for kind in (('value',) if node['type']=='TensorParameter' else ('weight','bias')):
                     key = path + '.' + kind
                     if key in schema:
                         schema[key]['id'] = json.dumps(components + ['owner', node['id'], 'parameter', kind],
@@ -184,9 +184,9 @@ class ArchitectureFamily(nn.Module):
             raise ValueError('Temporal family construction requires an explicit family6/7 grammar.')
         if source['version'] in (6,7) and runtime_temporal is None and source['runtime_policy'] is not None:
             runtime_temporal = source['runtime_policy']['inputs']
-        if runtime_temporal_v2 is not None and source['version'] not in (8,9,10):
+        if runtime_temporal_v2 is not None and source['version'] not in (8,9,10,11,12,13,14):
             raise ValueError('Runtime temporal-v2 requires an explicit family8 grammar.')
-        if source['version'] in (8,9,10):
+        if source['version'] in (8,9,10,11,12,13,14):
             expected = None if source['runtime_policy'] is None else source['runtime_policy']['inputs']
             if runtime_inputs is not None or runtime_temporal is not None or (runtime_temporal_v2 is not None and _digest(runtime_temporal_v2) != _digest(expected)):
                 raise ValueError('Family8 execution must match its exact retained runtime policy; no implicit policy override.')
@@ -206,7 +206,7 @@ class ArchitectureFamily(nn.Module):
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
         if source['version'] in (6,7):
             self._provenance['runtime_temporal'] = copy.deepcopy(runtime_temporal)
-        if source['version'] in (8,9,10):
+        if source['version'] in (8,9,10,11,12,13,14):
             self._provenance['runtime_temporal_v2'] = copy.deepcopy(runtime_temporal_v2)
             self._initial_shapes = copy.deepcopy(initial_shapes) if initial_shapes is not None else {
                 g['id']:copy.deepcopy(g['shape']) for g in resolved['contract']['input_groups']}
@@ -216,7 +216,7 @@ class ArchitectureFamily(nn.Module):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
                 'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
-                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10) else {}),
+                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10,11,12,13,14) else {}),
                 'policy': export_metadata()['policy']}
 
     @property
@@ -239,14 +239,14 @@ class ArchitectureFamily(nn.Module):
             raise ValueError('Construct with explicit runtime_inputs before previewing runtime shapes.')
         return self.network.preview_shapes(shapes, batch_size=batch_size, gradients=gradients, dtype_bytes=dtype_bytes)
 
-    def forward(self, x):
-        return self.network(x)
+    def forward(self, x=None, *, batch_size=None):
+        return self.network(x) if batch_size is None else self.network(x,batch_size=batch_size)
 
-    def forward_tensor(self, x):
-        return self.network.forward_tensor(x)
+    def forward_tensor(self, x=None, *, batch_size=None):
+        return self.network.forward_tensor(x) if batch_size is None else self.network.forward_tensor(x,batch_size=batch_size)
 
-    def intermediate_values(self, x):
-        return self.network.intermediate_values(x)
+    def intermediate_values(self, x=None, *, batch_size=None):
+        return self.network.intermediate_values(x) if batch_size is None else self.network.intermediate_values(x,batch_size=batch_size)
 
     def semantic_state(self):
         """Caller-owned CPU tensor snapshot, not optimizer or training continuation."""

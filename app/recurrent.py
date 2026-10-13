@@ -60,6 +60,7 @@ def interface_contract(c, specification):
         if before['shape'] != after['shape'] or before.get('axes') != after.get('axes'):
             raise GraphError('State ' + state['port'] + ': next state must preserve initial-state shape and axes.')
     return {'version': 1, 'specification': spec, 'parameters': c['parameters'],
+            **({'buffer_elements':c['buffer_elements']} if c.get('buffer_elements',0) else {}),
             'inputs': inputs, 'outputs': outputs,
             'activation_elements': c['activation_elements'],
             'convolution_workspace_elements': c['convolution_workspace_elements'],
@@ -102,6 +103,8 @@ def recurrent_memory_report(contract, batch, steps, constrained=True, *,
         'convolution_workspace': (32 if training else 8) * batch * steps * contract['convolution_workspace_elements'],
         'controls': 16 * batch * steps,
     }
+    if contract.get('buffer_elements',0):
+        components['buffers'] = 8 * contract['buffer_elements']
     total = sum(components.values())
     free = available_memory()
     budget = math.floor(free * percentage / 100) if free is not None else None

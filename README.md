@@ -74,7 +74,7 @@ capabilities, not additions to the initial prerelease. See [development](docs/de
 The current local development checkpoint adds [ordered Add and fixed Scale](docs/arithmetic-blocks.md),
 shared CLI contract discovery and Ctrl-click output branch selection for insertion.
 The LoRA example is a synthetic linear/MLP workflow, not a Transformer benchmark.
-New saves use container26; the extension remains `.vtw`. The deferred execution
+New saves use container31; the extension remains `.vtw`. The deferred execution
 branch's21/22 files are not accepted by this reader.
 Training has a RAM-based admission estimate, not an out-of-memory guarantee.
 
@@ -84,6 +84,16 @@ merged inference. The six retained200-update fits and two separately identified
 zero-update baselines are real synthetic checks. Saved and fresh-rerun notebooks,
 CLI and GUI reproduce the checked rank2 checkpoint; this is not a claim of
 general LoRA superiority. See the [workflow and limits](docs/lora-workflow.md).
+
+Open [examples/neural-msvar.vtw](examples/neural-msvar.vtw) for the actual causal
+K=5, p=3, D=3 neural MS-VAR: 1,315 learned parameters, unlabelled trajectory data,
+exact Gaussian filtering and target-free sequence likelihood. Its twelve-update
+fit is a bounded sanity check, not statistical recovery. Native, standalone,
+worker and real saved/rerun notebook paths are checked. Reset/execution and
+missing-history semantics remain unfinished. See the
+[precise computation and limits](docs/neural-msvar-contract.md).
+
+![Real Qt diagram of the causal neural MS-VAR, with the lag block compacted](assets/screenshots/neural-msvar-causal.png)
 
 ![Real application: frozen Base W₀ and trainable A/B branches in the synthetic LoRA example](assets/screenshots/lora-expanded.png)
 

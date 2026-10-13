@@ -17,7 +17,7 @@ def main():
 
     try:
         request = json.load(sys.stdin)
-        if request.get('kind') in ('task-v1','task-v2','task-v3','task-v4'):
+        if request.get('kind') in ('task-v1','task-v2','task-v3','task-v4','task-v5','task-v6'):
             from .datasets import _keys
             from .task_training import train_task
             _keys(request, ('kind', 'bundle'), ('constrained', 'memory_limit_percent'), 'Task worker request')

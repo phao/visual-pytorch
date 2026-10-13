@@ -63,6 +63,8 @@ def estimate_memory(contract, *, samples=None, training=False, kind='auto'):
     batch = max(1, int(samples * .8)) if training and samples is not None else 1
     operation = 'training' if training else 'data' if samples is not None else 'model'
     components = {'runtime_headroom': (256 if training else 8 if samples is not None else 64) * MIB}
+    if contract.get('buffer_elements', 0):
+        components['literal_buffer_storage'] = 8 * contract['buffer_elements']
     if training:
         # 24 B/parameter: weights, gradients, Adam moments and scratch;
         # 104 B/parameter: results/state-list/JSON/host copies and serialization.

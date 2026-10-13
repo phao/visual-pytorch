@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "id": "neural-msvar-example-v1",
+  "producer_source_commit": "e086c5157d0a5fa221c53d7f3d896e34bbdf4f3a",
+  "workspace_sha256": "c3103d6ea6b9d5633bb1474b25ea76aa0ebc3d71007e139c2a200adf037eec98",
+  "architectures": [{
+    "id": "neural-msvar",
+    "intended_use": "exact-model",
+    "assumptions": {
+      "conditioning": "explicit-observed-history-and-valid-prefix-lengths",
+      "emissions": "state-specific-diagonal-gaussian",
+      "variance": "softplus-plus-0.0001",
+      "inference": "exact-conditional-filter-and-likelihood",
+      "estimation": "finite-budget-parameter-estimate",
+      "regime_targets": "absent",
+      "limitations": "no-identifiability-stationarity-or-calibration-claim"
+    },
+    "recipe": {
+      "name": "neural-msvar", "version": 1,
+      "bindings": {
+        "K": {"type": "integer", "value": 5},
+        "p": {"type": "integer", "value": 3},
+        "D": {"type": "integer", "value": 3},
+        "hidden": {"type": "integer", "value": 32},
+        "T": {"type": "integer", "value": 12},
+        "controlled": {"type": "boolean", "value": false}
+      }
+    }
+  }],
+  "references": {
+    "dataset": {"kind": "dataset", "id": "msvar-observations", "revision": "43abacff1ae0bd0a0e80beeb9d9d61d7f69f94653ad25f7538e8d6ea07fb273a"},
+    "task": {"kind": "task", "id": "msvar-likelihood", "revision": "8cc053f0011cfc4feda320f8355b92aba5b234bb5934ba4d26c9fc8d60f2e872"},
+    "family": {"kind": "family", "id": "neural-msvar-family", "revision": "81b7b1acd12fe097361f4e7e70551246b46cc8c5bb9fa33d5005027f13b7a6e4"},
+    "specialization": {"kind": "specialization", "id": "specialization-602765065ad2157135a3a6ede5a809542928e4ebcb937c6a215b50dddefa4e18", "revision": "f9f4254b3b5fe3aea7d93af5e66e1cb20362a143c290e1dc265235e835b1e0bf"},
+    "model": {"kind": "model", "id": "family-99b7b5f13c1d704c2d51fac99534f2e8a0330719e193749849df3494702348f5", "revision": "4b3a92f8610636dda33875a6118d5346dcc1c5bb077930f3cde25aa467346750"},
+    "experiment": {"kind": "experiment", "id": "neural-msvar-sanity", "revision": "b3c58e8047fe9688a655e6c6602d8a399aaad724e2a0e4d2e05ffac59ef214fa"},
+    "run": {"kind": "run", "id": "sanity-fit", "revision": "5e5722b81abd2e1de58f73b18a9a0f9ad6d2b34632da571bca7419df60e42da6"}
+  },
+  "verification": {
+    "kind": "saved-candidate-replay-v1",
+    "coordinates": {"model": {"id": "msvar", "bindings": {}}, "data_task": "observed", "split": "trajectories", "initialization": 7, "protocol": "bounded-adam"},
+    "budget": {"updates": 12, "max_updates": 24},
+    "expected": {
+      "checkpoint_sha256": "9d78848589d45f943678a13015c6c7ab6a2a0f83fadc63568182456a0c0b09e8",
+      "metrics_sha256": "3cf8c62b9ca1755b243cc355b3796f9cc4ee4fd8aa513ad2dfbde3732e6f623d",
+      "completed_updates": 12
+    }
+  }
+}

@@ -40,7 +40,7 @@ class TemporalV2ExperimentTests(unittest.TestCase):
 
     def test_old_versions_reject_v2_and_omitted_execution_remains_concrete(self):
         w,e,_=self.make();before=w.db.serialize()
-        for version in (1,2,3,4,5,7,True):
+        for version in (1,2,3,4,5,999,True):
             bad=copy.deepcopy(e);bad.pop('revision');bad['version']=version
             with self.subTest(version=version),self.assertRaises(GraphError):w.put_spec('experiment',bad)
             self.assertEqual(w.db.serialize(),before)
@@ -86,7 +86,7 @@ class TemporalV2ExperimentTests(unittest.TestCase):
         preview=store.experiment_preview(w,h['session'],owner,h['sequence'])
         self.assertEqual([c['status'] for c in preview['candidates']],['compatible']*2)
         self.assertEqual(w.db.serialize(),before)
-        for value in ('5','7','true'):
+        for value in ('5','999','true'):
             with self.subTest(value=value),self.assertRaises(GraphError):
                 store.experiment_edit(w,h['session'],owner,h['sequence'],[dict(ops[0],text=value)])
             self.assertEqual(store.describe(h['session'],owner),h);self.assertEqual(w.db.serialize(),before)

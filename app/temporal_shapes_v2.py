@@ -23,6 +23,8 @@ def admission(models, mid, c, batch_size, *, constrained=True,
     Each call is charged, even aliases; parameter owners are counted once by the
     graph. LSTMs in recurrent bodies are charged outer-T times. Conservative
     backward storage is retained even for inference, not an allocator guarantee.
+    Fixed source buffers retain the once-per-owner charge inherited from the
+    whole-graph report; runtime T only multiplies unroll work and activations.
     """
     report = recurrent_admission(models, mid, c, batch_size, constrained=False,
                                  memory_limit_percent=memory_limit_percent,

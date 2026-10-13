@@ -44,6 +44,8 @@ def graph_aliases(models, mid):
                 names = contract['shapes'][node['id']]['lstm']['parameter_shapes']
             elif node['type'] in {'Linear', 'Conv2d'}:
                 names = ['weight'] + (['bias'] if node.get('bias', True) else [])
+            elif node['type'] == 'TensorParameter':
+                names = ['value']
             else:
                 continue
             for name in names:

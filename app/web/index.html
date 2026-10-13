@@ -83,6 +83,11 @@
       <button id="add-add" class="palette"><span class="type-symbol blue-text">+</span><span><b>Add</b><small>Sum identical-shape branches coordinatewise; no broadcasting</small></span><span>+</span></button>
       <button id="add-lstm" class="palette"><span class="type-symbol amber-text">↻</span><span><b>LSTM</b><small>Add a concrete stacked/projected/bidirectional LSTM with supplied initial states and three returned ports.</small></span><span>+</span></button>
       <div id="tensor-palette"></div>
+      <div class="eyebrow">TENSOR SOURCES</div>
+      <button id="add-constant" class="palette"><span class="type-symbol amber-text">▦</span><span><b>Constant</b><small>Immutable float32 tensor; no data input or learned weights</small></span><span>+</span></button>
+      <button id="add-tensor-parameter" class="palette"><span class="type-symbol purple-text">θ</span><span><b>Tensor parameter</b><small>One learned tensor owner; zero default, explicit initializer/freezing policy</small></span><span>+</span></button>
+      <div class="eyebrow">PROBABILITY COMPONENTS</div>
+      <button id="add-gaussian" class="palette"><span class="type-symbol mint-text">∿</span><span><b>Gaussian filter</b><small>Add an inspectable two-state p=0 HMM component; no fabricated labels or training</small></span><span>+</span></button>
       <div id="reference-palette-group" class="palette-group" role="group" aria-labelledby="reference-palette-label">
       <label id="reference-palette-label" for="reference-select" class="field-label">Reusable architecture</label><select id="reference-select"></select><button id="add-reference" class="palette"><span class="type-symbol amber-text">▣</span><span><b>Architecture reference</b><small>Inspect its interface; open details from Inspector.</small></span><span>+</span></button><button id="add-recurrent" class="palette"><span class="type-symbol amber-text">↻</span><span><b>Recurrent transition</b><small>Repeat this graph across time with explicit sequence inputs and initial/final states.</small></span><span>+</span></button></div>
       <div class="eyebrow">NAMED BOUNDARIES</div>

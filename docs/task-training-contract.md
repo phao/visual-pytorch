@@ -1,5 +1,9 @@
 # Frozen task training and fitted inference — Stage C component
 
+The target-free successor is specified separately in
+[TaskSpec2 / TaskBundle5 / TaskResult2](likelihood-task-contract.md).
+The supervised versions below retain their original meaning.
+
 This task-branch component is executable through Python, CLI and a native Qt
 worker adapter. Independent terminal RunRecord storage now wraps this component;
 see [experiment-objects.md](experiment-objects.md). It is **not** the final

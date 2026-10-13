@@ -6,6 +6,11 @@
 })(typeof globalThis!=="undefined" ? globalThis : this,()=>{
   // Trusted SVG fragments only. No workspace strings are interpolated here.
   const icons={
+    GaussianFilter:'<path d="M2 19h20M3 18c4 0 3-12 7-12s3 12 7 12M14 4h7m-3-3 3 3-3 3"/>',
+    CausalLagWindow:'<path d="M3 5h4v14H3zM10 5h4v14h-4M17 5h4v14h-4M2 2h13m-3-2 3 2-3 2"/>',
+    PositiveVariance:'<path d="M3 20V4m0 16h18M4 17c5 0 5-3 8-6l7-7M15 16h6m-3-3v6"/>',
+    Constant:'<path d="M4 4h16v16H4zm5 0v16m6-16v16M4 9h16M4 15h16"/>',
+    TensorParameter:'<path d="M6 3H3v18h3m12-18h3v18h-3M8 12h8m-4-5c-5 0-5 10 0 10s5-10 0-10"/>',
     Add:'<path d="M3 5h5l4 7-4 7H3m9-7h9M15 5v6m-3-3h6"/>',
     Scale:'<path d="M3 4h18v16H3zm5 4 8 8m0-8-8 8"/>',
     Input:'<path d="M14 4h6v16h-6M2 12h13m-4-4 4 4-4 4"/>',

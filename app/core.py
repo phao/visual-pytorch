@@ -17,13 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import ARITHMETIC_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
+from .operators import ARITHMETIC_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 26
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26}
+VERSION = 32
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31,32}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -252,7 +252,7 @@ def check_document(doc):
         ids.add(node["id"])
         if node.get("type") not in BLOCK_TYPES:
             raise GraphError("Unsupported block type.")
-        if node['type'] in TENSOR_OPERATORS | ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}:
+        if node['type'] in TENSOR_OPERATORS | SOURCE_TYPES | PROBABILITY_OPERATORS | ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM', 'Module'}:
             normalized(node)
         if "label" in node and (not isinstance(node["label"], str) or not 1 <= len(node["label"].strip()) <= 60):
             raise GraphError("Port labels must contain 1–60 characters.")
@@ -268,7 +268,7 @@ def check_document(doc):
                 raise GraphError("Splitter needs named Output IDs and feature counts.")
             for part in node["parts"]:
                 feature_count(part.get("features"))
-        if node["type"] == "Input":
+        if node["type"] == "Input" or node['type'] in SOURCE_TYPES:
             axes_for(node, len(input_shape(node)))
         elif 'axes' in node:
             raise GraphError('Only Input declares axes; adapters propagate or discard their meaning.')
@@ -623,6 +623,46 @@ class Workspace:
             if version < 26 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-derivation' LIMIT 1").fetchone():
                 raise GraphError('Parameter-derivation specifications require a version-26 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 32:
+                from .revisions import _parse
+                if any(n['type'] in PROBABILITY_OPERATORS and n.get('op_version',1)==2 for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Controlled/logvariance operator drawings require a version-32 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model':10,'family':14,'specialization':13}[kind]:
+                        raise GraphError('Controlled/logvariance revisions require a version-32 container.')
+            if version < 31:
+                from .revisions import _parse
+                if any(n['type']=='CausalLagWindow' for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('CausalLagWindow drawings require a version-31 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model':9,'family':13,'specialization':12}[kind]:
+                        raise GraphError('Causal lag revisions require a version-31 container.')
+            if version < 30:
+                from .revisions import _parse
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind IN ('experiment','run')"):
+                    if _parse(text)['version'] >= 7:
+                        raise GraphError('Likelihood Experiment/Run revisions require a version-30 container.')
+            if version < 29:
+                from .revisions import _parse
+                for text, in w.db.execute("SELECT document FROM spec_revisions WHERE kind='task'"):
+                    if _parse(text)['version'] >= 2:
+                        raise GraphError('Target-free likelihood task revisions require a version-29 container.')
+            if version < 28:
+                from .revisions import _parse
+                if any(n['type'] in PROBABILITY_OPERATORS or n['type']=='Activation' and n.get('activation') in ('LogSoftmax','Softplus')
+                       for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Probability/filter operators require a version-28 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model':8,'family':12,'specialization':11}[kind]:
+                        raise GraphError('Probability/filter revisions require a version-28 container.')
+            if version < 27:
+                from .revisions import _parse
+                if any(n['type'] in SOURCE_TYPES or n['type'] == 'Module' and n.get('batch_only') is True
+                       for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Tensor sources and nullary Module calls require a version-27 container.')
+                for kind, text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind IN ('model','family','specialization')"):
+                    if _parse(text)['version'] >= {'model': 7, 'family': 11, 'specialization': 10}[kind]:
+                        raise GraphError('Tensor-source revisions require a version-27 container.')
             if version < 24:
                 from .revisions import _parse
                 if any('parameter_policy' in m['graph'] for m in loaded.values()):
@@ -741,9 +781,49 @@ def _pack_inputs(x, groups, sample_shape):
     return x
 
 
-def _graph_values(module, x, contract):
+def _source_batch_admission(module, contract, batch):
+    """Source expansion can feed allocating consumers: admit the complete call."""
+    if not getattr(module, 'constrained', True):
+        return
     import torch
-    x = _pack_inputs(x, contract['input_groups'], contract['input_shape'])
+    gradients = torch.is_grad_enabled()
+    # Match the shared runtime forward estimate; no_grad inference must not
+    # pass its runtime preview then fail a second training-sized admission.
+    # This is an admission heuristic, not an allocator guarantee.
+    estimated = ((256 if gradients else 64) * 1024**2 +
+                 (128 if gradients else 8) * contract['parameters'] +
+                 8 * contract.get('buffer_elements', 0) +
+                 (16 if gradients else 8) * batch * contract['activation_elements'] +
+                 (32 if gradients else 8) * batch * contract.get('convolution_workspace_elements', 0) +
+                 8 * batch * (contract['inputs'] + contract['outputs']))
+    available = available_memory()
+    percentage = memory_percent(getattr(module, 'memory_limit_percent', 10.))
+    if available is None or estimated > available * percentage / 100:
+        raise ValueError('Constrained mode blocked tensor-source batch execution before expansion: estimated ' +
+                         str(estimated) + ' bytes exceeds/cannot be checked against available RAM.')
+
+
+def _graph_values(module, x, contract, *, batch_size=None):
+    import torch
+    if contract['input_groups']:
+        if contract.get('has_tensor_sources', False):
+            supplied = list(x.values()) if isinstance(x, dict) else [x]
+            if not supplied or any(not isinstance(p, torch.Tensor) or p.ndim < 2 or
+                    p.device.type != 'cpu' or p.dtype != torch.float32 or p.layout != torch.strided for p in supplied):
+                raise ValueError('Tensor-source architectures require dense CPU float32 inputs.')
+            if len({p.shape[0] for p in supplied}) != 1:
+                raise ValueError('All named inputs must have the same batch size B.')
+            _source_batch_admission(module, contract, supplied[0].shape[0])
+        x = _pack_inputs(x, contract['input_groups'], contract['input_shape'])
+        batch = x.shape[0]
+        if batch_size is not None and (type(batch_size) is not int or batch_size != batch):
+            raise ValueError('Explicit batch_size must agree with real input tensors.')
+    else:
+        if x is not None or type(batch_size) is not int or not 0 <= batch_size <= 2**53 - 1:
+            raise ValueError('A source-only architecture takes no input; supply exact batch_size explicitly.')
+        batch = batch_size
+    if not contract['input_groups'] and contract.get('has_tensor_sources', False):
+        _source_batch_admission(module, contract, batch)
     values = {}
     for item in contract['plan']:
         nid, kind = item['id'], item['type']
@@ -754,7 +834,14 @@ def _graph_values(module, x, contract):
             value = x if len(contract['input_groups']) == 1 else x[:, g['start']:g['stop']].reshape(x.shape[0], *g['shape'])
         elif 'layer' in item:
             layer = getattr(module, item['layer'])
-            if kind == 'Recurrent':
+            if kind in {'Constant', 'TensorParameter'}:
+                value = layer(batch)
+            elif kind in ('GaussianFilter','CausalLagWindow'):
+                value = layer(*parts)
+            elif kind == 'Module' and not parts:
+                child = item.get('runtime_contract', layer.contract)
+                value = _graph_tensor(_graph_values(layer, None, child, batch_size=batch), child)
+            elif kind == 'Recurrent':
                 # The app-free emitter captures this helper under the same name.
                 value = _recurrent_graph_forward(layer, parts, item['recurrent'])
             elif kind == 'LSTM':
@@ -820,6 +907,25 @@ def generate_code(models, model_id):
              "class _Permute(nn.Module):", "    def __init__(self, dims):",
              "        super().__init__()", "        self.dims = tuple(dims)",
              "    def forward(self, x):", "        return x.permute(*self.dims)", ""]
+    if any(n['type'] in SOURCE_TYPES for m in models.values() for n in m['graph']['nodes']):
+        from .tensor_sources import runtime_source
+        lines.append(runtime_source())
+        lines.extend(['from pathlib import Path', inspect.getsource(memory_percent),
+                      inspect.getsource(available_memory), inspect.getsource(_source_batch_admission)])
+    if any(n['type']=='PositiveVariance' for m in models.values() for n in m['graph']['nodes']):
+        from .positive_variance import runtime_source
+        lines.extend(['_variance_namespace = {}',f'exec({runtime_source()!r}, _variance_namespace)',
+                      '_PositiveVariance = _variance_namespace["runtime_class"](nn)'])
+    if any(n['type']=='CausalLagWindow' for m in models.values() for n in m['graph']['nodes']):
+        from .causal_lags import runtime_source as kernel_source
+        from .lag_nodes import runtime_source as adapter_source
+        lines.extend(['_lag_kernel_namespace = {}',f'exec({kernel_source()!r}, _lag_kernel_namespace)',
+                      '_lag_adapter_namespace = {}',f'exec({adapter_source()!r}, _lag_adapter_namespace)',
+                      '_CausalLagWindow = _lag_adapter_namespace["runtime_class"](nn, _lag_kernel_namespace["runtime_class"])'])
+    if any(n['type']=='GaussianFilter' for m in models.values() for n in m['graph']['nodes']):
+        from .gaussian_nodes import runtime_source
+        lines.extend(['_gaussian_namespace = {}',f'exec({runtime_source()!r}, _gaussian_namespace)',
+                      '_GaussianFilter = _gaussian_namespace["runtime_class"](nn)'])
     emitted = set()
     def has_recurrence(mid, seen):
         if mid in seen: return False
@@ -867,33 +973,47 @@ def generate_code(models, model_id):
                 emit(n["ref"])
         lines.extend([
             f"class {cname(mid)}(nn.Module):",
-            "    def __init__(self):", "        super().__init__()",
+            "    def __init__(self, *, constrained=True, memory_limit_percent=10.):", "        super().__init__()",
+            "        self.constrained = constrained", "        self.memory_limit_percent = memory_limit_percent",
         ])
+        if contract.get('has_tensor_sources', False):
+            lines.append(f'        _source_batch_admission(self, {contract!r}, 1)')
         for index, node in enumerate(order):
             if 'parameter_owner' in contract['shapes'][node['id']]:
                 continue
-            if node["type"] == "Linear":
+            if node['type'] in SOURCE_TYPES:
+                from .tensor_sources import constructor_args
+                args = constructor_args(node)
+                op = f'runtime_class(nn)(**{args!r}, admitted_elements={math.prod(node["shape"])!r})'
+            elif node["type"] == "Linear":
                 s = contract["shapes"][node["id"]]
                 op = f'nn.Linear({s["input"]}, {s["output"]}, bias={node.get("bias", True)}, device="cpu", dtype=torch.float32)'
             elif node["type"] == "Activation":
                 op = activation_constructor_code(node, len(contract['shapes'][node['id']]['input_shape']))
+            elif node['type']=='PositiveVariance':
+                from .positive_variance import constructor_args
+                op=f'_PositiveVariance(**{constructor_args(node)!r})'
+            elif node['type']=='CausalLagWindow':
+                op=f'_CausalLagWindow({node["lags"]!r}, op_version={node.get("op_version",1)!r}, bindings={node["inputs"]!r})'
+            elif node['type']=='GaussianFilter':
+                op=f'_GaussianFilter({contract["shapes"][node["id"]]["gaussian"]!r})'
             elif node["type"] == "Reshape":
                 op = f"_Reshape({contract['shapes'][node['id']]['output_shape']!r})"
             elif node['type'] in TENSOR_OPERATORS:
                 op = constructor_code(contract['shapes'][node['id']]['operator'])
             elif node['type'] == 'Recurrent':
-                op = f'_runner_class(nn)({cname(node["ref"])}(), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
+                op = f'_runner_class(nn)({cname(node["ref"])}(constrained=self.constrained, memory_limit_percent=self.memory_limit_percent), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
             elif node['type'] == 'LSTM':
                 kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
                 kwargs.pop('dtype')
                 op = f'nn.LSTM(**{kwargs!r}, dtype=torch.float32)'
             else:
-                op = f'{cname(node["ref"])}()'
+                op = f'{cname(node["ref"])}(constrained=self.constrained, memory_limit_percent=self.memory_limit_percent)'
             lines.append(f"        self.layer_{index} = {op}")
-        lines.extend([f"        self.contract = {contract!r}", "", "    def forward_tensor(self, x):",
-                      "        return _graph_tensor(_graph_values(self, x, self.contract), self.contract)",
-                      "", "    def forward(self, x):",
-                      "        values = _graph_values(self, x, self.contract)",
+        lines.extend([f"        self.contract = {contract!r}", "", "    def forward_tensor(self, x=None, *, batch_size=None):",
+                      "        return _graph_tensor(_graph_values(self, x, self.contract, batch_size=batch_size), self.contract)",
+                      "", "    def forward(self, x=None, *, batch_size=None):",
+                      "        values = _graph_values(self, x, self.contract, batch_size=batch_size)",
                       "        groups = self.contract['output_groups']",
                       "        if len(groups) == 1:", "            return values[groups[0]['id']]",
                       "        return {g['name']: values[g['id']] for g in groups}"])
@@ -974,14 +1094,26 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
     for index, node in enumerate(operation_nodes(models[mid])):
         if 'parameter_owner' in contract['shapes'][node['id']]:
             continue
-        if node["type"] == "Linear":
+        if node['type'] in SOURCE_TYPES:
+            from .tensor_sources import build
+            layer = build(node, admitted_elements=math.prod(node['shape']))
+        elif node["type"] == "Linear":
             shape = contract["shapes"][node["id"]]
             layer = nn.Linear(shape["input"], shape["output"], bias=node.get("bias", True),
                               device='cpu', dtype=torch.float32)
         elif node["type"] == "Activation":
             name = activation_name(node.get("activation"))
-            layer = (nn.Softmax(dim=softmax_axis(node, len(contract['shapes'][node['id']]['input_shape'])) + 1)
-                     if name == 'Softmax' else getattr(nn, name)())
+            layer = (getattr(nn,name)(dim=softmax_axis(node, len(contract['shapes'][node['id']]['input_shape'])) + 1)
+                     if name in ('Softmax','LogSoftmax') else getattr(nn, name)())
+        elif node['type']=='PositiveVariance':
+            from .positive_variance import build
+            layer=build(node)
+        elif node['type']=='CausalLagWindow':
+            from .lag_nodes import runtime_class
+            layer=runtime_class(nn)(node['lags'],op_version=node.get('op_version',1),bindings=node['inputs'])
+        elif node['type']=='GaussianFilter':
+            from .gaussian_nodes import runtime_class
+            layer=runtime_class(nn)(contract['shapes'][node['id']]['gaussian'])
         elif node["type"] == "Reshape":
             layer = Reshape(contract["shapes"][node["id"]]["output_shape"])
         elif node['type'] in TENSOR_OPERATORS:
@@ -1013,19 +1145,21 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             super().__init__()
             for name,layer in layers.items():self.add_module(name,layer)
             self.contract=contract
+            self.constrained = constrained
+            self.memory_limit_percent = memory_limit_percent
 
-        def intermediate_values(self,x):
-            return _graph_values(self,x,contract)
+        def intermediate_values(self,x=None, *, batch_size=None):
+            return _graph_values(self,x,contract,batch_size=batch_size)
 
-        def forward_tensor(self, x):
+        def forward_tensor(self, x=None, *, batch_size=None):
             try:
-                return _graph_tensor(_graph_values(self, x, contract), contract)
+                return _graph_tensor(_graph_values(self, x, contract, batch_size=batch_size), contract)
             except ValueError as error:
                 raise GraphError(str(error)) from error
 
-        def forward(self, x):
+        def forward(self, x=None, *, batch_size=None):
             try:
-                values = _graph_values(self, x, contract)
+                values = _graph_values(self, x, contract, batch_size=batch_size)
             except ValueError as error:
                 raise GraphError(str(error)) from error
             groups = contract["output_groups"]
@@ -1071,6 +1205,8 @@ def generate_dataset(models, mid, samples=256, noise=0., seed=7, kind="auto", *,
                      memory_limit_percent=DEFAULT_MEMORY_LIMIT_PERCENT):
     """Small reproducible regression trials; no Torch import needed by the UI host."""
     contract = validate_model(models, mid)
+    if contract.get('has_gaussian_filter'):
+        raise GraphError('Gaussian filtering needs explicit observed sequences and exact controls; legacy synthetic regression targets are not a latent likelihood task.')
     if isinstance(noise, bool) or not isinstance(noise, (int, float)) or not math.isfinite(noise) or not 0 <= noise <= 1:
         raise GraphError("Noise must be between 0 and 1.")
     if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2**31 - 1:
@@ -1178,6 +1314,8 @@ def train_model(models, mid, progress=None, cancel=None, *, constrained=True,
     from .evidence import normalize_models, check_binding, identity
     models=normalize_models(models,mid)
     contract = validate_model(models, mid)
+    if contract.get('has_gaussian_filter'):
+        raise GraphError('Use an explicit typed task for Gaussian filtering; legacy packed MSE is not a latent sequence likelihood objective.')
     if not contract["parameters"]:
         raise GraphError("Add a layer with trainable parameters, such as Linear or Conv2d, before training.")
     doc = models[mid]

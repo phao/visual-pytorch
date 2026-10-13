@@ -15,6 +15,16 @@ const seed = () => ({graph: {nodes: [
   {id: "output", type: "Output", x: 600, y: 170},
 ], edges: [{from: "input", to: "linear"}, {from: "linear", to: "output"}]}});
 const get = (d, id) => d.graph.nodes.find(n => n.id === id);
+test('Tensor sources and batch-only Modules have outgoing-only sockets in expanded and collapsed forms',()=>{
+  const d=seed();
+  for(const type of ['Constant','TensorParameter','Module'])for(const collapsed of [false,true]){
+    const n={id:'source',type,shape:[2],x:0,y:100,collapsed,...(type==='Module'?{ref:'child',batch_only:true}:{})};
+    d.graph.nodes.push(n);const before=JSON.stringify(d);
+    assert.deepEqual(G.slots(n,false),[]);assert.deepEqual(G.slots(n,true),[null]);
+    assert.throws(()=>G.connect(d,'linear','source'),/valid source/);
+    assert.equal(JSON.stringify(d),before);d.graph.nodes.pop();
+  }
+});
 test('Fit stays centered inside every positive free region without altering graph or dimensions',()=>{
   for(const collapsed of [false,true])for(const spacing of [1,35,100]){
     G.setSpacing(spacing);const d=seed();d.graph.nodes.forEach(n=>n.collapsed=collapsed);

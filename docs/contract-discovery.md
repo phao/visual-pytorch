@@ -37,6 +37,10 @@ describes the current editable graph, not an implicitly chosen frozen revision.
 and discovery. The registry now includes closed `Add` and fixed `Scale`:
 [arithmetic blocks](arithmetic-blocks.md) require container23 and explicit retained
 document versions. This extension is not silently valid in older containers.
+Closed `Constant` and `TensorParameter` roots require container27/Model7/Family11/
+Specialization10. Their examples have no fictitious Input, their ports report
+no incoming sockets and their literal/value-owner semantics are distinct.
+The exact contract is [tensor sources](tensor-source-kernel.md).
 Shared tensor/Recurrent/LSTM field sets and normalizers supply constructor
 metadata/defaults. Legacy descriptions state permissive-extra-field limitations:
 accepting `trainable:false` does not mean training implements it. Softmax's

@@ -4,12 +4,14 @@ Sample axis numbers exclude batch B. No Torch import or tensor allocation here.
 The returned constructor arguments are shared by native execution and export.
 """
 import math
+from .tensor_sources import SOURCE_TYPES
 
 TENSOR_OPERATORS = frozenset({
     'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute',
 })
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
-LAYER_TYPES = TENSOR_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
+PROBABILITY_OPERATORS = frozenset({'PositiveVariance','GaussianFilter','CausalLagWindow'})
+LAYER_TYPES = TENSOR_OPERATORS | SOURCE_TYPES | PROBABILITY_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
 ARITHMETIC_OPERATORS = frozenset({'Add', 'Scale'})
 BLOCK_TYPES = LAYER_TYPES | ARITHMETIC_OPERATORS | {'Input', 'Output', 'Concat', 'Splitter', 'Replicator'}
 COMMON = {'id', 'type', 'label', 'x', 'y', 'width', 'height', 'collapsed', 'op_version', 'share_with'}
@@ -44,6 +46,24 @@ def normalized(node):
     """Explicit defaults/pairs for new operators only; preserve legacy documents."""
     from .core import GraphError
     kind = node['type']
+    if kind == 'CausalLagWindow':
+        from .lag_nodes import normalized as lag_normalized
+        return lag_normalized(node)
+    if kind == 'GaussianFilter':
+        from .gaussian_nodes import normalized as gaussian_normalized
+        return gaussian_normalized(node)
+    if kind == 'PositiveVariance':
+        from .positive_variance import normalized as variance_normalized, PositiveVarianceError
+        try:return variance_normalized(node)
+        except PositiveVarianceError as error:raise GraphError(str(error)) from error
+    if kind in SOURCE_TYPES:
+        from .tensor_sources import normalized as source_normalized, TensorSourceError
+        try:
+            return source_normalized(node)
+        except TensorSourceError as error:
+            raise GraphError(str(error)) from error
+    if kind == 'Module' and 'batch_only' in node and node['batch_only'] is not True:
+        raise GraphError('Module batch_only must be true when declared; omit it for an ordinary tensor call.')
     if kind in ARITHMETIC_OPERATORS:
         if type(node.get('op_version', 1)) is not int or node.get('op_version', 1) != 1:
             raise GraphError(kind + ' supports integer op_version 1.')

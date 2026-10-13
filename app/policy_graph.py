@@ -34,6 +34,7 @@ def expansion_bound(models, mid):
             elif aliases[node['id']] == node['id']:
                 if kind in {'Linear', 'Conv2d'}: owners += 1 + int(node.get('bias', True))
                 elif kind == 'LSTM': owners += len(contract['shapes'][node['id']]['lstm']['parameter_shapes'])
+                elif kind == 'TensorParameter': owners += 1
             _require(owners <= MAX_OWNERS and occurrences <= MAX_OCCURRENCES,
                      'expanded parameter inventory exceeds structural limits before owner enumeration.')
         memo[current] = (owners, occurrences)
@@ -51,7 +52,9 @@ def present(models, mid, seen=None):
     if mid in seen: return False
     seen.add(mid)
     graph = models[mid]['graph']
-    return 'parameter_policy' in graph or any(present(models, n['ref'], seen)
+    return 'parameter_policy' in graph or any(n['type'] in {'Constant', 'TensorParameter','PositiveVariance','GaussianFilter'} or
+        n['type']=='Activation' and n.get('activation') in ('LogSoftmax','Softplus') or
+        n['type'] == 'Module' and n.get('batch_only') is True for n in graph['nodes']) or any(present(models, n['ref'], seen)
         for n in graph['nodes'] if n['type'] in {'Module', 'Recurrent'})
 
 

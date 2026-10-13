@@ -21,7 +21,7 @@ def proof(family, specialization, model, *, execution='runtime-spatial-v1'):
     _require(execution in ('runtime-spatial-v1','runtime-temporal-v1','runtime-temporal-v2'),
              'Unknown explicit runtime task execution policy.')
     if execution=='runtime-temporal-v2':
-        _require((f['version'],s['version']) in ((8,7),(9,8),(10,9)) and s['runtime'] is not None,
+        _require((f['version'],s['version']) in ((8,7),(9,8),(10,9),(11,10),(12,11),(13,12),(14,13)) and s['runtime'] is not None,
                  'Temporal-v2 execution needs exact family8 and a nonnull specialization7 witness.')
     else:
         temporal=execution=='runtime-temporal-v1'
@@ -41,7 +41,7 @@ def contract(model,dataset,task,runtime, *, execution=None):
     _keys(runtime,('family','specialization'),context='Runtime task provenance')
     if execution is None:
         sv=runtime['specialization'].get('version')
-        execution='runtime-temporal-v2' if sv in (7,8,9) else 'runtime-temporal-v1' if sv==5 else 'runtime-spatial-v1'
+        execution='runtime-temporal-v2' if sv in (7,8,9,10,11,12,13) else 'runtime-temporal-v1' if sv==5 else 'runtime-spatial-v1'
     value=proof(runtime['family'],runtime['specialization'],model,execution=execution)
     _require(digest(value)==digest(runtime),'Runtime task provenance must retain exact frozen revisions.')
     models=model['models'];root=model['root'];decl=value['specialization']['runtime']['inputs']
@@ -69,8 +69,8 @@ def contract(model,dataset,task,runtime, *, execution=None):
 
 def input_policy(bundle):
     model=bundle['model'];baseline=validate_model(model['models'],model['root'])
-    if bundle['version'] in (3,4):
-        kind='runtime-temporal-v2' if bundle['version']==4 else 'runtime-temporal-v1'
+    if bundle['version'] in (3,4,6):
+        kind='runtime-temporal-v2' if bundle['version'] in (4,6) else 'runtime-temporal-v1'
         actual=contract(model,bundle['dataset'],bundle['task'],bundle['runtime'],execution=kind)
         return {'kind':kind,'runtime_temporal':copy.deepcopy(bundle['runtime']['specialization']['runtime']['inputs']),
                 'baseline_input_groups':copy.deepcopy(baseline['input_groups']),

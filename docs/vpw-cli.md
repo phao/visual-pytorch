@@ -1,5 +1,23 @@
 # Agent and user CLI contract
 
+`example-check MANIFEST` verifies the original pinned neural MS-VAR example and
+saved scientific evidence without fitting, configuration reads or file edits.
+Only `--run` invokes its bounded isolated twelve-update replay; mismatch/failure
+has a nonzero exit status, and the source file is never saved. See
+[example packs](example-packs.md). Evidence-output contracts now expose
+supported [density conditioning](density-diagnostics.md); incompatible NLL
+paths and known probabilities used as class logits are refused before workers.
+
+Inspectable construction now supports workspace-free `template-list` and
+`template-show NAME`, plus `instantiate-template NAME --id ID [--options JSON]
+[--dry-run]`. `plan-edits JSON` and `apply JSON --dry-run` report the same located
+effects/refusals without changing disk, dirty state or history. Actual admission
+uses the same service as the Qt bridge, with an optional exact
+`--expect-snapshot` in addition to the existing disk `--expect-revision` guard.
+`doctor` uses the normal file loader and read-only integrity/graph/environment
+checks. Details and boundaries: [edit planning](edit-planning.md) and
+[construction recipes](construction-recipes.md).
+
 `parameter-counts MODEL --trainable` returns decimal counts of unique trainable
 owners per visible block and scope `unique-trainable-owners`. Frozen storage and
 shared alias-only blocks contribute zero; Module/Recurrent descendants are
@@ -29,7 +47,21 @@ in-place builder as Qt, preserves stable nodes/ports/wires, and validates affect
 paths without replacing unrelated drafts. Exact transport/options, no-op,
 rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container23). It needs Python
+`operator-schema Constant` and `operator-schema TensorParameter` describe outgoing-only
+source roots. `ports` excludes them from external inputs. Ordinary JSON edits
+create these boxes and change declared shape/literal fields; parameter policies
+initialize, freeze or share the actual tensor owner. Nullary Module calls require
+explicit `batch_only:true`. See [tensor sources](tensor-source-kernel.md).
+
+`operator-schema GaussianFilter` and `operator-schema PositiveVariance` describe
+the actual closed computation and input/port modes. `ports` carries inferred
+representations when known, never label guesses. `GaussianFilter` forward returns
+signed sequence evidence, usable by [target-free likelihood tasks](likelihood-task-contract.md).
+Version2 controls and literal learned log variance are specified in the
+[neural MS-VAR contract](neural-msvar-contract.md); the original
+[filter contract](gaussian-filter-contract.md) retains version1 meaning.
+
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container32). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute

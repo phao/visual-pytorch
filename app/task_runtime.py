@@ -26,7 +26,8 @@ def tensor_batch(prepared, task, role, indices):
         hid = head['id']; shape = outputs[head['port']]['shape']
         if head['loss'] == 'cross-entropy':
             shape = shape[1:]
-        targets[hid] = select(pop['targets'][hid], torch.int64 if head['loss'] == 'cross-entropy' else torch.float32, shape)
+        if head['loss'] != 'negative-log-likelihood':
+            targets[hid] = select(pop['targets'][hid], torch.int64 if head['loss'] == 'cross-entropy' else torch.float32, shape)
         # Per-record scalar masks/weights are intentionally [B], not [B,1].
         # The reduction broadcasts these only across that record's elements.
         masks[hid] = torch.tensor([pop['masks'][hid][i] for i in indices], dtype=torch.float32, device='cpu')
@@ -71,6 +72,23 @@ def _population_weight(value, loss, kind):
     return value.to(dtype=torch.float64).expand_as(loss)
 
 
+def validate_forward_outputs(outputs, contract, task):
+    """Diagnostics are not targets, but their arithmetic must still be valid."""
+    import torch
+    groups = {g['id']: g for g in contract['output_groups']}
+    if set(outputs) != set(groups):
+        raise GraphError('Forward output IDs do not match the proven contract.')
+    diagnostics = task.get('diagnostic_outputs', []) if task.get('version') == 2 else []
+    for port, value in outputs.items():
+        if (not isinstance(value, torch.Tensor) or value.device.type != 'cpu' or
+            value.dtype != torch.float32 or value.ndim < 1 or list(value.shape[1:]) != groups[port]['shape']):
+            raise GraphError('Forward output shape/dtype/device does not match the proven contract.')
+        log_probability = port in diagnostics and groups[port].get('representation') == 'log-probabilities'
+        valid = (~torch.isnan(value) & ~torch.isposinf(value)) if log_probability else torch.isfinite(value)
+        if not bool(valid.all()):
+            raise GraphError('Inference arithmetic produced nonfinite or invalid outputs.')
+
+
 def head_terms(prediction, target, mask, sample_weight, kind):
     """Numerator/denominator and differentiable mean for one concrete head.
 
@@ -81,11 +99,17 @@ def head_terms(prediction, target, mask, sample_weight, kind):
     """
     import torch
     from torch.nn import functional as F
-    if (not isinstance(prediction, torch.Tensor) or not isinstance(target, torch.Tensor) or
-        prediction.device.type != 'cpu' or target.device.type != 'cpu' or prediction.ndim < 1 or
-        prediction.dtype not in (torch.float32, torch.float64) or target.requires_grad or
-        not bool(torch.isfinite(prediction).all()) or not bool(torch.isfinite(target).all())):
+    if (not isinstance(prediction, torch.Tensor) or prediction.device.type != 'cpu' or prediction.ndim < 1 or
+        prediction.dtype not in (torch.float32, torch.float64) or not bool(torch.isfinite(prediction).all())):
         raise GraphError('Loss needs finite CPU predictions and fixed targets.')
+    if kind == 'negative-log-likelihood':
+        if target is not None:
+            raise GraphError('Target-free likelihood cannot receive fabricated targets.')
+        elements = -prediction
+    else:
+        if (not isinstance(target, torch.Tensor) or target.device.type != 'cpu' or target.requires_grad or
+            not bool(torch.isfinite(target).all())):
+            raise GraphError('Loss needs finite CPU predictions and fixed targets.')
     if kind in ('mse', 'mae'):
         if target.shape != prediction.shape or target.dtype != prediction.dtype:
             raise GraphError('Regression target must exactly match prediction shape/dtype; broadcasting is forbidden.')
@@ -97,7 +121,7 @@ def head_terms(prediction, target, mask, sample_weight, kind):
             not bool(((target >= 0) & (target < prediction.shape[1])).all())):
             raise GraphError('Cross-entropy needs logits [B,C,...], C≥2, and fixed-vocabulary int64 targets [B,...].')
         elements = F.cross_entropy(prediction, target, reduction='none')
-    else:
+    elif kind != 'negative-log-likelihood':
         raise GraphError('Unsupported loss kind.')
     if not bool(torch.isfinite(elements).all()):
         raise GraphError('Loss arithmetic produced nonfinite elements.')
@@ -124,7 +148,7 @@ class MetricAccumulator:
     evaluation; this is not an optimizer, sampler or a mutable run record.
     """
     def __init__(self, kind, checkpoint, population):
-        if kind not in ('mse', 'mae', 'cross-entropy') or not isinstance(checkpoint, str) or not checkpoint or not isinstance(population, str) or not population:
+        if kind not in ('mse', 'mae', 'cross-entropy', 'negative-log-likelihood') or not isinstance(checkpoint, str) or not checkpoint or not isinstance(population, str) or not population:
             raise GraphError('Metric needs loss kind, checkpoint ID and population ID.')
         self.kind = kind; self.checkpoint = checkpoint; self.population = population
         self.numerators = []; self.denominators = []; self.correct = []
@@ -139,8 +163,9 @@ class MetricAccumulator:
         # deduplicated. Report unique counts separately from evaluated records.
         numerator = float(terms['numerator'].detach())
         denominator = float(terms['denominator'].detach())
-        if not math.isfinite(numerator) or numerator < 0 or not math.isfinite(denominator) or denominator < 0:
-            raise GraphError('Metric terms must be finite nonnegative values.')
+        if (not math.isfinite(numerator) or (numerator < 0 and self.kind != 'negative-log-likelihood') or
+            not math.isfinite(denominator) or denominator < 0):
+            raise GraphError('Metric terms need finite numerators and nonnegative denominators; only NLL is signed.')
         correct = float(terms['correct_numerator'].detach()) if self.kind == 'cross-entropy' else None
         if correct is not None and (not math.isfinite(correct) or not 0 <= correct <= denominator):
             raise GraphError('Correct weighted count is inconsistent.')

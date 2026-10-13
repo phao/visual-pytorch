@@ -261,8 +261,14 @@ def validate_transforms(transforms):
 
 def validate_task_spec(task):
     """Validate reusable task grammar; field/port compatibility is a later gate."""
-    _keys(task, ('version', 'id', 'name', 'inputs', 'heads'), ('revision', 'description'), 'TaskSpec')
-    _version(task, 'TaskSpec')
+    version = task.get('version') if isinstance(task, dict) else None
+    _require(type(version) is int and version in (1, 2), 'TaskSpec supports integer versions 1 and 2.')
+    _keys(task, ('version', 'id', 'name', 'inputs', 'heads') +
+          (('diagnostic_outputs',) if version == 2 else ()), ('revision', 'description'), 'TaskSpec')
+    if version == 2:
+        diagnostics = task['diagnostic_outputs']
+        _require(isinstance(diagnostics, list) and all(_identifier(p) for p in diagnostics) and
+                 len(set(diagnostics)) == len(diagnostics), 'Diagnostic outputs must be unique stable port IDs.')
     _require(_identifier(task['id']) and _identifier(task['name']), 'Task needs an ID and name.')
     _require(isinstance(task['inputs'], list) and task['inputs'] and isinstance(task['heads'], list) and task['heads'], 'Task inputs and heads must be nonempty arrays.')
     for item in task['inputs']:
@@ -274,11 +280,16 @@ def validate_task_spec(task):
         else:
             _require('length' not in item, 'Only derived bindings declare length outside pad transforms.')
     for item in task['heads']:
-        _keys(item, ('id', 'port', 'field', 'loss', 'weight', 'transforms'), ('mask', 'sample_weight'), 'Loss head')
-        _require(all(_identifier(item[key]) for key in ('id', 'port', 'field')) and item['loss'] in ('mse', 'mae', 'cross-entropy') and
+        likelihood = isinstance(item, dict) and item.get('loss') == 'negative-log-likelihood'
+        _require(not likelihood or version == 2, 'Target-free likelihood requires TaskSpec version 2.')
+        _keys(item, ('id', 'port', 'loss', 'weight') + (() if likelihood else ('field', 'transforms')),
+              ('mask', 'sample_weight'), 'Loss head')
+        _require(all(_identifier(item[key]) for key in (('id', 'port') if likelihood else ('id', 'port', 'field'))) and
+                 item['loss'] in ('mse', 'mae', 'cross-entropy', 'negative-log-likelihood') and
                  _number(item['weight']) and item['weight'] > 0, 'Head needs stable IDs, supported loss and positive weight.')
-        validate_transforms(item['transforms'])
-        _require(item['loss'] != 'cross-entropy' or item['transforms'] == [], 'Cross-entropy index targets do not have transforms.')
+        if not likelihood:
+            validate_transforms(item['transforms'])
+            _require(item['loss'] != 'cross-entropy' or item['transforms'] == [], 'Cross-entropy index targets do not have transforms.')
         _require(all(key not in item or _identifier(item[key]) for key in ('mask', 'sample_weight')), 'Mask/weight requires a stable field ID.')
     _require(len({i['port'] for i in task['inputs']}) == len(task['inputs']) and
              len({i['port'] for i in task['heads']}) == len(task['heads']) and
@@ -366,8 +377,6 @@ def validate_task(task, dataset, contract):
     """Stable field-to-port compatibility; names and record positions are not keys."""
     fields = validate_dataset(dataset)
     validate_task_spec(task)
-    _keys(task, ('version', 'id', 'name', 'inputs', 'heads'), ('revision', 'description'), 'TaskSpec')
-    _version(task, 'TaskSpec')
     _require(_identifier(task['id']) and _identifier(task['name']), 'Task needs an ID and name.')
     if 'revision' in task:
         _require(task['revision'] == digest({k: v for k, v in task.items() if k != 'revision'}), 'Task revision does not match content.')
@@ -398,16 +407,25 @@ def validate_task(task, dataset, contract):
     ports = {g['id']: g for g in contract['output_groups']}
     seen = set()
     for item in task['heads']:
-        _keys(item, ('id', 'port', 'field', 'loss', 'weight', 'transforms'), ('mask', 'sample_weight'), 'Loss head')
         _require(_identifier(item['id']) and _identifier(item['port']) and item['port'] in ports and item['port'] not in seen, 'Loss head needs a unique output port ID.')
-        _require(_identifier(item['field']) and item['field'] in fields, 'Unknown target field ID.')
         _require(_number(item['weight']) and item['weight'] > 0, 'Head weight must be positive and finite.')
-        seen.add(item['port']); field = fields[item['field']]
+        seen.add(item['port'])
+        if item['loss'] == 'negative-log-likelihood':
+            _require(ports[item['port']].get('representation') == 'log-evidence',
+                     'Likelihood requires a proven log-evidence output, not logits, labels or posterior probabilities.')
+            from .likelihood_conditioning import check_task
+            check_task(task,contract,item)
+            target_shape = ports[item['port']]['shape']
+        else:
+            _require(_identifier(item['field']) and item['field'] in fields, 'Unknown target field ID.')
+            field = fields[item['field']]
         if item['loss'] == 'cross-entropy':
+            _require(ports[item['port']].get('representation') not in ('probabilities','positive-variance','log-evidence'),
+                     'Cross-entropy expects class scores/logits, not a known probability, variance or density-evidence output.')
             _require(field['dtype'] == 'category' and item['transforms'] == [] and ports[item['port']]['shape'] == [len(field['vocabulary']['values'])] + field['shape'],
                      'Cross-entropy uses logits with first sample axis = fixed vocabulary and categorical index targets; no target transforms.')
             target_shape = field['shape']
-        else:
+        elif item['loss'] != 'negative-log-likelihood':
             _require(item['loss'] in ('mse', 'mae'), 'Supported heads are mse, mae and cross-entropy.')
             target_shape, dtype, axes = _pipeline(field, item['transforms'])
             _require(dtype in ('float32', 'int64', 'bool') and target_shape == ports[item['port']]['shape'], 'Regression target shape does not match output port.')
@@ -417,7 +435,10 @@ def validate_task(task, dataset, contract):
                 _require(_identifier(item[key]), 'Mask/weight requires a stable field ID.')
                 f = fields.get(item[key])
                 _require(f is not None and f['dtype'] in ('bool', 'float32', 'int64') and f['shape'] in ([], target_shape) and not f.get('nullable'), 'Mask/weight must be nonmissing numeric scalar or target-shaped field.')
-    _require(seen == set(ports) and len({h['id'] for h in task['heads']}) == len(task['heads']), 'Every output needs one uniquely named loss head.')
+    diagnostics = set(task.get('diagnostic_outputs', []))
+    _require(not (diagnostics & seen) and diagnostics | seen == set(ports) and
+             len({h['id'] for h in task['heads']}) == len(task['heads']),
+             'Every output needs one loss head or an explicit diagnostic declaration, never both.')
     try:
         digest(task)
     except (TypeError, ValueError, RecursionError) as error:
@@ -486,8 +507,11 @@ def prepare(dataset, task, contract, manifest, *, constrained=True, memory_limit
     for binding in task['inputs']:
         inputs[binding['port']], fitted['inputs'][binding['port']] = _prepare_column(binding, fields[binding['field']], rows, train_ids)
     for head in task['heads']:
-        hid = head['id']; field = fields[head['field']]
-        if head['loss'] == 'cross-entropy':
+        hid = head['id']
+        field = fields[head['field']] if 'field' in head else None
+        if head['loss'] == 'negative-log-likelihood':
+            fitted['heads'][hid] = {'kind': 'target-free-log-evidence'}
+        elif head['loss'] == 'cross-entropy':
             vocab = field['vocabulary']['values']
             def indices(v):
                 if isinstance(v, list):

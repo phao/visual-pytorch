@@ -1,8 +1,56 @@
 # Agentic changelog
 
+## 2026-10-13 14:21 -03:00 — Restore shared executor dataset-rebind import
+
+Restored validate_model import after the frozen1681-test broad run exposed two
+actual CLI rebinding failures caused by relocating the executor. No test
+assertion, scientific binding contract or failure evidence changed. Corrected
+54 focused cases3.031s and six native0.280s pass. Full corrected-source acceptance
+remains next; no local integration/publication claim.
+
+## 2026-10-13 14:04 -03:00 — Conditioning, predictive density and pinned example replay
+
+Implemented conservative likelihood interpretation and pre-worker refusals,
+because normalized mixture parameters are insufficient when they depend on the
+scored current observation. Captured sources include the proof; node/port identity
+is explicit internally. Added actual-model ephemeral mixture diagnostics and
+reviewed strict pinned example checks/opt-in replay, exposed through the CLI.
+No replay saves the source workspace; test interpreters are portable.
+Focused numerical/source/actual-notebook/CLI checks pass as documented in
+docs/development.md. Full final regression/local integration are still pending;
+loss remains prototype-only, tutorial waits for user format, no remote publication.
+
+## 2026-10-13 12:48 -03:00 — Inspectable recipes and atomic edit planning
+
+Integrated reviewed worker8169946's five strict typed recipes and moved the
+ordered executor to a shared app service. CLI/Qt previews use a private bounded
+SQLite clone, expose interfaces/owners/invalidation/located refusals and recheck
+exact state before whole-batch publication, because agents must explain edits
+without mutating user work. Actual desktop batches have one undo step; previews
+have none. Added read-only application doctor with qualified environment metadata.
+80 combined cases46.830s, six native cases0.378s and sandboxed full MS-VAR UI pass.
+Full0598dac gate1623/1016.196s had three obsolete future-version witnesses; those
+are fixed and rerun, not a full-child acceptance claim. Report closure and final
+integration remain; no new production Loss panel/tutorial or remote/user-state work.
+
 Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
+
+## 2026-10-13 12:15 -03:00 — Controlled neural MS-VAR and literal log variance
+
+Implemented explicit execution/reset/emission controls with supplied reset
+histories, unchanged skipped-step beliefs and causal observed-history updates,
+because distinct statistical operations must not be conflated. PositiveVariance2
+adds explicit exp/softplus and zero-floor declarations; older operators retain
+their meaning through container32/Model10/Family14/Spec13 admission fences.
+Native/export/worker/checkpoint/family/discovery and guarded Qt authoring agree;
+the controlled builder is no-run by default and refuses overwrite. Fixed an
+independently exposed empty-batch time-axis loss. 81 focused Python checks,
+375JS and sandboxed Qt pass. Four real saved/rerun notebook kernels reproduce
+controlled41d9fd2b/original0fabd0b4 checkpoints, metrics and predictors. Full
+regression/main integration and report CLI/trajectory closure remain; no push,
+HPC, user workspace/config edits or production Loss-workbench integration.
 
 ## 2026-10-12 23:08 -03:00 — Actual LoRA teaching graphs and comparison recipes
 
@@ -1074,3 +1122,129 @@ No source edits occurred during the gate. Local integration follows; public
 unchanged. Full active goal remains incomplete because exact Neural MS-VAR and
 its owner/operator/loss/export/CLI contracts are not admitted. The worker's
 independently checked Gaussian HMM primitive remains separate, not a GUI feature.
+
+## 2026-10-13 01:19 -03:00 — Reviewed internal Gaussian filter on the MS-VAR branch
+
+Accepted LoRA9d91552 integrated under one held Git flock into clean main8ed5cf6,
+identical accepted tree79fd1c0; post55 affected checks5.740s pass. Public unchanged.
+Reviewed the sole worker's b564d7e240-line CPU Gaussian filter and all509 test
+lines; independently reran56 oracle/primitive checks0.759s. Initial-before-transition,
+previous→next normalized log rows, full Gaussian constants, signed density scores,
+safe structural-zero gradients, inactive-NaN sanitization, missing-emission state
+advance and explicit positive variance-floor transform agree with bounded path
+enumeration and actual float64 gradcheck. No dummy labels or smoothing.
+
+Integrated only into new visible task/neural-msvar at790e9cb, not main; post91
+primitive/oracle/UI/trainable-layout checks0.446s pass. Module import remains pure;
+this is an internal eager CPU numerical primitive, NOT graph/operator/owner/loss/
+worker/notebook/CLI admission. Full exact K5,p3,D3 neural MS-VAR, causal windows,
+appropriate trajectory evaluation and report CLI requests remain. Worker closed,
+all numerical processes terminal, no E/user-state/public operations.
+
+## 2026-10-13 01:57 -03:00 — Internal tensor sources without dummy inputs
+
+Reviewed sole worker540cf83's pure normalization/lazy CPU float32 Constant and
+TensorParameter constructors and all193+410 lines. Constants keep signed-zero
+literal/fill data in a nonpersistent buffer, no optimizer owner; Parameter has
+one zero-default value owner and existing external policy compatibility. Explicit
+batch expansion takes no dummy input; numerical admission precedes allocation
+while large compact shape editing remains pure. App-free emission shares the
+inspected constructor.21 independently rerun cases0.858s pass; integrated only
+on task/neural-msvar116b403, not main. Removed a process-global interop reset
+from test import;80 source/filter/reference/layout checks1.313s and explicit
+import after prior Torch work pass. No graph/operator/schema/GUI/CLI admission,
+new Source fit or full MS-VAR completion. Full route/version/owner/RAM/source-root
+closure remains; no E/user-state/public changes.
+
+## 2026-10-13 02:20 -03:00 — Actual tensor-source graph admission checkpoint
+
+Introduced closed Constant/TensorParameter graph roots, explicit nullary batch
+context and batch_only Module calls, shared value-owner/component identities,
+source initialization/freezing hooks, native/generated execution and real buffer
+storage/batch RAM admission. Added container27/Model7/Family11/Specialization10
+fences, retained family/export/notebook closures, CLI discovery and compact source
+palette/socket/Inspector/icon paths. This is task-branch implementation, not a
+completed Neural MS-VAR or a public release. Initial10 source graph tests pass,
+including actual optimizer updates, shared gradients, signed-zero constants,
+nullary/reference forward parity and archived version refusal. Existing focused
+discovery/policy/family tests pass except one outdated discovery expectation
+subsequently updated for real source admission; new family integration still
+under test. Runtime worker integration and actual GUI/worker/notebook acceptance
+remain before claiming completed source support. No user config/workspace writes.
+
+## 2026-10-13 02:39 -03:00 — Integrated runtime, actual source UI and executable closure checks
+
+Reviewed/merged sole runtime worker49933b8 through1caad5a. Added exact explicit
+batch keywords and inference/preview RAM parity after its independent review,
+generated construction admission and once-only recurrent buffer storage. Real
+source task/worker/checkpoint/restore, fresh app-free nullary/family gradients,
+saved/rerun Jupyter kernels, frozen retained value binding and atomic CLI shape/
+port/refusal checks pass. Sandboxed actual Qt palette/sockets/Inspector/literal/
+signed-zero/history/compact native icon drag/save-reload passes. Older notebook
+ZIPs are untouched; fixtures select their actual pinned archive module inventory,
+and new captured dependency refusals include tensor_sources. Initial125 Python
+plus reviewed31/19.995s, compatibility6/18.278s, binding/CLI2/3.397s and373 JS
+pass; three skipped native-export cases separately3/0.121s pass. Full source-wide
+regression remains; source boxes do not imply target-free likelihood or completed
+MS-VAR. No main/public merge/push, E, app restart or user-state mutation.
+
+## 2026-10-13 02:58 -03:00 — Source-wide gate consumed and source task dispatch repaired
+
+Frozen7f43fb8 full1544 tests670.655s finished with two discovery-fixture errors
+(dummy input supplied to nullary examples), one obsolete unknown-Spec10 witness
+and three unchanged native skips. Corrected those test contracts without changing
+nullary semantics or old archive bytes. Read-only review also found direct
+task_bundle dispatch missed newly admitted Specialization10; now selects
+TaskBundle4/temporal-v2 explicitly. Added real source-family native/worker parity.
+This is a source-route fix, not a likelihood or completed MS-VAR claim. Existing
+full failure log remains preserved; corrected child still needs its own gate.
+
+## 2026-10-13 03:37 -03:00 — Real probability/filter graph admission, target-free task next
+
+Reviewed sole workerc25d737's source/tests and integrated probability helpers,
+then admitted actual LogSoftmax/Softplus/PositiveVariance/GaussianFilter native,
+plain-export/runtime/family/CLI/Qt paths with container28/Model8/Family12/Spec11.
+Explicit shared/sequence modes avoid per-time fake owners; posterior/evidence
+ports and inferred representations preserve real computation and signed evidence.
+Independent review reproduced raw-role broadcasting and probability conversion
+before admission; both fixed/tested. Private generated namespaces avoid constructor
+collisions. Actual editable two-state p0 HMM component has visible source/transform
+internals; guarded bad binding edits preserve SQLite. Qt native palette/socket/
+Inspector/undo/save checks pass without Torch/NumPy in host or sandbox disabling.
+Latest30/28.935s, earlier66/4.730s and40/18.803s plus375JS pass. No new target-free
+task, signed metric grammar, causal p3 MS-VAR or full probability source-wide gate
+claim. Legacy synthetic/packed MSE refuses filter graphs. Full objective active;
+next exact signed likelihood task and causal K5,p3,D3 model, not another primitive.
+
+## 2026-10-13 03:56 -03:00 — Concrete target-free signed likelihood execution
+
+Admitted TaskSpec2/Bundle5/Result2/container29 with proven log-evidence binding,
+explicit diagnostics, no fabricated target columns, signed additive NLL and
+strict legacy nonnegative checks. Real worker, native/standalone checkpoint
+replay, CLI exact-version dispatch and pure result admission agree. All outputs
+are checked; only proven log-probability diagnostics allow structural -Inf.
+Signed report curves retain negative losses. Sole read-only reviewer identified
+export target-field assumptions, result/plot sign assumptions and unchecked
+diagnostics; these are corrected.118 focused tests73.109s and final42/4.228s pass;
+initial wide-density fixture assumption failure is retained. Runtime-family/
+Experiment/notebook likelihood successors explicitly remain unadmitted. No full
+new-suite/main/public or full Neural MS-VAR completion claim. Plotting guidance
+influenced signed bounds and explicit numerical coordinate checks. Final16
+likelihood/report cases3.680s pass; a prior command's nonexistent test-module
+name is retained as a command error. Visual review corrected a target-oriented
+caption for NLL and placed zero at the upper bound for all-negative curves.
+
+## 2026-10-13 04:33 -03:00 — Real causal neural MS-VAR and notebook routes
+
+Closed likelihood Bundle6/Experiment7/Run7 and composed actualK5,p3,D3 from
+editable lag/transition/affine mean/variance/initial/filter blocks with1315
+elements, Model9/Family13/Spec12/container31. Causal kernel worker source/tests
+fully reviewed and integrated; main verified source lowering and diagram roles,
+budgets, temporal dependencies and GUI sockets/icons. Independent625-path oracle,
+causal no-leak and native/export gradients pass.44 final/64.033s,20 initial/
+3.079s,30 family/80.790s,21 actual kernel/source routes140.346s and375JS pass.
+Native Qt compact drag/history/reload passes with sandbox and no Torch in host.
+Visual undefined-accent defect fixed. Real twelve-update local example and actual
+capture added; source/scalar RNG/binding identities preserved. Fixture failures
+remain in private evidence. Resets/execution/missing-history/logvariance/CLI/full
+regression remain; not full-goal/main/public acceptance, no E/user-state changes.

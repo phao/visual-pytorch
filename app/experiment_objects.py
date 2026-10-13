@@ -69,7 +69,7 @@ def split_protocol(protocol):
 
 
 def validate_experiment(doc):
-    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4, 5, 6))
+    _header(doc, ('question', 'models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols', 'selection'), versions=(1, 2, 3, 4, 5, 6, 7))
     _require(_text(doc['question']), 'Experiment needs an explicit question.')
     for key in ('models', 'data_tasks', 'splits', 'initialization_seeds', 'protocols'):
         _require(isinstance(doc[key], list) and doc[key], 'Experiment selection axes must be nonempty arrays.')
@@ -146,7 +146,7 @@ def _utc(value):
 
 
 def validate_run(doc):
-    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4, 5, 6))
+    _header(doc, ('selection', 'resolved', 'attempts'), versions=(1, 2, 3, 4, 5, 6, 7))
     _keys(doc['selection'], ('experiment', 'coordinates', 'candidate_id'), context='Run selection')
     reference(doc['selection']['experiment'], 'experiment')
     coords = doc['selection']['coordinates']
@@ -238,6 +238,7 @@ class _PreviewResolution:
     Full preview rows still own independent manifest/protocol/reference copies.
     """
     def __init__(self, experiment, resolve):
+        self.version = experiment['version']
         self.resolve=resolve;self.documents={};self.contract=None;self.compatible=None;self.manifest=None
         self.models={digest(m) for m in experiment['models']}
         self.pairs={d['id']:d for d in experiment['data_tasks']}
@@ -256,6 +257,8 @@ class _PreviewResolution:
         return self.documents[kind][1]
 
     def check(self, refs, model, dataset, task, runtime=None):
+        _require(task['version'] == 1 or self.version == 7,
+                 'Target-free likelihood requires ExperimentSpec7; older versions remain supervised-only.')
         model_key=(refs['model']['id'],refs['model']['revision'])
         if runtime is not None:model_key=(*model_key,refs['dataset']['revision'],refs['task']['revision'],digest(runtime))
         if self.contract is None or self.contract[0]!=model_key:
@@ -333,6 +336,8 @@ def _candidate(experiment, coordinates, resolve, *, saved_manifest=None, context
             model = resolved['model']
         else: model=get(coordinates['model'])
         dataset=get(pair['dataset']);task=get(pair['task'])
+        _require(task['version'] == 1 or experiment['version'] == 7,
+                 'Target-free likelihood requires ExperimentSpec7; older versions remain supervised-only.')
         runtime=resolved.get('runtime') if experiment['version']>=2 else None
         if context:context.check(result['references'],model,dataset,task,runtime)
         else:

@@ -23,8 +23,9 @@ def _hash(value):
     return isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) is not None
 
 
-def _close(a, b):
-    return _finite(a) and _finite(b) and math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12)
+def _close(a, b, *, signed=False):
+    minimum = -math.inf if signed else 0
+    return _finite(a, minimum) and _finite(b, minimum) and math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12)
 
 
 def _population(prepared, task, role, hid):
@@ -56,9 +57,10 @@ def _metric(metric, prepared, task, role, head, checkpoint):
                 'included_elements': sum(v > 0 for v in effective)}
     _require(all(type(metric[k]) is int and metric[k] == v for k, v in counters.items()), 'Metric population/element counts mismatch.')
     denominator = math.fsum(effective)
-    _require(_finite(metric['numerator']) and _close(metric['denominator'], denominator), 'Metric denominator/finite numerator mismatch.')
+    signed = head['loss'] == 'negative-log-likelihood'
+    _require(_finite(metric['numerator'], -math.inf if signed else 0) and _close(metric['denominator'], denominator), 'Metric denominator/finite numerator mismatch.')
     if denominator > 0:
-        _require(metric['status'] == 'available' and metric['denominator'] > 0 and _close(metric['value'], metric['numerator'] / metric['denominator']), 'Metric mean is not its additive weighted quotient.')
+        _require(metric['status'] == 'available' and metric['denominator'] > 0 and _close(metric['value'], metric['numerator'] / metric['denominator'], signed=signed), 'Metric mean is not its additive weighted quotient.')
     else:
         _require(metric['status'] == 'unavailable' and metric['value'] is None and metric['numerator'] == 0 and metric['denominator'] == 0, 'Empty metric must be explicitly unavailable.')
     if head['loss'] == 'cross-entropy':
@@ -79,7 +81,8 @@ def _metrics(metrics, prepared, task, roles, checkpoint):
             if metric['status'] == 'available':
                 active.append(head['weight'] * metric['value'])
         _require(population['objective_rule'] == 'sum-head-weight-times-available-head-mean; no weight renormalization', 'Unknown objective reduction rule.')
-        _require((population['objective_status'] == 'available' and _close(population['objective'], math.fsum(active))) if active else
+        _require((population['objective_status'] == 'available' and _close(population['objective'], math.fsum(active),
+                 signed=task['version'] == 2 and any(h['loss'] == 'negative-log-likelihood' for h in task['heads']))) if active else
                  (population['objective_status'] == 'unavailable' and population['objective'] is None), 'Population objective is inconsistent with declared heads.')
 
 
@@ -88,7 +91,8 @@ def validate_result(bundle, result):
     _keys(result, ('version', 'kind', 'status', 'stop_reason', 'failure', 'evaluation_error', 'identity', 'checkpoint',
                   'checkpoint_id', 'counts', 'history', 'final_metrics', 'elapsed_seconds', 'history_retention',
                   'memory_admission', 'environment', 'sampler'), context='Stored task result')
-    _version(result, 'Stored task result')
+    _require(type(result['version']) is int and result['version'] == (2 if bundle['task']['version'] == 2 else 1),
+             'Stored task result version must match its task semantics.')
     _require(result['kind'] == 'task-training-result' and result['status'] in ('completed', 'failed', 'cancelled', 'unavailable'), 'Unknown task result state.')
     _require(digest(result['identity']) == digest(run_identity(bundle)) and result['checkpoint_id'] == digest(result['checkpoint']), 'Result execution/checkpoint identity mismatch.')
     prepared = check_task_checkpoint(bundle, result['checkpoint'], constrained=False)
@@ -178,8 +182,8 @@ def validate_result(bundle, result):
         expected['components']['parameter_policy_initialization'] = 256 * resolved['counts']['stored'] + 4096 * len(resolved['owners'])
     point_rows = sum(len(prepared['populations'][r]['observation_ids']) for r in ('train', 'validation'))
     expected['components']['metric_history'] = bundle['protocol']['history']['max_points'] * (8192 + 512 * point_rows * len(bundle['task']['heads']))
-    if bundle['version'] in (3,4):
-        if bundle['version']==4:
+    if bundle['version'] in (3,4,6):
+        if bundle['version'] in (4,6):
             from .temporal_shapes_v2 import admission as temporal_admission
         else:
             from .temporal_shapes import admission as temporal_admission
@@ -187,7 +191,7 @@ def validate_result(bundle, result):
         extra=temporal_admission(model['models'],model['root'],prepared['contract'],size,constrained=False,
                                  memory_limit_percent=memory['limit_percent'],gradients=True)
         expected['components']['recurrent_unrolls']=extra['memory']['components']['recurrent_unrolls']
-        if bundle['version']==4:
+        if bundle['version'] in (4,6):
             expected['components']['parameters_optimizer_evidence']=max(
                 expected['components']['parameters_optimizer_evidence'],extra['memory']['components']['parameters'])
             expected['components']['lstm_unrolls']=extra['memory']['components']['lstm_unrolls']

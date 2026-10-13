@@ -74,7 +74,7 @@ class RuntimeTaskTests(unittest.TestCase):
 
     def test_policy_is_closed_and_cannot_be_added_to_old_grammar(self):
         w,e,_=self.make();before=w.db.serialize()
-        for version,policy in ((3,'runtime-spatial-v1'),(4,'automatic'),(4,True),(4,{}),(7,'runtime-spatial-v1')):
+        for version,policy in ((3,'runtime-spatial-v1'),(4,'automatic'),(4,True),(4,{}),(8,'runtime-spatial-v1')):
             bad=copy.deepcopy(e);bad.pop('revision');bad['version']=version;bad['models'][0]['execution']=policy
             with self.subTest(version=version,policy=policy),self.assertRaises(GraphError):w.put_spec('experiment',bad)
             self.assertEqual(w.db.serialize(),before)

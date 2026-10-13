@@ -17,6 +17,17 @@ import vpw_cli
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_controlled_sequence_versions_and_roles_are_discoverable_without_execution(self):
+        value=discovery.capabilities()['controlled_sequences']
+        self.assertEqual((value['container_version'],value['model_revision_version'],
+                          value['family_version'],value['specialization_version']),(32,10,14,13))
+        for kind in value['operators']:
+            schema=discovery.operator_schema(kind)
+            self.assertEqual(schema['op_versions'],[1,2])
+            self.assertTrue(schema['fields']['conditional'])
+        self.assertIn('transform',discovery.operator_schema('PositiveVariance')['fields']['semantic'])
+        self.assertIn('role bindings',discovery.operator_schema('CausalLagWindow')['ports']['incoming'])
+
     def cli(self, *args):
         out = io.StringIO()
         with redirect_stdout(out): result = vpw_cli.main(list(args))
@@ -26,7 +37,10 @@ class DiscoveryTests(unittest.TestCase):
         value = discovery.capabilities()
         self.assertEqual(value['operators'], sorted(operators.BLOCK_TYPES))
         self.assertEqual(value['version'], 1); self.assertEqual(value['container_version'], VERSION)
-        for kind in ('Constant', 'TrainableParameter'):
+        for kind in ('Constant','TensorParameter'):
+            self.assertIn(kind,value['operators']);self.assertNotIn(kind,value['unavailable'])
+            self.assertEqual(discovery.operator_schema(kind)['ports']['incoming'],'none')
+        for kind in ('TrainableParameter',):
             self.assertNotIn(kind, value['operators']); self.assertIn(kind, value['unavailable'])
             with self.assertRaises(GraphError): discovery.operator_schema(kind)
 

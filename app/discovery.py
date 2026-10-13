@@ -12,6 +12,11 @@ from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, ch
 from .revisions import KINDS
 
 _RULES = {
+    'CausalLagWindow': 'Explicit observed history and prefix lengths; preceding p vectors only, oldest to newest. Version 2 adds execution masks and resets with explicit reset histories. No current/future leakage, missing-history imputation or trainable owners.',
+    'GaussianFilter': 'Exact diagonal-Gaussian log-space filtering; explicit previous-to-next transition rows and initial law before first transition. No regime labels, smoothing, hidden variance floor or trainable parameters. Named posterior/evidence ports.',
+    'PositiveVariance': 'Version 1 uses softplus(raw,beta=1,threshold=20) plus an explicit positive float32 floor. Version 2 requires exp or softplus and an explicit nonnegative floor; exp with floor zero is literal exp(log variance). Shape/axes preserved; overflow/nonpositive results refuse, never clip.',
+    'Constant': 'Declared immutable CPU float32 sample tensor; explicit fill or rectangular values; no incoming data, no learnable parameters. Expand as a batch view, never a dataset input.',
+    'TensorParameter': 'Declared CPU float32 sample tensor; one zero-default nn.Parameter value owner. Graph policy initializes/freezes it; compatible share_with reuses the exact owner. No incoming data.',
     'Add': 'Ordered elementwise sum, at least two identical sample shapes and axes; no broadcasting, flattening or learned parameters.',
     'Scale': 'Multiply by a fixed finite coefficient, preserving shape/axes/batch; no learned parameters.',
     'Input': 'Declare sample shape (or vector features), optional unique axes; batch B is implicit.',
@@ -33,9 +38,13 @@ _RULES = {
     'Permute': 'Reorder each sample axis exactly once; batch is fixed first. This changes values, not just shape labels.',
 }
 _LEGACY_FIELDS = {
+    'CausalLagWindow':{'inputs','lags'},
     'Input': {'features', 'shape', 'axes'}, 'Output': {'shape'},
     'Linear': {'features', 'bias'}, 'Activation': {'activation', 'dim'},
-    'Reshape': {'shape'}, 'Module': {'ref'}, 'Concat': {'sources', 'flatten'},
+    'Reshape': {'shape'}, 'Module': {'ref','batch_only'}, 'Concat': {'sources', 'flatten'},
+    'Constant': {'shape','axes','fill','values'}, 'TensorParameter': {'shape','axes'},
+    'PositiveVariance':{'positive_floor','transform'},
+    'GaussianFilter':{'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
     'Splitter': {'parts'}, 'Replicator': {'outputs'},
 }
 
@@ -61,7 +70,27 @@ def _example(kind):
     else:
         target = 'op'
         edges = [{'from': 'x', 'to': 'op'}, {'from': 'op', 'to': 'y'}]
-        if kind in operators.TENSOR_OPERATORS:
+        if kind=='CausalLagWindow':
+            nodes=[{'id':'observations','type':'Input','shape':[3,1]},
+                   {'id':'history','type':'Input','shape':[2,1]}, {'id':'lengths','type':'Input','shape':[1]}]
+            node.update(lags=2,inputs={role:role for role in ('observations','history','lengths')})
+            edges=[{'from':role,'to':'op'} for role in ('observations','history','lengths')]+[{'from':'op','to':'y'}]
+        elif kind=='GaussianFilter':
+            from .gaussian_nodes import ROLES
+            shapes={'observations':[3,1],'initial':[2],'transition':[3,2,2],
+                    'means':[3,2,1],'variances':[2,1],'lengths':[1]}
+            nodes=[{'id':role,'type':'Input','shape':shapes[role]} for role in ROLES]
+            node.update(inputs={role:role for role in ROLES},initial_representation='probabilities',
+                        transition_representation='probabilities',transition_mode='sequence',mean_mode='sequence',variance_mode='shared')
+            edges=[{'from':role,'to':'op'} for role in ROLES]
+            edges.append({'from':'op','from_port':'sequence_evidence','to':'y'})
+        elif kind=='PositiveVariance':node.update(positive_floor=.01)
+        elif kind in operators.SOURCE_TYPES:
+            nodes = []
+            node['shape'] = [2]
+            if kind == 'Constant': node['fill'] = 0.
+            edges = [{'from':'op','to':'y'}]
+        elif kind in operators.TENSOR_OPERATORS:
             nodes[0].update(shape=[1, 6, 5], axes=['C', 'H', 'W'])
             settings = {'Conv2d': {'out_channels': 2, 'kernel_size': [3, 2]},
                 'AvgPool2d': {'kernel_size': [2, 2]}, 'MaxPool2d': {'kernel_size': [2, 2]},
@@ -117,7 +146,14 @@ def _example(kind):
     models[mid] = _model(mid, nodes, edges)
     for model in models.values(): check_document(model)
     contract = validate_model(models, mid)
-    return {'root': mid, 'models': models, 'node': target}, contract
+    witness={'root':mid,'models':models,'node':target}
+    if kind=='CausalLagWindow':
+        witness['input_values']={'observations':[[0.],[.1],[.2]],'history':[[-.2],[-.1]],'lengths':[3.]}
+    if kind=='GaussianFilter':
+        witness['input_values']={'observations':[[0.],[0.],[0.]],'initial':[.5,.5],
+            'transition':[[[.5,.5],[.5,.5]]]*3,'means':[[[0.],[1.]]]*3,
+            'variances':[[1.],[1.]],'lengths':[3.]}
+    return witness, contract
 
 
 def operator_schema(kind):
@@ -133,10 +169,17 @@ def operator_schema(kind):
     elif kind == 'LSTM':
         from .lstm_nodes import FIELDS
         fields = FIELDS
+    elif kind == 'GaussianFilter':
+        from .gaussian_nodes import FIELDS
+        fields=FIELDS
     else: fields = operators.FIELDS.get(kind, _LEGACY_FIELDS.get(kind, set()))
-    strict = kind in operators.TENSOR_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
+    strict = kind in operators.TENSOR_OPERATORS | operators.SOURCE_TYPES | operators.PROBABILITY_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
     required = {
+        'CausalLagWindow':{'inputs','lags'},
         'Add': {'sources'}, 'Scale': {'coefficient'},
+        'Constant': {'shape'}, 'TensorParameter': {'shape'},
+        'PositiveVariance':{'positive_floor'},
+        'GaussianFilter':{'inputs','initial_representation','transition_representation','transition_mode','mean_mode','variance_mode'},
         'Input': set(), 'Output': set(), 'Linear': {'features'}, 'Activation': {'activation'},
         'Module': {'ref'}, 'Reshape': {'shape'}, 'Concat': {'sources'}, 'Splitter': {'parts'},
         'Replicator': {'outputs'}, 'Conv2d': {'out_channels', 'kernel_size'},
@@ -146,24 +189,28 @@ def operator_schema(kind):
     }[kind]
     minimal = {k: v for k, v in node.items() if k in required | {'id', 'type'}}
     if kind == 'Input': minimal['shape'] = node['shape']
+    if kind == 'Constant': minimal['fill'] = node['fill']
     if kind == 'Activation': minimal['activation'] = 'Softmax'
     actual_defaults = {k: v for k, v in operators.normalized(minimal).items() if k not in minimal}
     if kind == 'Linear': actual_defaults['bias'] = True
     if kind == 'Concat': actual_defaults['flatten'] = True
-    return _header('operator-schema', type=kind, op_versions=[1] if strict else None,
+    return _header('operator-schema', type=kind, op_versions=[1,2] if kind in operators.PROBABILITY_OPERATORS else [1] if strict else None,
         fields={'common': sorted(operators.COMMON), 'semantic': sorted(fields),
             'required': sorted(required | {'id', 'type'}),
             'optional': sorted((set(fields) | operators.COMMON) - required - {'id', 'type'}),
             'required_in_example': sorted(set(node) - operators.COMMON),
             'unknown_policy': 'refuse' if strict else 'legacy-permissive; extras do not establish executable semantics',
-            'alternatives': ['Input: declare shape or features (shape takes precedence)'] if kind == 'Input' else [],
-            'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else []},
+            'alternatives': ['Input: declare shape or features (shape takes precedence)'] if kind == 'Input' else ['Constant: exactly one of fill or values'] if kind == 'Constant' else [],
+            'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else
+                ['op_version2 requires transform=exp|softplus; positive_floor may be exactly zero. Version1 refuses transform and requires a positive floor.'] if kind=='PositiveVariance' else
+                ['op_version2 permits execution_mask and reset_mask; reset_mask requires explicit reset_history. Version1 has only observations/history/lengths.'] if kind=='CausalLagWindow' else
+                ['op_version2 permits execution_mask and reset_mask. Emission masks are distinct from execution, prefix lengths and task loss masks.'] if kind=='GaussianFilter' else []},
         defaults=actual_defaults, defaults_scope='shared normalizer plus legacy bias/flatten defaults; required fields are not defaults',
         shape_rule=_RULES[kind], batch_axis='implicit leading B; sample-axis indices exclude B',
-        ports={'incoming': 'none' if kind == 'Input' else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
-               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent'} else 'exactly one',
-               'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent'} else 'one tensor with ordinary fan-out'},
-        sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM'},
+        ports={'incoming': 'none' if kind == 'Input' or kind in operators.SOURCE_TYPES else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
+               'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent','GaussianFilter','CausalLagWindow'} else 'exactly one',
+               'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent','GaussianFilter'} else 'one tensor with ordinary fan-out'},
+        sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM', 'TensorParameter'},
                  'binding': 'share_with resolves one compatible local canonical owner; not weight freezing'},
         activations=sorted(ACTIVATIONS) if kind == 'Activation' else [],
         example=example, example_contract=port_contract(example['models'], example['root']),
@@ -184,14 +231,38 @@ def capabilities():
             'selectors': 'canonical JSON component arrays relative to each architecture',
             'trainability': 'per unique owner, requires_grad and selected optimizer membership',
             'initializers': ['constructor', 'normal', 'uniform', 'values', 'zeros']},
-        unavailable={'Constant': 'not implemented', 'TrainableParameter': 'not implemented',
-            'retained_checkpoint_initialization_binding': 'not implemented; explicit values supported',
-            'latent_sequence_likelihood': 'not implemented; supervised heads are not filtering',
+        tensor_sources={'operators':['Constant','TensorParameter'], 'model_revision_version':7,
+            'family_version':11, 'specialization_version':10, 'nullary_call':'model(batch_size=B); no dummy input',
+            'constant_storage':'nonpersistent buffer reconstructed from immutable graph; charged to RAM'},
+        gaussian_filter={'container_version':28,'model_revision_version':8,'family_version':12,'specialization_version':11,
+            'initial':'before-first-transition','transition_orientation':'previous-to-next',
+            'scope':'exact forward filtering and concrete target-free likelihood training',
+            'controls':['prefix-lengths','missing-whole-emission-mask']},
+        likelihood_task={'task_version':2,'bundle_versions':[5,6],'result_version':2,'container_version':29,
+            'loss':'negative-log-likelihood','required_representation':'log-evidence',
+            'scope':'concrete and temporal-v2 families; Experiment7/Run7/container30; real portable notebooks',
+            'diagnostics':'explicit stable output IDs; no fabricated targets'},
+        causal_lags={'op_version':1,'container_version':31,'model_revision_version':9,
+            'family_version':13,'specialization_version':12,
+            'roles':['observations','history','lengths'],'order':'oldest-to-newest; excludes current observation',
+            'controls':'explicit prefix lengths; no missing-history imputation or resets'},
+        controlled_sequences={'op_version':2,'container_version':32,'model_revision_version':10,
+            'family_version':14,'specialization_version':13,
+            'operators':['CausalLagWindow','GaussianFilter','PositiveVariance'],
+            'execution':'skips transition, density and lag-history update; belief carries unchanged',
+            'reset':'only executed resets apply, before features and transition; supplied initial law and explicit lag reset history',
+            'emission':'advances transition and lag history without density evidence; executed observations still require finite causal history',
+            'loss':'separate explicit TaskSpec2 inclusion mask; all-invalid population is unavailable, not a fit',
+            'variance':'explicit exp|softplus plus declared nonnegative floor; no implicit clamp'},
+        unavailable={
+            'TrainableParameter': 'not an accepted spelling; use TensorParameter',
+            'msvar_missing_history_integration': 'not admitted; explicit observed causal history is required',
             'optimizer_resume': 'deferred Stage E, not part of this source'},
         limitations=['Shapes alone do not establish output representation or loss compatibility.',
             'Current cross-entropy expects logits; the checker does not prove an upstream tensor is logits.',
             'Schema examples are construction witnesses, not datasets, training fits or statistical benchmarks.'],
-        commands=['capabilities', 'format-schema', 'operator-schema', 'parameter-policy', 'ports'])
+        commands=['capabilities','doctor','example-check','format-schema','instantiate-template','operator-schema',
+                  'parameter-policy','plan-edits','ports','template-list','template-show'])
 
 
 def parameter_contract(models, mid):
@@ -222,7 +293,8 @@ def port_contract(models, mid):
     return {'version': 1, 'kind': 'visual-pytorch-port-contract', 'scope': 'read-current-graph-contract-only',
         'id': mid, 'inputs': copy.deepcopy(c['input_groups']), 'outputs': copy.deepcopy(c['output_groups']),
         'dtype': 'float32', 'batch_axis': 'implicit B', 'packing': 'contract order; never alphabetically reorder ports',
-        'output_representation': 'not explicitly declared in current graph grammar; do not infer from labels',
+        'output_representation': 'not explicitly declared for unknown tensors; known operator semantics appear per output group when proven, never inferred from labels',
+        'density_conditioning':copy.deepcopy(c.get('density_conditioning',{})),
         'execution_plan': copy.deepcopy(c['plan']),
         'referenced_interfaces': [interfaces[key] for key in sorted(interfaces)],
         'nodes': [{'id': n['id'], 'type': n['type'], 'shape_contract': copy.deepcopy(c['shapes'][n['id']]),

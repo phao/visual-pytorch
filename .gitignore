@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.vtw
+!examples/neural-msvar.vtw
 *.vtw-*
 *.vtw.lock
 *.tloom
