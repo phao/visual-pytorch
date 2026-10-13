@@ -1,5 +1,18 @@
 # Development state and roadmap
 
+## 2026-10-13 14:21 -03:00 — Legacy dataset rebinding import repaired
+
+Frozen b625fca full discovery completed1681 tests1152.329s with exactly two
+CLI dataset-rebind failures and six Qt-dependent skips. The shared ordered edit
+executor lost its validate_model import during relocation; restored the import,
+without changing binding validation, column identities or refusal assertions.
+Original failures remain preserved. Six native skipped cases passed separately.
+54 corrected binding/planning/construction/core/history cases3.031s and six
+native construction/export cases0.280s pass. An initial focused command named
+two nonexistent test modules; corrected module selection passes and the command
+error log is retained. Corrected-child full regression remains next;
+no final full acceptance, local main integration or remote push is claimed here.
+
 ## 2026-10-13 14:04 -03:00 — Final MS-VAR interpretation and example replay closure
 
 Added a conservative, derived causal-conditioning proof for Gaussian evidence:

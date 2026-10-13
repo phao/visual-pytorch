@@ -1,5 +1,13 @@
 # Agentic changelog
 
+## 2026-10-13 14:21 -03:00 — Restore shared executor dataset-rebind import
+
+Restored validate_model import after the frozen1681-test broad run exposed two
+actual CLI rebinding failures caused by relocating the executor. No test
+assertion, scientific binding contract or failure evidence changed. Corrected
+54 focused cases3.031s and six native0.280s pass. Full corrected-source acceptance
+remains next; no local integration/publication claim.
+
 ## 2026-10-13 14:04 -03:00 — Conditioning, predictive density and pinned example replay
 
 Implemented conservative likelihood interpretation and pre-worker refusals,

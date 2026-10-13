@@ -1,5 +1,5 @@
 """Shared ordered edit executor; publication is owned by edit_planning/Save."""
-from .core import default_model,check_document
+from .core import default_model,check_document,validate_model
 
 def apply_edits(workspace, edits):
     """One atomic file replacement for the entire ordered edit batch."""
