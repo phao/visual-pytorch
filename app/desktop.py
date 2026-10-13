@@ -580,7 +580,8 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','bindParameter','addRecurrent','editRecurrent','addLSTM','editLSTM','addGaussian','editGaussian','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        from .desktop_construction import EDITS as CONSTRUCTION_EDITS
+        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','bindParameter','addRecurrent','editRecurrent','addLSTM','editLSTM','addGaussian','editGaussian','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS | CONSTRUCTION_EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -602,7 +603,7 @@ class Window(QMainWindow):
             if workspace:workspace.history.discard(before)
             raise
         if workspace and action in edits:
-            if workspace.db.total_changes!=changes:workspace.history.record(before,workspace.db)
+            if workspace.db.total_changes!=changes or action in CONSTRUCTION_EDITS and result.get('changed',False):workspace.history.record(before,workspace.db)
             else:workspace.history.discard(before)
             if hasattr(self,'update_history_actions'):self.update_history_actions()
             self.broadcast('history',workspace.history.summary())
@@ -610,6 +611,8 @@ class Window(QMainWindow):
 
     def _dispatch(self, req, bridge):
         action = req.get("action")
+        from .desktop_construction import ACTIONS,dispatch as construction_dispatch
+        if action in ACTIONS:return construction_dispatch(self,req)
         if action == 'openHelpResource':
             resources={'pytorch-basics':'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
                        'pytorch-nn':'https://docs.pytorch.org/docs/stable/nn.html'}

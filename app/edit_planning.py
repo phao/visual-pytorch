@@ -143,7 +143,8 @@ def admit(workspace,edits, *, expected_snapshot=None,**options):
         current=hashlib.sha256(workspace.db.serialize()).hexdigest()
         if current!=report['snapshot_sha256'] or expected_snapshot is not None and current!=expected_snapshot:
             raise GraphError('Edit preview is stale; inspect the current workspace and preview again.')
-        if clone.db.serialize()!=workspace.db.serialize():
+        report['changed']=clone.db.serialize()!=workspace.db.serialize()
+        if report['changed']:
             clone.db.backup(workspace.db)
             workspace.dirty=True
         return report

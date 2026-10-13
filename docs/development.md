@@ -1,5 +1,40 @@
 # Development state and roadmap
 
+## 2026-10-13 12:48 -03:00 — Shared recipes, edit planning and application doctor
+
+Reviewed sole worker8169946 and integrated five pure inspectable recipes on the
+MS-VAR task branch: branching MLP, actual shared encoders, explicit recurrent
+cell/parent, clearly approximate supervised regime estimator, and full typed
+neural MS-VAR. Parameter/work products are bounded before construction, shapes
+are recomputed, no datasets/labels/fits are fabricated. The same ordered executor
+now belongs to app/edit_batch.py, re-exported by the CLI for compatibility.
+
+plan-edits/apply --dry-run report located effects/refusals on a private bounded
+SQLite clone. Actual admission rechecks the snapshot and publishes the complete
+checked state atomically; file Save still independently checks external revision.
+Qt bridge shares these services and records one undo step per actual batch.
+Read-only doctor uses the canonical loader, SQLite/graph checks and package
+metadata, never numerical imports, configuration writes or training.
+
+80 combined pure/numerical/CLI/core/history/old-temporal/actual-kernel cases pass
+in46.830s, six native desktop construction/family-export cases0.378s pass, and
+real sandboxed MS-VAR UI passes after dispatch changes with no host Torch or
+console errors. Earlier fixture/command failures are retained: wrong expected
+history dictionary, nonexistent test modules and using a no-Torch interpreter
+for numerical tests. Corrected commands use the proper environments.
+
+Frozen0598dac full discovery ran1623 tests1016.196s with three failures and three
+native skips. All failures came from now-supported Experiment7/Run7 used as
+future-version rejection witnesses; only those witnesses moved to8. Their
+corrected regression passes, but this is NOT a corrected-child full-suite PASS.
+The three skipped native exports were rerun successfully in the Qt environment.
+
+Remaining full-goal closure: trajectory diagnostics, representation/conditioning
+compatibility, portable example checks/replay and final accepted-source regression
+before local main integration. Loss panel remains the user's separate prototype;
+its docs/images are organized inside the prototype. Comprehensive tutorial waits
+for the user's format; no new workbench, public push, E or user-state changes.
+
 ## 2026-10-13 12:15 -03:00 — Explicit sequence controls and learned log variance
 
 Controlled CausalLagWindow2/GaussianFilter2 distinguish execution, reset,

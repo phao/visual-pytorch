@@ -1,5 +1,15 @@
 # Agent and user CLI contract
 
+Inspectable construction now supports workspace-free `template-list` and
+`template-show NAME`, plus `instantiate-template NAME --id ID [--options JSON]
+[--dry-run]`. `plan-edits JSON` and `apply JSON --dry-run` report the same located
+effects/refusals without changing disk, dirty state or history. Actual admission
+uses the same service as the Qt bridge, with an optional exact
+`--expect-snapshot` in addition to the existing disk `--expect-revision` guard.
+`doctor` uses the normal file loader and read-only integrity/graph/environment
+checks. Details and boundaries: [edit planning](edit-planning.md) and
+[construction recipes](construction-recipes.md).
+
 `parameter-counts MODEL --trainable` returns decimal counts of unique trainable
 owners per visible block and scope `unique-trainable-owners`. Frozen storage and
 shared alias-only blocks contribute zero; Module/Recurrent descendants are
@@ -37,11 +47,13 @@ explicit `batch_only:true`. See [tensor sources](tensor-source-kernel.md).
 
 `operator-schema GaussianFilter` and `operator-schema PositiveVariance` describe
 the actual closed computation and input/port modes. `ports` carries inferred
-representations when known, never label guesses. `GaussianFilter` forward can
-return signed sequence evidence; a target-free likelihood training task is not
-yet admitted. Exact scope and limitations: [filter contract](gaussian-filter-contract.md).
+representations when known, never label guesses. `GaussianFilter` forward returns
+signed sequence evidence, usable by [target-free likelihood tasks](likelihood-task-contract.md).
+Version2 controls and literal learned log variance are specified in the
+[neural MS-VAR contract](neural-msvar-contract.md); the original
+[filter contract](gaussian-filter-contract.md) retains version1 meaning.
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container31). It needs Python
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container32). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute

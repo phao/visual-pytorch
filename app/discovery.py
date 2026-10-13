@@ -261,7 +261,8 @@ def capabilities():
         limitations=['Shapes alone do not establish output representation or loss compatibility.',
             'Current cross-entropy expects logits; the checker does not prove an upstream tensor is logits.',
             'Schema examples are construction witnesses, not datasets, training fits or statistical benchmarks.'],
-        commands=['capabilities', 'format-schema', 'operator-schema', 'parameter-policy', 'ports'])
+        commands=['capabilities','doctor','format-schema','instantiate-template','operator-schema',
+                  'parameter-policy','plan-edits','ports','template-list','template-show'])
 
 
 def parameter_contract(models, mid):

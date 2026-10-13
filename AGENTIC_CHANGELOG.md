@@ -1,5 +1,18 @@
 # Agentic changelog
 
+## 2026-10-13 12:48 -03:00 — Inspectable recipes and atomic edit planning
+
+Integrated reviewed worker8169946's five strict typed recipes and moved the
+ordered executor to a shared app service. CLI/Qt previews use a private bounded
+SQLite clone, expose interfaces/owners/invalidation/located refusals and recheck
+exact state before whole-batch publication, because agents must explain edits
+without mutating user work. Actual desktop batches have one undo step; previews
+have none. Added read-only application doctor with qualified environment metadata.
+80 combined cases46.830s, six native cases0.378s and sandboxed full MS-VAR UI pass.
+Full0598dac gate1623/1016.196s had three obsolete future-version witnesses; those
+are fixed and rerun, not a full-child acceptance claim. Report closure and final
+integration remain; no new production Loss panel/tutorial or remote/user-state work.
+
 Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
