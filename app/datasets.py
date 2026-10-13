@@ -413,11 +413,15 @@ def validate_task(task, dataset, contract):
         if item['loss'] == 'negative-log-likelihood':
             _require(ports[item['port']].get('representation') == 'log-evidence',
                      'Likelihood requires a proven log-evidence output, not logits, labels or posterior probabilities.')
+            from .likelihood_conditioning import check_task
+            check_task(task,contract,item)
             target_shape = ports[item['port']]['shape']
         else:
             _require(_identifier(item['field']) and item['field'] in fields, 'Unknown target field ID.')
             field = fields[item['field']]
         if item['loss'] == 'cross-entropy':
+            _require(ports[item['port']].get('representation') not in ('probabilities','positive-variance','log-evidence'),
+                     'Cross-entropy expects class scores/logits, not a known probability, variance or density-evidence output.')
             _require(field['dtype'] == 'category' and item['transforms'] == [] and ports[item['port']]['shape'] == [len(field['vocabulary']['values'])] + field['shape'],
                      'Cross-entropy uses logits with first sample axis = fixed vocabulary and categorical index targets; no target transforms.')
             target_shape = field['shape']

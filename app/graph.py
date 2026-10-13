@@ -537,4 +537,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
               'input_groups': groups, 'output_groups': out_groups, 'output_mode': mode,
               'plan': plan, 'tensor_source': tensor_source}
     cache[cache_key] = result
+    if has_gaussian_filter:
+        from .likelihood_conditioning import attach
+        result['density_conditioning']=attach(models,mid,result,cache)
     return result

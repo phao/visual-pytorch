@@ -33,7 +33,7 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution')}
+               for n in ('likelihood_conditioning','sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math
@@ -116,7 +116,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'parameter_policy', 'policy_graph', 'parameter_execution', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
+            for child in ('likelihood_conditioning','sequence_controls','causal_lags','lag_nodes','positive_variance','gaussian_filter','gaussian_nodes','tensor_sources', 'memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'parameter_policy', 'policy_graph', 'parameter_execution', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:

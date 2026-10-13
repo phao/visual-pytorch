@@ -294,6 +294,7 @@ def port_contract(models, mid):
         'id': mid, 'inputs': copy.deepcopy(c['input_groups']), 'outputs': copy.deepcopy(c['output_groups']),
         'dtype': 'float32', 'batch_axis': 'implicit B', 'packing': 'contract order; never alphabetically reorder ports',
         'output_representation': 'not explicitly declared for unknown tensors; known operator semantics appear per output group when proven, never inferred from labels',
+        'density_conditioning':copy.deepcopy(c.get('density_conditioning',{})),
         'execution_plan': copy.deepcopy(c['plan']),
         'referenced_interfaces': [interfaces[key] for key in sorted(interfaces)],
         'nodes': [{'id': n['id'], 'type': n['type'], 'shape_contract': copy.deepcopy(c['shapes'][n['id']]),
