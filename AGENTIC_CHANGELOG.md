@@ -4,6 +4,19 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 21:31 -03:00 — Exact retained parameter reader, not binding yet
+
+Added a pure source reader with mandatory run revision/attempt/checkpoint/path/ID
+selection and retained model agreement, because LoRA's base must not track mutable
+heads or silently substitute earlier success. Detached shape-bound float32 bytes
+have a specified digest and preserve signed zero. Six bounded tests2.080s pass
+using an actual3-update retained worker and explicit failed retry; fresh source
+read imports no Torch/NumPy/Qt or numerical execution. First harness accidentally
+shadowed unittest.run; renamed fixture, retained failed log. No persisted binding,
+CLI/GUI selector, optimizer resume or full-goal completion claimed. Sole reviewer
+confirmed pinning paths and identified helper shape-domain hardening; now matches
+the existing1–8-positive-integer owner contract, with bounded refusal witnesses.
+
 ## 2026-10-12 21:24 -03:00 — Review corrections for policy edits and repair
 
 Sole reviewer found an accepted-policy/ordinary-save race, alias-backed declaration
