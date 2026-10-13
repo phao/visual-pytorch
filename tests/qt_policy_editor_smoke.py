@@ -50,12 +50,16 @@ def until(source):
         QTest.qWait(25)
     raise AssertionError('UI timeout: '+source)
 def click(selector):
-    until('Boolean(document.querySelector('+json.dumps(selector)+')) && !document.querySelector('+json.dumps(selector)+').disabled')
+    until('(()=>{const e=document.querySelector('+json.dumps(selector)+');if(!e||e.disabled)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0})()')
     js('document.querySelector('+json.dumps(selector)+').scrollIntoView({block:"nearest"})')
     QTest.qWait(100)
     point=js('(()=>{const r=document.querySelector('+json.dumps(selector)+').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()')
     QTest.mouseClick(view.focusProxy() or view,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,QPoint(round(point[0]),round(point[1])))
 def inspect(nid):js('document.querySelector(".node[data-id='+nid+']").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
+def open_details(selector):
+    until('Boolean(document.querySelector('+json.dumps(selector)+'))')
+    if not js('document.querySelector('+json.dumps(selector)+').closest("details").open'):click(selector)
+    until('document.querySelector('+json.dumps(selector)+')?.closest("details").open')
 
 with tempfile.TemporaryDirectory() as folder:
     h=Harness(Path(folder));retained_source=None
@@ -96,13 +100,13 @@ with tempfile.TemporaryDirectory() as folder:
         h.dispatch({'action':'redo'},h.bridge)
         until('document.querySelector(".node[data-id=base]").dataset.policyStatus==="Trainable"')
         inspect('A');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("A")')
-        click('.policy-owner summary');until('Boolean(document.querySelector("[data-policy-field=std]"))')
+        open_details('.policy-owner summary');until('Boolean(document.querySelector("[data-policy-field=std]"))')
         std=js('document.querySelector("[data-policy-field=std]").value');assert float(std)==.05
         js('document.querySelector("[data-policy-field=std]").value="0.02"')
         click('.policy-owner details button')
         until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\'].initializer.std===0.02')
         inspect('A');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("A")')
-        click('.policy-owner summary');js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250);assert view.grab().save(str(output/'02-adapter-initializer.png'))
+        open_details('.policy-owner summary');js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250);assert view.grab().save(str(output/'02-adapter-initializer.png'))
         raw=h.workspace.db.serialize();count=len(h.workspace.history.undo_stack)
         js('document.querySelector("[data-policy-field=std]").value="0"');click('.policy-owner details button')
         until('document.querySelector("[data-policy-owner-error]")?.textContent.includes("positive")')
@@ -114,7 +118,7 @@ with tempfile.TemporaryDirectory() as folder:
         until('window.loom.document.graph.parameter_policy.parameters[\'["A","weight"]\']?.initializer.std===0.02')
         if retained_source:
             inspect('A');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("A")')
-            click('[data-parameter-source] summary')
+            open_details('[data-parameter-source] summary')
             until('document.querySelectorAll("[data-binding-run] option").length>1')
             js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
             click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
@@ -138,7 +142,7 @@ with tempfile.TemporaryDirectory() as folder:
             js('document.querySelector(".policy-owner").scrollIntoView({block:"start"})');QTest.qWait(250)
             assert view.grab().save(str(output/'03-bound-retained-tensor.png'))
             # A backend race/refusal must survive Inspector rebuilding.
-            click('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
+            open_details('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
             js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
             click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
             js('(()=>{const e=document.querySelector("[data-binding-tensor]");e.value=[...e.options].find(o=>o.textContent.startsWith("layer_1.weight ")).value;e.dispatchEvent(new Event("change"))})()')
@@ -149,7 +153,7 @@ with tempfile.TemporaryDirectory() as folder:
             assert h.workspace.db.serialize()==raw and len(h.workspace.history.undo_stack)==count
             h.workspace.put(original);h.broadcast()
             inspect('base');until('document.querySelector(".policy-owner-title")?.textContent.startsWith("base")')
-            click('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
+            open_details('[data-parameter-source] summary');until('document.querySelectorAll("[data-binding-run] option").length>1')
             js('(()=>{const e=document.querySelector("[data-binding-run]");e.value='+json.dumps(json.dumps(retained_source['run'],separators=(',',':')))+';e.dispatchEvent(new Event("change"));document.querySelector("[data-binding-attempt]").value="1"})()')
             click('[data-binding-read]');until('document.querySelectorAll("[data-binding-tensor] option").length>1')
             js('(()=>{const e=document.querySelector("[data-binding-tensor]");e.value=[...e.options].find(o=>o.textContent.startsWith("layer_0.weight ")).value;e.dispatchEvent(new Event("change"))})()')

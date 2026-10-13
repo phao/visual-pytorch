@@ -4,6 +4,15 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 22:35 -03:00 — Frozen Qt disclosure-state test correction
+
+aa4066e captured4 notebook checks27.681s pass, including actual old/new kernels
+and new omission guards. Frozen Qt failed a local-error predicate because the
+harness toggled an already-open initializer disclosure closed after same-identity
+draft preservation. Use idempotent opening and require visible native click
+targets; product executable bytes unchanged. Failed frozen log retained; corrected
+native rerun/full regression remain required.
+
 ## 2026-10-12 22:31 -03:00 — Exact retained initialization and Binding1 lineage
 
 Added independent immutable Binding1/container25, pure preview/atomic source copy,
