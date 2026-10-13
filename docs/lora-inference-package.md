@@ -27,7 +27,10 @@ the corresponding LoRA wiring, base freezing, bias absence and scale.
 Export and integrity verification do not import PyTorch, NumPy or Qt or change the
 workspace. The directory must not exist. A filesystem failure may leave a partial
 directory; preserve it for diagnosis and choose a new destination. Existing
-directories and final-file symlinks are never overwritten.
+directories and final-file symlinks are never overwritten. All deterministic
+metadata, source-size and tensor-contract checks happen before directory creation.
+Readers admit regular files through nonblocking descriptors, reject symlinks and
+special files, and enforce bounded reads even if a file grows after admission.
 
 ## Files and identity
 

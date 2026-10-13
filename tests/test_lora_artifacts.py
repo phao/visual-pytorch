@@ -12,6 +12,7 @@ from app.lora import populate
 from app.lora_execution import merge_selections
 from app.experiment_objects import execute_candidate, preview_experiment
 from app.lora_artifacts import prepare, write_new_package, validate_package
+from app.evidence import digest
 
 
 class LoRAArtifactTests(unittest.TestCase):
@@ -69,6 +70,36 @@ class LoRAArtifactTests(unittest.TestCase):
             folder = Path(temporary) / 'package'
             with self.assertRaises(GraphError): write_new_package(package, folder)
             self.assertFalse(folder.exists())
+
+    def test_metadata_size_and_contract_refuse_before_directory_creation(self):
+        for mutation in ('size', 'scope'):
+            package = copy.deepcopy(self.prepared)
+            if mutation == 'size': package['manifest']['ports']['input'][0]['id'] = 'x' * 1_000_001
+            else: package['manifest']['scope'] = 'invented-semantics'
+            package['manifest_sha256'] = digest(package['manifest'])
+            with tempfile.TemporaryDirectory() as temporary:
+                folder = Path(temporary) / 'package'
+                with self.assertRaises(GraphError): write_new_package(package, folder)
+                self.assertFalse(folder.exists())
+
+    def test_fifo_and_symlink_refuse_without_blocking_in_pure_and_portable_reads(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'package'; write_new_package(self.prepared, folder)
+            environment = {**os.environ, 'PYTHONPATH': str(folder)}
+            command = [sys.executable, '-c', 'import predictor; predictor.load()']
+            for name in ('manifest.json', 'base.f32', 'predictor.py'):
+                path = folder / name; original = path.read_bytes(); path.unlink(); os.mkfifo(path)
+                with self.assertRaisesRegex(GraphError, 'regular file'): validate_package(folder)
+                if name != 'predictor.py':
+                    refused = subprocess.run(command, cwd=folder, env=environment, capture_output=True, text=True, timeout=3)
+                    self.assertNotEqual(refused.returncode, 0); self.assertIn('regular file', refused.stderr)
+                path.unlink(); path.write_bytes(original)
+                other = folder / 'replacement'; other.write_bytes(original); path.unlink(); path.symlink_to(other)
+                with self.assertRaisesRegex(GraphError, 'symlink'): validate_package(folder)
+                if name != 'predictor.py':
+                    refused = subprocess.run(command, cwd=folder, env=environment, capture_output=True, text=True, timeout=3)
+                    self.assertNotEqual(refused.returncode, 0); self.assertIn('symlink', refused.stderr)
+                path.unlink(); path.write_bytes(original); other.unlink()
 
     def test_fresh_portable_predictor_and_merged_oracle_with_input_gradients(self):
         with tempfile.TemporaryDirectory() as temporary:

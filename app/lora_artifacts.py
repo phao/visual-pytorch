@@ -5,6 +5,8 @@ continuation, a trusted signature, or an adapter usable with an arbitrary base.
 """
 import hashlib
 import json
+import os
+import stat
 import struct
 from pathlib import Path
 
@@ -17,6 +19,21 @@ from .parameter_binding import validate_source
 
 FILES = {'base': 'base.f32', 'A': 'A.f32', 'B': 'B.f32'}
 MAX_MANIFEST = 1_000_000
+
+
+def _read_file(path, limit, exact=False):
+    """Nonblocking regular-file admission and a bounded descriptor-based read."""
+    _require(not path.is_symlink(), 'LoRA package file must not be a symlink.')
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        _require(stat.S_ISREG(info.st_mode), 'LoRA package requires a regular file.')
+        _require(info.st_size == limit if exact else info.st_size <= limit,
+                 'LoRA package file size exceeds or differs from its contract.')
+        raw = stream.read(limit + 1)
+        _require(len(raw) == limit if exact else len(raw) <= limit,
+                 'LoRA package file changed size or exceeds its contract.')
+        return raw
 
 
 def _binary(values):
@@ -65,6 +82,8 @@ def predictor_source(manifest):
 import hashlib
 import json
 import math
+import os
+import stat
 import struct
 from pathlib import Path
 
@@ -73,12 +92,22 @@ SHAPES = {shapes!r}
 FILES = {FILES!r}
 PORTS = {ports!r}
 
+def _read_file(path, limit, exact=False):
+    if path.is_symlink(): raise ValueError('LoRA package file must not be a symlink.')
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode): raise ValueError('LoRA package requires a regular file.')
+        if not (info.st_size == limit if exact else info.st_size <= limit):
+            raise ValueError('LoRA package file size differs from its contract.')
+        raw = stream.read(limit + 1)
+        if not (len(raw) == limit if exact else len(raw) <= limit):
+            raise ValueError('LoRA package file changed size or exceeds its contract.')
+        return raw
+
 def load():
     folder = Path(__file__).resolve().parent
-    path = folder / 'manifest.json'
-    if path.is_symlink() or path.stat().st_size > {MAX_MANIFEST}:
-        raise ValueError('Invalid LoRA manifest file.')
-    manifest = json.loads(path.read_text(encoding='utf-8'))
+    manifest = json.loads(_read_file(folder / 'manifest.json', {MAX_MANIFEST}))
     identity = hashlib.sha256(json.dumps(manifest, sort_keys=True,
         separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
     if identity != EXPECTED_MANIFEST:
@@ -87,9 +116,7 @@ def load():
     for key, name in FILES.items():
         path = folder / name
         count = math.prod(SHAPES[key])
-        if path.is_symlink() or path.stat().st_size != count * 4:
-            raise ValueError('Missing or invalid exact-base/adapter tensor.')
-        raw = path.read_bytes()
+        raw = _read_file(path, count * 4, exact=True)
         if hashlib.sha256(raw).hexdigest() != manifest['tensors'][key]['sha256']:
             raise ValueError('Exact-base/adapter tensor identity mismatch.')
         values[key] = struct.unpack('<' + 'f' * count, raw)
@@ -122,9 +149,12 @@ def load():
 def validate_package(folder, *, expected_manifest=None):
     """Pure integrity read. Hashes provide identity, not cryptographic authorship."""
     folder = Path(folder)
-    path = folder / 'manifest.json'
-    _require(not path.is_symlink() and path.stat().st_size <= MAX_MANIFEST, 'Invalid LoRA manifest file.')
-    manifest = json.loads(path.read_text(encoding='utf-8'))
+    manifest = json.loads(_read_file(folder / 'manifest.json', MAX_MANIFEST))
+    return _validate_contents(manifest, lambda name, limit, exact=False:
+                             _read_file(folder / name, limit, exact), expected_manifest)
+
+
+def _validate_contents(manifest, read_file, expected_manifest):
     _keys(manifest, ('version', 'kind', 'scope', 'optimizer_resume', 'operation', 'sources',
                      'ports', 'tensors', 'merged_values_sha256', 'value_format'), context='LoRA package')
     _require(type(manifest['version']) is int and manifest['version'] == 1 and
@@ -147,9 +177,7 @@ def validate_package(folder, *, expected_manifest=None):
         _keys(entry, ('file', 'bytes', 'sha256'), context='LoRA tensor file')
         _require(entry['file'] == FILES[key] and type(entry['bytes']) is int and
                  entry['bytes'] == 4 * rows * columns, 'LoRA tensor file/shape mismatch.')
-        path = folder / entry['file']
-        _require(not path.is_symlink() and path.stat().st_size == entry['bytes'], 'Missing or invalid exact-base/adapter tensor.')
-        raw = path.read_bytes()
+        raw = read_file(entry['file'], entry['bytes'], True)
         _require(hashlib.sha256(raw).hexdigest() == entry['sha256'], 'LoRA tensor file hash mismatch.')
         values[key], value_hash = float32_values(_matrix(raw, source['shape']), source['shape'])
         _require(value_hash == source['values_sha256'], 'LoRA tensor differs from its exact retained source.')
@@ -178,9 +206,8 @@ def validate_package(folder, *, expected_manifest=None):
     merged = merged_values(*(values[key] for key in FILES), alpha=op['alpha'])
     _, value_hash = float32_values(merged, base['shape'])
     _require(value_hash == manifest['merged_values_sha256'], 'LoRA package merged witness mismatch.')
-    path = folder / 'predictor.py'
-    _require(not path.is_symlink() and path.stat().st_size <= MAX_MANIFEST and
-             path.read_text(encoding='utf-8') == predictor_source(manifest), 'LoRA predictor source identity mismatch.')
+    _require(read_file('predictor.py', MAX_MANIFEST) == predictor_source(manifest).encode('utf-8'),
+             'LoRA predictor source identity mismatch.')
     return {'manifest': manifest, 'manifest_sha256': identity, 'values': values,
             'scope': 'integrity-checked; not-executed; not-authenticated'}
 
@@ -194,14 +221,20 @@ def write_new_package(prepared, output):
         raw = prepared['payloads'][FILES[key]]
         _require(len(raw) == entry['bytes'] and hashlib.sha256(raw).hexdigest() == entry['sha256'],
                  'Prepared tensor changed; nothing exported.')
+    manifest_raw = (json.dumps(manifest, sort_keys=True, indent=2, allow_nan=False) + '\n').encode('utf-8')
+    source_raw = predictor_source(manifest).encode('utf-8')
+    _require(len(manifest_raw) <= MAX_MANIFEST and len(source_raw) <= MAX_MANIFEST,
+             'LoRA metadata/source exceeds local size limit; nothing exported.')
+    files = {**prepared['payloads'], 'manifest.json': manifest_raw, 'predictor.py': source_raw}
+    def read_prepared(name, limit, exact=False):
+        raw = files[name]
+        _require(len(raw) == limit if exact else len(raw) <= limit, 'Prepared package file size invalid.')
+        return raw
+    _validate_contents(manifest, read_prepared, prepared['manifest_sha256'])
     folder = Path(output).expanduser().absolute()
     folder.mkdir(exist_ok=False)
-    for name, raw in prepared['payloads'].items():
+    for name, raw in files.items():
         with (folder / name).open('xb') as stream: stream.write(raw)
-    with (folder / 'manifest.json').open('x', encoding='utf-8', newline='\n') as stream:
-        stream.write(json.dumps(manifest, sort_keys=True, indent=2, allow_nan=False) + '\n')
-    with (folder / 'predictor.py').open('x', encoding='utf-8', newline='\n') as stream:
-        stream.write(predictor_source(manifest))
     validate_package(folder, expected_manifest=prepared['manifest_sha256'])
     return {'path': str(folder), 'manifest_sha256': prepared['manifest_sha256'],
             'status': 'exact-base-and-adapter-exported; not-executed', 'optimizer_resume': False}

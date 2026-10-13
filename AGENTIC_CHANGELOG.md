@@ -1032,3 +1032,14 @@ six-run workspace validates; its200-update rank2 checkpoint and portable predict
 match exactly on checked inputs, with merged maximum error1.1920928955078125e-7.
 Earlier failed fixture/mapping/source-order checks are retained. Full stage
 regression, actual complete-example GUI/notebook acceptance, and full MS-VAR remain.
+
+## 2026-10-12 23:54 -03:00 — Corrected independent LoRA export review findings
+
+One read-only subagent found that FIFO metadata could block a read and deterministic
+oversized/invalid metadata could refuse only after creation. Regular-file checks
+now use nonblocking, no-follow descriptors with bounded reads; complete metadata,
+source-size, tensor and merge contracts are admitted before any mkdir. Actual FIFO/
+symlink loader refusals and oversized/invalid pre-create cases pass with the eight
+package checks plus32 UI guards40/14.439s. Earlier parent71 focused cases97.348s
+passes for its exact5d81fd3 source, not a corrected-child full regression. Reviewer
+closed; no second simultaneous subagent or production UI redesign.
