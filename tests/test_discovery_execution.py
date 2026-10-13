@@ -20,7 +20,11 @@ class DiscoveryExecutionTests(unittest.TestCase):
                           for group in native.contract['input_groups']}
                 native.eval(); exported.eval()
                 with torch.no_grad():
-                    expected = native.forward_tensor(values); actual = exported.forward_tensor(values)
+                    if native.contract['input_groups']:
+                        expected = native.forward_tensor(values); actual = exported.forward_tensor(values)
+                    else:
+                        expected = native.forward_tensor(batch_size=2)
+                        actual = exported.forward_tensor(batch_size=2)
                 self.assertTrue(torch.equal(actual, expected), kind)
                 self.assertTrue(torch.isfinite(actual).all(), kind)
                 self.assertIs(actual.dtype, torch.float32)

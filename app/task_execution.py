@@ -70,7 +70,7 @@ def task_bundle(model, dataset, task, manifest, protocol, *, runtime=None):
               'manifest': copy.deepcopy(manifest), 'protocol': validate_protocol(protocol)}
     if runtime is not None:
         sv=runtime['specialization'].get('version')
-        result.update(version=4 if sv in (7,8,9) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
+        result.update(version=4 if sv in (7,8,9,10) else 3 if sv==5 else 2,runtime=copy.deepcopy(runtime))
     validate_bundle(result)
     return result
 

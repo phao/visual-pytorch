@@ -36,6 +36,41 @@ def bundle(updates=6):
 
 
 class TensorSourceExecution(unittest.TestCase):
+    def test_family11_specialization10_task_dispatch_and_actual_worker(self):
+        from test_tensor_source_runtime import fixture
+        from app.family_records import retain
+        from app.task_execution import resolve_run
+        models,mid,declared=fixture('temporal-v2','TensorParameter')
+        family={'version':11,'id':'runtime-source-family','name':'Runtime source family',
+            'root':mid,'models':models,'symbols':[],'assignments':[],'repeats':[],
+            'runtime_policy':{'version':2,'kind':'runtime-temporal-v2','inputs':declared}}
+        workspace=Workspace();self.addCleanup(workspace.db.close)
+        retained=retain(workspace,family=family,materialize=False)
+        def get(ref):return workspace.get_spec(ref['kind'],ref['id'],ref['revision'])
+        frozen=get(retained['model'])
+        runtime={'family':get(retained['family']),'specialization':get(retained['specialization'])}
+        dataset={'version':1,'id':'runtime-source-data','name':'Temporal source check',
+            'storage':{'kind':'inline-records','version':1},
+            'fields':[{'id':'sequence','dtype':'float32','shape':[3,2],'axes':['T','F']},
+                      {'id':'offset','dtype':'float32','shape':[2,3],'axes':['T','F']}],
+            'records':[{'id':'r'+str(i),'values':{'sequence':[[i/30,.1]]*3,'offset':[[.4]*3,[.2]*3]}}
+                       for i in range(16)]}
+        task={'version':1,'id':'runtime-source-task','name':'Runtime source check',
+            'inputs':[{'port':'input','field':'sequence','transforms':[]}],
+            'heads':[{'id':'identity','port':'dynamic','field':'sequence','loss':'mse','weight':1.,'transforms':[]},
+                     {'id':'offset','port':'fixed','field':'offset','loss':'mse','weight':1.,'transforms':[]}]}
+        manifest=make_split(dataset,{'method':'row','seed':13,'fractions':[.5,.25,.25]})
+        b=task_bundle(frozen,dataset,task,manifest,
+            training_protocol(epochs=None,updates=3,batch_size=4,lr=.1,evaluate_every=3),runtime=runtime)
+        self.assertEqual(b['version'],4)
+        self.assertEqual(runtime['specialization']['version'],10)
+        self.assertEqual(resolve_run(b,constrained=False)[0]['contract']['parameters'],6)
+        local=train_task(b,constrained=False);self.assertEqual(local['status'],'completed',local['failure'])
+        worker=run_json_worker([sys.executable,'-u','-m','app.worker'],
+            {'kind':'task-v4','bundle':b,'constrained':False},cwd=str(Path(__file__).parents[1]))
+        self.assertEqual(worker['checkpoint'],local['checkpoint'])
+        self.assertEqual(worker['history'],local['history'])
+
     def test_retained_source_values_bind_to_frozen_new_tensor_owner(self):
         from evidence_fixture import experiment
         from app.parameter_sources import inventory,read

@@ -1139,3 +1139,14 @@ plus reviewed31/19.995s, compatibility6/18.278s, binding/CLI2/3.397s and373 JS
 pass; three skipped native-export cases separately3/0.121s pass. Full source-wide
 regression remains; source boxes do not imply target-free likelihood or completed
 MS-VAR. No main/public merge/push, E, app restart or user-state mutation.
+
+## 2026-10-13 02:58 -03:00 — Source-wide gate consumed and source task dispatch repaired
+
+Frozen7f43fb8 full1544 tests670.655s finished with two discovery-fixture errors
+(dummy input supplied to nullary examples), one obsolete unknown-Spec10 witness
+and three unchanged native skips. Corrected those test contracts without changing
+nullary semantics or old archive bytes. Read-only review also found direct
+task_bundle dispatch missed newly admitted Specialization10; now selects
+TaskBundle4/temporal-v2 explicitly. Added real source-family native/worker parity.
+This is a source-route fix, not a likelihood or completed MS-VAR claim. Existing
+full failure log remains preserved; corrected child still needs its own gate.
