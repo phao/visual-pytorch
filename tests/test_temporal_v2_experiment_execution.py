@@ -120,7 +120,7 @@ print(json.dumps({k:v.tolist() for k,v in out.items()}))'''
                 memory['estimated_bytes']=sum(memory['components'].values())
             with self.subTest(mutation=mutation),self.assertRaises(GraphError):admit_run(w,bad)
             self.assertEqual(w.db.serialize(),before)
-        for version in (True,7):
+        for version in (True,8):
             bad=copy.deepcopy(original);bad.pop('revision');bad['version']=version
             with self.assertRaises(GraphError):validate_run(bad)
 
