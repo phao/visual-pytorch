@@ -12,6 +12,8 @@ from .core import FORMAT, VERSION, SUPPORTED_VERSIONS, GraphError, Workspace, ch
 from .revisions import KINDS
 
 _RULES = {
+    'Constant': 'Declared immutable CPU float32 sample tensor; explicit fill or rectangular values; no incoming data, no learnable parameters. Expand as a batch view, never a dataset input.',
+    'TensorParameter': 'Declared CPU float32 sample tensor; one zero-default nn.Parameter value owner. Graph policy initializes/freezes it; compatible share_with reuses the exact owner. No incoming data.',
     'Add': 'Ordered elementwise sum, at least two identical sample shapes and axes; no broadcasting, flattening or learned parameters.',
     'Scale': 'Multiply by a fixed finite coefficient, preserving shape/axes/batch; no learned parameters.',
     'Input': 'Declare sample shape (or vector features), optional unique axes; batch B is implicit.',
@@ -35,7 +37,8 @@ _RULES = {
 _LEGACY_FIELDS = {
     'Input': {'features', 'shape', 'axes'}, 'Output': {'shape'},
     'Linear': {'features', 'bias'}, 'Activation': {'activation', 'dim'},
-    'Reshape': {'shape'}, 'Module': {'ref'}, 'Concat': {'sources', 'flatten'},
+    'Reshape': {'shape'}, 'Module': {'ref','batch_only'}, 'Concat': {'sources', 'flatten'},
+    'Constant': {'shape','axes','fill','values'}, 'TensorParameter': {'shape','axes'},
     'Splitter': {'parts'}, 'Replicator': {'outputs'},
 }
 
@@ -61,7 +64,12 @@ def _example(kind):
     else:
         target = 'op'
         edges = [{'from': 'x', 'to': 'op'}, {'from': 'op', 'to': 'y'}]
-        if kind in operators.TENSOR_OPERATORS:
+        if kind in operators.SOURCE_TYPES:
+            nodes = []
+            node['shape'] = [2]
+            if kind == 'Constant': node['fill'] = 0.
+            edges = [{'from':'op','to':'y'}]
+        elif kind in operators.TENSOR_OPERATORS:
             nodes[0].update(shape=[1, 6, 5], axes=['C', 'H', 'W'])
             settings = {'Conv2d': {'out_channels': 2, 'kernel_size': [3, 2]},
                 'AvgPool2d': {'kernel_size': [2, 2]}, 'MaxPool2d': {'kernel_size': [2, 2]},
@@ -134,9 +142,10 @@ def operator_schema(kind):
         from .lstm_nodes import FIELDS
         fields = FIELDS
     else: fields = operators.FIELDS.get(kind, _LEGACY_FIELDS.get(kind, set()))
-    strict = kind in operators.TENSOR_OPERATORS | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
+    strict = kind in operators.TENSOR_OPERATORS | operators.SOURCE_TYPES | operators.ARITHMETIC_OPERATORS | {'Recurrent', 'LSTM'}
     required = {
         'Add': {'sources'}, 'Scale': {'coefficient'},
+        'Constant': {'shape'}, 'TensorParameter': {'shape'},
         'Input': set(), 'Output': set(), 'Linear': {'features'}, 'Activation': {'activation'},
         'Module': {'ref'}, 'Reshape': {'shape'}, 'Concat': {'sources'}, 'Splitter': {'parts'},
         'Replicator': {'outputs'}, 'Conv2d': {'out_channels', 'kernel_size'},
@@ -146,6 +155,7 @@ def operator_schema(kind):
     }[kind]
     minimal = {k: v for k, v in node.items() if k in required | {'id', 'type'}}
     if kind == 'Input': minimal['shape'] = node['shape']
+    if kind == 'Constant': minimal['fill'] = node['fill']
     if kind == 'Activation': minimal['activation'] = 'Softmax'
     actual_defaults = {k: v for k, v in operators.normalized(minimal).items() if k not in minimal}
     if kind == 'Linear': actual_defaults['bias'] = True
@@ -156,14 +166,14 @@ def operator_schema(kind):
             'optional': sorted((set(fields) | operators.COMMON) - required - {'id', 'type'}),
             'required_in_example': sorted(set(node) - operators.COMMON),
             'unknown_policy': 'refuse' if strict else 'legacy-permissive; extras do not establish executable semantics',
-            'alternatives': ['Input: declare shape or features (shape takes precedence)'] if kind == 'Input' else [],
+            'alternatives': ['Input: declare shape or features (shape takes precedence)'] if kind == 'Input' else ['Constant: exactly one of fill or values'] if kind == 'Constant' else [],
             'conditional': ['Softmax rejects extras, dim defaults -1; other four activations retain legacy permissive extras.'] if kind == 'Activation' else []},
         defaults=actual_defaults, defaults_scope='shared normalizer plus legacy bias/flatten defaults; required fields are not defaults',
         shape_rule=_RULES[kind], batch_axis='implicit leading B; sample-axis indices exclude B',
-        ports={'incoming': 'none' if kind == 'Input' else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
+        ports={'incoming': 'none' if kind == 'Input' or kind in operators.SOURCE_TYPES else 'ordered sources, at least two' if kind in {'Concat', 'Add'} else
                'explicit role bindings; one edge per unique source' if kind in {'LSTM', 'Recurrent'} else 'exactly one',
                'outgoing': 'none' if kind == 'Output' else 'named ports' if kind in {'Splitter', 'Replicator', 'LSTM', 'Recurrent'} else 'one tensor with ordinary fan-out'},
-        sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM'},
+        sharing={'supported': kind in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM', 'TensorParameter'},
                  'binding': 'share_with resolves one compatible local canonical owner; not weight freezing'},
         activations=sorted(ACTIVATIONS) if kind == 'Activation' else [],
         example=example, example_contract=port_contract(example['models'], example['root']),
@@ -184,8 +194,11 @@ def capabilities():
             'selectors': 'canonical JSON component arrays relative to each architecture',
             'trainability': 'per unique owner, requires_grad and selected optimizer membership',
             'initializers': ['constructor', 'normal', 'uniform', 'values', 'zeros']},
-        unavailable={'Constant': 'not implemented', 'TrainableParameter': 'not implemented',
-            'retained_checkpoint_initialization_binding': 'not implemented; explicit values supported',
+        tensor_sources={'operators':['Constant','TensorParameter'], 'model_revision_version':7,
+            'family_version':11, 'specialization_version':10, 'nullary_call':'model(batch_size=B); no dummy input',
+            'constant_storage':'nonpersistent buffer reconstructed from immutable graph; charged to RAM'},
+        unavailable={
+            'TrainableParameter': 'not an accepted spelling; use TensorParameter',
             'latent_sequence_likelihood': 'not implemented; supervised heads are not filtering',
             'optimizer_resume': 'deferred Stage E, not part of this source'},
         limitations=['Shapes alone do not establish output representation or loss compatibility.',

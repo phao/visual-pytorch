@@ -26,7 +26,10 @@ class DiscoveryTests(unittest.TestCase):
         value = discovery.capabilities()
         self.assertEqual(value['operators'], sorted(operators.BLOCK_TYPES))
         self.assertEqual(value['version'], 1); self.assertEqual(value['container_version'], VERSION)
-        for kind in ('Constant', 'TrainableParameter'):
+        for kind in ('Constant','TensorParameter'):
+            self.assertIn(kind,value['operators']);self.assertNotIn(kind,value['unavailable'])
+            self.assertEqual(discovery.operator_schema(kind)['ports']['incoming'],'none')
+        for kind in ('TrainableParameter',):
             self.assertNotIn(kind, value['operators']); self.assertIn(kind, value['unavailable'])
             with self.assertRaises(GraphError): discovery.operator_schema(kind)
 

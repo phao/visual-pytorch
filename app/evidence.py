@@ -119,6 +119,8 @@ def parameter_schema(models, mid, prefix='', stable_prefix=None, *, identity_ver
         elif node['type'] == 'LSTM':
             for name, shape in contract['shapes'][node['id']]['lstm']['parameter_shapes'].items():
                 schema[path + '.' + name] = {'shape': shape, 'id': sid(name)}
+        elif node['type'] == 'TensorParameter':
+            schema[path + '.value'] = {'shape': list(node['shape']), 'id': sid('value')}
         elif node['type'] in {'Linear', 'Conv2d'}:
             shape=contract['shapes'][node['id']]
             weight_shape = shape['operator']['weight_shape'] if node['type'] == 'Conv2d' else [shape['output'],shape['input']]

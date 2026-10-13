@@ -64,7 +64,7 @@
     return {width:n.width,height:n.height};
   }
   function slots(n, output) {
-    if ((output && n.type === "Output") || (!output && n.type === "Input")) return [];
+    if ((output && n.type === "Output") || (!output && (['Input','Constant','TensorParameter'].includes(n.type) || n.type==='Module' && n.batch_only===true))) return [];
     if (!output && ["Concat","Add"].includes(n.type)) return [...n.sources,null];
     if(R.multiport(n))return output?R.ports(n):R.sources(n);
     if (output && routers(n)) return outputs(n);

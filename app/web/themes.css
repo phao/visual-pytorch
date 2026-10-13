@@ -47,6 +47,10 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 #wire-arrow path{fill:var(--blue)}#pending-wire{stroke:var(--amber)}
 .node rect,.node.Concat rect{fill:var(--node-input);stroke:var(--blue)}
 .node.Linear rect{fill:var(--node-linear);stroke:var(--purple)}
+.node.TensorParameter rect{fill:var(--node-linear);stroke:var(--purple)}
+.node.Constant rect{fill:var(--node-module);stroke:var(--amber)}
+.node.TensorParameter .node-header{fill:var(--purple)}.node.TensorParameter .node-type-icon{stroke:var(--purple)}
+.node.Constant .node-header{fill:var(--amber)}.node.Constant .node-type-icon{stroke:var(--amber)}
 .node.Conv2d rect{fill:var(--node-linear);stroke:var(--purple)}
 .node.AvgPool2d rect,.node.MaxPool2d rect,.node.AdaptiveAvgPool2d rect{fill:var(--node-output);stroke:var(--mint)}
 .node.Flatten rect,.node.Permute rect{fill:var(--node-reshape);stroke:var(--mint)}

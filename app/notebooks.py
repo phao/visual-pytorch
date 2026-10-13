@@ -32,6 +32,7 @@ RUNTIME += ('recurrent.py', 'recurrent_nodes.py', 'temporal_shapes.py', 'lstm_no
 RUNTIME += ('parameter_policy.py', 'policy_graph.py', 'parameter_execution.py')
 RUNTIME += ('parameter_binding.py', 'parameter_sources.py', 'policy_authoring.py')
 RUNTIME += ('parameter_derivation.py',)
+RUNTIME += ('tensor_sources.py',)
 FORMAT = 'visual-pytorch-report-bundle'
 
 
@@ -297,7 +298,7 @@ def verify_bundle(root):
     # only for this set check; the AST guards below still require every imported
     # dependency. Avoid multiplying all historical variants by another2^3.
     binding_paths = {'runtime/app/' + n for n in ('parameter_binding.py', 'parameter_sources.py', 'policy_authoring.py', 'parameter_derivation.py')}
-    _require(set(manifest['files']) | binding_paths in sets,
+    _require(set(manifest['files']) | binding_paths | {'runtime/app/tensor_sources.py'} in sets,
              'Report source closure is incomplete or contains unexpected paths.')
     for relative, info in manifest['files'].items():
         part = PurePosixPath(relative); path = root / relative
@@ -338,7 +339,7 @@ def verify_bundle(root):
         _require(not any(isinstance(n, ast.ImportFrom) and n.level == 1 and
                          n.module == 'runtime_shapes' for n in ast.walk(tree)),
                  'This report runtime requires its captured runtime_shapes.py dependency.')
-    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution', 'parameter_binding', 'parameter_sources', 'policy_authoring', 'parameter_derivation'):
+    for dependency in ('runtime_tasks','family_export','recurrent','recurrent_nodes','temporal_shapes','lstm_nodes','temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution', 'parameter_binding', 'parameter_sources', 'policy_authoring', 'parameter_derivation', 'tensor_sources'):
         if 'runtime/app/'+dependency+'.py' not in manifest['files']:
             import ast
             for relative in manifest['files']:

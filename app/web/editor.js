@@ -215,7 +215,7 @@
     $("generate-data").disabled = running || !description?.valid || description?.model_safety?.allowed === false;
     $("import-data").disabled = running || !description?.valid;
     $("rename-model").disabled = running;
-    for (const id of ["add-activation", "activation-select", "target-kind", "add-reshape", "add-concat", "add-input", "add-output"]) $(id).disabled = running;
+    for (const id of ["add-activation", "activation-select", "target-kind", "add-reshape", "add-concat", "add-input", "add-output",'add-constant','add-tensor-parameter']) $(id).disabled = running;
     for (const id of ["add-splitter", "add-replicator"]) $(id).disabled = running || !description?.valid;
   }
 
@@ -322,14 +322,14 @@
       const labelText=svgElement("text",{x:m.padding,y:m.titleY,class:"node-title"},shortened(label,7.8));
       labelText.append(svgElement('title',{},label));group.append(labelText);
       let line;
-      if (n.type === "Input") line = shapeText(n.shape || [n.features]);
+      if (['Input','Constant','TensorParameter'].includes(n.type)) line = shapeText(n.shape || [n.features]);
       else if (n.type === "Output") line = shapeText(s?.output_shape || n.shape);
       else if(R.multiport(n))line=R.sources(n).length+' inputs → '+R.ports(n).length+' ports · T '+(s?.recurrent?.steps??s?.lstm?.steps??'?');
       else line = shapeText(s?.input_shape) + " → " + shapeText(s?.output_shape);
       const shapeLine=svgElement("text", {x:m.padding,y:m.shapeY,class:"node-shape"},shortened(line,6.2));
       shapeLine.append(svgElement("title",{},line));group.append(shapeLine);
       const note = n.type === 'Recurrent' ? 'Shared across T · '+(s?.recurrent?.contract?.parameters??'?')+' params' : n.type === "Conv2d" ? 'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.operator?.parameters ?? '?')+' params · CHW' : T.types.includes(n.type) ? 'Batch preserved · 0 params' : n.type === "Linear" ? ('Bias '+(n.bias!==false?'on':'off')+' · '+linearParameters(n,s)+" params · last axis") : n.type === "Reshape" ? "Same elements · batch preserved" : n.type === "Module" ? "Inspect · Ctrl-double-click: open" : n.type === "Concat" ? (n.flatten===false?"Join last axis":"Flatten parts + join") : n.type === "Splitter" ? "Split last axis · branches" : n.type === "Replicator" ? "Shared tensor · branch ports" : n.type === "Activation" ? (n.activation==='Softmax'?'Normalize axis '+(n.dim??-1)+' · 0 params':"Elementwise · 0 params") : "Named tensor · float32";
-      const arithmeticNote=n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
+      const arithmeticNote=n.type==='Constant'?'Immutable · float32 · no data input':n.type==='TensorParameter'?'Shared across batch · '+n.shape.reduce((a,b)=>a*b,1)+' params':n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
       const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):arithmeticNote;
       const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
       const policy=description?.parameter_blocks?.[n.id];
@@ -342,7 +342,7 @@
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
           n.type==='Conv2d'?(s?.input_shape?.[0] || '?')+' → '+n.out_channels+' · '+(Array.isArray(n.kernel_size)?n.kernel_size.join('×'):n.kernel_size+'×'+n.kernel_size):
           T.types.includes(n.type)?shapeText(s?.output_shape):
-          n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape'].includes(n.type)?line:
+          n.type==='Activation'?(n.activation==='Softmax'?'Softmax '+(n.dim??-1):n.activation):['Input','Output','Reshape','Constant','TensorParameter'].includes(n.type)?line:
           R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
@@ -492,6 +492,14 @@
           '<label class="inspect-label" for="'+id+'">'+esc(label)+(kind==='pair' || kind==='padding'?' · H, W':'')+'</label><input data-op-field="'+key+'" id="'+id+'" class="inspect-input" value="'+esc(Array.isArray(value)?value.join(', '):value)+'"'+(busy()?' disabled':'')+'>';
       }
       html+='<div class="contract-card">input '+shapeText(s?.input_shape)+'<br>output '+shapeText(s?.output_shape)+(s?.output_axes?'<br>axes '+esc(s.output_axes.join(', ')):'')+(s?.operator?.weight_shape?'<br>W ['+s.operator.weight_shape.join(', ')+']':'')+'<br>operator version 1</div><p class="inspect-note">'+esc(T.definitions[n.type].explanation)+'</p>';
+    } else if (['Constant','TensorParameter'].includes(n.type)) {
+      html += '<div class="contract-card">'+esc(n.type)+' '+shapeText(n.shape)+'<br>dtype float32 · no incoming data</div><p class="inspect-note">'+(n.type==='Constant'?'Immutable graph data, not optimizer weights. Storage still counts toward RAM.':'One tensor owner shared across batch observations. Zero default; initialize or freeze it using the parameter policy below.')+'</p>';
+      if(n.type==='Constant'){
+        const literal='values' in n;
+        html+='<label class="inspect-label" for="constant-mode">Value declaration</label><select id="constant-mode"'+(busy()?' disabled':'')+'><option value="fill"'+(!literal?' selected':'')+'>Uniform fill</option><option value="values"'+(literal?' selected':'')+'>Rectangular JSON literal</option></select>';
+        html+='<label class="inspect-label" for="constant-values">Float32 values · exact declared shape</label><textarea id="constant-values" class="inspect-input" maxlength="2000"'+(!literal?' hidden':'')+(busy()?' disabled':'')+'>'+esc(literal?window.LoomJSON.stringify(n.values):'')+'</textarea><p class="inspect-note">For literals over 2000 characters use the CLI JSON editor.</p>';
+        html+='<label class="inspect-label" for="constant-fill">Fill value</label><input id="constant-fill" class="inspect-input" value="'+esc(Object.is(n.fill,-0)?'-0':n.fill??0)+'"'+(literal?' hidden':'')+(busy()?' disabled':'')+'>';
+      }
     } else if (n.type === "Input") {
       html += '<div class="contract-card">x '+shapeText(n.shape || [n.features])+'<br>dtype float32</div><p class="inspect-note">Specify sample dimensions, not B. Example: 3, 8 means [B, 3, 8]. This input can follow its own path before a later join.</p>';
     } else if (n.type === "Reshape") {
@@ -530,10 +538,10 @@
     } else {
       html += '<div class="contract-card">ŷ '+shapeText(s?.output_shape)+'</div><p class="inspect-note">Optional shape declaration must match the incoming wire. Use a Reshape box to change dimensions. Empty means infer from the wire.</p>';
     }
-    if (["Input","Output","Reshape"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
-    if(n.type==='Input')html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Conv2d interprets unnamed three-dimensional samples as C,H,W. Name image axes to detect a wrong layout; Permute changes their order.</p>';
+    if (["Input","Output","Reshape","Constant","TensorParameter"].includes(n.type)) html += '<label class="inspect-label" for="sample-shape">Sample shape (omit B)</label><input id="sample-shape" class="inspect-input" value="'+esc((n.shape || (n.type==="Input"?[n.features]:n.type==="Reshape"?[-1]:[])).join(", "))+'" placeholder="e.g. 3, 8"'+(busy()?' disabled':'')+'>';
+    if(['Input','Constant','TensorParameter'].includes(n.type))html+='<label class="inspect-label" for="input-axes">Sample axis names (optional)</label><input id="input-axes" class="inspect-input" value="'+esc(n.axes?.join(', ') || '')+'" placeholder="C, H, W or H, W, C"'+(busy()?' disabled':'')+'><p class="inspect-note">Give one unique name per sample axis. Names do not reshape, permute or broadcast values.</p>';
     if (["Input", "Output"].includes(n.type)) html += '<label class="inspect-label">Port name</label><input id="port-label" maxlength="60" value="' + esc(n.label || n.id) + '"' + (busy() ? ' disabled' : '') + '>';
-    if(['Linear','Conv2d','Module','Recurrent','LSTM'].includes(n.type)){
+    if(['Linear','Conv2d','Module','Recurrent','LSTM','TensorParameter'].includes(n.type)){
       const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
       if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
       html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
@@ -598,6 +606,25 @@
       if(text)n.axes=axes;else delete n.axes;
       invalidateRun();persist();
     };
+    if($('constant-mode'))$('constant-mode').onchange=()=>{
+      if(busy())return;
+      const literal=$('constant-mode').value==='values';
+      $('constant-values').hidden=!literal;$('constant-fill').hidden=literal;
+      // Changing editor mode is not a graph edit. Commit only a checked value.
+    };
+    if($('constant-fill'))$('constant-fill').onchange=()=>{
+      if(busy())return;const text=$('constant-fill').value.trim(),value=Number(text);
+      if(!text || !Number.isFinite(value) || Math.abs(value)>3.4028234663852886e38){toast('Use a finite float32 value.',true);renderInspector();return;}
+      n.fill=value;delete n.values;invalidateRun();persist();
+    };
+    if($('constant-values'))$('constant-values').onchange=()=>{
+      if(busy())return;
+      try{const values=JSON.parse($('constant-values').value);
+        const valid=(value,shape)=>shape.length?Array.isArray(value)&&value.length===shape[0]&&value.every(v=>valid(v,shape.slice(1))):typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<=3.4028234663852886e38;
+        if(!valid(values,n.shape))throw Error('Use finite float32 values in a rectangular array matching the declared shape.');
+        n.values=values;delete n.fill;invalidateRun();persist();}
+      catch(error){toast(error.message,true);renderInspector();}
+    };
     if($("sample-shape"))$("sample-shape").onchange=()=>{
       const text=$("sample-shape").value.trim(), dims=text.split(/[,x\s]+/).map(Number);
       if(!text && n.type==="Output")delete n.shape;
@@ -605,7 +632,8 @@
         if(!text || dims.length>8 || dims.some(d=>!Number.isSafeInteger(d) || (d<1 && !(n.type==="Reshape" && d===-1))) || dims.filter(d=>d===-1).length>1 || !Number.isSafeInteger(dims.filter(d=>d!==-1).reduce((a,b)=>a*b,1))) {
           toast("Use 1–8 positive sample dimensions; Reshape may contain one -1.",true);renderInspector();return;
         }
-        n.shape=dims;if(n.type==="Input"){delete n.features;doc.dataset=null;if(n.axes && n.axes.length!==dims.length)delete n.axes;}
+        if(n.type==='Constant' && 'values' in n && dims.join(',')!==n.shape.join(',')){toast('Switch to a fill value before changing literal shape, or use an atomic CLI edit of shape and values.',true);renderInspector();return;}
+        n.shape=dims;if(n.type==="Input"){delete n.features;doc.dataset=null;}if(n.axes && n.axes.length!==dims.length)delete n.axes;
       }
       invalidateRun();persist();
     };
@@ -680,8 +708,9 @@
     let after = node(selected),chosenPort=selectedPort;
     if (!after || after.type === "Output") {
       const incoming=doc.graph.edges.find(e=>e.to===(after?.id||'output'));
-      after=node(incoming?.from)||doc.graph.nodes.find(n=>n.type==='Input');chosenPort=incoming?.from_port||chosenPort;
+      after=node(incoming?.from)||doc.graph.nodes.find(n=>['Input','Constant','TensorParameter'].includes(n.type) || n.type==='Module' && n.batch_only);chosenPort=incoming?.from_port||chosenPort;
     }
+    if(!after){toast('Select a tensor-producing box first.',true);return;}
     if (doc.graph.nodes.length >= 64) { toast("Use at most 64 blocks.", true); return; }
     const port=G.multiOutput(after) ? (chosenPort || G.slots(after,true)[0]) : null;
     const edge = doc.graph.edges.find(e => e.from === after.id && (!port || (e.from_port || e.to)===port)), next = edge ? node(edge.to) : null;
@@ -707,6 +736,17 @@
     selectedWire=null;
     invalidateRun();
     persist();
+  }
+  function insertSource(type,ref=null){
+    if(!doc||busy())return;
+    if(doc.graph.nodes.length>62){toast('Leave room for the source and its Output.',true);return;}
+    const selectedNode=node(selected),dims=selectedNode?G.tensorShape(selectedNode,shape(selectedNode),selectedPort):null;
+    const id='n_'+Math.random().toString(36).slice(2,10),x=40,y=Math.max(40,...doc.graph.nodes.map(n=>(n.y||0)+G.height(n)))+50;
+    const source={id,type,x,y,op_version:1,shape:dims||[1]};
+    if(type==='Constant')source.fill=0;
+    if(type==='Module'){delete source.shape;delete source.op_version;source.ref=ref;source.batch_only=true;}
+    doc.graph.nodes.push(source);G.addOutput(doc,id);selected=id;selectedPort=null;selectedWire=null;
+    invalidateRun();persist();
   }
   function removeNode(id) {
     if (!doc || busy()) return;
@@ -1260,7 +1300,10 @@
   $("add-concat").onclick = () => insertBlock("Concat");
   $("add-add").onclick = () => insertBlock("Add");
   $("add-activation").onclick = () => insertBlock("Activation");
-  $("add-reference").onclick = () => insertBlock("Module", $("reference-select").value);
+  $('add-constant').onclick=()=>insertSource('Constant');
+  $('add-tensor-parameter').onclick=()=>insertSource('TensorParameter');
+  $("add-reference").onclick = () => {const ref=$("reference-select").value,child=state.models[ref];
+    if(child && !child.graph.nodes.some(n=>n.type==='Input'))insertSource('Module',ref);else insertBlock('Module',ref);};
   $('add-recurrent').onclick = recurrentDialog;
   lstmUI=window.LoomLSTM.mount(document,{
     call,context:()=>({id:doc?.id,workspace_id:state.workspace_id,panel_scope:state.panel_scope}),

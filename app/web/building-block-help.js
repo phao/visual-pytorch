@@ -10,6 +10,7 @@
     'add-linear':'Linear','add-activation':'Activation','add-reshape':'Reshape',
     'add-add':'Add','add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
     'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter','add-lstm':'LSTM',
+    'add-constant':'Constant','add-tensor-parameter':'Tensor parameter',
   };
   const activations=A.info;
   function describe(id,context={}){
@@ -23,6 +24,12 @@
     if(!names[id])return null;
     let paragraphs,equation=null,tex=null;
     switch(id){
+      case 'add-constant':paragraphs=['Adds an independent immutable float32 tensor branch with its own Output. It needs no incoming wire or dataset column.',
+        'Declare sample dimensions, then one fill value or a rectangular JSON literal. [K,D] produces [B,K,D] using a batch view, not independent copies.',
+        'Constant has no learnable parameters but its stored values still use memory. Connect it to compatible operations. A source-only architecture requires an explicit batch size in Python.'];break;
+      case 'add-tensor-parameter':paragraphs=['Adds an independent learned tensor branch with its own Output. Its value is an actual nn.Parameter, not a Linear layer applied to invented data.',
+        'Declare sample dimensions and optional axes. The zero constructor can be replaced by the existing parameter-policy initializer; the same policy can freeze it. Every batch observation sees the same owner.',
+        'Compatible explicit sharing reuses one owner and sums its gradients. Repeated calls do not create new weights. Source-only Python models require an explicit batch size.'];break;
       case 'add-linear':
         paragraphs=['Adds a learned affine map to the selected path. Each output is a weighted sum of the incoming features, plus an optional learned bias.',
           'Only the last axis is mixed: [B, 10, 3] becomes [B, 10, k] when you choose k output features. The same weights are used at every earlier-axis position.',

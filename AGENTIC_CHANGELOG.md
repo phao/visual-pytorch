@@ -1107,3 +1107,19 @@ from test import;80 source/filter/reference/layout checks1.313s and explicit
 import after prior Torch work pass. No graph/operator/schema/GUI/CLI admission,
 new Source fit or full MS-VAR completion. Full route/version/owner/RAM/source-root
 closure remains; no E/user-state/public changes.
+
+## 2026-10-13 02:20 -03:00 — Actual tensor-source graph admission checkpoint
+
+Introduced closed Constant/TensorParameter graph roots, explicit nullary batch
+context and batch_only Module calls, shared value-owner/component identities,
+source initialization/freezing hooks, native/generated execution and real buffer
+storage/batch RAM admission. Added container27/Model7/Family11/Specialization10
+fences, retained family/export/notebook closures, CLI discovery and compact source
+palette/socket/Inspector/icon paths. This is task-branch implementation, not a
+completed Neural MS-VAR or a public release. Initial10 source graph tests pass,
+including actual optimizer updates, shared gradients, signed-zero constants,
+nullary/reference forward parity and archived version refusal. Existing focused
+discovery/policy/family tests pass except one outdated discovery expectation
+subsequently updated for real source admission; new family integration still
+under test. Runtime worker integration and actual GUI/worker/notebook acceptance
+remain before claiming completed source support. No user config/workspace writes.

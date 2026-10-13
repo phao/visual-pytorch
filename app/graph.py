@@ -1,6 +1,6 @@
 """Pure shape propagation and port-aware DAG execution plans (no Torch imports)."""
 import math
-from .operators import TENSOR_OPERATORS, LAYER_TYPES, axes_for, describe
+from .operators import TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, axes_for, describe
 
 
 def parameter_owners(model):
@@ -16,7 +16,7 @@ def parameter_owners(model):
         if 'share_with' not in node:
             continue
         target = node['share_with']
-        if node['type'] not in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM'} or not isinstance(target, str) or not target:
+        if node['type'] not in {'Linear', 'Conv2d', 'Module', 'Recurrent', 'LSTM', 'TensorParameter'} or not isinstance(target, str) or not target:
             raise GraphError('share_with requires a Linear, Conv2d, Module, Recurrent or LSTM block and an existing local block ID.')
         if target not in nodes or nodes[target]['type'] != node['type']:
             raise GraphError('Shared parameter owner is missing or has a different block type: ' + nid + '.')
@@ -50,13 +50,14 @@ def topology(model):
         seen.add(key)
         outgoing[a].append(b)
         incoming[b].append(edge)
-    if not any(n['type'] == 'Input' for n in nodes) or not any(n['type'] == 'Output' for n in nodes):
-        raise GraphError('Use at least one Input and one Output.')
+    if not any(n['type'] == 'Input' or n['type'] in SOURCE_TYPES or
+               n['type'] == 'Module' and n.get('batch_only') is True for n in nodes) or not any(n['type'] == 'Output' for n in nodes):
+        raise GraphError('Use at least one Input or tensor source and one Output.')
     for n in nodes:
         ins, outs = incoming[n['id']], outgoing[n['id']]
-        if n['type'] == 'Input':
+        if n['type'] == 'Input' or n['type'] in SOURCE_TYPES or n['type'] == 'Module' and n.get('batch_only') is True:
             if ins:
-                raise GraphError('Input cannot receive a wire.')
+                raise GraphError('Input, tensor sources and batch-only Module calls cannot receive a wire.')
         elif n['type'] in {'Concat', 'Add'}:
             sources = n.get('sources', [])
             keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
@@ -89,7 +90,8 @@ def topology(model):
             raise GraphError('input_order must list each Input ID exactly once.')
         roots=[lookup[nid] for nid in declared]
     pending = {nid: len(ins) for nid, ins in incoming.items()}
-    queue, order = list(roots), []
+    queue, order = list(roots) + [n for n in nodes if n['type'] in SOURCE_TYPES or
+                                 n['type'] == 'Module' and n.get('batch_only') is True], []
     while queue:
         n = queue.pop(0)
         order.append(n)
@@ -134,8 +136,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         axes = axes_for(n, len(g['shape']))
         if axes is not None:
             g['axes'] = axes
-    total_in = feature_count(sum(g['features'] for g in groups))
-    initial = groups[0]['shape'] if len(groups) == 1 else [total_in]
+    total_in = feature_count(sum(g['features'] for g in groups)) if groups else 0
+    initial = groups[0]['shape'] if len(groups) == 1 else [total_in] if groups else []
     shapes, ports, origins, plan = {}, {}, {}, []
     params = ops = activation_elements = 0
     convolution_workspace_elements = 0
@@ -143,6 +145,9 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
     affine, matrix_affine = True, True
     operation_index = 0
     parameter_counts = {}
+    buffer_elements = 0
+    buffer_counts = {}
+    has_tensor_sources = any(n['type'] in SOURCE_TYPES for n in order)
 
     def source(edge):
         src = edge['from']
@@ -163,6 +168,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
     for n in order:
         kind, nid = n['type'], n['id']
         previous_params = params
+        previous_buffers = buffer_elements
         incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
         if kind in {'Concat', 'Add'}:
             incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
@@ -173,7 +179,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
                 from .recurrent_nodes import sources
             incoming.sort(key=lambda e: sources(n).index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
         resolved = [source(e) for e in incoming]
-        before = resolved[0][1] if resolved else effective[nid]
+        before = (resolved[0][1] if resolved else n['shape'] if kind in SOURCE_TYPES else
+                  [] if kind == 'Module' and n.get('batch_only') is True else effective[nid])
         current = list(before)
         axes = source_axes(resolved[0][0]) if resolved else axes_for(n, len(before))
         operator = None
@@ -181,6 +188,17 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         origin = resolved[0][2] if resolved else (nid, None)
         if kind == 'Input':
             item['group'] = next(g for g in groups if g['id'] == nid)
+        elif kind in SOURCE_TYPES:
+            from .operators import normalized
+            source_node = normalized(n)
+            current = source_node['shape']
+            axes = source_node.get('axes')
+            if kind == 'TensorParameter':
+                params += math.prod(current)
+            else:
+                buffer_elements += math.prod(current)
+            matrix_affine = False
+            origin = (nid, None)
         elif kind == 'Linear':
             width = feature_count(n['features'])
             current = before[:-1] + [width]
@@ -230,6 +248,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
                                 {v['id']: input_shape(v) for v in child_inputs})
             ref = contract(models, n['ref'], (*ancestry, mid), cache, input_shapes=child_shapes,
                            _runtime_contexts=_runtime_contexts)
+            if bool(n.get('batch_only')) != (not ref['input_groups']):
+                raise GraphError('Nullary Module calls must explicitly declare batch_only:true and refer to a source-only architecture.')
             if input_shapes is not None:
                 item['runtime_contract'] = ref
             if before != ref['input_shape']:
@@ -239,6 +259,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             current = ref['output_shape']
             axes = ref['output_axes']
             params += ref['parameters']
+            buffer_elements += ref.get('buffer_elements', 0)
+            has_tensor_sources = has_tensor_sources or ref.get('has_tensor_sources', False)
             activation_elements += ref['activation_elements']
             convolution_workspace_elements += ref['convolution_workspace_elements']
             ops += ref['operations']
@@ -263,6 +285,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
             axes = None
             params += child['parameters']
+            buffer_elements += child.get('buffer_elements', 0)
+            has_tensor_sources = has_tensor_sources or child.get('has_tensor_sources', False)
             activation_elements += recurrent['steps'] * child['activation_elements']
             convolution_workspace_elements += recurrent['steps'] * child['convolution_workspace_elements']
             ops += recurrent['steps'] * child['operations']
@@ -321,7 +345,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             raise GraphError(f'Unsupported block: {kind}.')
         feature_count(math.prod(current))
         activation_elements += math.prod(current)
-        shapes[nid] = {'input': before[-1], 'output': current[-1],
+        shapes[nid] = {'input': before[-1] if before else 0, 'output': current[-1],
                        'input_shape': list(before), 'output_shape': list(current),
                        'output_axes': axes}
         if kind == 'Recurrent':
@@ -341,6 +365,7 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             ops += 1
         plan.append(item)
         parameter_counts[nid] = params - previous_params
+        buffer_counts[nid] = buffer_elements - previous_buffers
 
     layers = {item['id']: item['layer'] for item in plan if 'layer' in item}
     for item in plan:
@@ -359,11 +384,14 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
             same = node['ref'] == canonical['ref'] and specification(node) == specification(canonical)
         elif kind == 'LSTM':
             same = a['lstm']['kwargs'] == b['lstm']['kwargs']
+        elif kind == 'TensorParameter':
+            same = a['output_shape'] == b['output_shape'] and a['output_axes'] == b['output_axes']
         else:
             same = node['ref'] == canonical['ref']
         if not same:
             raise GraphError('Shared block ' + nid + ' must have the same constructor/reference as owner ' + owner + '.')
         params -= parameter_counts[nid]
+        buffer_elements -= buffer_counts[nid]
         item['layer'] = layers[owner]
         item['parameter_owner'] = owner
         shapes[nid]['parameter_owner'] = owner
@@ -427,6 +455,8 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
               'output_shape': final_shape, 'max_width': max_width, 'max_input': max_input,
               'operations': ops, 'shapes': shapes, 'order': [n['id'] for n in order],
               'activation_elements': activation_elements,
+              'buffer_elements': buffer_elements,
+              'has_tensor_sources': has_tensor_sources,
               'convolution_workspace_elements': convolution_workspace_elements,
               'input_groups': groups, 'output_groups': out_groups, 'output_mode': mode,
               'plan': plan, 'tensor_source': tensor_source}
