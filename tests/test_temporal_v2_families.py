@@ -120,7 +120,7 @@ class TemporalV2FamilyTests(unittest.TestCase):
         with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
         bad['version']=8
         with self.assertRaisesRegex(GraphError,'version must match'):self.w.put_spec('specialization',bad)
-        for version in (True,9):
+        for version in (True,10):
             bad['version']=version
             with self.assertRaises(GraphError):validate_specialization(bad)
 
@@ -204,7 +204,7 @@ class TemporalV2FamilyTests(unittest.TestCase):
         from app.authoring_sessions import Sessions
         ref=self.w.put_spec('family',definition());sessions=Sessions();owner=object()
         h=sessions.open(self.w,owner,'family',base=ref)
-        for version in (7,10,True):
+        for version in (7,11,True):
             before=sessions.read(h['session'],owner,0)
             with self.subTest(version=version),self.assertRaisesRegex(GraphError,'preserve stable'):
                 sessions.family_edit(self.w,h['session'],owner,0,[{'op':'property','target':{'kind':'document'},'key':'version','text':json.dumps(version)}])

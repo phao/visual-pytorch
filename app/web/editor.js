@@ -17,10 +17,14 @@
   let recurrentAuthoringPending=false;
   let lstmUI=null;
   let recurrentEditGeneration=0;
+  let policyGeneration=0;
+  let pendingPolicyOwner=null;
+  let policyMutation=null;
+  let policyDraft=null;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
-  const clone = obj => JSON.parse(JSON.stringify(obj));
+  const clone = obj => window.LoomJSON.clone(obj);
   const esc = str => String(str).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const modelID = () => location.hash.startsWith("#model=") ? location.hash.slice(7) : null;
   const node = id => doc?.graph.nodes.find(n => n.id === id);
@@ -39,7 +43,7 @@
 
   function call(action, args = {}) {
     return new Promise((resolve, reject) => {
-      host.request(JSON.stringify({action, ...args}), answer => {
+      host.request(window.LoomJSON.stringify({action, ...args}), answer => {
         const result = JSON.parse(answer);
         if (result.ok) resolve(result.value);
         else reject(new Error(result.error));
@@ -120,6 +124,7 @@
       return;
     }
     selected = doc.graph.nodes.find(n => n.type === "Linear" || n.type === "Module")?.id || doc.graph.nodes[0]?.id;
+    if(pendingPolicyOwner?.model===id){if(node(pendingPolicyOwner.node))selected=pendingPolicyOwner.node;pendingPolicyOwner=null;}
     document.title = doc.name + " · Visual PyTorch";
     render();
     if(clearMenusOnRoute){clearMenusOnRoute=false;selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}
@@ -128,6 +133,7 @@
   }
 
   function hydrate(value) {
+    if(state.panel_scope!==value.panel_scope)pendingPolicyOwner=null;
     const viewport=doc&&state.panel_scope===value.panel_scope?clone(doc.view):null;
     const layoutChanged=state.workspace_id!==value.workspace_id ||
       JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
@@ -186,7 +192,8 @@
     const ins=doc.graph.nodes.filter(n=>n.type==='Input').length,outs=doc.graph.nodes.filter(n=>n.type==='Output').length;
     stats.textContent=doc.graph.nodes.length+' blocks · '+doc.graph.edges.length+' wires · '+ins+' inputs · '+outs+' outputs'+(refs?' · '+refs+' references':'');
     const contract=document.createElement('p');
-    contract.textContent=description?.valid ? description.contract.parameters.toLocaleString()+' parameters · '+shapeText(description.contract.input_shape)+' → '+shapeText(description.contract.output_shape) : description ? 'Draft: '+description.error : 'Checking graph…';
+    const policyCounts=description?.contract?.parameter_counts;
+    contract.textContent=description?.valid ? (policyCounts?policyCounts.trainable.toLocaleString()+' trainable · '+policyCounts.frozen.toLocaleString()+' frozen · '+policyCounts.stored.toLocaleString()+' stored':description.contract.parameters.toLocaleString()+' parameters')+' · '+shapeText(description.contract.input_shape)+' → '+shapeText(description.contract.output_shape) : description ? 'Draft: '+description.error : 'Checking graph…';
     contract.className='bookkeeping-contract';
     card.append(heading,name,stats,contract);
   }
@@ -236,13 +243,17 @@
 
   function persist() {
     if (!doc) return Promise.resolve();
-    const snapshot = clone(doc), mid = doc.id;
+    let snapshot = clone(doc);const mid = doc.id,policyEdit=policyMutation?.id===mid?policyMutation:null;
     snapshot.view={x:0,y:0,zoom:1}; // Keep viewport state out of persisted edits/history.
     state.models[mid] = clone(snapshot);
     state.dirty = true;
     header();
     syncQueue = syncQueue.then(async () => {
-      const answer = await safe("updateModel", {document: snapshot});
+      if(policyEdit?.document){
+        if(state.panel_scope!==policyEdit.scope)return;
+        snapshot=window.LoomParameterPolicy.reconcile(snapshot,policyEdit.document);
+      }
+      const answer = await safe("updateModel", {document: snapshot,preserve_parameter_policy:true});
       if (answer && doc?.id === mid) {
         description = answer;
         showDescription();
@@ -321,8 +332,11 @@
       const arithmeticNote=n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
       const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):arithmeticNote;
       const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
-      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
-      noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
+      const policy=description?.parameter_blocks?.[n.id];
+      const policyState=policy?(policy.frozen===0?'Trainable':policy.trainable===0?'Frozen':'Mixed'):'',policyNote=policyState?(sharingNote.startsWith('Bias ')?sharingNote.replace(' · ',' · '+policyState+' · '):policyState+' · '+sharingNote):sharingNote;
+      group.dataset.policyStatus=policyState;
+      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(policyNote,4.9,14));
+      noteText.append(svgElement('title',{},policyNote));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
@@ -332,8 +346,8 @@
           R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
-        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
-        group.append(svgElement('title',{},label+' · '+line+' · '+sharingNote));
+        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},(n.bias!==false?'Bias on':'Bias off')+(policyState==='Frozen'?' · F':policyState==='Mixed'?' · M':'')));
+        group.append(svgElement('title',{},label+' · '+line+' · '+policyNote));
       }
       for (const output of [false, true]) {
         for (const peer of G.slots(n, output)) {
@@ -453,6 +467,11 @@
   };
 
   function renderInspector() {
+    const previousPolicy=$('parameter-policy-editor');
+    if(previousPolicy?.dataset.architecture&&previousPolicy.querySelector('.policy-owner'))policyDraft={
+      scope:previousPolicy.dataset.scope,model:previousPolicy.dataset.model,node:previousPolicy.dataset.node,
+      architecture:previousPolicy.dataset.architecture,owners:window.LoomParameterPolicy.drafts(previousPolicy)};
+    const policyRequest=++policyGeneration;
     const n = node(selected), content = $("inspector-content");
     content.replaceChildren();
     if (!n) {
@@ -518,8 +537,52 @@
       const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
       if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
       html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
+      html+='<section id="parameter-policy-editor"><p class="inspect-note">Loading parameter owners…</p></section>';
     }
     content.innerHTML = html;
+    if($('parameter-policy-editor')){
+      const mid=doc.id,nid=n.id,context={workspace_id:state.workspace_id,panel_scope:state.panel_scope};
+      syncQueue.then(()=>call('parameterPolicy',{...context,id:mid,node:nid})).then(info=>{
+        if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)return;
+        const policySection=$('parameter-policy-editor');Object.assign(policySection.dataset,{architecture:info.architecture,scope:context.panel_scope,model:mid,node:nid});
+        function policyEdit(action,args){
+            if(busy())throw new Error('Stop the current run before editing.');
+            if(policyMutation)throw new Error('Wait for the current parameter policy edit.');
+            if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)throw new Error('Selection changed; reopen parameter policy.');
+            const transaction={id:mid,scope:context.panel_scope,document:null};policyMutation=transaction;
+            const operation=syncQueue.then(async()=>{
+              try{
+                const updated=await call(action,{...context,id:mid,node:nid,architecture:info.architecture,...args});
+                transaction.document=updated.document;
+                if(updated.binding)toast('Bound initial tensor · attempt '+updated.binding.source.attempt+' · '+updated.binding.source.checkpoint_id.slice(0,12)+' · trainability preserved.');
+                const authoritative=await call('state');
+                if(authoritative.panel_scope===context.panel_scope&&doc?.id===mid){
+                  authoritative.models[mid]=window.LoomParameterPolicy.reconcile(doc,updated.document);
+                  hydrate(authoritative);
+                }
+              }catch(error){toast(error.message,true);throw error;}
+              finally{if(policyMutation===transaction)policyMutation=null;if(state.panel_scope===context.panel_scope)renderInspector();}
+            });
+            syncQueue=operation.catch(()=>{});
+            return operation;
+        }
+        window.LoomParameterPolicy.mount($('parameter-policy-editor'),info,{busy:()=>busy()||Boolean(policyMutation),
+          commit:(selector,changes)=>policyEdit('editParameterPolicy',{selector,changes_json:window.LoomJSON.stringify(changes)}),
+          resetBlock:()=>policyEdit('resetBlockParameterPolicy',{}),
+          binding:{
+            call,workspace:()=>context.workspace_id,busy:()=>busy()||Boolean(policyMutation),toast,
+            valid:()=>policyRequest===policyGeneration&&doc?.id===mid&&selected===nid&&state.panel_scope===context.panel_scope,
+            inventory:(run,attempt,offset)=>call('parameterSourceInventory',{...context,id:mid,node:nid,architecture:info.architecture,run,attempt,offset}),
+            bind:(selector,source)=>policyEdit('bindParameter',{selector,source})
+          },
+          openDefinition:async definition=>{
+            if(definition.model===doc?.id){selected=definition.node;updateSelection();renderInspector();}
+            else{pendingPolicyOwner=definition;if(!await safe('openModel',{id:definition.model,newTab:false}))pendingPolicyOwner=null;}
+          }});
+        if(policyDraft?.scope===context.panel_scope&&policyDraft.model===mid&&policyDraft.node===nid&&policyDraft.architecture===info.architecture)
+          window.LoomParameterPolicy.restore(policySection,policyDraft.owners);
+      }).catch(error=>{if(policyRequest===policyGeneration&&$('parameter-policy-editor'))$('parameter-policy-editor').textContent=error.message;});
+    }
     if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
     if($('edit-lstm-interface'))$('edit-lstm-interface').onclick=()=>lstmUI.open(n.id);
     if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};

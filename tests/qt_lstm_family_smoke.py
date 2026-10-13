@@ -140,7 +140,7 @@ with tempfile.TemporaryDirectory() as directory:
         h.workspace.save(folder/'final.vtw'); opened = Workspace.load(folder/'final.vtw')
         try:
             assert opened.get_spec('specialization', ref['id']) == record
-            assert opened.db.execute('PRAGMA user_version').fetchone()[0] == VERSION == 19
+            assert opened.db.execute('PRAGMA user_version').fetchone()[0] == VERSION
         finally: opened.db.close()
         assert not errors, errors; assert 'torch' not in sys.modules
         print(json.dumps({'ok': True, 'drawing_seed_family7': True, 'typed_selection_card': True,

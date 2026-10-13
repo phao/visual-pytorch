@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 23
+# Visual Torch Workspace (.vtw): format specification, version 25
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,13 +36,21 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 23. The current reader accepts versions 1–20 and 23;
+PRAGMA user_version = 25. The current reader accepts versions 1–20,23–25;
 opening an older supported file copies it into memory and upgrades the working
-version to 23. Opening alone never rewrites the source; explicit Save writes
-version 23. Versions 21/22 belong to the deliberately deferred execution branch
+version to 25. Opening alone never rewrites the source; explicit Save writes
+version 25. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
-Other versions are rejected. Version 2 introduced tensor/port/DAG semantics;
+Other versions are rejected. Version25 adds independent immutable
+`parameter-binding` version1 receipts in the existing revision/head tables,
+including full exact source/destination/value agreement validation. Any retained
+binding row requires25, even with no selected head. Policy-only24 remains valid;
+policies retain their introduction fence24. There is no new SQL table or numerical
+model-policy grammar. The complete closed record, atomic admission, CLI/Inspector
+and undo contracts are specified in [parameter-binding.md](parameter-binding.md).
+
+Version 2 introduced tensor/port/DAG semantics;
 version 3 pins input packing and records dataset bindings and checkpoint identity,
 without changing SQL tables. Version 4 adds versioned structured operators,
 optional named sample axes and a checked recorded structured dataset adapter,
@@ -140,7 +148,15 @@ and ModelRevision1–4 do not silently acquire arithmetic semantics. Family9's
 nullable runtime policy uses fixed shapes or the existing explicit temporal-v2
 policy; Specialization8 re-proves the exact witness. Existing task/data/protocol/
 experiment/run/report grammars are unchanged. See [arithmetic blocks](arithmetic-blocks.md).
-Older binaries are not expected to open version 23;
+Version24 adds closed graph-scoped parameter_policy1, component-encoded owner
+identities for policy-bearing models, ModelRevision6, Family10 and Specialization9.
+No SQL tables change. Frozen inference/task checkpoints carrying the policy use
+version2 and capture initialization receipts; old policy-free checkpoints retain1.
+Headers below24 carrying a policy drawing or these new retained contracts refuse
+without rewriting the input. Defaults/ignored node metadata/old IDs and evidence
+retain their prior meaning. See [parameter policy](parameter-policy.md) for scope,
+repeat translation, provenance, CLI and remaining development gates.
+Older binaries are not expected to open version 24;
 retain an original copy if an old reader must remain usable. This is not an
 unversioned operator extension.
 

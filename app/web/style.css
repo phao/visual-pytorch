@@ -281,6 +281,10 @@ footer>div{min-width:0;max-width:100%}footer :is(#status,#runtime){min-width:0;o
 #lstm-dialog{width:min(760px,calc(100vw - 48px));max-width:calc(100vw - 48px);min-width:min(360px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
 #lstm-dialog fieldset{min-width:0;border:1px solid var(--line);border-radius:7px;margin:12px 0;padding:10px;display:grid;gap:6px}
 #lstm-dialog fieldset[hidden]{display:none}
+.policy-owner{border:1px solid var(--line);border-radius:6px;padding:calc(1.5 * var(--menu-unit));margin:calc(1.5 * var(--menu-unit)) 0}
+.policy-owner-title{overflow-wrap:anywhere;font-weight:600}.policy-owner details{margin:var(--menu-unit) 0}.policy-owner summary{cursor:pointer;color:var(--muted)}
+.policy-owner button{margin:var(--menu-unit) var(--menu-unit) 0 0}.policy-owner input:not([type=checkbox]),.policy-owner textarea,.policy-owner select{width:100%;box-sizing:border-box}
+.policy-error{color:var(--danger);white-space:pre-wrap;overflow-wrap:anywhere}.policy-error:empty{display:none}
 #lstm-dialog :is(input:not([type=checkbox]),select){width:100%;min-width:0;margin:0 0 6px}
 #lstm-dialog .checkbox{display:flex;align-items:center;gap:6px}
 #lstm-dialog input[type=checkbox]{width:auto;margin:0}

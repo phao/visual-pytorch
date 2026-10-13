@@ -30,11 +30,15 @@ def pin_input_order(graph, previous=None):
 
 def graph_signature(graph):
     from .operators import normalized
-    return {'input_order':graph.get('input_order',legacy_input_order(graph)),
+    signature = {'input_order':graph.get('input_order',legacy_input_order(graph)),
             'nodes':sorted(({k:v for k,v in normalized(n).items() if k not in PRESENTATION | {'label'}}
                             for n in graph['nodes']),key=lambda n:n['id']),
             # Preserve declared computational ordering, including Concat/router ports.
             'edges':graph['edges']}
+    if 'parameter_policy' in graph:
+        from .policy_graph import declaration
+        signature['parameter_policy'] = declaration(graph['parameter_policy'])
+    return signature
 
 
 def binding_for(contract):
@@ -87,34 +91,46 @@ def normalize_models(models, mid):
     return result
 
 
-def parameter_schema(models, mid, prefix='', stable_prefix=None):
+def parameter_schema(models, mid, prefix='', stable_prefix=None, *, identity_version=None, components=None):
     """Pure expected state-dict shapes/IDs, without allocating a Torch model."""
-    from .core import operation_nodes, validate_model
-    contract=validate_model(models,mid)
+    if components is None:
+        from .policy_graph import present, expansion_bound
+        if present(models, mid): expansion_bound(models, mid)
+    from .core import operation_nodes
+    from .graph import contract as shape_contract
+    contract=shape_contract(models,mid)
     stable_prefix=mid if stable_prefix is None else stable_prefix
+    if identity_version is None:
+        from .policy_graph import present
+        identity_version = 2 if present(models, mid) else 1
+    components = [mid] if components is None else components
+    from .policy_graph import owner_key
     schema={}
     for i,node in enumerate(operation_nodes(models[mid])):
         if 'parameter_owner' in contract['shapes'][node['id']]:
             continue
         path=prefix+f'layer_{i}'
         stable=stable_prefix+'/'+node['id']
+        parts = components + [node['id']]
+        def sid(name): return owner_key(parts + [name]) if identity_version == 2 else stable + '/' + name
         if node['type'] in {'Module', 'Recurrent'}:
-            schema.update(parameter_schema(models,node['ref'],path+('.transition.' if node['type'] == 'Recurrent' else '.'),stable))
+            schema.update(parameter_schema(models,node['ref'],path+('.transition.' if node['type'] == 'Recurrent' else '.'),stable,
+                                          identity_version=identity_version, components=parts))
         elif node['type'] == 'LSTM':
             for name, shape in contract['shapes'][node['id']]['lstm']['parameter_shapes'].items():
-                schema[path + '.' + name] = {'shape': shape, 'id': stable + '/' + name}
+                schema[path + '.' + name] = {'shape': shape, 'id': sid(name)}
         elif node['type'] in {'Linear', 'Conv2d'}:
             shape=contract['shapes'][node['id']]
             weight_shape = shape['operator']['weight_shape'] if node['type'] == 'Conv2d' else [shape['output'],shape['input']]
             width = weight_shape[0]
-            schema[path+'.weight']={'shape':weight_shape, 'id':stable+'/weight'}
+            schema[path+'.weight']={'shape':weight_shape, 'id':sid('weight')}
             if node.get('bias',True):
-                schema[path+'.bias']={'shape':[width], 'id':stable+'/bias'}
+                schema[path+'.bias']={'shape':[width], 'id':sid('bias')}
     return schema
 
 
 def check_checkpoint(models, mid, result):
-    """Validate a v1 float32 inference checkpoint against a normalized snapshot.
+    """Validate a float32 inference checkpoint against a normalized snapshot.
 
     This proves compatibility/representation, not that a caller's manually
     constructed checkpoint originated in a trusted training process.
@@ -127,8 +143,13 @@ def check_checkpoint(models, mid, result):
         matches=False
     if not matches:
         raise GraphError('Checkpoint identity does not match this architecture, data, binding and training snapshot.')
-    if type(result.get('checkpoint_version')) is not int or result['checkpoint_version']!=1:
-        raise GraphError('Checkpoint version must be integer 1.')
+    from .policy_graph import present
+    expected_version = 2 if present(models, mid) else 1
+    if type(result.get('checkpoint_version')) is not int or result['checkpoint_version'] != expected_version:
+        raise GraphError('Checkpoint version must match the parameter-policy interpretation.')
+    if expected_version == 2:
+        from .parameter_execution import check_receipt
+        check_receipt(models, mid, result.get('parameter_policy_receipt'))
     contract=validate_model(models,mid)
     check_binding(models[mid],contract)
     if isinstance(models[mid].get('dataset'), dict):

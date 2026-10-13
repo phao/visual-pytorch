@@ -210,6 +210,9 @@ def _get(resolve, ref):
 
 
 def dependencies(kind, doc):
+    if kind == 'parameter-binding':
+        from .parameter_binding import dependencies as binding_dependencies
+        return binding_dependencies(doc)
     if kind == 'specialization':
         return [doc['family'], doc['model']]
     if kind == 'experiment':
@@ -406,6 +409,9 @@ def candidate_bundle(experiment, coordinates, resolve, *, saved_manifest=None):
 def validate_dependencies(kind, doc, resolve):
     for ref in dependencies(kind, doc):
         _get(resolve, ref)
+    if kind == 'parameter-binding':
+        from .parameter_binding import check_dependencies
+        check_dependencies(doc, resolve)
     if kind == 'experiment' and doc['version'] >= 2:
         from .family_axes import validate_dependencies as check_choices
         check_choices(doc['models'], resolve, version=doc['version'])

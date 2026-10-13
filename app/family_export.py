@@ -18,7 +18,7 @@ from .memory import memory_percent
 CORE = ('GraphError', 'feature_count', 'tensor_shape', 'input_shape', 'reshape_shape',
         'ordered_nodes', 'operation_nodes', 'boundary_groups', 'validate_model',
         'safety_report', 'preflight', 'check_document', '_pack_inputs', '_graph_values',
-        '_graph_tensor', '_recurrent_graph_forward', '_lstm_graph_forward', 'compile_model')
+        '_graph_tensor', '_recurrent_graph_forward', '_lstm_graph_forward', 'compile_model', '_parameter_setup')
 EVIDENCE = ('digest', 'legacy_input_order', 'pin_input_order', 'graph_signature',
             'identity', 'parameter_schema')
 
@@ -33,7 +33,7 @@ def _selected(path, names, header):
 def runtime_sources():
     folder = Path(__file__).resolve().parent
     sources = {n: (folder / (n + '.py')).read_text(encoding='utf-8')
-               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2')}
+               for n in ('memory', 'operators', 'activations', 'graph', 'families', 'runtime_shapes', 'recurrent', 'recurrent_nodes', 'temporal_shapes', 'lstm_nodes', 'temporal_shapes_v2', 'parameter_policy', 'policy_graph', 'parameter_execution')}
     sources['core'] = _selected(folder / 'core.py', CORE, '''from __future__ import annotations
 import json
 import math
@@ -59,7 +59,7 @@ def family_source(family, *, constrained=True, memory_limit_percent=10.):
                   'runtime_sha256': runtime_hash, 'runtime_files': sorted(sources),
                   'policy': {'constrained': constrained, 'memory_limit_percent': percentage},
                   'runtime_inputs':copy.deepcopy(source.get('runtime_inputs')),
-                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9) else {}),
+                  **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10) else {}),
                   'parameter_semantics': 'typed-JSON-component-path; family/template/call/owner/weight-or-bias; exact-shape',
                   'optimizer_resume': False}
     code = ('# Visual PyTorch checked architecture family; GPL-3.0-only. See project LICENSE.\n'
@@ -116,7 +116,7 @@ def _runtime():
             setattr(package, child, module); created[module.__name__] = module
         sys.modules.update(created)
         try:
-            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
+            for child in ('memory', 'operators', 'activations', 'core', 'graph', 'evidence', 'parameter_policy', 'policy_graph', 'parameter_execution', 'recurrent', 'recurrent_nodes', 'lstm_nodes', 'families', 'runtime_shapes', 'temporal_shapes', 'temporal_shapes_v2'):
                 module = getattr(package, child)
                 exec(compile(_SOURCES[child], module.__file__, 'exec'), module.__dict__)
         except BaseException:
@@ -184,9 +184,9 @@ class ArchitectureFamily(nn.Module):
             raise ValueError('Temporal family construction requires an explicit family6/7 grammar.')
         if source['version'] in (6,7) and runtime_temporal is None and source['runtime_policy'] is not None:
             runtime_temporal = source['runtime_policy']['inputs']
-        if runtime_temporal_v2 is not None and source['version'] not in (8,9):
+        if runtime_temporal_v2 is not None and source['version'] not in (8,9,10):
             raise ValueError('Runtime temporal-v2 requires an explicit family8 grammar.')
-        if source['version'] in (8,9):
+        if source['version'] in (8,9,10):
             expected = None if source['runtime_policy'] is None else source['runtime_policy']['inputs']
             if runtime_inputs is not None or runtime_temporal is not None or (runtime_temporal_v2 is not None and _digest(runtime_temporal_v2) != _digest(expected)):
                 raise ValueError('Family8 execution must match its exact retained runtime policy; no implicit policy override.')
@@ -206,7 +206,7 @@ class ArchitectureFamily(nn.Module):
                                 actual_policy={'constrained': constrained, 'memory_limit_percent': percentage})
         if source['version'] in (6,7):
             self._provenance['runtime_temporal'] = copy.deepcopy(runtime_temporal)
-        if source['version'] in (8,9):
+        if source['version'] in (8,9,10):
             self._provenance['runtime_temporal_v2'] = copy.deepcopy(runtime_temporal_v2)
             self._initial_shapes = copy.deepcopy(initial_shapes) if initial_shapes is not None else {
                 g['id']:copy.deepcopy(g['shape']) for g in resolved['contract']['input_groups']}
@@ -216,7 +216,7 @@ class ArchitectureFamily(nn.Module):
         source = family_definition()
         return {'family': export_metadata()['family'], 'root': source['root'], 'symbols': source['symbols'],
                 'constructors': source.get('constructors', []), 'runtime_inputs':source.get('runtime_inputs'),
-                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9) else {}),
+                **({'runtime_policy':copy.deepcopy(source['runtime_policy'])} if source['version'] in (6,7,8,9,10) else {}),
                 'policy': export_metadata()['policy']}
 
     @property
@@ -299,13 +299,15 @@ class ArchitectureFamily(nn.Module):
             if not isinstance(tensor, torch.Tensor) or tensor.layout != torch.strided or list(tensor.shape) != shape or not torch.isfinite(tensor).all().item():
                 raise ValueError('Semantic state tensor does not match its finite dense declared shape.')
             source[sid] = (path, descriptor, tensor)
-        target = self.state_dict(); plan, missing, skipped = [], [], []
+        target = self.state_dict(); parameters = dict(self.named_parameters()); plan, missing, skipped = [], [], []
         for path, descriptor in self._semantic.items():
             sid = descriptor['id']; entry = source.get(sid)
             if entry is None: missing.append(sid); continue
             old_path, old, tensor = entry
             if old['shape'] != descriptor['shape'] or tensor.dtype != target[path].dtype:
                 skipped.append({'id': sid, 'reason': 'shape-or-dtype-mismatch'}); continue
+            if family['version'] >= 10 and not parameters[path].requires_grad and not torch.equal(target[path], tensor):
+                raise ValueError('Warm-start cannot override frozen initial base values; bind an explicit compatible source.')
             plan.append((path, old_path, tensor))
         used = {old_path for _, old_path, _ in plan}
         unused = [descriptor['id'] for path, descriptor in schema.items() if path not in used]

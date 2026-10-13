@@ -4,6 +4,131 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 22:35 -03:00 — Frozen Qt disclosure-state test correction
+
+aa4066e captured4 notebook checks27.681s pass, including actual old/new kernels
+and new omission guards. Frozen Qt failed a local-error predicate because the
+harness toggled an already-open initializer disclosure closed after same-identity
+draft preservation. Use idempotent opening and require visible native click
+targets; product executable bytes unchanged. Failed frozen log retained; corrected
+native rerun/full regression remain required.
+
+## 2026-10-12 22:31 -03:00 — Exact retained initialization and Binding1 lineage
+
+Added independent immutable Binding1/container25, pure preview/atomic source copy,
+retained model/source/value proof, no-op/rollback/version fences and CLI/Inspector
+selection. Model6/policy1 numerical semantics unchanged;25 adds no SQL table.
+Bounded source pages and current-byte receipt matching preserve sequential owner
+lineage without claiming whole-model equality. Real Qt picker/undo/save and
+72 affected Python/372 JS pass; source bytes, native/fresh-export upstream gradients
+and actual retained workers checked. Captured dependencies and old-runtime lists
+adapted; actual notebook/full final-tree gate still required. Reviewer identified
+signed-zero equality/transport and disappearing refusal defects, corrected with
+real negative-zero source and callback/native regressions. Geometry saves preserve
+opaque server policy; draft fields survive only same-identity redraws. Failed
+service/fixture/geometry/console/timing outcomes retained. Full LoRA showcase/
+comparisons/merge and exact MS-VAR remain; E deferred, no public/user-state changes.
+
+## 2026-10-12 21:31 -03:00 — Exact retained parameter reader, not binding yet
+
+Added a pure source reader with mandatory run revision/attempt/checkpoint/path/ID
+selection and retained model agreement, because LoRA's base must not track mutable
+heads or silently substitute earlier success. Detached shape-bound float32 bytes
+have a specified digest and preserve signed zero. Six bounded tests2.080s pass
+using an actual3-update retained worker and explicit failed retry; fresh source
+read imports no Torch/NumPy/Qt or numerical execution. First harness accidentally
+shadowed unittest.run; renamed fixture, retained failed log. No persisted binding,
+CLI/GUI selector, optimizer resume or full-goal completion claimed. Sole reviewer
+confirmed pinning paths and identified helper shape-domain hardening; now matches
+the existing1–8-positive-integer owner contract, with bounded refusal witnesses.
+
+## 2026-10-12 21:24 -03:00 — Review corrections for policy edits and repair
+
+Sole reviewer found an accepted-policy/ordinary-save race, alias-backed declaration
+editing gap, multiple-outdated initializer dead end and orphaned bias dead end.
+Serialized policy mutations with ordinary snapshots and reconciled only the
+authoritative policy field, preserving concurrent diagram edits even when the
+subsequent state read fails. Owner edits now change/reset all same-scope alias
+contributors; explicit block-local atomic reset repairs multiple obsolete tensors
+without deleting other blocks/descendant policies.79 focused Python/368 JS and
+native dispatcher pass; actual callback delayed-ack race tested. First WebEngine
+review run reached initialization but its error predicate selected the new empty
+block-reset error slot; corrected owner-local selector, retained failure. Final
+frozen native verification remains required; no whole-goal completion claimed.
+
+## 2026-10-12 21:18 -03:00 — Frozen GUI test wait correction
+
+Frozen0b2cb18 passes60 Python/367 JS/native dispatcher checks. Its WebEngine
+rerun revealed the harness dereferencing a temporarily absent owner-card title
+after rehydration. Made the polling predicate null-safe without changing product
+behavior; retained failed log. Corrected frozen native rerun still required.
+
+## 2026-10-12 21:16 -03:00 — Guarded Inspector parameter policies
+
+Added canonical-owner freeze/initialization controls, defining-box navigation and
+diagram policy badges, because LoRA must be editable without confusing frozen
+storage with detached gradients. Shape-valid outdated initializers can be
+repaired without presenting their policy as valid. Edits retain busy/stale/scope
+guards and desktop undo/redo; no-op and rejected edits leave SQL/history intact.
+53 focused Python and367 JavaScript checks pass; native dispatcher and actual
+sandboxed WebEngine controls verify undo, refusal and save/reload. Two painted
+captures inspected. Initial literal-contract failure and early unhelpful captures
+are retained as such. No GUI-stage full regression, retained-base binding,
+complete LoRA showcase or exact MS-VAR completion claimed. E remains deferred;
+no public push, user-file/config edits or live app restart.
+
+## 2026-10-12 20:47 -03:00 — Direct inventory safety after full parent regression
+
+Parent2d7a2e9 full1373/549.413s passes. Follow-up review closes the three original
+witnesses but identifies direct inventory entry bypass; added root policy-schema
+and alias guards/two bounded cases.57 focused checks pass without allocating the
+oversized structures. Child-only full gate not run; product stays unmerged and
+full LoRA/MS-VAR remains incomplete. No user-state, public-push or E changes.
+
+## 2026-10-12 20:35 -03:00 — Bound policy discovery and close repeat/RAM gaps
+
+Fixed three reviewer-derived issues with bounded reproductions: pre-admission
+owner expansion, ancestor policies through descendant repeats and runtime policy
+initialization RAM charging.40 affected cases and four actual kernel executions
+within3 tests pass. Corrected historical fixture file lists/future-version values
+without changing old archives or semantics. Preserved failed d100aac1368-case
+regression and initial fixture SyntaxError. New full gate/integration still needed;
+GUI/base-source/showcase/MS-VAR remain unfinished, E deferred.
+
+## 2026-10-12 20:15 -03:00 — Persisted scoped policy backend routes
+
+Implemented explicit graph policy1 and component identities, model6/family10/
+specialization9/container24 fences, checkpoint2 initialization receipts, selected
+optimizer owners, safe repeat translation and capture dependencies, because LoRA
+must mean the same thing after save/load/export/worker/notebook execution. Old
+semantics and E21/22 remain unchanged.20 new-route cases pass, including two
+actual kernels/eight cells each and exact checkpoint/predictions. Fixed actual
+missing-math export and closed RAM-admission gaps; retained failed logs. GUI
+controls/base-source binding/showcase/full regression and integration remain.
+
+## 2026-10-12 19:46 -03:00 — Internal native initialization/freezing proof
+
+Added structural alias inventory and atomic explicit CPU float32 initialization,
+materialized owner-value receipts and selected-parameter enumeration, because
+faithful LoRA needs frozen base values without cutting input gradients. Preserve
+ambiguous-ID refusal and distinct-object storage alias rejection.106 focused
+cases pass, including17 pure/14 numerical policy cases and six bounded independent
+LoRA formula fits. Nested Module/Recurrent/projected LSTM addresses checked.
+Still branch-only internal groundwork; no persisted field/compiler/trainer hook,
+full regression, worker/export/notebook/CLI parity, public push or E changes.
+
+## 2026-10-12 18:50 -03:00 — Internal owner-aware policy foundation
+
+Added pure normalization of stable-owner policies and explicit alias conflicts,
+typed finite initializer declarations and stored/trainable/frozen counts. Fixed
+numeric alias normalization to avoid order-dependent identities.15 new pure/
+74 focused tests pass; fresh discovery imports no Torch/NumPy/Qt. This is an
+internal branch-only prerequisite, not new workspace grammar or automatic
+compile/train/export support. All existing execution versions remain unchanged.
+No faithful LoRA workspace, exact MS-VAR fit, numerical policy verification,
+GUI redesign/user files/push/E change is claimed. Documentation separates these
+remaining requirements from the implemented helper.
+
 ## 2026-10-12 17:32 -03:00 — Undo frozen acceptance
 
 Fresh exact b05a5bc full1317 cases561.911s passes (1314 executed/three native-

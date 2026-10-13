@@ -52,6 +52,13 @@ def apply_edits(workspace, edits):
             ref = admit_run(workspace, edit['document'], select=edit.get('select', True))
             results.append({'op': kind, 'reference': ref})
             continue
+        elif kind == 'bind-parameter':
+            from app.parameter_binding import admit
+            from app.datasets import _keys
+            _keys(edit, ('op', 'token', 'selector', 'source'), ('binding_id', 'name'), 'Bind-parameter edit')
+            results.append({'op': kind, **admit(workspace, edit['token'], edit['selector'], edit['source'],
+                binding_id=edit.get('binding_id'), name=edit.get('name'))})
+            continue
         elif kind == 'put-spec':
             ref = workspace.put_spec(edit['kind'], edit['document'], edit.get('select', True))
             results.append({'op': kind, 'reference': ref})
@@ -138,6 +145,14 @@ def apply_edits(workspace, edits):
                 check_adapter(doc['dataset'], contract)
                 doc['dataset_binding']=binding_for(contract)
                 doc['result']=None
+            elif kind == 'set-parameter-policy':
+                from app.datasets import _keys
+                from app.policy_graph import declaration, plan
+                _keys(edit, ('op', 'id', 'policy'), context='Set-parameter-policy edit')
+                if edit['policy'] is None: doc['graph'].pop('parameter_policy', None)
+                else: doc['graph']['parameter_policy'] = declaration(edit['policy'])
+                prospective = workspace.models(); prospective[edit['id']] = doc
+                plan(prospective, edit['id'])
             elif kind == 'set-node':
                 node = next(n for n in doc['graph']['nodes'] if n['id'] == edit['node'])
                 if set(edit['values']) & {'id', 'type'}:
@@ -189,6 +204,16 @@ def main(argv=None):
     operator.add_argument('type')
     ports = sub.add_parser('ports', help='Complete stable graph port/axis/packing and wire contracts; no execution or edits')
     ports.add_argument('id')
+    parameters = sub.add_parser('parameter-policy', help='Read unique owner policies/counts/initializers; no numerical allocation or training')
+    parameters.add_argument('id')
+    binding = sub.add_parser('prepare-parameter-binding', help='Read guarded destination owner tokens; no edits or numerical import')
+    binding.add_argument('id'); binding.add_argument('node')
+    retained = sub.add_parser('retained-parameters', help='Read exact retained attempt owner inventory; never selects latest')
+    retained.add_argument('id'); retained.add_argument('revision'); retained.add_argument('--attempt', type=int, required=True)
+    binding_preview = sub.add_parser('preview-parameter-binding', help='Prove copied initialization and lineage without writes')
+    binding_preview.add_argument('token', help='Exact destination token JSON file or -')
+    binding_preview.add_argument('selector', help='Canonical relative JSON component selector')
+    binding_preview.add_argument('source', help='Exact retained selection JSON file')
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -374,6 +399,18 @@ def main(argv=None):
             elif args.command == 'ports':
                 from app.discovery import port_contract
                 value = port_contract(workspace.models(), args.id)
+            elif args.command == 'parameter-policy':
+                from app.discovery import parameter_contract
+                value = parameter_contract(workspace.models(), args.id)
+            elif args.command == 'prepare-parameter-binding':
+                from app.policy_authoring import prepare
+                value = prepare(workspace.models(), args.id, args.node)
+            elif args.command == 'retained-parameters':
+                from app.parameter_sources import inventory
+                value = inventory(workspace, {'kind': 'run', 'id': args.id, 'revision': args.revision}, attempt=args.attempt)
+            elif args.command == 'preview-parameter-binding':
+                from app.parameter_binding import preview
+                value = preview(workspace, read_json(args.token), args.selector, read_json(args.source))
             elif args.command == 'parameter-counts':
                 from app.presentation import block_parameter_counts
                 models=workspace.models();model=models[args.id];contract=validate_model(models,args.id)

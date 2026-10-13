@@ -121,7 +121,8 @@ class Bridge(QObject):
                 raise ValueError("This request is too large for the prototype.")
             req = json.loads(payload)
             if isinstance(req, dict) and (req.get('action', '').startswith(('scienceDraft', 'scienceFamily')) or
-                                         req.get('action') in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}):
+                                         req.get('action') in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM',
+                                             'parameterPolicy','editParameterPolicy','resetBlockParameterPolicy','bindParameter','parameterSourceInventory'}):
                 from .revisions import _parse
                 req = _parse(payload)  # New editor transport rejects duplicate/NaN JSON before mutation.
             value = self.window.dispatch(req, self)
@@ -579,7 +580,7 @@ class Window(QMainWindow):
                         if view.mid not in models:view.bridge.send('navigate',next(iter(models),None))
             return changed
         from .desktop_experiments import EDITS
-        edits={'newModel','deleteModel','updateModel','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
+        edits={'newModel','deleteModel','updateModel','editParameterPolicy','resetBlockParameterPolicy','bindParameter','addRecurrent','editRecurrent','addLSTM','editLSTM','generateData','setConstrainedMode','rebindDataset','setLayoutPreferences'} | EDITS
         if job_busy(self.job) and action in edits | {'train', 'scienceTrain'}:
             raise ValueError('Stop the current run before editing or starting another run.')
         workspace=self.workspace
@@ -712,14 +713,57 @@ class Window(QMainWindow):
             bridge.send("navigate", next(iter(self.workspace.models())))
             return True
         if action == "updateModel":
-            doc = req["document"]
+            doc = copy.deepcopy(req["document"])
             if doc["id"] not in models:
                 raise ValueError("That architecture no longer exists.")
             if job_busy(self.job):
                 raise ValueError("Stop training before editing an architecture.")
+            if 'preserve_parameter_policy' in req:
+                if type(req['preserve_parameter_policy']) is not bool: raise ValueError('Preserve-parameter-policy flag must be boolean.')
+                if req['preserve_parameter_policy']:
+                    policy = models[doc['id']]['graph'].get('parameter_policy')
+                    if policy is None: doc['graph'].pop('parameter_policy', None)
+                    else: doc['graph']['parameter_policy'] = copy.deepcopy(policy)
             self.workspace.put(doc)
             self.broadcast(exclude=bridge)
             return self.describe(doc["id"])
+        if action in {'parameterPolicy', 'editParameterPolicy', 'resetBlockParameterPolicy', 'bindParameter', 'parameterSourceInventory'}:
+            from .policy_authoring import prepare, build, reset_block, TOKEN
+            from .evidence import digest
+            writing = action in {'editParameterPolicy', 'resetBlockParameterPolicy', 'bindParameter'}
+            expected = {'action', 'workspace_id', 'panel_scope', 'id', 'node'}
+            if writing: expected.add('architecture')
+            if action == 'editParameterPolicy': expected |= {'selector', 'changes_json'}
+            if action == 'bindParameter': expected |= {'selector', 'source'}
+            if action == 'parameterSourceInventory': expected |= {'architecture', 'run', 'attempt', 'offset'}
+            if set(req) != expected:
+                raise ValueError('Parameter policy request has missing or unsupported fields.')
+            wid = self.workspace.db.execute("SELECT value FROM metadata WHERE key='workspace_id'").fetchone()[0]
+            if req['workspace_id'] != wid or req['panel_scope'] != self.workspace.panel_scope:
+                raise ValueError('Workspace changed; reopen parameter policy.')
+            if action == 'parameterSourceInventory':
+                from .parameter_sources import inventory_page
+                info = prepare(models, req['id'], req['node'])
+                if req['architecture'] != info['architecture']: raise ValueError('Architecture changed; reopen parameter policy.')
+                return inventory_page(self.workspace, req['run'], attempt=req['attempt'], offset=req['offset'])
+            if writing:
+                token = {key: req[key] for key in TOKEN}
+                if action == 'bindParameter':
+                    from .parameter_binding import admit
+                    receipt = admit(self.workspace, token, req['selector'], req['source'])
+                else:
+                    doc = reset_block(models, token) if action == 'resetBlockParameterPolicy' else build(models, token, req['selector'], req['changes_json'])
+                    if digest(doc) != digest(models[req['id']]): self.workspace.put(doc)
+                self.broadcast(exclude=bridge)
+            current = self.workspace.models()
+            result = prepare(current, req['id'], req['node'])
+            if result['policy_error'] is None:
+                from .parameter_binding import current_bindings
+                bindings = current_bindings(self.workspace, req['id'])
+                for owner in result['owners']: owner['initial_source'] = bindings.get(owner['selector'])
+            if writing: result['document'] = current[req['id']]
+            if action == 'bindParameter': result['binding'] = receipt
+            return result
         if action in {'lstmAuthoring','lstmEditing','addLSTM','editLSTM'}:
             from .lstm_authoring import prepare, prepare_edit, build, build_edit, CREATE_TOKEN, EDIT_TOKEN
             from .revisions import _parse
@@ -864,8 +908,10 @@ class Window(QMainWindow):
             percentage=self.config.values['memory_limit_percent'] if hasattr(self,'config') else DEFAULT_MEMORY_LIMIT_PERCENT
             from .evidence import dataset_report, checkpoint_report
             contract=validate_model(models,mid)
+            from .policy_authoring import block_summary
             interfaces = {n["id"]: validate_model(models, n["ref"]) for n in models[mid]["graph"]["nodes"] if n["type"] in {"Module", "Recurrent"}}
             return {"valid": True, "contract": contract, "interfaces": interfaces,
+                    'parameter_blocks': block_summary(models, mid),
                     'dataset_admission':dataset_report(models[mid],contract),
                     'checkpoint_status':checkpoint_report(models,mid),
                     "code": generate_code(models, mid),

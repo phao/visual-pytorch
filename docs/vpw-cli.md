@@ -1,5 +1,13 @@
 # Agent and user CLI contract
 
+Exact retained initialization supports `prepare-parameter-binding MODEL NODE`,
+`retained-parameters RUN REVISION --attempt N`, read-only
+`preview-parameter-binding token.json SELECTOR source.json`, and ordered `apply`
+operation `bind-parameter`. They share the guarded owner service and persist an
+independent immutable Binding1 receipt, not optimizer state. Complete closed
+fields, copying/digest semantics, stale/no-op/atomic batch and container25 rules:
+[parameter binding](parameter-binding.md).
+
 Shared read-only discovery now supports workspace-free `capabilities`,
 `operator-schema TYPE` and `format-schema`, plus workspace-scoped
 `ports ARCHITECTURE_ID`. Examples pass actual validators; no Tensor/Qt import,

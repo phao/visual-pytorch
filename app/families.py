@@ -212,25 +212,28 @@ def _chain(model, repeat):
 def validate_family(doc):
     """Validate the family grammar; unresolved assignments are legitimate drafts."""
     keys(doc, ('version', 'id', 'name', 'root', 'models', 'symbols', 'assignments', 'repeats') +
-         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9) else ()),
+         (('runtime_policy',) if doc.get('version') in (6, 7, 8, 9, 10) else ()),
          (('constructors',) if type(doc.get('version')) is int and doc['version'] >= 4 else ()) +
          (('runtime_inputs',) if doc.get('version') == 5 else ()))
-    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9), 'Family supports integer version 1 through 9.')
+    require(type(doc['version']) is int and doc['version'] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 'Family supports integer version 1 through 10.')
     require(identifier(doc['id']) and identifier(doc['name']), 'Family needs stable ID and name.')
     models = doc['models']
     require(isinstance(models, dict) and 1 <= len(models) <= 64 and
             isinstance(doc['root'], str) and doc['root'] in models, 'Family needs a root template closure.')
+    if doc['version'] >= 10:
+        require(any(isinstance(m, dict) and isinstance(m.get('graph'), dict) and 'parameter_policy' in m['graph']
+                    for m in models.values()), 'Family10 requires an explicit parameter policy; use Family9 for old semantics.')
     for mid, model in models.items():
         require(identifier(mid), 'Family model needs a stable ID.')
         keys(model, ('id', 'name', 'graph'), where='Family model ' + mid)
         require(model['id'] == mid, 'Family model key/ID mismatch.')
-        keys(model['graph'], ('nodes', 'edges'), ('input_order',), 'Family graph ' + mid)
+        keys(model['graph'], ('nodes', 'edges'), ('input_order',) + (('parameter_policy',) if doc['version'] >= 10 else ()), 'Family graph ' + mid)
         try:
             check_document(model)
             for node in model['graph']['nodes']:
                 require(node['type'] not in {'Add', 'Scale'} or doc['version'] >= 9, 'Add/Scale templates require explicit Family9.')
-                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9), 'Family versions 1–6 do not support LSTM templates; use explicit family7/8/9.')
-                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9),
+                require(node['type'] != 'LSTM' or doc['version'] in (7,8,9,10), 'Family versions 1–6 do not support LSTM templates; use explicit family7/8/9/10.')
+                require(node['type'] != 'Recurrent' or doc['version'] in (6,7,8,9,10),
                         'Persisted recurrent nodes require a later recurrent family grammar, not family1-5.')
                 require(set(node) <= COMMON | TEMPLATE_FIELDS[node['type']],
                         'Block ' + node['id'] + ': unsupported family template fields.')
@@ -270,7 +273,7 @@ def validate_family(doc):
                 'Family temporal policy requires integer version1 and kind runtime-temporal-v1; LSTM needs a later runtime grammar.')
         from .temporal_shapes import declaration
         declaration(models, doc['root'], value['inputs'])
-    if doc['version'] in (8,9) and doc['runtime_policy'] is not None:
+    if doc['version'] in (8,9,10) and doc['runtime_policy'] is not None:
         value = doc['runtime_policy']
         keys(value, ('version', 'kind', 'inputs'), where='Family temporal-v2 policy')
         require(type(value['version']) is int and value['version'] == 2 and value['kind'] == 'runtime-temporal-v2',
@@ -384,6 +387,20 @@ def _expanded(models, repeats, bindings):
         model, count = models[mid], counts[rid]
         lookup, incoming, outgoing = _chain(model, repeat)
         body = set(repeat['nodes'])
+        if 'parameter_policy' in model['graph']:
+            # Family10 template-local declarations apply to every occurrence,
+            # not an implicit selection of occurrence zero. IDs remain atoms.
+            from .policy_graph import owner_key
+            import json
+            translated = {}
+            for selector, entry in model['graph']['parameter_policy']['parameters'].items():
+                parts = json.loads(selector)
+                variants = [[rid + '/' + str(i) + '/' + parts[0], *parts[1:]] for i in range(count)] if parts[0] in body else [parts]
+                for variant in variants:
+                    key = owner_key(variant)
+                    require(key not in translated or translated[key] == entry, 'Conflicting repeated parameter policy.')
+                    translated[key] = copy.deepcopy(entry)
+            model['graph']['parameter_policy']['parameters'] = translated
         clones, wires = [], []
         for index in range(count):
             ids = {nid: rid + '/' + str(index) + '/' + nid for nid in repeat['nodes']}
@@ -452,6 +469,35 @@ class _UnresolvedConstructor(GraphError):
                          ': ' + ', '.join(m['id'] for m in missing) + '.')
 
 
+def _translate_descendant_policies(models, mid, occurrences):
+    """Follow resolved references and repeat origins as structural components."""
+    from .policy_graph import owner_key, expansion_bound
+    import json
+    expansion_bound(models, mid)
+    graph = models[mid]['graph']
+    if 'parameter_policy' not in graph: return
+    by_model = {}
+    for row in occurrences:
+        by_model.setdefault(row['model'], {}).setdefault(row['template_node'], []).append(row['node'])
+    def translate(current, parts):
+        lookup = {node['id']: node for node in models[current]['graph']['nodes']}
+        ids = [parts[0]] if parts[0] in lookup else by_model.get(current, {}).get(parts[0], [parts[0]])
+        result = []
+        for nid in dict.fromkeys(ids):
+            node = lookup.get(nid)
+            if len(parts) > 2 and node is not None and node['type'] in {'Module', 'Recurrent'}:
+                result.extend([[nid, *tail] for tail in translate(node['ref'], parts[1:])])
+            else: result.append([nid, *parts[1:]])
+        return result
+    declarations = {}
+    for selector, entry in graph['parameter_policy']['parameters'].items():
+        for parts in translate(mid, json.loads(selector)):
+            key = owner_key(parts)
+            require(key not in declarations or declarations[key] == entry, 'Conflicting descendant repeat policy translation.')
+            declarations[key] = copy.deepcopy(entry)
+    graph['parameter_policy']['parameters'] = declarations
+
+
 def _scoped_specialize(doc, symbols, supplied):
     """Resolve model specs by local constructor context, NOT parameter instances.
 
@@ -508,6 +554,8 @@ def _scoped_specialize(doc, symbols, supplied):
         if repeats or any('x' not in n or 'y' not in n for n in model['graph']['nodes']): _initial_layout(model)
         model['id'] = rid
         resolved[rid] = model
+        if doc['version'] >= 10:
+            _translate_descendant_policies(resolved, rid, occurrences)
         try:
             check_document(model)
             validate_model(resolved, rid)
@@ -545,13 +593,16 @@ def specialize(doc, supplied=None):
             result.update(version=5 if doc['version']==7 else 4, runtime=None if spec is None else {
                 'version':2, 'kind':'runtime-temporal-v1', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
-        elif doc['version'] in (8,9):
+        elif doc['version'] in (8,9,10):
             from .temporal_shapes_v2 import specification
             policy = doc['runtime_policy']
             spec = specification(result['models'], result['root'], policy['inputs']) if policy is not None else None
             result.update(version=6, runtime=None if spec is None else {
                 'version':3, 'kind':'runtime-temporal-v2', 'inputs':copy.deepcopy(spec['runtime_inputs']),
                 'specification_sha256':digest(spec)}, runtime_specification=spec)
+        if doc['version'] >= 10:
+            from .policy_graph import plan
+            result['parameter_policy'] = plan(result['models'], result['root'])['resolved']
         return result
     bindings = {}
     for sid, symbol in symbols.items():

@@ -1,5 +1,102 @@
 # Development state and roadmap
 
+## 2026-10-12 20:47 -03:00 — Frozen parent gate passes; direct inventory guards
+
+Frozen2d7a2e9 passed1373 invocations549.413s,1370 executed/three unchanged
+native-covered skips.72132 terminal0/consumed; no source edits while running.
+The original three reviewer findings are covered and the follow-up source review
+confirms their paths, but found a remaining direct-schema/alias entry bypass.
+Guarded policy-bearing schema roots and alias queries before enumeration, keeping
+policy-free schema IDs/behavior unchanged. Two additional allocation-free cases
+plus55 affected tests pass57/6.995s. This child has focused checks, not its own
+full frozen gate; no main integration/public push or full-goal completion claim.
+Next native GUI policy controls/base-source binding/showcase plus remaining
+MS-VAR/CLI requirements, with regression on the final integrated executable tree.
+
+## 2026-10-12 20:35 -03:00 — Review corrections before renewed frozen regression
+
+The frozen d100aac full gate completed:1368 invocations542.618s, two failures/
+three errors/three native-covered skips. Original log is retained. Two historical
+notebook fixtures tried copying new policy files absent from their immutable ZIPs;
+their historical file lists now exclude these files without touching ZIP bytes.
+Temporal-v2 refusal tests used newly admitted Family10/Spec9 as "future" values;
+unknown-version witnesses move to11/10 without weakening old exact dependency
+matching or downgrade checks.
+
+Independent read-only review found three real gaps: unbounded owner inventory
+before admission, ancestor selectors across descendant repeats, and runtime
+construction missing policy preparation RAM. Added memoized structural bounds,
+shape-only constrained admission before inventory, structural descendant selector
+translation and actual-runtime construction allowance. Five bounded reproductions
+mock enumeration/allocation, never create billion-owner structures.40 affected
+cases6.948s pass; actual old pre-family/pre-Softmax kernels plus new policy saved/
+rerun kernels pass3 cases15.630s (new saved7/rerun8 cells), same checkpoint/outputs.
+A fixture SyntaxError in the initial review-case file was corrected before these
+successful checks; retained separately. Renewed full frozen gate remains required.
+
+## 2026-10-12 20:15 -03:00 — Versioned persisted parameter-policy routes
+
+Admitted graph-scoped policy1 with canonical relative JSON-component selectors,
+Model6/Family10/Spec9/container24 fences and policy checkpoint2 receipts. Old
+metadata/IDs/versions retain their meaning. Structural aliases combine explicit
+fields and reject conflicts; repeat declarations cover every copy, tied copies
+count once. Core/task/native workers/restore/plain exports/captured families use
+the same initialization/freezing and selected optimizer membership. Added pure
+CLI owner discovery/set-policy edits and captured runtime dependencies. All-frozen
+inference remains valid while training refuses; whole-model RAM charges storage
+plus conservative policy preparation and validates counts/components.
+
+20 focused new-route tests/17.089s pass, including real workers and actual saved/
+rerun Jupyter kernels (eight cells each), exact checkpoint/prediction replay and
+untouched workspace. Earlier export missing-math defect, closed RAM-evidence
+rejection and fixture assumptions (history API, CLI envelope, predictor wrapper,
+legacy normalization, formerly unsupported24 header) are preserved in campaign
+evidence. A broader frozen regression and independent review are next; no main
+integration/public push or completed LoRA/MS-VAR claim. Dedicated GUI policy
+controls, exact retained-base binding, the requested showcase/comparisons and
+MS-VAR probabilistic/task/CLI work remain. Contract: [parameter policy](parameter-policy.md).
+
+## 2026-10-12 19:46 -03:00 — Internal native parameter-policy numerical proof
+
+Added structural graph occurrence-alias inventory and explicit CPU float32 native
+initialization/freezing, unique selected-optimizer owners and materialized value
+receipts. Preparing all owners before mutation preserves atomic refusal; private
+seeded generators do not consume global RNG. Frozen branches keep input gradients.
+Slash-component identity ambiguity and distinct-object storage sharing refuse.
+Nested shared Module/Recurrent/projected LSTM binding is checked. Six synthetic
+LoRA fits/ranks1/2/4/ordinary+temporal/200 updates match independent PyTorch
+formula values, adapter gradients/parameters and frozen base/Adam ownership.
+17 pure+14 numerical new-policy cases;106 focused cases2.062s pass. Earlier
+overflow-fixture seed and nonexistent test-module command errors are retained.
+
+This remains internal/unmerged product groundwork, not a new admitted document
+field, production training hook, route parity, full regression or completed LoRA/
+MS-VAR. Existing versions/behavior unchanged. Detailed contract:
+[internal parameter policy](internal-parameter-policy.md). The separate campaign
+contains the completed independent Loss workbench prototype; no product UI was
+changed. Next close stable owner/version/persistence/worker/export/notebook/CLI
+contracts. E deferred; no public push or user state changes.
+
+## 2026-10-12 18:50 -03:00 — Pure parameter-policy foundation checkpoint
+
+User resumed LoRA/neural MS-VAR while deferring unfinished UI feedback, asking
+for careful PyTorch feasibility judgment. Added an internal, unexposed owner-aware
+policy normalizer: exact semantic schemas, explicit aliases, default constructor/
+trainability, finite typed initializer declarations and separate stored/frozen/
+trainable counts. Resolved equal integer/float declaration normalization so alias
+order cannot change semantic identity.15 new pure tests and74 focused foundation/
+arithmetic/discovery/history/revision checks pass (1.666s). No numerical imports
+for fresh pure discovery. Contract: [internal foundation](internal-parameter-policy.md).
+
+This is branch-only prerequisite work, not persisted policy semantics, faithful
+LoRA delivery, exact MS-VAR, worker/export/GUI parity, a full regression or main
+integration. No existing executable grammar/version/optimizer behavior changed.
+Next is actual owner/initializer/optimizer/gradient verification, then versioned
+route integration. User's Loss/Dataset/Optimizer workbench ideas are design input
+only; each must be thought of separately, not forced into one generic editor.
+One active editor at a time is navigation, not a common workbench type. No UI
+redesign, labels/routing, startup fix, user-state changes, public push or E work.
+
 ## 2026-10-12 17:32 -03:00 — Frozen undo regression accepted
 
 Exact b05a5bc source passed the fresh full suite:1317 invocations561.911s,

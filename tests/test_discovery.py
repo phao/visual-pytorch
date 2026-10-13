@@ -89,6 +89,7 @@ class DiscoveryTests(unittest.TestCase):
             self.assertEqual(result['sqlite_schema'], expected)
         finally: w.db.close()
         self.assertEqual(result['reader_versions'], sorted(SUPPORTED_VERSIONS))
+        self.assertIn('parameter-binding', result['independent_kinds'])
         self.assertIn('spec_revisions_no_delete', [s['name'] for s in expected])
 
     def test_application_queries_do_not_load_workspace_read_config_or_modify_rng(self):

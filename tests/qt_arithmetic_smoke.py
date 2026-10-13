@@ -81,7 +81,7 @@ with tempfile.TemporaryDirectory() as td:
         assert not js('Boolean(document.getElementById("flatten-concat"))')
         assert js('document.querySelector(".node[data-id=sum] .node-params").textContent.includes("0 params")')
         h.workspace.save(folder/'final.vtw');loaded=Workspace.load(folder/'final.vtw')
-        try:assert loaded.models()['arithmetic']['graph']==h.workspace.models()['arithmetic']['graph'];assert VERSION==23
+        try:assert loaded.models()['arithmetic']['graph']==h.workspace.models()['arithmetic']['graph'];assert loaded.db.execute('PRAGMA user_version').fetchone()[0]==VERSION
         finally:loaded.db.close()
         if os.environ.get('VTW_ARITHMETIC_CAPTURE'):
             loop=QEventLoop();QTimer.singleShot(150,loop.quit);loop.exec();view.grab().save(os.environ['VTW_ARITHMETIC_CAPTURE'])

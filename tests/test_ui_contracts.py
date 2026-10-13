@@ -104,7 +104,8 @@ class UIContractTests(unittest.TestCase):
         self.assertIn('n.x+width(n)',(ROOT/'app/web/graph-tools.js').read_text())
         self.assertIn("class:'node-resize'",js)
         self.assertIn("'Bias '+(n.bias!==false?'on':'off')",js)
-        self.assertIn('shortened(sharingNote,4.9,14)',js)
+        self.assertIn('shortened(policyNote,4.9,14)',js)
+        self.assertIn("sharingNote.startsWith('Bias ')",js)
         self.assertIn("const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '",js)
         self.assertEqual(declarations('.node-resize')['cursor'],'nwse-resize')
 
