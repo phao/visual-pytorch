@@ -4,7 +4,7 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
-## 2026-10-12 23:10 -03:00 — Actual LoRA teaching graphs and comparison recipes
+## 2026-10-12 23:08 -03:00 — Actual LoRA teaching graphs and comparison recipes
 
 Added pure reusable graph/data generation for supplied synthetic base, ranks1/2/4,
 folded wrapper and two-layer adapted/base/full-finetuned MLP, because the report
@@ -12,6 +12,18 @@ requires an actual related-architecture workspace rather than separate fixtures.
 Three checks0.308s pass: every graph valid, exact frozen/trainable counts, rank
 shape/scale regeneration and fixed dataset/task/split/protocol across comparisons.
 No fits or complete lora.vtw/merge yet; execution/derivation next. Full goal active.
+
+## 2026-10-12 23:31 -03:00 — Explicit checked LoRA inference derivation
+
+Added closed Derivation1/container26 with exact same-checkpoint base/A/B sources,
+flat bias-free LoRA topology/freezing/scale proof, deterministic bounded binary32
+merge, immutable output model and atomic new-drawing admission. Preserve ports,
+sample shapes/axes and reject bias, stale/forged sources/output and destructive
+overwrite.26 corrected source/graph/binding cases41.719s and8 numerical/port cases
+40.901s pass;30 execution/capture/discovery cases11.066s pass. Earlier alpha-overflow
+and stale current-header assertion failures retained; actual old25 binding loads
+remain checked. Captured closure/CLI updated. Actual worker example integration,+packaging/full final-tree gate and native workspace/CLI/notebook acceptance remain;
+full LoRA/MS-VAR goal active, E deferred, no public/user-state changes.
 
 ## 2026-10-12 22:51 -03:00 — Verified local policy/binding integration
 

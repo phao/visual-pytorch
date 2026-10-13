@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.core import GraphError, Workspace, default_model
+from app.core import GraphError, Workspace, default_model, VERSION
 from app.evidence import identity
 from app.experiment_objects import execute_candidate, preview_experiment
 from app.parameter_binding import preview, admit, validate, check_dependencies, current_bindings
@@ -115,8 +115,13 @@ class ParameterBindingTests(unittest.TestCase):
             path = Path(folder) / 'binding.vtw'; self.w.save(path); reopened = Workspace.load(path)
             try:
                 self.assertEqual(reopened.get_spec('parameter-binding', ref['id'], ref['revision']), saved)
-                self.assertEqual(reopened.db.execute('PRAGMA user_version').fetchone()[0], 25)
+                self.assertEqual(reopened.db.execute('PRAGMA user_version').fetchone()[0], VERSION)
             finally: reopened.db.close()
+            db = sqlite3.connect(path); db.execute('PRAGMA user_version=25'); db.close(); raw = path.read_bytes()
+            reopened = Workspace.load(path)
+            try:self.assertEqual(reopened.get_spec('parameter-binding', ref['id'], ref['revision']), saved)
+            finally:reopened.db.close()
+            self.assertEqual(path.read_bytes(), raw)
             # Deliberately downgrade only private test bytes; actual feature fence must refuse.
             db = sqlite3.connect(path); db.execute('PRAGMA user_version=24'); db.close()
             with self.assertRaisesRegex(GraphError, 'version-25'): Workspace.load(path)

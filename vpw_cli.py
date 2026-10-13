@@ -52,6 +52,13 @@ def apply_edits(workspace, edits):
             ref = admit_run(workspace, edit['document'], select=edit.get('select', True))
             results.append({'op': kind, 'reference': ref})
             continue
+        elif kind == 'derive-lora-merge':
+            from app.parameter_derivation import admit
+            from app.datasets import _keys
+            _keys(edit, ('op', 'sources'), ('alpha', 'id', 'name'), 'Derive-LoRA-merge edit')
+            results.append({'op': kind, **admit(workspace, edit['sources'], alpha=edit.get('alpha', 4.),
+                model_id=edit.get('id', 'lora-merged'), name=edit.get('name', 'LoRA merged inference · explicitly derived'))})
+            continue
         elif kind == 'bind-parameter':
             from app.parameter_binding import admit
             from app.datasets import _keys
@@ -214,6 +221,10 @@ def main(argv=None):
     binding_preview.add_argument('token', help='Exact destination token JSON file or -')
     binding_preview.add_argument('selector', help='Canonical relative JSON component selector')
     binding_preview.add_argument('source', help='Exact retained selection JSON file')
+    merge_preview = sub.add_parser('preview-lora-merge', help='Prove exact retained flat LoRA merge without writing or numerical import')
+    merge_preview.add_argument('sources', help='JSON file with exact base/A/B retained selections')
+    merge_preview.add_argument('--alpha', type=float, default=4.)
+    merge_preview.add_argument('--id', default='lora-merged'); merge_preview.add_argument('--name', default='LoRA merged inference · explicitly derived')
     lstm = sub.add_parser('prepare-lstm', help='Read a guarded LSTM branch creation token/defaults; no execution or edits')
     lstm.add_argument('id', help='Parent architecture ID')
     lstm_edit = sub.add_parser('prepare-lstm-edit', help='Read guarded existing LSTM constructor/bindings and source choices; no execution or edits')
@@ -405,6 +416,9 @@ def main(argv=None):
             elif args.command == 'prepare-parameter-binding':
                 from app.policy_authoring import prepare
                 value = prepare(workspace.models(), args.id, args.node)
+            elif args.command == 'preview-lora-merge':
+                from app.parameter_derivation import preview
+                value = preview(workspace, read_json(args.sources), alpha=args.alpha, model_id=args.id, name=args.name)
             elif args.command == 'retained-parameters':
                 from app.parameter_sources import inventory
                 value = inventory(workspace, {'kind': 'run', 'id': args.id, 'revision': args.revision}, attempt=args.attempt)
