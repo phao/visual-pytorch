@@ -1,4 +1,4 @@
-# Visual Torch Workspace (.vtw): format specification, version 26
+# Visual Torch Workspace (.vtw): format specification, version 27
 
 This is a first-class product specification for readers, writers, lab exchange
 and agent tools. The executable reference is app/core.py, app/graph.py,
@@ -36,13 +36,24 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 26. The current reader accepts versions 1–20,23–26;
+PRAGMA user_version = 27. The current reader accepts versions 1–20,23–27;
 opening an older supported file copies it into memory and upgrades the working
-version to 26. Opening alone never rewrites the source; explicit Save writes
-version 26. Versions 21/22 belong to the deliberately deferred execution branch
+version to 27. Opening alone never rewrites the source; explicit Save writes
+version 27. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
-Other versions are rejected. Version26 adds independent immutable
+Other versions are rejected. Version27 admits closed-v1 `Constant` and
+`TensorParameter` roots and explicit `Module.batch_only:true` nullary calls,
+ModelRevision7, Family11 and Specialization10. Sources do not become dataset
+inputs. Constants are graph literals/nonpersistent buffers; learned sources
+own one component-identified `value` parameter. Buffer storage and gradients
+are accounted independently. Source-only forward requires explicit batch_size.
+Earlier headers containing these drawings or retained/archived revision versions
+refuse before rewriting the source. No SQLite table or loss/task/optimizer grammar
+change. Complete fields, batch, sharing, family, GUI/CLI and scope contract:
+[tensor sources](tensor-source-kernel.md).
+
+Version26 adds independent immutable
 `parameter-derivation` version1 receipts for explicit checked LoRA inference
 merges in the existing revision/head tables. Any retained derivation requires26,
 including archived revisions with no head. Source/destination identities,
@@ -261,7 +272,9 @@ in a version-17 container; family additionally supports integer version7 and
 specialization integer version6 in a version-18 container; family additionally
 supports integer version8 and specialization integer version7 in a version-19
 container; experiment/run additionally support integer version6 in a version-20
-container);
+container; model7/family11/specialization10 in container27; model5/family9/
+specialization8 in container23; model6/family10/specialization9 in container24).
+`parameter-binding`1 requires25 and `parameter-derivation`1 requires26.
 other kinds/versions are rejected.
 Revisions are content-addressed finite JSON and never overwritten or cascaded
 from authoring architecture deletion. Browsing heads are mutable references to
@@ -379,13 +392,15 @@ Current training tensors are float32.
 | Type | Computational fields | Meaning |
 | --- | --- | --- |
 | Input | shape; legacy features; optional axes | Exact named sample shape; explicit shape takes precedence; features=d means shape=[d]. axes lists unique sample-axis names (one per dimension), never B. |
+| Constant | op_version=1, shape; optional axes; exactly one of fill/values | Immutable finite CPU float32 sample tensor, no incoming wire, zero parameters and a nonpersistent value buffer. Numeric literals round to float32; signed zero is preserved. |
+| TensorParameter | op_version=1, shape; optional axes/share_with | No incoming wire. One zero-default value Parameter, initialized/frozen by graph parameter_policy. Shared shape/axis-compatible occurrences reuse one owner. |
 | Linear | features, bias (default true) | nn.Linear(in_last,out_features); last axis only, shared weights across all preceding sample positions. |
 | Activation | activation; Softmax dim=-1 | ReLU, Tanh, Sigmoid or exact GELU are elementwise. Softmax normalizes a slice along one sample axis, excluding B; dim indexes sample dimensions, negative indices count from the end. Runtime nn.Softmax gets the resolved index plus 1. Shapes and axes are preserved. |
 | Reshape | shape | x.reshape(B,*resolved_shape); sample product preserved; one -1 inferred; B never reshaped. |
 | Concat | sources, flatten (default true) | Ordered incoming tensors; flatten each sample then concatenate dim 1, or concatenate dim -1 with matching preceding dimensions when flatten=false. |
 | Splitter | parts=[{output:port_id,features:size},...] | torch.split on last axis; positive sizes sum to incoming last-axis width; other axes preserved. |
 | Replicator | outputs=[port_id,...] | All ports alias the same full tensor; no clone or parameters. |
-| Module | ref | Independently instantiated graph reference; exact packed input shape match, canonical forward_tensor output. |
+| Module | ref; optional batch_only=true | Independently instantiated graph reference; ordinary calls require exact packed input shape match. Nullary child calls explicitly declare batch_only=true and have no incoming wire; they use the caller's B. Canonical forward_tensor output. |
 | Recurrent | ref, sequence_inputs, states, sequence_outputs, optional controls | Explicit transition graph unroll; named state/sequence output ports, constant shared step weights, validated control adapters. See recurrent-graph-contract.md. |
 | LSTM | inputs, hidden_size, num_layers, bidirectional, proj_size, bias, optional lengths | Native stacked/projected/bidirectional LSTM with explicit sequence/initial-hidden/initial-cell source bindings and named sequence/hidden/cell returns. See lstm-graph-contract.md. |
 | Output | optional shape, label | Identity boundary. Shape asserts incoming dimensions; it never implicitly reshapes. |
@@ -427,6 +442,7 @@ and [torch.reshape](https://docs.pytorch.org/docs/2.14/generated/torch.reshape.h
 
 forward(x) accepts either:
 
+- No Inputs: explicit model(batch_size=B), with no x or dummy data. Concrete B may be zero. Source-only references use batch_only=true. Dataset/task nullary training is not introduced by this grammar.
 - One Input: its exact [B,*shape] tensor, or an exact one-name dictionary.
 - Multiple Inputs: a flat [B,total_input_values] tensor, or an exact dictionary
   of named tensors with declared sample shapes and equal B. Packed parts follow
@@ -473,7 +489,7 @@ Its registered native parameters use LSTM gate/direction/projection names, witho
 a transition-architecture reference. Hidden/cell graph states are batch-leading,
 and adapt to PyTorch's layer-leading states explicitly.
 
-State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent/LSTM
+State-dict paths are layer_0, layer_1, ... for Linear/Activation/Reshape/Module/Recurrent/LSTM/Constant/TensorParameter
 and the six structured operators above,
 in topological order, nested through references. Boundary/Concat/router nodes
 do not occupy these operation indices. Paths can change after graph insertion/

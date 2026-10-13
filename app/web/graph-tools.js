@@ -207,7 +207,7 @@
   }
   function connect(doc, from, to, fromPeer = null, toPeer = null) {
     const a = node(doc, from), b = node(doc, to);
-    if (!a || !b || from === to || a.type === "Output" || b.type === "Input") throw new Error("Choose a valid source and destination.");
+    if (!a || !b || from === to || a.type === "Output" || !slots(b,false).length) throw new Error("Choose a valid source and destination.");
     if(multiOutput(a) && (!fromPeer || !outputPorts(a).includes(fromPeer)))throw new Error("Choose a declared output socket.");
     if(!multiOutput(a) && fromPeer!==null)throw new Error('This box has no named output socket.');
     const key=fromPeer ? from+'@'+fromPeer : from;
@@ -260,7 +260,7 @@
     const found=draft.graph.edges[index],dest=node(draft,to);
     if(!found || !node(draft,found.from) || !dest)throw new Error('Connection or destination no longer exists.');
     if(found.to===to && (!R.multiport(dest) || toPeer===sourceKey(found)))return false;
-    if(dest.type==='Input' || to===found.from)throw new Error('Choose a valid input socket.');
+    if(!slots(dest,false).length || to===found.from)throw new Error('Choose a valid input socket.');
     if(draft.graph.edges.some(e=>!sameWire(e,found) && sameWire(e,{...found,to})))
       throw new Error('That source is already connected to this destination.');
     const occupied=draft.graph.edges.some(e=>e.to===to);

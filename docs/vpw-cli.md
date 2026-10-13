@@ -29,7 +29,13 @@ in-place builder as Qt, preserves stable nodes/ports/wires, and validates affect
 paths without replacing unrelated drafts. Exact transport/options, no-op,
 rollback and data invalidation rules: [interface editing](recurrent-interface-editing.md).
 
-vpw_cli.py follows the requested filename; workspaces remain .vtw (current container23). It needs Python
+`operator-schema Constant` and `operator-schema TensorParameter` describe outgoing-only
+source roots. `ports` excludes them from external inputs. Ordinary JSON edits
+create these boxes and change declared shape/literal fields; parameter policies
+initialize, freeze or share the actual tensor owner. Nullary Module calls require
+explicit `batch_only:true`. See [tensor sources](tensor-source-kernel.md).
+
+vpw_cli.py follows the requested filename; workspaces remain .vtw (current container27). It needs Python
 standard libraries, not Qt/PyTorch. Each command returns one JSON object:
 `{"ok":true,"value":...}` with exit 0 or `{"ok":false,"error":"..."}` with exit 1.
 Argument usage errors use argparse exit 2. Architecture names never substitute

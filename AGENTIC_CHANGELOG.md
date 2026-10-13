@@ -1123,3 +1123,19 @@ discovery/policy/family tests pass except one outdated discovery expectation
 subsequently updated for real source admission; new family integration still
 under test. Runtime worker integration and actual GUI/worker/notebook acceptance
 remain before claiming completed source support. No user config/workspace writes.
+
+## 2026-10-13 02:39 -03:00 — Integrated runtime, actual source UI and executable closure checks
+
+Reviewed/merged sole runtime worker49933b8 through1caad5a. Added exact explicit
+batch keywords and inference/preview RAM parity after its independent review,
+generated construction admission and once-only recurrent buffer storage. Real
+source task/worker/checkpoint/restore, fresh app-free nullary/family gradients,
+saved/rerun Jupyter kernels, frozen retained value binding and atomic CLI shape/
+port/refusal checks pass. Sandboxed actual Qt palette/sockets/Inspector/literal/
+signed-zero/history/compact native icon drag/save-reload passes. Older notebook
+ZIPs are untouched; fixtures select their actual pinned archive module inventory,
+and new captured dependency refusals include tensor_sources. Initial125 Python
+plus reviewed31/19.995s, compatibility6/18.278s, binding/CLI2/3.397s and373 JS
+pass; three skipped native-export cases separately3/0.121s pass. Full source-wide
+regression remains; source boxes do not imply target-free likelihood or completed
+MS-VAR. No main/public merge/push, E, app restart or user-state mutation.

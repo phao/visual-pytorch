@@ -330,10 +330,13 @@ write_no_training_audit()
         legacy=self.root/'legacy';legacy.mkdir()
         with zipfile.ZipFile(fixture) as archive:
             self.assertTrue(all(not Path(n).is_absolute() and '..' not in Path(n).parts for n in archive.namelist()))
+            captured_names = set(archive.namelist())
             archive.extractall(legacy)
         run=self.trial('legacy-failed',python='/missing/legacy-notebook-python')
         recipe=self.recipe('result-report',[run['reference']]);before=self.w.db.serialize()
-        old_runtime=tuple(n for n in RUNTIME if n not in ('activations.py', 'families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py','runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','lstm_nodes.py','temporal_shapes_v2.py','parameter_policy.py','policy_graph.py','parameter_execution.py','parameter_binding.py','parameter_sources.py','policy_authoring.py','parameter_derivation.py'))
+        # Historical closure comes from the checksum-pinned archive inventory,
+        # not a growing exclusion list that tries to copy future modules.
+        old_runtime=tuple(n for n in RUNTIME if 'app/'+n in captured_names)
         with patch('app.notebooks.RUNTIME',old_runtime),patch('app.notebooks.__file__',str(legacy/'app/notebooks.py')):
             exported=create_bundle(self.w,recipe,self.root/'legacy-bundle')
         root,manifest,notebook=verify_bundle(exported['path'])
@@ -357,10 +360,11 @@ write_no_training_audit()
         legacy = self.root / 'pre-family'; legacy.mkdir()
         with zipfile.ZipFile(fixture) as archive:
             self.assertTrue(all(not Path(n).is_absolute() and '..' not in Path(n).parts for n in archive.namelist()))
+            captured_names = set(archive.namelist())
             archive.extractall(legacy)
         run = self.trial('pre-family-failed', python='/missing/pre-family-python')
         recipe = self.recipe('result-report', [run['reference']]); before = self.w.db.serialize()
-        old_runtime = tuple(n for n in RUNTIME if n not in ('families.py', 'family_records.py', 'family_axes.py', 'runtime_shapes.py','runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','lstm_nodes.py','temporal_shapes_v2.py','parameter_policy.py','policy_graph.py','parameter_execution.py','parameter_binding.py','parameter_sources.py','policy_authoring.py','parameter_derivation.py'))
+        old_runtime = tuple(n for n in RUNTIME if 'app/'+n in captured_names)
         with patch('app.notebooks.RUNTIME', old_runtime), patch('app.notebooks.__file__', str(legacy / 'app/notebooks.py')):
             exported = create_bundle(self.w, recipe, self.root / 'pre-family-bundle')
         root, manifest, _ = verify_bundle(exported['path'])
@@ -411,7 +415,7 @@ write_no_training_audit()
                     verify_bundle(root)
 
     def test_new_runtime_cannot_omit_task_or_export_dependency_before_kernel(self):
-        for name in ('runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','temporal_shapes_v2.py','parameter_binding.py','parameter_sources.py','policy_authoring.py','parameter_derivation.py'):
+        for name in ('runtime_tasks.py','family_export.py','recurrent.py','recurrent_nodes.py','temporal_shapes.py','temporal_shapes_v2.py','parameter_binding.py','parameter_sources.py','policy_authoring.py','parameter_derivation.py','tensor_sources.py'):
             with self.subTest(name=name):
                 exported=create_bundle(self.w,self.recipe(),self.root/('incomplete-'+name))
                 root=Path(exported['path']);manifest=json.loads((root/'manifest.json').read_text())

@@ -345,7 +345,8 @@ def verify_bundle(root):
             for relative in manifest['files']:
                 if not relative.startswith('runtime/app/') or not relative.endswith('.py'):continue
                 tree=ast.parse((root/relative).read_text(encoding='utf-8'))
-                _require(not any(isinstance(n,ast.ImportFrom) and n.level==1 and n.module==dependency for n in ast.walk(tree)),
+                _require(not any(isinstance(n,ast.ImportFrom) and n.level==1 and
+                         (n.module==dependency or n.module is None and any(a.name==dependency for a in n.names)) for n in ast.walk(tree)),
                          'This report runtime requires its captured '+dependency+'.py dependency.')
     requested = manifest['requested_notebook']
     _keys(requested, ('path', 'sha256'), context='Requested notebook identity')

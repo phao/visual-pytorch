@@ -212,7 +212,7 @@
     $("stop").hidden = !running;
     $("add-linear").disabled = running;
     $("add-model").disabled = running;
-    $("generate-data").disabled = running || !description?.valid || description?.model_safety?.allowed === false;
+    $("generate-data").disabled = running || !description?.valid || !description?.contract?.inputs || description?.model_safety?.allowed === false;
     $("import-data").disabled = running || !description?.valid;
     $("rename-model").disabled = running;
     for (const id of ["add-activation", "activation-select", "target-kind", "add-reshape", "add-concat", "add-input", "add-output",'add-constant','add-tensor-parameter']) $(id).disabled = running;

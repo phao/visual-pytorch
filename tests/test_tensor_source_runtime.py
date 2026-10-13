@@ -205,6 +205,26 @@ class SourceRuntimeBoundaryTests(unittest.TestCase):
 
 
 class NativeSourceRuntimeTests(unittest.TestCase):
+    def test_explicit_runtime_batch_and_no_grad_admission_match_preview(self):
+        for mode, runtime in MODES:
+            models,mid,declared=fixture(mode)
+            factory=runtime.compile_runtime_model if runtime is spatial else runtime.compile_temporal_model
+            model=factory(models,mid,declared,constrained=True)
+            shape=models[mid]['graph']['nodes'][0]['shape'];x=torch.ones(2,*shape)
+            self.assertTrue(torch.equal(model(x,batch_size=2)['fixed'],model(x)['fixed']))
+            self.assertTrue(torch.equal(model.forward_tensor(x,batch_size=2),model.forward_tensor(x)))
+            self.assertTrue(torch.equal(model.intermediate_values(x,batch_size=2)['source'],model.intermediate_values(x)['source']))
+            for batch in (True,1,3):
+                with self.assertRaises(GraphError):model(x,batch_size=batch)
+            with torch.no_grad():
+                model.eval()
+                estimated=model.preview_shapes({'input':shape},batch_size=2,gradients=False)['safety']['memory']['estimated_bytes']
+                # The runtime and additional source gate must agree at the
+                # exact preview admission boundary, including inference mode.
+                with patch.object(spatial,'available_memory',return_value=10*estimated), \
+                     patch('app.core.available_memory',return_value=10*estimated):
+                    self.assertTrue(torch.isfinite(model(x,batch_size=2)['fixed']).all())
+
     def test_all_runtime_factories_expand_fixed_sources_and_reuse_parameter_owners(self):
         for mode, runtime in MODES:
             for kind in ('Constant', 'TensorParameter'):

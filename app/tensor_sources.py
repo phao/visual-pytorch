@@ -1,4 +1,4 @@
-"""Internal tensor-source kernel; no graph/operator/schema admission.
+"""Checked tensor-source constructors; graph admission and owners are external.
 
 ``normalized`` and ``constructor_args`` are allocation-free Python functions.
 ``build`` lazily constructs a CPU float32 source, using the same class factory

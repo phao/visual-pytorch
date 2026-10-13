@@ -753,12 +753,17 @@ def _source_batch_admission(module, contract, batch):
     """Source expansion can feed allocating consumers: admit the complete call."""
     if not getattr(module, 'constrained', True):
         return
-    # CPU float32: storage, gradients, optimizer/copy headroom and batch
-    # activations. This is an admission heuristic, not an allocator guarantee.
-    estimated = (64 * 1024**2 + 128 * contract['parameters'] +
+    import torch
+    gradients = torch.is_grad_enabled()
+    # Match the shared runtime forward estimate; no_grad inference must not
+    # pass its runtime preview then fail a second training-sized admission.
+    # This is an admission heuristic, not an allocator guarantee.
+    estimated = ((256 if gradients else 64) * 1024**2 +
+                 (128 if gradients else 8) * contract['parameters'] +
                  8 * contract.get('buffer_elements', 0) +
-                 16 * batch * contract['activation_elements'] +
-                 32 * batch * contract.get('convolution_workspace_elements', 0))
+                 (16 if gradients else 8) * batch * contract['activation_elements'] +
+                 (32 if gradients else 8) * batch * contract.get('convolution_workspace_elements', 0) +
+                 8 * batch * (contract['inputs'] + contract['outputs']))
     available = available_memory()
     percentage = memory_percent(getattr(module, 'memory_limit_percent', 10.))
     if available is None or estimated > available * percentage / 100:
@@ -920,8 +925,11 @@ def generate_code(models, model_id):
                 emit(n["ref"])
         lines.extend([
             f"class {cname(mid)}(nn.Module):",
-            "    def __init__(self):", "        super().__init__()",
+            "    def __init__(self, *, constrained=True, memory_limit_percent=10.):", "        super().__init__()",
+            "        self.constrained = constrained", "        self.memory_limit_percent = memory_limit_percent",
         ])
+        if contract.get('has_tensor_sources', False):
+            lines.append(f'        _source_batch_admission(self, {contract!r}, 1)')
         for index, node in enumerate(order):
             if 'parameter_owner' in contract['shapes'][node['id']]:
                 continue
@@ -939,13 +947,13 @@ def generate_code(models, model_id):
             elif node['type'] in TENSOR_OPERATORS:
                 op = constructor_code(contract['shapes'][node['id']]['operator'])
             elif node['type'] == 'Recurrent':
-                op = f'_runner_class(nn)({cname(node["ref"])}(), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
+                op = f'_runner_class(nn)({cname(node["ref"])}(constrained=self.constrained, memory_limit_percent=self.memory_limit_percent), {contract["shapes"][node["id"]]["recurrent"]["contract"]!r}, constrained=False)'
             elif node['type'] == 'LSTM':
                 kwargs = dict(contract['shapes'][node['id']]['lstm']['kwargs'])
                 kwargs.pop('dtype')
                 op = f'nn.LSTM(**{kwargs!r}, dtype=torch.float32)'
             else:
-                op = f'{cname(node["ref"])}()'
+                op = f'{cname(node["ref"])}(constrained=self.constrained, memory_limit_percent=self.memory_limit_percent)'
             lines.append(f"        self.layer_{index} = {op}")
         lines.extend([f"        self.contract = {contract!r}", "", "    def forward_tensor(self, x=None, *, batch_size=None):",
                       "        return _graph_tensor(_graph_values(self, x, self.contract, batch_size=batch_size), self.contract)",

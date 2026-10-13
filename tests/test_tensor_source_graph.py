@@ -2,6 +2,8 @@
 import copy
 import json
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -42,6 +44,28 @@ class TensorSourceGraph(unittest.TestCase):
         self.assertEqual(c['plan'][0]['sources'], [])
         self.assertEqual(parameter_schema({'sources':doc}, 'sources'),
                          {'layer_0.value':{'shape':[2], 'id':'["sources","tensor","value"]'}})
+
+    def test_real_cli_atomic_source_shape_and_port_contract(self):
+        workspace=Workspace();workspace.put(source_graph())
+        self.addCleanup(workspace.db.close)
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary)/'sources.vtw';workspace.save(path)
+            cli=str(Path(__file__).parents[1]/'vpw_cli.py')
+            edits=Path(temporary)/'edits.json'
+            edits.write_text(json.dumps([{'op':'set-node','id':'sources','node':nid,'values':{'shape':[3]}}
+                                         for nid in ('input','tensor')]))
+            changed=subprocess.run([sys.executable,'-S',cli,str(path),'apply',str(edits)],capture_output=True,text=True,timeout=20)
+            self.assertEqual(changed.returncode,0,changed.stdout+changed.stderr)
+            queried=subprocess.run([sys.executable,'-S',cli,str(path),'ports','sources'],capture_output=True,text=True,timeout=20)
+            self.assertEqual(queried.returncode,0,queried.stderr)
+            ports=json.loads(queried.stdout)['value'];self.assertEqual(len(ports['inputs']),1)
+            self.assertEqual(ports['inputs'][0]['shape'],[3])
+            self.assertEqual(next(n for n in ports['nodes'] if n['id']=='tensor')['incoming'],[])
+            before=path.read_bytes()
+            edits.write_text(json.dumps([{'op':'set-node','id':'sources','node':'tensor','values':{'shape':[4]}}]))
+            refused=subprocess.run([sys.executable,'-S',cli,str(path),'apply',str(edits)],capture_output=True,text=True,timeout=20)
+            self.assertNotEqual(refused.returncode,0)
+            self.assertEqual(path.read_bytes(),before)
 
     def test_constant_buffer_is_not_checkpoint_parameter(self):
         import torch

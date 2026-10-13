@@ -1,5 +1,31 @@
 # Development state and roadmap
 
+## 2026-10-13 02:39 -03:00 — Real tensor-source admission for exact MS-VAR groundwork
+
+Visible task/neural-msvar now admits Constant/TensorParameter roots, real value
+owners/aliases/policies, literal buffers, explicit nullary B and batch-only
+references, native/app-free/spatial/temporal-v1/v2 compilers and source-aware
+RAM admission. Container27/Model7/Family11/Spec10 fences preserve older meaning;
+captured family/notebook closures and CLI/Qt source editing agree. This is not
+the complete neural MS-VAR, not public main, and not a new loss/task objective.
+
+Initial merged125 focused Python cases14.069s (three native skips separately
+verified3/0.121s), followed by31 source/runtime/actual-kernel cases19.995s,
+six fresh/legacy-kernel/dependency/worker checks18.278s, and two exact binding/CLI
+checks3.397s pass. Final373 JavaScript pass. Sandboxed actual Qt checks source
+palette/sockets/Inspector, signed-zero/literal edits, undo/redo, compact-icon
+drag and container27 save/reload with no host numerical imports. One worker
+review found explicit runtime batch keyword mismatch and inference RAM-size
+mismatch; both are fixed/tested. Historical notebook ZIP bytes are unchanged;
+their fixture module selection now follows pinned actual inventories rather
+than exclusion lists. Earlier fixture errors remain in campaign evidence.
+
+Next final source-wide regression/adversarial proof, then representations and
+signed target-free Gaussian sequence objective, full causal K5,p3,D3 neural
+MS-VAR, trajectory/group evaluation and remaining CLI report contracts. Separate
+workbench types, prior UI feedback, E and remote/user-state/public boundaries
+remain. Source documentation: [tensor sources](tensor-source-kernel.md).
+
 ## 2026-10-12 20:47 -03:00 — Frozen parent gate passes; direct inventory guards
 
 Frozen2d7a2e9 passed1373 invocations549.413s,1370 executed/three unchanged

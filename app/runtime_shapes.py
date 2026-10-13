@@ -329,21 +329,23 @@ def _compile_runtime_model(models, mid, spec, *, constrained=True,
                                     gradients=torch.is_grad_enabled())['contract']
             return c, parts[0].shape[0]
 
-        def _runtime_values(self,x):
-            c, batch_size = self._call_contract(x)
+        def _runtime_values(self,x, *, batch_size=None):
+            c, actual_batch = self._call_contract(x)
+            if batch_size is not None and (type(batch_size) is not int or batch_size != actual_batch):
+                raise GraphError('Explicit batch_size must agree with real runtime input tensors.')
             # Pass B explicitly to source kernels; never treat a predecessor's
             # data or the runtime H/W/T dimensions as their constructor shape.
-            values = (_graph_values(self,x,c,batch_size=batch_size) if has_sources else
+            values = (_graph_values(self,x,c,batch_size=actual_batch) if has_sources else
                       _graph_values(self,x,c))
             return c, values
 
-        def intermediate_values(self,x):
-            return self._runtime_values(x)[1]
+        def intermediate_values(self,x, *, batch_size=None):
+            return self._runtime_values(x,batch_size=batch_size)[1]
 
-        def forward_tensor(self,x):
-            c, values = self._runtime_values(x); return _graph_tensor(values,c)
+        def forward_tensor(self,x, *, batch_size=None):
+            c, values = self._runtime_values(x,batch_size=batch_size); return _graph_tensor(values,c)
 
-        def forward(self,x):
-            c, values = self._runtime_values(x); groups = c['output_groups']
+        def forward(self,x, *, batch_size=None):
+            c, values = self._runtime_values(x,batch_size=batch_size); groups = c['output_groups']
             return values[groups[0]['id']] if len(groups) == 1 else {g['name']:values[g['id']] for g in groups}
     return RuntimeGraph()
