@@ -122,10 +122,38 @@ atomic for the full CLI edit batch. Session undo is owned by the desktop's
 snapshot wrapper, not persisted or fabricated by the CLI process. Policy changes
 invalidate incompatible attached results while historical revisions survive.
 
+## Inspector authoring
+
+Double-click a parameter-owning box to open its Inspector. Linear, Conv2d,
+architecture references and recurrent boxes expose their canonical owners,
+shapes, trainability and initialization. Shared uses edit the same canonical
+owner, not separate copies. Open owner selects the defining box, including in a
+referenced architecture. The Inspector does not display the whole network's
+parameter total; architecture bookkeeping reports stored/trainable/frozen counts.
+
+Initialization supports constructor defaults, zeros, seeded normal/uniform and
+exact float32 JSON values. Controls edit declarations for a **new run**, not
+optimizer state or a retained training checkpoint. Large exact-value arrays are
+summarized above the 64 KiB Inspector edit limit; use the CLI to replace them.
+Explicit incompatible declarations in shared/reference scopes are refused, not
+silently overridden. Reset removes this scope's explicit fields; it does not
+erase declarations in other scopes.
+
+Edits are guarded against stale architecture identity, selected owner, workspace
+identity and same-path reload scope. A successful change uses desktop undo/redo;
+a no-op does not create history or SQL writes. Busy training refuses edits.
+Shape-valid graphs with outdated initializer dimensions can expose a repair
+editor, marked unverified until the policy validates. This does not promise a
+general repair tool for malformed tensor graphs or orphaned selectors.
+
+Expanded boxes report Frozen/Trainable/Mixed alongside bias state. Compact
+summaries retain bias and abbreviated frozen/mixed status. These labels describe
+optimizer eligibility; freezing does not detach the input gradient path.
+
 ## Remaining work
 
-Dedicated native policy controls/badges, compatible immutable retained-base
-binding, complete requested LoRA workspace/comparisons/merged inference artifact,
+Compatible immutable retained-base binding, complete requested LoRA
+workspace/comparisons/merged inference artifact,
 broader frozen regression/integration and exact Neural MS-VAR remain. Explicit
 values do not yet implement a source-checkpoint selector. Existing Experiment UI
 is preserved; the separate Loss-workbench study is a design prototype, not a new

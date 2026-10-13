@@ -17,6 +17,8 @@
   let recurrentAuthoringPending=false;
   let lstmUI=null;
   let recurrentEditGeneration=0;
+  let policyGeneration=0;
+  let pendingPolicyOwner=null;
   let clearMenusOnRoute=new URLSearchParams(location.search).get('menus')==='hidden';
   const notifications=window.LoomNotifications.initialize(document);
   const liveHistories = {};
@@ -120,6 +122,7 @@
       return;
     }
     selected = doc.graph.nodes.find(n => n.type === "Linear" || n.type === "Module")?.id || doc.graph.nodes[0]?.id;
+    if(pendingPolicyOwner?.model===id){if(node(pendingPolicyOwner.node))selected=pendingPolicyOwner.node;pendingPolicyOwner=null;}
     document.title = doc.name + " · Visual PyTorch";
     render();
     if(clearMenusOnRoute){clearMenusOnRoute=false;selected=null;selectedPort=null;selectedWire=null;connecting=null;updateSelection();renderInspector();floating.hideAll();}
@@ -128,6 +131,7 @@
   }
 
   function hydrate(value) {
+    if(state.panel_scope!==value.panel_scope)pendingPolicyOwner=null;
     const viewport=doc&&state.panel_scope===value.panel_scope?clone(doc.view):null;
     const layoutChanged=state.workspace_id!==value.workspace_id ||
       JSON.stringify(state.layout_preferences)!==JSON.stringify(value.layout_preferences);
@@ -186,7 +190,8 @@
     const ins=doc.graph.nodes.filter(n=>n.type==='Input').length,outs=doc.graph.nodes.filter(n=>n.type==='Output').length;
     stats.textContent=doc.graph.nodes.length+' blocks · '+doc.graph.edges.length+' wires · '+ins+' inputs · '+outs+' outputs'+(refs?' · '+refs+' references':'');
     const contract=document.createElement('p');
-    contract.textContent=description?.valid ? description.contract.parameters.toLocaleString()+' parameters · '+shapeText(description.contract.input_shape)+' → '+shapeText(description.contract.output_shape) : description ? 'Draft: '+description.error : 'Checking graph…';
+    const policyCounts=description?.contract?.parameter_counts;
+    contract.textContent=description?.valid ? (policyCounts?policyCounts.trainable.toLocaleString()+' trainable · '+policyCounts.frozen.toLocaleString()+' frozen · '+policyCounts.stored.toLocaleString()+' stored':description.contract.parameters.toLocaleString()+' parameters')+' · '+shapeText(description.contract.input_shape)+' → '+shapeText(description.contract.output_shape) : description ? 'Draft: '+description.error : 'Checking graph…';
     contract.className='bookkeeping-contract';
     card.append(heading,name,stats,contract);
   }
@@ -321,8 +326,11 @@
       const arithmeticNote=n.type==='Add'?'Ordered sum · '+n.sources.length+' inputs · 0 params':n.type==='Scale'?'Fixed × '+n.coefficient+' · 0 params':note;
       const lstmNote=n.type==='LSTM'?'Bias '+(n.bias!==false?'on':'off')+' · '+(s?.lstm?.parameters??'?')+' params · '+(n.bidirectional?'bidirectional':'forward'):arithmeticNote;
       const sharingNote=n.share_with?(['Linear','Conv2d','LSTM'].includes(n.type)?'Bias '+(n.bias!==false?'on':'off')+' · ':'')+'Shared: '+(s?.parameter_owner || n.share_with)+' · '+lstmNote:lstmNote;
-      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(sharingNote,4.9,14));
-      noteText.append(svgElement('title',{},sharingNote));group.append(noteText);
+      const policy=description?.parameter_blocks?.[n.id];
+      const policyState=policy?(policy.frozen===0?'Trainable':policy.trainable===0?'Frozen':'Mixed'):'',policyNote=policyState?(sharingNote.startsWith('Bias ')?sharingNote.replace(' · ',' · '+policyState+' · '):policyState+' · '+sharingNote):sharingNote;
+      group.dataset.policyStatus=policyState;
+      const noteText=svgElement("text",{x:m.padding,y:height-m.padding-m.footerInset,class:"node-params"},shortened(policyNote,4.9,14));
+      noteText.append(svgElement('title',{},policyNote));group.append(noteText);
       if(n.collapsed){
         group.querySelectorAll('.node-header,.node-title,.node-shape,.node-params').forEach(el=>el.remove());
         const compact=n.type==='Linear'?(s?.input_shape?.at(-1) || '?')+' → '+n.features:
@@ -332,8 +340,8 @@
           R.multiport(n)?'T '+(s?.recurrent?.steps??s?.lstm?.steps??'?')+' · '+R.ports(n).length+' ports':n.type==='Splitter'?'Split · '+n.parts.length:n.type==='Replicator'?'Repeat · '+n.outputs.length:label;
         const small=svgElement('text',{x:m.width/2,y:height-(['Linear','Conv2d','LSTM'].includes(n.type)?17:6),class:'node-compact-label','text-anchor':'middle'},compact.length>13?compact.slice(0,12)+'…':compact);
         small.append(svgElement('title',{},compact));group.append(small);
-        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},n.bias!==false?'Bias on':'Bias off'));
-        group.append(svgElement('title',{},label+' · '+line+' · '+sharingNote));
+        if(['Linear','Conv2d','LSTM'].includes(n.type))group.append(svgElement('text',{x:m.width/2,y:height-5,class:'node-compact-bias','text-anchor':'middle'},(n.bias!==false?'Bias on':'Bias off')+(policyState==='Frozen'?' · F':policyState==='Mixed'?' · M':'')));
+        group.append(svgElement('title',{},label+' · '+line+' · '+policyNote));
       }
       for (const output of [false, true]) {
         for (const peer of G.slots(n, output)) {
@@ -453,6 +461,7 @@
   };
 
   function renderInspector() {
+    const policyRequest=++policyGeneration;
     const n = node(selected), content = $("inspector-content");
     content.replaceChildren();
     if (!n) {
@@ -518,8 +527,28 @@
       const peers=doc.graph.nodes.filter(other=>other.id!==n.id&&other.type===n.type).sort((a,b)=>a.id.localeCompare(b.id));
       if(n.share_with&&!peers.some(other=>other.id===n.share_with))peers.push({id:n.share_with});
       html+='<label class="inspect-label" for="parameter-owner">Parameter sharing</label><select id="parameter-owner"'+(busy()?' disabled':'')+'><option value="">Independent parameters</option>'+peers.map(other=>'<option value="'+esc(other.id)+'"'+(n.share_with===other.id?' selected':'')+'>'+esc(other.id)+'</option>').join('')+'</select><p class="inspect-note">Reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters; checkpoints store them once. Constructors must match.'+(n.share_with?' Canonical owner: '+esc(s?.parameter_owner || n.share_with)+'.':'')+'</p>';
+      html+='<section id="parameter-policy-editor"><p class="inspect-note">Loading parameter owners…</p></section>';
     }
     content.innerHTML = html;
+    if($('parameter-policy-editor')){
+      const mid=doc.id,nid=n.id,context={workspace_id:state.workspace_id,panel_scope:state.panel_scope};
+      syncQueue.then(()=>call('parameterPolicy',{...context,id:mid,node:nid})).then(info=>{
+        if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)return;
+        window.LoomParameterPolicy.mount($('parameter-policy-editor'),info,{busy,
+          commit:async(selector,changes)=>{
+            if(busy())throw new Error('Stop the current run before editing.');
+            if(policyRequest!==policyGeneration||doc?.id!==mid||selected!==nid)throw new Error('Selection changed; reopen parameter policy.');
+            await syncQueue;
+            const updated=await call('editParameterPolicy',{...context,id:mid,node:nid,architecture:info.architecture,selector,changes_json:JSON.stringify(changes)});
+            if(doc?.id!==mid)return;
+            hydrate(await call('state'));
+          },
+          openDefinition:async definition=>{
+            if(definition.model===doc?.id){selected=definition.node;updateSelection();renderInspector();}
+            else{pendingPolicyOwner=definition;if(!await safe('openModel',{id:definition.model,newTab:false}))pendingPolicyOwner=null;}
+          }});
+      }).catch(error=>{if(policyRequest===policyGeneration&&$('parameter-policy-editor'))$('parameter-policy-editor').textContent=error.message;});
+    }
     if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
     if($('edit-lstm-interface'))$('edit-lstm-interface').onclick=()=>lstmUI.open(n.id);
     if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};

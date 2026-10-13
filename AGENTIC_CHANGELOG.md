@@ -4,6 +4,20 @@ Earlier product decisions and validation history are retained in
 `docs/development.md` and commit messages; this file adds timestamped change
 summaries without replacing them.
 
+## 2026-10-12 21:16 -03:00 — Guarded Inspector parameter policies
+
+Added canonical-owner freeze/initialization controls, defining-box navigation and
+diagram policy badges, because LoRA must be editable without confusing frozen
+storage with detached gradients. Shape-valid outdated initializers can be
+repaired without presenting their policy as valid. Edits retain busy/stale/scope
+guards and desktop undo/redo; no-op and rejected edits leave SQL/history intact.
+53 focused Python and367 JavaScript checks pass; native dispatcher and actual
+sandboxed WebEngine controls verify undo, refusal and save/reload. Two painted
+captures inspected. Initial literal-contract failure and early unhelpful captures
+are retained as such. No GUI-stage full regression, retained-base binding,
+complete LoRA showcase or exact MS-VAR completion claimed. E remains deferred;
+no public push, user-file/config edits or live app restart.
+
 ## 2026-10-12 20:47 -03:00 — Direct inventory safety after full parent regression
 
 Parent2d7a2e9 full1373/549.413s passes. Follow-up review closes the three original
