@@ -1,5 +1,14 @@
 # Agentic changelog
 
+## 2026-10-14 02:08 -03:00 — One activation list and an MLP building block
+
+Owner-approved (private campaign spec). Building blocks and the Inspector share one list of all
+seven activations, grouped Elementwise / Normalizing along an axis (all seven verified to validate,
+export and run). New MLP entry: compact form with layer widths (first = input, count*w repeats)
+and one activation after every hidden Linear; inserted after a selection (width checked) or as a
+new Input→chain→Output branch; ordinary editable blocks, one undo step; About page with
+torch.nn.Sequential/Linear links.
+
 ## 2026-10-14 01:44 -03:00 — Comfortable incomplete drafts
 
 Owner-approved (private campaign spec). Invalid drafts keep every determinable shape (display-only

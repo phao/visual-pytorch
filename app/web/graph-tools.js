@@ -47,6 +47,70 @@
   function room(doc, extra) {
     if (doc.graph.nodes.length + extra > 64) throw new Error("This prototype supports at most 64 blocks.");
   }
+  // MLP width syntax: comma-separated terms, each `w` or `count*w` (count copies of w).
+  // The first width is the input width. "2, 10*3, 2" -> [2, 3 ×10, 2].
+  function parseWidths(text) {
+    const terms = String(text).split(',').map(t => t.trim());
+    if (!terms.length || terms.some(t => !t)) throw new Error('Write widths separated by commas, e.g. 2, 10*3, 2.');
+    const widths = [];
+    for (const term of terms) {
+      const m = /^(?:(\d+)\s*\*\s*)?(\d+)$/.exec(term);
+      if (!m) throw new Error('"' + term + '" is not a width or count*width.');
+      const count = m[1] === undefined ? 1 : Number(m[1]), width = Number(m[2]);
+      if (!Number.isSafeInteger(count) || count < 1 || !Number.isSafeInteger(width) || width < 1)
+        throw new Error('"' + term + '": counts and widths must be positive integers.');
+      if (widths.length + count > 64) throw new Error('Too many layers: at most 64 widths.');
+      for (let k = 0; k < count; k++) widths.push(width);
+    }
+    if (widths.length < 2) throw new Error('Give at least two widths: the input width and the output width.');
+    return widths;
+  }
+  // Ordinary Linear/activation blocks: one activation after every hidden Linear, none after the readout.
+  // After a selection (inputWidth = its output width) the chain is spliced in like any inserted block;
+  // with nothing selected it becomes a new branch Input [n0] -> chain -> Output.
+  function addMLP(doc, {after = null, port = null, inputWidth = null, widths, activation = 'Tanh'}) {
+    const layers = widths.length - 1, added = 2 * layers - 1 + (after ? 0 : 2);
+    if (doc.graph.nodes.length + added > 64)
+      throw new Error('This MLP adds ' + added + ' blocks; the limit is 64 and the drawing has ' + doc.graph.nodes.length + '.');
+    if (after && inputWidth !== null && widths[0] !== inputWidth)
+      throw new Error('The first width is the input width: the selected block outputs ' + inputWidth + ', not ' + widths[0] + '.');
+    const anchor = after ? node(doc, after) : null;
+    const x0 = anchor ? (anchor.x || 0) + 245 : 90, y0 = anchor ? (anchor.y || 0) : Math.max(40, ...doc.graph.nodes.map(n => (n.y || 0) + 150));
+    const chain = [];
+    for (let k = 1; k <= layers; k++) {
+      chain.push({id: id(), type: 'Linear', features: widths[k], bias: true});
+      if (k < layers) {
+        const act = {id: id(), type: 'Activation', activation};
+        if (['Softmax', 'LogSoftmax'].includes(activation)) act.dim = -1;
+        chain.push(act);
+      }
+    }
+    chain.forEach((n, i) => Object.assign(n, {x: x0 + 224 * i, y: y0}));
+    const links = chain.slice(1).map((n, i) => ({from: chain[i].id, to: n.id}));
+    const first = chain[0], last = chain.at(-1);
+    if (anchor) {
+      const edge = doc.graph.edges.find(e => e.from === anchor.id && (!port || (e.from_port || e.to) === port));
+      const next = edge ? node(doc, edge.to) : null, key = port ? anchor.id + '@' + port : anchor.id;
+      if (next) {
+        const shift = Math.max(0, x0 + 224 * chain.length - next.x);
+        doc.graph.nodes.filter(n => n.x >= next.x && n.id !== anchor.id).forEach(n => n.x += shift);
+        doc.graph.edges = doc.graph.edges.filter(e => e !== edge);
+        links.push({from: last.id, to: next.id});
+        replaceSource(next, key, last.id);
+      }
+      const incoming = {from: anchor.id, to: first.id}; if (port) incoming.from_port = port;
+      links.unshift(incoming);
+      doc.graph.nodes.push(...chain);
+    } else {
+      const input = {id: id(), type: 'Input', features: widths[0], label: unusedLabel(doc, 'Input', 'MLP input '), x: x0 - 245, y: y0};
+      const output = {id: id(), type: 'Output', label: unusedLabel(doc, 'Output', 'MLP output '), x: x0 + 224 * chain.length, y: y0};
+      if (input.x < 0) { const d = -input.x + 40; [input, output, ...chain].forEach(n => n.x += d); }
+      links.unshift({from: input.id, to: first.id}); links.push({from: last.id, to: output.id});
+      doc.graph.nodes.push(input, ...chain, output);
+    }
+    doc.graph.edges.push(...links);
+    return {first: first.id, last: last.id, blocks: added};
+  }
   function snapPosition(x, y, enabled, grid = GRID) {
     return enabled ? {x: Math.round(x / grid) * grid, y: Math.round(y / grid) * grid} : {x, y};
   }
@@ -325,5 +389,5 @@
     return {zoom,x:rect.x+(rect.width-(right-left)*zoom)/2-left*zoom,
                  y:rect.y+(rect.height-(bottom-top)*zoom)/2-top*zoom,fitted:true};
   }
-  return {GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,appendTarget,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
+  return {parseWidths,addMLP,GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,appendTarget,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
 });

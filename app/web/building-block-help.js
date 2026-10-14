@@ -11,7 +11,7 @@
     'add-add':'Add','add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
     'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter','add-lstm':'LSTM',
     'add-constant':'Constant','add-tensor-parameter':'Tensor parameter',
-    'add-gaussian':'Gaussian filter','block-causal-lag':'Causal lag window',
+    'add-gaussian':'Gaussian filter','block-causal-lag':'Causal lag window','add-mlp':'MLP',
   };
   const activations=A.info;
   // Explanations moved out of the Inspector (it shows essentials only).
@@ -37,7 +37,7 @@
   const docs={'add-linear':['torch.nn.Linear'],'add-reshape':['torch.reshape'],'add-add':['torch.add'],'add-concat':['torch.cat'],
     'add-splitter':['torch.split'],'add-input':['torch.Tensor'],'add-output':['torch.Tensor'],'add-reference':['torch.nn.Module'],
     'add-recurrent':['torch.nn.Module','torch.nn.RNN'],'add-lstm':['torch.nn.LSTM'],'add-constant':['torch.full'],'add-tensor-parameter':['torch.nn.Parameter'],
-    'add-gaussian':['torch.logsumexp'],'block-causal-lag':['torch.Tensor.unfold']};
+    'add-gaussian':['torch.logsumexp'],'add-mlp':['torch.nn.Sequential','torch.nn.Linear'],'block-causal-lag':['torch.Tensor.unfold']};
   const tensorDocs={Conv2d:['torch.nn.Conv2d'],MaxPool2d:['torch.nn.MaxPool2d'],AvgPool2d:['torch.nn.AvgPool2d'],AdaptiveAvgPool2d:['torch.nn.AdaptiveAvgPool2d'],
     Flatten:['torch.nn.Flatten'],Permute:['torch.permute'],Scale:['torch.mul'],PositiveVariance:['torch.nn.functional.softplus','torch.exp']};
   function describe(id,context={}){
@@ -116,6 +116,9 @@
       case 'add-replicator':paragraphs=['A router that exposes the same entire incoming tensor on two or more output ports. Building blocks no longer offers it: one output socket can already feed any number of wires. Existing Replicators keep working.',
         'Both ports keep the full shape, for example [B, 6] → two ports each [B, 6]. This is logical fan-out, not a physical tensor copy or a partition.',
         'No parameters are learned. Use the Inspector to add ports. Select the tensor-producing box first; router insertion needs an existing outgoing connection.'];break;
+      case 'add-mlp':paragraphs=['Adds a multilayer perceptron as ordinary blocks: Linear layers with the chosen activation after every hidden layer and none after the last (the readout), so the output can be any real number.',
+        'Layer widths are comma-separated; the first is the input width. A term count*w repeats width w count times: 2, 10*3, 1 means 2 → ten layers of width 3 → 1. With a block selected, the first width must equal its output width and the MLP is inserted after it; with nothing selected it becomes a new branch with its own Input and Output.',
+        'Every created block can be edited afterwards, including choosing a different activation for one layer. Parameters: the sum over layers of (incoming width + 1) × outgoing width.'];break;
       case 'block-causal-lag':paragraphs=['At time t, the window uses only preceding observations and explicitly supplied history, oldest to newest. The current observation is excluded. Prefix padding is inactive.',
         'Version 2: skipped execution does not update history. Executed resets replace history before features are built; reset histories must be supplied explicitly. Version 1 has no resets.',
         'There is no hidden carry and no missing-history imputation. The window learns no parameters.'];break;
