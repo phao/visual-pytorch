@@ -1,5 +1,13 @@
 # Agentic changelog
 
+## 2026-10-14 01:44 -03:00 — Comfortable incomplete drafts
+
+Owner-approved (private campaign spec). Invalid drafts keep every determinable shape (display-only
+partial shapes from the largest valid probe, using the unchanged contract rules); every structural
+problem is located on its block with a plain-words message, a dashed outline and a clickable pill
+("+N more"); CLI validate/doctor report problems with block IDs. With nothing selected, Building
+blocks adds a loose block at the view centre. The selected box is drawn on top (after the click).
+
 ## 2026-10-14 00:06 -03:00 — Essentials-first Inspector, port-name boxes, Export panel
 
 Owner-approved redesign (private campaign spec). Inspector: header with About, folded Forward
