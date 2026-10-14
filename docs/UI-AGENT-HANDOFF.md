@@ -27,6 +27,11 @@ Preserve these invariants in a reuse:
 6. Standard controls, text selection, scrolling and modal dialogs stay usable.
 7. A box/wire means a real domain operation/relation, not just decorative geometry.
 8. The GUI must show invalid drafts clearly, without confusing them with run policy.
+   Every determinable shape stays visible (display-only partial shapes from the largest valid
+   probe of the draft); located problem blocks get a dashed outline; the validity pill names the
+   first problem by display name with "+N more", and clicking it (or Enter/Space) selects that
+   block. With nothing selected, Building blocks adds a loose, unconnected block at the centre of
+   the view. The selected box is drawn on top (after the click completes; stored order unchanged).
 
 Future menu or box/link ideas should extend this explicit contract rather than
 being treated as already implemented features. This document is a baseline,

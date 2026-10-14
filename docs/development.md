@@ -1,5 +1,16 @@
 # Development state and roadmap
 
+## 2026-10-14 01:44 -03:00 — Incomplete drafts: located problems, partial shapes, loose blocks
+
+GraphError carries code/node/problems; graph.block_problems collects all wiring problems; contract
+errors are tagged with their block (inner reference errors point at the reference block);
+graph.partial_shapes drops problem blocks and descendants, adds synthetic Outputs to dangling
+ones and retries. Checks: full Python 1691 tests (2 expectation updates for the new located
+messages/paths, then OK), new tests/test_incomplete_drafts.py, tests/qt_incomplete_drafts_smoke.py
+(native clicks, wiring, undo, bring-to-front), 75 Qt smokes equal to baseline (same 10 pre-existing
+failures). Found and fixed: raising the box during pointerdown dropped fold-icon clicks; the
+problem outline must follow themes.css per-type outlines.
+
 ## 2026-10-14 00:06 -03:00 — Inspector/Export redesign
 
 Checks: full Python discovery 1681 tests 1137 s OK (6 Qt skips), those 6 in the Qt

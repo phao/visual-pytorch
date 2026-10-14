@@ -230,14 +230,20 @@
 
   function showDescription() {
     if (!description || !doc) return;
+    const problems=description.valid?[]:description.problems||[],first=problems[0]?problemText(problems[0]):description.error;
     $("validation-message").textContent = description.valid ?
-      "✓ Valid · " + shapeText(description.contract.input_shape) + " → " + shapeText(description.contract.output_shape) : "⚠ " + description.error;
+      "✓ Valid · " + shapeText(description.contract.input_shape) + " → " + shapeText(description.contract.output_shape) :
+      "⚠ " + first + (problems.length>1?" · +"+(problems.length-1)+" more":"");
+    $("validation-message").classList.toggle("locatable", Boolean(problems.length));
+    if(problems.length){$("validation-message").setAttribute("role","button");$("validation-message").tabIndex=0;}
+    else{$("validation-message").removeAttribute("role");$("validation-message").removeAttribute("tabindex");}
+    $("validation-message").title=problems.length?"Click to select "+(problems.length>1?"the first problem block":"the problem block"):"";
     $("validation-message").classList.toggle("error", !description.valid);
     const blocked = description.model_safety?.allowed === false;
     $("validation-message").classList.toggle("warning", blocked);
     if (description.valid && blocked) $("validation-message").textContent += " · runs blocked by safety";
     renderExportSource();
-    $("status").textContent = description.valid ? "Graph valid · " + description.contract.parameters.toLocaleString() + " parameters · " + (blocked ? "constrained runs blocked" : "PyTorch ready") : description.error;
+    $("status").textContent = description.valid ? "Graph valid · " + description.contract.parameters.toLocaleString() + " parameters · " + (blocked ? "constrained runs blocked" : "PyTorch ready") : first;
     render();
   }
 
@@ -268,7 +274,24 @@
     if (text !== null) el.textContent = text;
     return el;
   }
-  function shape(n) { return description?.contract?.shapes[n.id]; }
+  // Invalid drafts still show every determinable shape (display only; never used to run).
+  function shape(n) { return description?.valid ? description.contract.shapes[n.id] : description?.partial_shapes?.[n.id]; }
+  const problemNodes=()=>new Set((description?.valid?[]:description?.problems||[]).map(p=>p.node));
+  function problemText(p){
+    const n=node(p.node);if(!n)return p.message;
+    const name=['Input','Output'].includes(n.type)?n.type+" '"+title(n)+"'":displayName(n.id);
+    const count=doc.graph.edges.filter(e=>e.to===n.id).length;
+    return {no_input:name+' has no incoming wire.',extra_inputs:name+' has '+count+' incoming wires; use Concat or Add to join branches.',
+      no_output_path:name+' has no outgoing wire; connect it toward an Output or remove it.'}[p.code]||p.message;
+  }
+  // The selected box is drawn last, above overlapping boxes; stored node order never changes.
+  // Never move the hit element while a pointer is down: Chromium would drop the click.
+  let pointerDown=false;
+  function raiseSelected(){
+    if(pointerDown)return;
+    const layer=$("nodes"),group=[...layer.children].find(el=>el.dataset.id===selected);
+    if(group&&group!==layer.lastElementChild)layer.appendChild(group);
+  }
   function sourceShape(key){
     const edge=doc?.graph.edges.find(e=>(e.from_port?e.from+'@'+e.from_port:e.from)===key);
     const from=node(edge?.from);return from?G.tensorShape(from,shape(from),edge.from_port||null):null;
@@ -335,9 +358,10 @@
       path.append(tip);
       $("wires").append(path);
     }
+    const problems=problemNodes();
     for (const n of doc.graph.nodes) {
       const s = shape(n);
-      const group = svgElement("g", {class: "node " + n.type + (n.collapsed ? " collapsed" : "") + (n.id === selected ? " selected" : ""), transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id});
+      const group = svgElement("g", {class: "node " + n.type + (n.collapsed ? " collapsed" : "") + (n.id === selected ? " selected" : "") + (problems.has(n.id) ? " problem" : ""), transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id});
       const height=G.height(n),m={...G.metrics(),width:G.width(n)};
       const shortened=(text,charWidth,reserve=0)=>{const max=Math.floor((m.width-2*m.padding-reserve)/charWidth);return text.length>max?text.slice(0,max-1)+'…':text;};
       group.append(svgElement("rect", {width:m.width,height,rx:7}));
@@ -395,6 +419,7 @@
       grip.append(svgElement('title',{},'Drag to resize · Ctrl inverts grid snapping · arrow keys resize'));if(!n.collapsed)group.append(grip);
       $("nodes").append(group);
     }
+    raiseSelected();
     // Above the boxes, but just outside their input sockets. Every destination
     // is directly draggable; selection also reveals a larger endpoint handle.
     for(const edge of doc.graph.edges){
@@ -763,8 +788,27 @@
     renderGraph();
     renderResults();
   }
+  // Nothing selected: add the block unconnected, at the centre of the visible canvas (vpid R3).
+  function insertLoose(type, ref) {
+    if (doc.graph.nodes.length >= 64) { toast("Use at most 64 blocks.", true); return; }
+    const rect=$("canvas").getBoundingClientRect(),view=doc.view,id="n_" + Math.random().toString(36).slice(2, 10);
+    const block={id,type,x:(rect.width/2-view.x)/view.zoom-90,y:(rect.height/2-view.y)/view.zoom-40};
+    if (type === "Linear") Object.assign(block, {features: 1, bias: true});
+    else if (type === "Activation") {block.activation = $("activation-select").value;if(['Softmax','LogSoftmax'].includes(block.activation))block.dim=-1;}
+    else if (type === "Reshape") block.shape = [-1];
+    else if(T.types.includes(type))Object.assign(block,T.defaults(type,null));
+    else if (["Concat","Add"].includes(type)) {block.sources=[];if(type==='Concat')block.flatten=true;else block.op_version=1;}
+    else block.ref = ref;
+    // Nudge along the grid until the new box overlaps no existing box.
+    const overlaps=()=>doc.graph.nodes.some(n=>block.x<n.x+G.width(n)&&n.x<block.x+G.width(block)&&block.y<n.y+G.height(n)&&n.y<block.y+G.height(block));
+    for(let k=0;k<40&&overlaps();k++)block.y+=G.GRID*2;
+    doc.graph.nodes.push(block);
+    selected=id;selectedPort=null;selectedWire=null;
+    invalidateRun();persist();
+  }
   function insertBlock(type, ref = null) {
     if (!doc || busy()) return;
+    if (!node(selected) && !selectedPort && !selectedWire) { insertLoose(type, ref); return; }
     let after = node(selected),chosenPort=selectedPort;
     if (!after || after.type === "Output") {
       const incoming=doc.graph.edges.find(e=>e.to===(after?.id||'output'));
@@ -921,6 +965,7 @@
     // Selection must not replace the hit SVG element between consecutive
     // clicks: Chromium otherwise cannot deliver a wire/box double-click.
     document.querySelectorAll('.node').forEach(el=>el.classList.toggle('selected',el.dataset.id===selected));
+    raiseSelected();
     document.querySelectorAll('.port-out').forEach(el=>el.classList.toggle('append-target',!!node(el.dataset.id)&&G.appendTarget(node(el.dataset.id),selected,selectedPort)&&el.dataset.peer===selectedPort));
     document.querySelectorAll('.wire[data-from],.wire-end').forEach(el=>{
       const active=G.sameWire(wireFromElement(el),selectedWire);
@@ -1129,6 +1174,8 @@
     selected=nid;selectedPort=null;selectedWire=null;
     node(nid).collapsed=collapsed;persist();
   }
+  $("canvas").addEventListener("pointerdown",()=>{pointerDown=true;},true);
+  for(const name of ["pointerup","pointercancel"])window.addEventListener(name,()=>{if(pointerDown){pointerDown=false;setTimeout(raiseSelected,0);}},true);
   $("canvas").addEventListener("click",event=>{
     const icon=event.target.closest('.node-type-icon');
     if(icon && event.button===0 && !event.shiftKey && !node(icon.closest('.node').dataset.id)?.collapsed)
@@ -1449,6 +1496,14 @@
     else view.textContent=description?.error||"Open a valid architecture to see its PyTorch source.";
     $("export-copy").disabled=$("export-code").disabled=!valid;
   }
+  $("validation-message").onkeydown=event=>{if(["Enter"," "].includes(event.key)){event.preventDefault();$("validation-message").click();}};
+  $("validation-message").onclick=()=>{
+    const problem=(description?.valid?[]:description?.problems||[]).find(p=>node(p.node));
+    if(!problem)return;
+    selected=problem.node;selectedPort=null;selectedWire=null;updateSelection();renderInspector();floating.open("inspector-panel");
+    const box=document.querySelector('.node[data-id="'+CSS.escape(problem.node)+'"]')?.getBoundingClientRect(),view=$("canvas").getBoundingClientRect();
+    if(!box||box.right<view.left||box.left>view.right||box.bottom<view.top||box.top>view.bottom)fit();
+  };
   $("export-copy").onclick=async()=>{
     if(!description?.valid)return;
     if(await safe("copyText",{text:description.code}))toast("PyTorch source copied to the clipboard.");

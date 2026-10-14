@@ -30,7 +30,9 @@ class DiagnosticsTests(unittest.TestCase):
         workspace=Workspace();self.addCleanup(workspace.db.close)
         doc=controlled_drawing();doc['graph']['edges']=[];workspace.put(doc)
         before=workspace.db.serialize();result=doctor(workspace)
-        self.assertEqual(result['status'],'issues');self.assertEqual(result['issues'][0]['path'],['architectures',doc['id']])
+        self.assertEqual(result['status'],'issues');self.assertEqual(result['issues'][0]['path'][:2],['architectures',doc['id']])
+        # Located problems (vpid R2) point down to the offending block.
+        self.assertEqual(result['issues'][0]['path'][2],'nodes');self.assertIn(result['issues'][0]['path'][3],{n['id'] for n in doc['graph']['nodes']})
         self.assertEqual(workspace.db.serialize(),before)
 
     def test_fresh_no_site_doctor_never_imports_numeric_or_Qt_packages(self):

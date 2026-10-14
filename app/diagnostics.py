@@ -15,7 +15,9 @@ def doctor(workspace):
             architectures.append({'id':mid,'name':document['name'],'status':'valid',
                 'parameters':contract['parameters'],'inputs':contract['input_groups'],'outputs':contract['output_groups']})
         except GraphError as error:
-            issues.append({'code':'GRAPH_INVALID','path':['architectures',mid],'message':str(error)})
+            for problem in error.located() or [{'node':None,'message':str(error)}]:
+                path=['architectures',mid]+(['nodes',problem['node']] if problem['node'] else [])
+                issues.append({'code':'GRAPH_INVALID','path':path,'message':problem['message']})
             architectures.append({'id':mid,'name':document['name'],'status':'invalid'})
     if integrity!=['ok']:issues.append({'code':'SQLITE_INTEGRITY','path':['workspace'],'message':integrity})
     if foreign:issues.append({'code':'SQLITE_REFERENCES','path':['workspace'],'message':foreign})

@@ -198,7 +198,12 @@ init creates an empty version-6 collection, never overwriting a file. inspect
 returns working format version, exact SQLite DDL, architecture IDs/names/counts,
 policy, independent specification browsing selections and on-disk SHA-256 revision. Architecture summaries are alphabetical by
 case-folded name, with ID as tie-breaker. show returns a materialized document with
-dataset. validate derives the graph contract without allocation; export returns
+dataset. On an invalid architecture, `validate` fails with `{"ok": false, "error": ..., "problems": [...]}`:
+every structural problem is listed with `code` (`no_input`, `extra_inputs`, `no_output_path`,
+`output_sends`, `source_receives`, `join_sources`, `bindings`, or `invalid` for a located shape error),
+the block ID as `node`, and a plain-words `message` naming the block. `doctor` GRAPH_INVALID issues use
+the path `['architectures', id, 'nodes', node]`.
+validate derives the graph contract without allocation; export returns
 generated Python in the value.code field, with fresh parameter initialization.
 export-trained requires a matching current checkpoint identity and embeds learned
 weights, strict state loading and evaluation mode for standalone inference.

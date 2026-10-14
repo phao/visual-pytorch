@@ -52,7 +52,17 @@ def default_model(name="Linear regression", inputs=2, outputs=1):
 
 
 class GraphError(ValueError):
-    pass
+    """Invalid architecture. ``code``/``node`` locate a block-level problem; ``problems``
+    lists every structural problem found (each a dict with code, node and message)."""
+    def __init__(self, message='', *, code=None, node=None, problems=None):
+        super().__init__(message)
+        self.code, self.node, self.problems = code, node, problems or []
+
+    def located(self):
+        """Every located problem: the structural list, else this error if it names a block."""
+        if self.problems:
+            return list(self.problems)
+        return [{'code': self.code or 'invalid', 'node': self.node, 'message': str(self)}] if self.node else []
 
 
 def default_mlp(name="MLP regression", inputs=2, outputs=1, hidden=(16, 16), activation="Tanh"):

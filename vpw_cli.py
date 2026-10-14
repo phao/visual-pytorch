@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-from app.core import Workspace, default_model, generate_code, generate_predictor, validate_model, check_document
+from app.core import GraphError, Workspace, default_model, generate_code, generate_predictor, validate_model, check_document
 from app.edit_batch import apply_edits
 
 
@@ -441,7 +441,10 @@ def main(argv=None):
         print(json.dumps({'ok':True,'value':value}, allow_nan=False))
         return 0
     except Exception as error:
-        print(json.dumps({'ok':False,'error':str(error)}))
+        failure={'ok':False,'error':str(error)}
+        if isinstance(error,GraphError) and error.located():
+            failure['problems']=error.located()  # each names its block ID separately
+        print(json.dumps(failure))
         return 1
     finally:
         if workspace:

@@ -115,7 +115,7 @@ class RecurrentReconfigurationTests(unittest.TestCase):
         self.assertIn({'from': 'input', 'to': token['node']}, doc['graph']['edges'])
         # The old initial-state Input is intentionally not deleted. It is now
         # an unused draft; the whole compiler still requires explicit cleanup.
-        with self.assertRaisesRegex(GraphError, 'unused branches'):
+        with self.assertRaisesRegex(GraphError, 'has no outgoing wire; connect it toward an Output or remove it'):  # located message (vpid R2)
             validate_model({**models, 'parent': doc}, 'parent')
 
     def test_shared_physical_control_source_has_one_wire_and_explicit_roles(self):
