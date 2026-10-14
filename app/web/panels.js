@@ -28,7 +28,7 @@
   function shortcutPanel(event) {
     if(event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.target?.isContentEditable ||
        event.target?.closest('input,textarea,select,button,a,summary,[contenteditable],[role="button"],[role="textbox"],[role="combobox"],[role="slider"],[role="checkbox"],[role="switch"]'))return null;
-    return {i:'inspector-panel',a:'architectures-panel',b:'library-panel',e:'experiment-dock',h:'help-panel'}[event.key.toLowerCase()] || null;
+    return {i:'inspector-panel',a:'architectures-panel',b:'library-panel',e:'experiment-dock',h:'help-panel',x:'export-panel'}[event.key.toLowerCase()] || null;
   }
   function constrain(rect, bounds) {
     const {width,height} = rect, visible = 24;
@@ -135,7 +135,7 @@
       controls(panel);
     }
     panels.forEach(panel => {
-      panel.dataset.label = panel.id === "library-panel" ? "building blocks" : panel.id === "architectures-panel" ? "architectures" : panel.id === "inspector-panel" ? "inspector" : panel.id === "layout-panel" ? "layout" : panel.id === "help-panel" ? "help" : "experiment panel";
+      panel.dataset.label = panel.id === "library-panel" ? "building blocks" : panel.id === "architectures-panel" ? "architectures" : panel.id === "inspector-panel" ? "inspector" : panel.id === "layout-panel" ? "layout" : panel.id === "help-panel" ? "help" : panel.id === "export-panel" ? "export" : "experiment panel";
       const heading = panel.querySelector("[data-drag-handle]");
       const scroll = panel.querySelector(".scrollport");
       panel.addEventListener("pointerdown", () => raise(panel));

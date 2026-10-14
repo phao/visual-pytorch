@@ -3,7 +3,7 @@
 body,.workarea{background:var(--bg);color:var(--ink)}
 .topbar,footer{background:var(--chrome);border-color:var(--line)}
 .canvas-container,.welcome{background:radial-gradient(ellipse at 50% 40%,var(--panel),var(--bg))}
-.floating-panel,.menu-pack,dialog,.welcome-art,.inspector-bottom{background:var(--panel);color:var(--ink);border-color:var(--line)}
+.floating-panel,.menu-pack,dialog,.welcome-art{background:var(--panel);color:var(--ink);border-color:var(--line)}
 button{background:var(--control);color:var(--ink);border-color:var(--line)}
 button:hover{background:var(--hover);border-color:var(--blue)}
 button.primary{background:var(--mint);color:var(--bg);border-color:var(--mint)}
@@ -11,7 +11,7 @@ button.primary:hover{background:var(--mint);filter:brightness(1.1)}
 input,select,textarea{background:var(--input);color:var(--ink);border-color:var(--line)}
 .brand,.icon{background:transparent}
 .navigation,.floating-heading,.panel-tabs,.sidebar-section,.sidebar-heading,.sidebar-help,
-.inspector-bottom,.experiment>section+section,.port-row,.recent-row,.result-table :is(td,th){border-color:var(--line)}
+.experiment>section+section,.port-row,.recent-row,.result-table :is(td,th){border-color:var(--line)}
 .menu-pack #pack-menus button{background:var(--control);color:var(--ink)}
 .menu-pack #pack-menus button[aria-expanded=true],.pack-heading button,
 .model-row.selected,.canvas-tools .validate,.validation-chip{background:var(--selected);color:var(--mint);border-color:var(--mint)}

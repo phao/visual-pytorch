@@ -48,8 +48,10 @@ class UIContractTests(unittest.TestCase):
         inspector = re.search(r'<aside id="inspector-panel".*?</aside>', html, re.S)[0]
         self.assertNotIn('parameter-count', html)
         self.assertNotIn('parameter-count', js)
-        for identifier in ('inspector-content', 'equation', 'contract-explanation'):
+        # Essentials-first Inspector: header, folded Forward contract, content; no prose block.
+        for identifier in ('inspector-header', 'contract-details', 'inspector-content', 'equation'):
             self.assertIn('id="' + identifier + '"', inspector)
+        self.assertNotIn('contract-explanation', inspector)
         self.assertIn('description.contract.parameters.toLocaleString()', js)
         self.assertIn('0 trainable parameters', js)
         self.assertIn("s?.lstm?.parameters", js)
