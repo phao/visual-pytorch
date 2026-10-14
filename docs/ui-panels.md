@@ -10,7 +10,13 @@ Architectures, Building blocks, Experiment, Export, Help, Inspector and Layout s
 Export (key X) shows the open architecture's PyTorch source, read-only and theme-highlighted,
 with scoped Ctrl+A, Copy (system clipboard) and Save as .py; its SVG tab is a placeholder.
 Building blocks no longer offers Replicator (one output socket can feed any number of wires);
-existing Replicators still load, inspect and run. One floating
+existing Replicators still load, inspect and run.
+Building blocks and the Inspector share one activation list, grouped as Elementwise (GELU, ReLU,
+Sigmoid, Softplus, Tanh) and Normalizing along an axis (LogSoftmax, Softmax). The MLP entry opens a
+compact form: comma-separated layer widths (first = input width; `count*w` repeats a width) and one
+activation placed after every hidden Linear, none after the readout. After a selection the first
+width must equal its output width; with nothing selected it adds Input [n0] → chain → Output.
+It creates ordinary, editable Linear/Activation blocks in one undo step. One floating
 vertical PANELS pack independently opens/hides each. Click its icon to hide all
 menus and shrink the pack. Double-click the compact icon, or focused Enter/Space,
 restores only the menu buttons. Palettes are arbitrary rectangles, not fixed sidebars.

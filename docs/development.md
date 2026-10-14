@@ -1,5 +1,12 @@
 # Development state and roadmap
 
+## 2026-10-14 02:08 -03:00 — Grouped activations and MLP block
+
+graph-tools parseWidths/addMLP (pure); activations.groups/options build both selects. Checks: full
+Python 1693 tests OK (6 Qt skips); node 382/382 incl. tests/mlp-block.test.js; tests/test_mlp_block.py
+(validated parameter counts for all seven activations); tests/qt_mlp_block_smoke.py PASS; 76 Qt smokes
+equal to baseline (same 10 pre-existing failures). qt_softmax/qt_ui smokes updated for the grouped list.
+
 ## 2026-10-14 01:44 -03:00 — Incomplete drafts: located problems, partial shapes, loose blocks
 
 GraphError carries code/node/problems; graph.block_problems collects all wiring problems; contract
