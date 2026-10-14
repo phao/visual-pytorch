@@ -30,6 +30,13 @@
     Flatten:{defaults:{start_dim:0,end_dim:-1},fields:{start_dim:"axis",end_dim:"axis"},
       explanation:"Axis numbers refer only to sample dimensions; B is excluded. Merge a contiguous range in row-major value order. Negative axes count from the end. Default 0, −1 flattens the whole sample.",
       equation:"y = flatten sample axes(x)",tex:"y=\\operatorname{flatten}(x)"},
+    Patches:{defaults:{kernel_size:[3,3],stride:[1,1],padding:[0,0],dilation:[1,1]},
+      fields:{kernel_size:"pair",stride:"pair",padding:"padding",dilation:"pair"},
+      explanation:"Every kernel window of a C, H, W image, laid out as a grid of patches: H_out, W_out, C·kH·kW, patch values last (channel, then kernel row, then column). Zero padding; no learned weights. A Linear after it acts on every patch with the same weights: Conv2d = Patches → Linear → Permute 2,0,1.",
+      equation:"patchᵢⱼ = x[:, window(i, j)]",tex:"p_{ij}=\\operatorname{vec}\\,x[:,\\,\\mathrm{window}(i,j)]"},
+    Reduce:{defaults:{mode:"mean",axis:-1},fields:{mode:"choice:max|mean",axis:"axis"},
+      explanation:"Maximum or mean over one sample axis (default the last); that axis disappears. No learned weights. Pooling = Patches → Reshape → Reduce → Permute.",
+      equation:"y = max or mean over one axis",tex:"y=\\max_{a}x\\ \\text{or}\\ \\tfrac1n\\textstyle\\sum_{a}x"},
     Permute:{defaults:{dims:[2,0,1]},fields:{dims:"permutation"},
       explanation:"Reorder sample axes and their values; B always stays first. For H,W,C input use 2,0,1 to obtain C,H,W. This is not Reshape: the value order changes.",
       equation:"y = permute sample axes(x)",tex:"y=\\operatorname{permute}(x)"},
@@ -44,6 +51,7 @@
     const kind=definitions[type]?.fields[key];
     if(!kind)throw new Error("Unsupported operator field.");
     if(kind==="bool"){if(typeof text!=="boolean")throw new Error("Use a checkbox value.");return text;}
+    if(kind.startsWith("choice:")){if(!kind.slice(7).split("|").includes(text))throw new Error("Choose one of the listed options.");return text;}
     if(kind==='scalar'||kind==='positive-scalar'){
       const raw=String(text).trim(),value=Number(raw);
       if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)||!Number.isFinite(value)||Math.abs(value)>3.4028234663852886e38||Number.isInteger(value)&&!Number.isSafeInteger(value))throw new Error('Use a finite float32-range coefficient; integer values must be editor-exact.');

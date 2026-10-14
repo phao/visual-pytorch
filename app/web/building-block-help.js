@@ -29,8 +29,14 @@
       'Outputs are posterior log probabilities and signed log evidence, not known regime labels.',
       'Version 2: skipped execution preserves belief and contributes zero evidence. An executed reset restores the supplied initial law before transition. Resets on skipped or padded slots are ignored. Controls apply only within this call.'],
   };
+  const expand='Ready-made: the Inspector and the block menu offer "Expand into simpler blocks", which replaces it by the composition below in one undo step.';
   const tensorInspector={
-    Conv2d:[sharing,policy],
+    Conv2d:['A convolution is patch extraction followed by one shared Linear: Conv2d = Patches → Linear (C·kH·kW → out channels) → Permute 2,0,1. The Conv2d weight, flattened per output channel, is exactly that Linear\'s weight.',expand+' Offered for groups 1.',sharing,policy],
+    MaxPool2d:['Max pooling = Patches → Reshape (H_out, W_out, C, kH·kW) → Reduce max → Permute 2,0,1.',expand+' Offered without padding: max pooling pads with −∞, Patches with zeros.'],
+    AvgPool2d:['Average pooling = Patches → Reshape (H_out, W_out, C, kH·kW) → Reduce mean → Permute 2,0,1.',expand+' Offered when padded zeros count in the average (count include pad), as Patches pads with zeros.'],
+    AdaptiveAvgPool2d:['With output 1, 1 this is a global average: Reshape (C, H·W) → Reduce mean.',expand+' Offered for output size 1, 1.'],
+    Patches:['Patches is the simple piece behind convolution and pooling. Its last axis is named C: after a Linear it holds the next layer\'s channels.'],
+    Reduce:['Reduce max over each patch\'s window values gives max pooling; Reduce mean gives average pooling and, over all positions, global average pooling.'],
     PositiveVariance:['Version 2 also offers exp(log variance). Overflow or a nonpositive result is refused, never clamped.'],
   };
   // PyTorch API pages per About page; names are HELP_RESOURCES ids in app/desktop.py.
@@ -39,7 +45,7 @@
     'add-recurrent':['torch.nn.Module','torch.nn.RNN'],'add-lstm':['torch.nn.LSTM'],'add-constant':['torch.full'],'add-tensor-parameter':['torch.nn.Parameter'],
     'add-gaussian':['torch.logsumexp'],'add-mlp':['torch.nn.Sequential','torch.nn.Linear'],'block-causal-lag':['torch.Tensor.unfold']};
   const tensorDocs={Conv2d:['torch.nn.Conv2d'],MaxPool2d:['torch.nn.MaxPool2d'],AvgPool2d:['torch.nn.AvgPool2d'],AdaptiveAvgPool2d:['torch.nn.AdaptiveAvgPool2d'],
-    Flatten:['torch.nn.Flatten'],Permute:['torch.permute'],Scale:['torch.mul'],PositiveVariance:['torch.nn.functional.softplus','torch.exp']};
+    Flatten:['torch.nn.Flatten'],Permute:['torch.permute'],Patches:['torch.nn.Unfold'],Reduce:['torch.amax','torch.mean'],Scale:['torch.mul'],PositiveVariance:['torch.nn.functional.softplus','torch.exp']};
   function describe(id,context={}){
     const help=describeBase(id,context);
     if(!help)return help;

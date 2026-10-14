@@ -58,6 +58,11 @@ other=build_context_menu(view,window,{'id':'linear1','modelId':'other','canDelet
 assert not next(a for a in other.actions() if a.text()=='Delete block').isEnabled()
 assert not next(a for a in other.actions() if a.text()=='Inspect block').isEnabled()
 assert not next(a for a in other.actions() if a.text()=='Automatic size').isEnabled()
+assert 'Expand into simpler blocks' not in [a.text() for a in block_menu.actions()]
+conv=build_context_menu(view,window,{'id':'conv','modelId':'model','canDelete':True,'canResize':True,'canExpand':True})
+assert [a.text() for a in conv.actions()[2:4]]==['Automatic size','Expand into simpler blocks'] and conv.actions()[4].isSeparator()
+conv.actions()[3].trigger();assert called[-1]=='window.loom && window.loom.perform("expand-block","conv","model");'
+assert not next(a for a in build_context_menu(view,window,{'id':'conv','modelId':'other','canExpand':True}).actions() if a.text()=='Expand into simpler blocks').isEnabled()
 actions["Building blocks panel"].trigger()
 assert called[-1]=='window.loom && window.loom.perform("library");'
 actions["Layout panel"].trigger()

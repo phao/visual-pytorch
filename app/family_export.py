@@ -39,7 +39,7 @@ import json
 import math
 from collections import OrderedDict
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory, estimate_memory, format_bytes
-from .operators import ARITHMETIC_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
+from .operators import ARITHMETIC_OPERATORS, PIECE_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for
 from .activations import activation_name, normalize_activation, softmax_axis
 MAX_INTEGER = 2**53 - 1''')
     sources['evidence'] = _selected(folder / 'evidence.py', EVIDENCE, '''import hashlib

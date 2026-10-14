@@ -558,8 +558,10 @@
         const value=n[key] ?? T.definitions[n.type].defaults[key],id='op-'+key;
         const label=key.replaceAll('_',' ');
         E.push(kind==='bool'?'<label class="inspect-bias"><input data-op-field="'+key+'" id="'+id+'" type="checkbox"'+(value?' checked':'')+dis+'>'+esc(label)+'</label>':
+          kind.startsWith('choice:')?'<label class="inspect-label" for="'+id+'">'+esc(label)+'</label><select data-op-field="'+key+'" id="'+id+'"'+dis+'>'+kind.slice(7).split('|').map(o=>'<option'+(o===value?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>':
           '<label class="inspect-label" for="'+id+'">'+esc(label)+(kind==='pair' || kind==='padding'?' · H, W':'')+'</label><input data-op-field="'+key+'" id="'+id+'" class="inspect-input" value="'+esc(Array.isArray(value)?value.join(', '):value)+'"'+dis+'>');
       }
+      if(G.EXPANDABLE.has(n.type))E.push('<button id="expand-block" type="button"'+dis+' title="Replace this block by the simple blocks it is made of">Expand into simpler blocks</button>');
       shapes.push(card(['input '+shapeText(s?.input_shape),'output '+shapeText(s?.output_shape),...(s?.output_axes?['axes '+esc(s.output_axes.join(', '))]:[]),...(s?.operator?.weight_shape?['W ['+s.operator.weight_shape.join(', ')+']']:[]),'operator version 1']));
     } else if(n.type==='CausalLagWindow'){
       shapes.push(card([n.lags+' preceding observations · oldest to newest','input '+shapeText(s?.input_shape),'output '+shapeText(s?.output_shape)]));
@@ -682,6 +684,7 @@
           window.LoomParameterPolicy.restore(policySection,policyDraft.owners);
       }).catch(error=>{if(policyRequest===policyGeneration&&$('parameter-policy-editor'))$('parameter-policy-editor').textContent=error.message;});
     }
+    if($('expand-block'))$('expand-block').onclick=()=>expandInPlace(n.id);
     if($('edit-recurrent-interface'))$('edit-recurrent-interface').onclick=()=>recurrentEditDialog(n.id);
     if($('edit-lstm-interface'))$('edit-lstm-interface').onclick=()=>lstmUI.open(n.id);
     if($('parameter-owner'))$('parameter-owner').onchange=()=>{if(busy())return;const id=$('parameter-owner').value;if(id)n.share_with=id;else delete n.share_with;invalidateRun();persist();};
@@ -808,6 +811,15 @@
     doc.graph.nodes.push(block);
     selected=id;selectedPort=null;selectedWire=null;
     invalidateRun();persist();
+  }
+  // Replace a ready-made block by its simple pieces: one persist, so one undo step.
+  function expandInPlace(nid) {
+    if (!doc || busy() || !node(nid)) return;
+    try {
+      const result = G.expandBlock(doc, nid, shape(node(nid)));
+      selected = result.first; selectedPort = null; selectedWire = null;
+      invalidateRun(); persist(); toast('Expanded into ' + result.blocks + ' simpler blocks. Undo restores the original.');
+    } catch (error) { toast(error.message, true); }
   }
   function insertBlock(type, ref = null) {
     if (!doc || busy()) return;
@@ -1592,7 +1604,7 @@
           const wire=target?.closest('.wire[data-from],.wire-end');
           if(doc && wire){selectWire(wireFromElement(wire));return null;}
           if(!selectContextBox(target))return null;
-          return {id:selected,modelId:doc.id,canDelete:!busy() && !!node(selected) && doc.graph.nodes.length>2,canResize:!busy()};
+          return {id:selected,modelId:doc.id,canDelete:!busy() && !!node(selected) && doc.graph.nodes.length>2,canResize:!busy(),canExpand:!busy() && G.EXPANDABLE.has(node(selected)?.type)};
         },
         perform(command, blockId=null, modelId=null) {
           if(command==='about-building-block'){aboutPalette(blockId);return;}
@@ -1605,6 +1617,7 @@
             updateSelection();renderInspector();floating.open("inspector-panel");
           }
           else if(command==="delete-block"){if(doc.id===modelId && node(blockId))removeNode(blockId);}
+          else if(command==="expand-block"){if(doc.id===modelId)expandInPlace(blockId);}
           else if(command==="automatic-block-size"){
             if(busy() || doc.id!==modelId)return;
             const target=node(blockId);if(!target)return;
@@ -1647,8 +1660,13 @@
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
   const buildingGroups=[[$('activation-palette-group')],[$('mlp-palette-group')],[$('reference-palette-group')],[$('add-add')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
-  buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
-  buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));
+  // Simple pieces first; blocks that expand into pieces form the Ready-made group (vpcc decision 5).
+  const readyMade=new Set(['mlp-palette-group','add-tensor-Conv2d','add-tensor-MaxPool2d','add-tensor-AvgPool2d','add-tensor-AdaptiveAvgPool2d']);
+  const byName=(a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent);
+  buildingGroups.filter(g=>!readyMade.has(g.at(-1).id)).sort(byName).flat().forEach(element=>library.insertBefore(element,boundaryHeading));
+  const readyHeading=document.createElement('div');readyHeading.className='eyebrow';readyHeading.id='ready-made-heading';
+  readyHeading.textContent='READY-MADE · EXPAND INTO PIECES';library.insertBefore(readyHeading,boundaryHeading);
+  buildingGroups.filter(g=>readyMade.has(g.at(-1).id)).sort(byName).flat().forEach(element=>library.insertBefore(element,boundaryHeading));
   ['add-input','add-output','add-splitter'].map($).sort((a,b)=>a.querySelector('b').textContent.localeCompare(b.querySelector('b').textContent)).forEach(button=>library.append(button));
   $("dots").querySelector("circle").setAttribute("cy", 0);
   document.querySelectorAll('.help-sections a').forEach(link=>link.onclick=event=>{

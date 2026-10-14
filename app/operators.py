@@ -7,8 +7,11 @@ import math
 from .tensor_sources import SOURCE_TYPES
 
 TENSOR_OPERATORS = frozenset({
-    'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute',
+    'Conv2d', 'AvgPool2d', 'MaxPool2d', 'AdaptiveAvgPool2d', 'Flatten', 'Permute', 'Patches', 'Reduce',
 })
+# Simple pieces (container 33+): convolution = Patches -> Linear -> Permute; pooling = Patches -> Reshape -> Reduce.
+PIECE_OPERATORS = frozenset({'Patches', 'Reduce'})
+REDUCE_MODES = ('max', 'mean')
 REFERENCE_TYPES = frozenset({'Module', 'Recurrent'})
 PROBABILITY_OPERATORS = frozenset({'PositiveVariance','GaussianFilter','CausalLagWindow'})
 LAYER_TYPES = TENSOR_OPERATORS | SOURCE_TYPES | PROBABILITY_OPERATORS | {'Linear', 'Activation', 'Module', 'Reshape', 'Recurrent', 'LSTM'}
@@ -23,6 +26,8 @@ FIELDS = {
     'AdaptiveAvgPool2d': {'output_size'},
     'Flatten': {'start_dim', 'end_dim'},
     'Permute': {'dims'},
+    'Patches': {'kernel_size', 'stride', 'padding', 'dilation'},
+    'Reduce': {'mode', 'axis'},
 }
 
 
@@ -135,6 +140,18 @@ def normalized(node):
             if type(v) is not int or not -8 <= v < 8:
                 raise GraphError('Flatten axes must be integers from -8 to 7, excluding batch B.')
             n[key] = v
+    if kind == 'Patches':
+        n['kernel_size'] = pair(n.get('kernel_size'), 'kernel_size')
+        n['stride'] = pair(n.get('stride', 1), 'stride')
+        n['padding'] = pair(n.get('padding', 0), 'padding', 0)
+        n['dilation'] = pair(n.get('dilation', 1), 'dilation')
+    if kind == 'Reduce':
+        n['mode'] = n.get('mode', 'mean')
+        if n['mode'] not in REDUCE_MODES:
+            raise GraphError('Reduce mode must be "max" or "mean".')
+        n['axis'] = n.get('axis', -1)
+        if type(n['axis']) is not int or not -8 <= n['axis'] < 8:
+            raise GraphError('Reduce axis must be an integer sample axis from -8 to 7; omit B.')
     if kind == 'Permute':
         dims = n.get('dims')
         if (not isinstance(dims, list) or not 1 <= len(dims) <= 8 or
@@ -198,6 +215,30 @@ def describe(node, before, axes=None):
         # Names of merged dimensions are no longer channel/spatial axes.
         out_axes = None
         kwargs = {'start_dim': start + 1, 'end_dim': end + 1}
+    elif kind == 'Patches':
+        if len(before) != 3:
+            raise GraphError(f'Patches needs sample shape [C,H,W]; incoming shape {before}.')
+        if axes is not None and axes != ['C', 'H', 'W']:
+            raise GraphError(f'Patches needs axes [C,H,W], not {axes}. Use Permute to reorder values.')
+        size = [(s + 2 * p - d * (k - 1) - 1) // st + 1
+                for s, p, d, k, st in zip(before[1:], n['padding'], n['dilation'], n['kernel_size'], n['stride'])]
+        if min(size) < 1:
+            raise GraphError(f'Patches produces nonpositive spatial dimensions {size}: the window does not fit.')
+        # Patch values last, so a Linear acts on every patch; after that Linear the last axis holds
+        # the next layer's channels, hence the name C (Linear keeps axis names).
+        current = [*size, before[0] * math.prod(n['kernel_size'])]
+        out_axes = ['H', 'W', 'C']
+        kwargs = {k: n[k] for k in FIELDS[kind]}
+    elif kind == 'Reduce':
+        rank = len(before)
+        if rank < 2:
+            raise GraphError('Reduce needs at least two sample axes: the result keeps at least one.')
+        if not -rank <= n['axis'] < rank:
+            raise GraphError(f'Reduce axis {n["axis"]} is outside the incoming sample rank {rank}; omit B.')
+        axis = n['axis'] % rank
+        current = before[:axis] + before[axis + 1:]
+        out_axes = axes[:axis] + axes[axis + 1:] if axes else None
+        kwargs = {'mode': n['mode'], 'dim': axis + 1}
     elif kind == 'Permute':
         if len(n['dims']) != len(before):
             raise GraphError('Permute dims must match the incoming sample rank.')
@@ -207,7 +248,7 @@ def describe(node, before, axes=None):
     tensor_shape(current)
     return {'output_shape': current, 'output_axes': out_axes, 'parameters': params,
             'weight_shape': weight_shape, 'constructor': kind, 'kwargs': kwargs,
-            'affine': kind != 'MaxPool2d', 'matrix_affine': False}
+            'affine': kind != 'MaxPool2d' and not (kind == 'Reduce' and n['mode'] == 'max'), 'matrix_affine': False}
 
 
 def constructor_code(spec):
@@ -215,4 +256,38 @@ def constructor_code(spec):
     name = spec['constructor']
     args = ', '.join(f'{key}=' + ('torch.float32' if key == 'dtype' else repr(value))
                      for key, value in sorted(spec['kwargs'].items()))
-    return f'{"_Permute" if name == "Permute" else "nn." + name}({args})'
+    return f'{ {"Permute": "_Permute", "Patches": "_Patches", "Reduce": "_Reduce"}.get(name, "nn." + name)}({args})'
+
+
+RUNTIME_SOURCE = '''
+class _Patches(nn.Module):
+    """Every window of a [B, C, H, W] tensor as [B, H_out, W_out, C*kH*kW]: patch values last."""
+    def __init__(self, kernel_size, stride, padding, dilation):
+        super().__init__()
+        self.kernel_size, self.stride = tuple(kernel_size), tuple(stride)
+        self.padding, self.dilation = tuple(padding), tuple(dilation)
+
+    def forward(self, x):
+        size = [(n + 2 * p - d * (k - 1) - 1) // s + 1 for n, p, d, k, s in
+                zip(x.shape[2:], self.padding, self.dilation, self.kernel_size, self.stride)]
+        cols = torch.nn.functional.unfold(x, self.kernel_size, dilation=self.dilation,
+                                          padding=self.padding, stride=self.stride)
+        return cols.transpose(1, 2).reshape(x.shape[0], size[0], size[1], cols.shape[1])
+
+
+class _Reduce(nn.Module):
+    """Maximum or mean over one axis (dim counts the batch axis)."""
+    def __init__(self, mode, dim):
+        super().__init__()
+        self.mode, self.dim = mode, dim
+
+    def forward(self, x):
+        return x.amax(dim=self.dim) if self.mode == 'max' else x.mean(dim=self.dim)
+'''
+
+
+def runtime_classes(torch, nn):
+    """The exact classes the exported code embeds, for the native forward."""
+    namespace = {'torch': torch, 'nn': nn}
+    exec(RUNTIME_SOURCE, namespace)
+    return namespace['_Patches'], namespace['_Reduce']

@@ -36,6 +36,8 @@ _RULES = {
     'AdaptiveAvgPool2d': 'Sample CHW to explicit positive output height/width.',
     'Flatten': 'Merge a contiguous range of sample axes; batch is excluded. Merged axis names are discarded.',
     'Permute': 'Reorder each sample axis exactly once; batch is fixed first. This changes values, not just shape labels.',
+    'Patches': 'Sample CHW to [H_out, W_out, C*kH*kW]: every kernel window, patch values last (channel, row, column order). Zero padding; no parameters. Conv2d = Patches -> Linear -> Permute.',
+    'Reduce': 'Maximum or mean over one sample axis (default last); the axis and its name are dropped; no parameters.',
 }
 _LEGACY_FIELDS = {
     'CausalLagWindow':{'inputs','lags'},
@@ -95,7 +97,7 @@ def _example(kind):
             settings = {'Conv2d': {'out_channels': 2, 'kernel_size': [3, 2]},
                 'AvgPool2d': {'kernel_size': [2, 2]}, 'MaxPool2d': {'kernel_size': [2, 2]},
                 'AdaptiveAvgPool2d': {'output_size': [1, 2]},
-                'Flatten': {}, 'Permute': {'dims': [1, 2, 0]}}
+                'Flatten': {}, 'Permute': {'dims': [1, 2, 0]}, 'Patches': {'kernel_size': [3, 2]}, 'Reduce': {'mode': 'max'}}
             node.update(settings[kind]); node = operators.normalized(node)
         elif kind == 'Linear': node.update(features=3, bias=True)
         elif kind == 'Scale': node.update(coefficient=2.)
@@ -184,7 +186,7 @@ def operator_schema(kind):
         'Module': {'ref'}, 'Reshape': {'shape'}, 'Concat': {'sources'}, 'Splitter': {'parts'},
         'Replicator': {'outputs'}, 'Conv2d': {'out_channels', 'kernel_size'},
         'AvgPool2d': {'kernel_size'}, 'MaxPool2d': {'kernel_size'}, 'AdaptiveAvgPool2d': {'output_size'},
-        'Flatten': set(), 'Permute': {'dims'},
+        'Flatten': set(), 'Permute': {'dims'}, 'Patches': {'kernel_size'}, 'Reduce': set(),
         'Recurrent': {'ref', 'sequence_inputs', 'states', 'sequence_outputs'}, 'LSTM': {'hidden_size', 'inputs'},
     }[kind]
     minimal = {k: v for k, v in node.items() if k in required | {'id', 'type'}}
@@ -246,6 +248,9 @@ def capabilities():
             'family_version':13,'specialization_version':12,
             'roles':['observations','history','lengths'],'order':'oldest-to-newest; excludes current observation',
             'controls':'explicit prefix lengths; no missing-history imputation or resets'},
+        simple_pieces={'operators':['Patches','Reduce'],'container_version':33,'model_revision_version':11,
+            'family_templates':False,'patch_layout':'[H_out, W_out, C*kH*kW], channel-major patch order',
+            'conv2d':'Patches -> Linear -> Permute [2,0,1]','pooling':'Patches -> Reshape -> Reduce -> Permute'},
         controlled_sequences={'op_version':2,'container_version':32,'model_revision_version':10,
             'family_version':14,'specialization_version':13,
             'operators':['CausalLagWindow','GaussianFilter','PositiveVariance'],

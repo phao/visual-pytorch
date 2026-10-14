@@ -111,6 +111,44 @@
     doc.graph.edges.push(...links);
     return {first: first.id, last: last.id, blocks: added};
   }
+  // Ready-made blocks expand into simple pieces (vpcc R4). `shape` is the block's contract entry.
+  const EXPANDABLE = new Set(['Conv2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d']);
+  function expansion(n, shape) {
+    if (!EXPANDABLE.has(n.type)) throw new Error('Only Conv2d and the pooling blocks expand into simpler blocks.');
+    if (!shape?.input_shape || !shape?.output_shape) throw new Error('Connect the block so its shapes are known before expanding it.');
+    const [C, H, W] = shape.input_shape, [, Ho, Wo] = shape.output_shape, pair = v => Array.isArray(v) ? v : [v, v];
+    const k = pair(n.kernel_size || [1, 1]), window = {kernel_size: k, stride: pair(n.stride || (n.type === 'Conv2d' ? 1 : k)), padding: pair(n.padding || 0), dilation: pair(n.dilation || 1), op_version: 1};
+    const back = {type: 'Permute', dims: [2, 0, 1], op_version: 1};
+    if (n.type === 'Conv2d') {
+      if ((n.groups || 1) !== 1) throw new Error('Grouped convolutions (groups > 1) do not expand into one Linear.');
+      return [{type: 'Patches', ...window}, {type: 'Linear', features: n.out_channels, bias: n.bias !== false}, back];
+    }
+    if (n.type === 'AdaptiveAvgPool2d') {
+      if (pair(n.output_size).join() !== '1,1') throw new Error('Only global average pooling (output 1, 1) expands exactly.');
+      return [{type: 'Reshape', shape: [C, H * W]}, {type: 'Reduce', mode: 'mean', axis: -1, op_version: 1}, {type: 'Reshape', shape: [C, 1, 1]}];
+    }
+    if (n.type === 'MaxPool2d' && window.padding.some(Boolean)) throw new Error('Padded max pooling pads with −∞, Patches with zeros: it does not expand exactly.');
+    if (n.type === 'AvgPool2d' && n.count_include_pad === false) throw new Error('Average pooling that excludes padded zeros does not expand exactly.');
+    return [{type: 'Patches', ...window}, {type: 'Reshape', shape: [Ho, Wo, C, k[0] * k[1]]},
+      {type: 'Reduce', mode: n.type === 'MaxPool2d' ? 'max' : 'mean', axis: -1, op_version: 1}, back];
+  }
+  function expandBlock(doc, nid, shape) {
+    const n = node(doc, nid);
+    if (!n) throw new Error('The block is missing.');
+    if ('share_with' in n || doc.graph.nodes.some(m => m.share_with === nid)) throw new Error('This block shares parameters; make it independent before expanding.');
+    const owner = key => { try { return JSON.parse(key)[0]; } catch { return null; } };  // selectors are JSON [block id, ...]
+    if (Object.keys(doc.graph.parameter_policy?.parameters || {}).some(key => owner(key) === nid)) throw new Error('This block has a parameter policy; reset it before expanding.');
+    const chain = expansion(n, shape).map((piece, i) => ({id: id(), ...piece, x: (n.x || 0) + 224 * i, y: n.y || 0}));
+    room(doc, chain.length - 1);
+    const shift = 224 * (chain.length - 1);
+    doc.graph.nodes.filter(m => m.id !== nid && (m.x || 0) > (n.x || 0)).forEach(m => m.x += shift);
+    const first = chain[0], last = chain.at(-1);
+    doc.graph.edges = doc.graph.edges.map(e => e.to === nid ? {...e, to: first.id} : e.from === nid ? {...e, from: last.id} : e);
+    doc.graph.nodes.forEach(m => replaceSource(m, nid, last.id));
+    doc.graph.edges.push(...chain.slice(1).map((m, i) => ({from: chain[i].id, to: m.id})));
+    doc.graph.nodes.splice(doc.graph.nodes.indexOf(n), 1, ...chain);
+    return {first: first.id, last: last.id, blocks: chain.length};
+  }
   function snapPosition(x, y, enabled, grid = GRID) {
     return enabled ? {x: Math.round(x / grid) * grid, y: Math.round(y / grid) * grid} : {x, y};
   }
@@ -389,5 +427,5 @@
     return {zoom,x:rect.x+(rect.width-(right-left)*zoom)/2-left*zoom,
                  y:rect.y+(rect.height-(bottom-top)*zoom)/2-top*zoom,fitted:true};
   }
-  return {parseWidths,addMLP,GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,appendTarget,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
+  return {parseWidths,addMLP,expandBlock,EXPANDABLE,GRID,setSpacing,metrics,snapPosition,blockToggleShortcut, minimumSize,width,height,resizeBlock,slots, portPoint, multiOutput,appendTarget,tensorShape,replaceSource,addInput,addOutput, addRouter, addRouterPort, removeBoundary, removeBlock,connect,sameWire,removeWire,retargetWire,outputValues,fitViewport};
 });

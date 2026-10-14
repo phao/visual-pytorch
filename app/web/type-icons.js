@@ -30,6 +30,8 @@
     AdaptiveAvgPool2d:'<path d="M3 3h14v14H3zm4 0v14m5-14v14M3 9h14m1 9h3v3h-3zM9 20h6"/>',
     Flatten:'<path d="M3 3h8v8H3zm4 0v8M3 7h8M14 6h7m-3-3 3 3-3 3M3 17h18v4H3zm4 0v4m5-4v4m5-4v4"/>',
     Permute:'<path d="M3 5h4l10 14h4M3 19h4L17 5h4m-3-3 3 3-3 3m0 8 3 3-3 3"/>',
+    Patches:'<path d="M3 3h12v12H3zm4 0v12m4-12v12M3 7h12M3 11h12M3 3h8v8H3zm14 6h4M17 13h4M17 17h4M17 21h4"/>',
+    Reduce:'<path d="M3 4h18l-7 8v7l-4 2v-9z"/>',
   };
   return {types:Object.keys(icons),svg:type=>icons[type] || '<path d="M4 4h16v16H4z"/>'};
 });

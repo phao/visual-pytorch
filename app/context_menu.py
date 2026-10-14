@@ -42,6 +42,11 @@ def build_context_menu(view, window, block=None):
         automatic.setEnabled(has_model and view.mid==block['modelId'] and block.get('canResize') is True)
         automatic.triggered.connect(lambda checked=False, nid=block['id'], mid=block['modelId']:
             view.page().runJavaScript('window.loom && window.loom.perform("automatic-block-size",'+json.dumps(nid)+','+json.dumps(mid)+');'))
+        if block.get('canExpand') is True:
+            expand=menu.addAction("Expand into simpler blocks")
+            expand.setEnabled(has_model and view.mid==block['modelId'])
+            expand.triggered.connect(lambda checked=False, nid=block['id'], mid=block['modelId']:
+                view.page().runJavaScript('window.loom && window.loom.perform("expand-block",'+json.dumps(nid)+','+json.dumps(mid)+');'))
         menu.addSeparator()
     for label,command in sorted([
         ("Fit graph","fit"),("Validate architecture","validate"),
