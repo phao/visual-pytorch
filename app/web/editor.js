@@ -1218,11 +1218,14 @@
   window.addEventListener('blur',endDrag);
   $("canvas").addEventListener("dblclick", event => {
     if (!doc) return;
-    if(event.target.closest('.node-resize')){event.preventDefault();return;}
-    const group = event.target.closest(".node"), path = event.target.closest(".wire");
+    // Pointer capture from a block drag retargets dblclick to the canvas;
+    // hit-test the actual screen location, as rewiring does.
+    const hit=event.target===$("canvas") ? document.elementFromPoint(event.clientX,event.clientY) || event.target : event.target;
+    if(hit.closest('.node-resize')){event.preventDefault();return;}
+    const group = hit.closest(".node"), path = hit.closest(".wire");
     if (group) {
       const n = node(group.dataset.id);
-      if(event.target.closest('.node-type-icon')){if(n.collapsed)foldBlock(n.id,false);event.preventDefault();return;}
+      if(hit.closest('.node-type-icon')){if(n.collapsed)foldBlock(n.id,false);event.preventDefault();return;}
       selected=n.id;renderInspector();floating.open("inspector-panel");
       selectedWire=null;
       if (["Module","Recurrent"].includes(n.type) && (event.ctrlKey || event.metaKey)) safe("openModel", {id: n.ref, newTab: true});

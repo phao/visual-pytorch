@@ -1,5 +1,15 @@
 # Development state and roadmap
 
+## 2026-10-13 22:38 -03:00 — Native double-click on expanded blocks fixed
+
+Native double-click on an expanded block left the Inspector closed: pointer
+capture taken on pointerdown retargets click/dblclick to `#canvas`. The dblclick
+handler now resolves the block with `elementFromPoint`, the same pattern used for
+rewire drops. Compact blocks defer capture and were unaffected. Regression gate:
+`tests/qt_dblclick_native_smoke.py` (native input via the QWindow; synthetic DOM
+events cannot reproduce capture retargeting). Checks: new smoke PASS (FAIL on the
+previous editor.js), 375 JS PASS, qt_undo_window_smoke and qt_family_smoke PASS.
+
 ## 2026-10-13 14:44 -03:00 — LoRA/MS-VAR scope accepted and integrated locally
 
 Frozen67e3d13f8af457f8470fc841fcb57a2434955e89 completed the entire1681-test
