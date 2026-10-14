@@ -1,11 +1,11 @@
 "use strict";
 const test=require('node:test'),assert=require('node:assert/strict');
 const H=require('../app/web/building-block-help.js'),T=require('../app/web/tensor-operators.js');
-test('All 24 About pages have concrete non-executing teaching descriptions',()=>{
-  // 22 palette entries, plus About pages for legacy Replicator (no longer in the palette)
+test('All 25 About pages have concrete non-executing teaching descriptions',()=>{
+  // 23 palette entries (MLP added), plus About pages for legacy Replicator (no longer in the palette)
   // and Causal lag window (Inspector About only).
   const keys=Object.keys(H.names),before=JSON.stringify(T.definitions);
-  assert.equal(keys.length+T.types.length,24);
+  assert.equal(keys.length+T.types.length,25);
   assert.ok(keys.includes('add-replicator')&&keys.includes('block-causal-lag'));
   for(const id of keys){const h=H.describe(id);assert.equal(h.name,H.names[id]);assert.ok(h.paragraphs.length>=3);assert.ok(h.paragraphs.every(p=>typeof p==='string' && p.length>30));}
   for(const type of T.types){const h=H.describe('add-tensor-'+type,{tensorType:type});assert.equal(h.name,type);assert.equal(h.tex,T.definitions[type].tex);assert.ok(h.paragraphs[0].includes(T.definitions[type].explanation));}

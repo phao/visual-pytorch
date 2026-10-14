@@ -324,3 +324,4 @@ details.sub .sub-body{padding-bottom:calc(1.25 * var(--menu-unit))}
 
 /* Invalid drafts: located problem blocks and a clickable validity pill. */
 .validation-chip.locatable{cursor:pointer}
+.mlp-form{display:grid;gap:var(--menu-unit)}.mlp-form input,.mlp-form select{min-width:0;width:100%}.mlp-form .inline-actions{display:flex;gap:var(--menu-unit);justify-content:flex-end}

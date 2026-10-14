@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory() as directory:
     url=QUrl.fromLocalFile(str(Path(__file__).resolve().parents[1]/'app/web/index.html'));url.setFragment('model='+mid);view.setUrl(url);view.show()
     try:
         until('Boolean(window.loom?.document.view.fitted)')
-        assert js('[...document.getElementById("activation-select").options].map(o=>o.value)')==['GELU','ReLU','Sigmoid','Softmax','Tanh']
+        assert js('[...document.getElementById("activation-select").options].map(o=>o.value)')==['GELU','ReLU','Sigmoid','Softplus','Tanh','LogSoftmax','Softmax']  # one grouped list (vpbm R1)
         js('document.querySelector(".node.Linear").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}));document.getElementById("activation-select").value="Softmax";document.getElementById("add-activation").click()')
         until('window.loom.document.graph.nodes.some(n=>n.activation==="Softmax")');inspect()
         assert js('document.getElementById("softmax-dim").value')=='-1';native_axis(-1)

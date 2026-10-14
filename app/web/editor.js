@@ -9,6 +9,9 @@
   const snapEnabled = event => window.LoomPanels.snapEnabled(event,document.documentElement.dataset.gridSnap==='true');
   const floating = window.LoomPanels.initialize(document,()=>document.documentElement.dataset.menuGridSnap==='true');
   const activationInfo = window.LoomActivations.info;
+  // Building blocks and the Inspector share one grouped activation list.
+  $('activation-select').innerHTML=window.LoomActivations.options('ReLU');
+  $('mlp-activation').innerHTML=window.LoomActivations.options('Tanh');
   let host, state = {models: {}, recent: []}, doc = null, description = null;
   let selected = null, selectedPort = null, selectedWire = null, connecting = null, drag = null, panel = "experiment";
   let syncQueue = Promise.resolve(), describeGeneration = 0;
@@ -577,7 +580,7 @@
     } else if (n.type === "Reshape") {
       shapes.push(card([shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape)]));
     } else if (n.type === "Activation") {
-      E.push('<label class="inspect-label" for="node-activation">Activation</label><select id="node-activation"' + dis + '>' + Object.keys(activationInfo).sort().map(key => '<option' + (key === n.activation ? ' selected' : '') + '>' + key + '</option>').join('') + '</select>');
+      E.push('<label class="inspect-label" for="node-activation">Activation</label><select id="node-activation"' + dis + '>' + window.LoomActivations.options(n.activation, esc) + '</select>');
       if(['Softmax','LogSoftmax'].includes(n.activation)){
         const rank=s?.input_shape?.length,dim=n.dim??-1,axisName=rank?s?.output_axes?.[((dim%rank)+rank)%rank]:null;
         E.push('<label class="inspect-label" for="softmax-dim">Normalization axis · omit B'+(axisName?' ('+esc(axisName)+')':'')+'</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+dis+'>');
@@ -1419,6 +1422,27 @@
   $("add-model").onclick = async () => { const name = await nameDialog("New architecture"); if (name) safe("newModel", {name}); };
   $("rename-model").onclick = async () => { const name = await nameDialog("Rename architecture", doc.name, "Rename"); if (name) { doc.name = name; await persist(); renderLibrary(); } };
   $("add-linear").onclick = () => insertBlock("Linear");
+  // MLP: a compact form; builds ordinary Linear/activation blocks (vpbm).
+  $("add-mlp").onclick = () => {
+    const open=$("mlp-form").hidden;$("mlp-form").hidden=!open;$("add-mlp").setAttribute("aria-expanded",String(open));
+    if(open){$("mlp-error").textContent="";$("mlp-widths").focus();}
+  };
+  $("mlp-cancel").onclick = () => {$("mlp-form").hidden=true;$("add-mlp").setAttribute("aria-expanded","false");};
+  $("mlp-form").onsubmit = event => {
+    event.preventDefault();
+    if (!doc || busy()) return;
+    try {
+      const widths=G.parseWidths($("mlp-widths").value);
+      let after=node(selected),port=selectedPort;
+      if(after?.type==="Output"){const incoming=doc.graph.edges.find(e=>e.to===after.id);after=node(incoming?.from);port=incoming?.from_port||null;}
+      const inputWidth=after?G.tensorShape(after,shape(after),G.multiOutput(after)?(port||G.slots(after,true)[0]):null)?.at(-1)??null:null;
+      if(after&&G.multiOutput(after))port=port||G.slots(after,true)[0];
+      const result=G.addMLP(doc,{after:after?.id||null,port:after&&G.multiOutput(after)?port:null,inputWidth,widths,activation:$("mlp-activation").value});
+      selected=result.last;selectedPort=null;selectedWire=null;
+      $("mlp-form").hidden=true;$("add-mlp").setAttribute("aria-expanded","false");
+      invalidateRun();persist();toast("Added an MLP: "+(widths.length-1)+" Linear layers, "+result.blocks+" blocks.");
+    } catch(error){$("mlp-error").textContent=error.message;}
+  };
   $("add-reshape").onclick = () => insertBlock("Reshape");
   $("add-concat").onclick = () => insertBlock("Concat");
   $("add-add").onclick = () => insertBlock("Add");
@@ -1621,7 +1645,7 @@
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
   const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
-  const buildingGroups=[[$('activation-palette-group')],[$('reference-palette-group')],[$('add-add')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
+  const buildingGroups=[[$('activation-palette-group')],[$('mlp-palette-group')],[$('reference-palette-group')],[$('add-add')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   buildingGroups.sort((a,b)=>a.at(-1).querySelector('b').textContent.localeCompare(b.at(-1).querySelector('b').textContent));
   buildingGroups.flat().forEach(element=>library.insertBefore(element,boundaryHeading));

@@ -41,6 +41,7 @@ HELP_RESOURCES = {
     'pytorch-basics': 'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
     'pytorch-nn': 'https://docs.pytorch.org/docs/stable/nn.html',
     'torch.nn.Linear': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Linear.html',
+    'torch.nn.Sequential': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Sequential.html',
     'torch.nn.ReLU': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html',
     'torch.nn.Tanh': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Tanh.html',
     'torch.nn.Sigmoid': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Sigmoid.html',

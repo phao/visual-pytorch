@@ -26,5 +26,13 @@
       throw Error('Softmax/LogSoftmax axis is outside the sample dimensions; omit batch B.');
     return dim;
   }
-  return Object.freeze({info,tex,axis});
+  // One list for Building blocks and the Inspector. Softmax/LogSoftmax are activations in the
+  // broad sense but normalize a whole slice along an axis, so they form their own group.
+  const groups=Object.freeze([
+    Object.freeze({label:'Elementwise',names:Object.freeze(['GELU','ReLU','Sigmoid','Softplus','Tanh'])}),
+    Object.freeze({label:'Normalizing along an axis',names:Object.freeze(['LogSoftmax','Softmax'])}),
+  ]);
+  const options=(selected,escape=s=>s)=>groups.map(g=>'<optgroup label="'+escape(g.label)+'">'+
+    g.names.map(n=>'<option'+(n===selected?' selected':'')+'>'+escape(n)+'</option>').join('')+'</optgroup>').join('');
+  return Object.freeze({info,tex,axis,groups,options});
 });
