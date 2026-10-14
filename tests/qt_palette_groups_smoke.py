@@ -28,8 +28,9 @@ while not js('Boolean(window.LoomActivations && document.getElementById("add-ten
     assert time.monotonic()<deadline
     loop=QEventLoop();QTimer.singleShot(20,loop.quit);loop.exec()
 js('document.getElementById("welcome").hidden=true;document.getElementById("editor").hidden=false;document.getElementById("library-panel").hidden=false;')
-assert js('document.querySelectorAll("#library-panel .palette-group").length')==2
-assert js('Array.from(document.querySelector("#library-scroll .sidebar-section").children).filter(n=>n.matches(".palette-group,.palette")&&!n.classList.contains("compact-palette")).map(n=>n.querySelector("b").textContent).every((v,i,a)=>!i||a[i-1].localeCompare(v)<=0)')
+assert js('document.querySelectorAll("#library-panel .palette-group").length')==3  # activation, MLP, architecture reference
+# Alphabetical within each heading's section (headings themselves keep their fixed order).
+assert js('(()=>{const s=[[]];for(const n of document.querySelector("#library-scroll .sidebar-section").children){if(n.classList.contains("eyebrow"))s.push([]);else if(n.matches(".palette-group,.palette"))s.at(-1).push(n.querySelector("b").textContent)}return s.every(a=>a.every((v,i)=>!i||a[i-1].localeCompare(v)<=0))})()')
 assert js('!["add-linear","add-reshape","add-concat","add-input","add-output"].some(id=>document.getElementById(id).closest(".palette-group"))')
 checked=0
 for theme,tokens in THEMES.items():
@@ -37,7 +38,8 @@ for theme,tokens in THEMES.items():
     for font in (14,18,28):
         for spacing in (1,4,10):
             js(f'document.documentElement.style.setProperty("--ui-font-size","{font}px");document.documentElement.style.setProperty("--menu-unit","{spacing}px");')
-            result=js('''(()=>Array.from(document.querySelectorAll(".palette-group")).map(g=>{
+            # Select-then-button groups; the MLP group is a button that opens a form (checked in qt_mlp_block_smoke).
+            result=js('''(()=>Array.from(document.querySelectorAll(".palette-group[aria-labelledby]")).map(g=>{
                 const c=getComputedStyle(g),r=g.getBoundingClientRect(),s=g.querySelector("select"),b=g.querySelector("button"),sr=s.getBoundingClientRect(),br=b.getBoundingClientRect();
                 return {border:c.borderTopWidth,color:c.borderTopColor,line:getComputedStyle(document.documentElement).getPropertyValue("--line").trim(),padding:parseFloat(c.paddingTop),gap:parseFloat(c.rowGap),
                   contains:sr.left>=r.left&&sr.right<=r.right+.1&&br.left>=r.left&&br.right<=r.right+.1&&sr.top>=r.top&&br.bottom<=r.bottom+.1,
