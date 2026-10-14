@@ -1,4 +1,8 @@
-# Visual Torch Workspace (.vtw): format specification, version 32
+# Visual Torch Workspace (.vtw): format specification, version 33
+
+Container33 admits the simple pieces Patches1 and Reduce1 (ModelRevision11).
+Tables/columns are unchanged. Older headers and family templates refuse them;
+documents without them keep their content (Save writes the current header).
 
 Container32 admits controlled CausalLagWindow2/GaussianFilter2 and explicit
 PositiveVariance2 transforms, Model10/Family14/Specialization13. Tables/columns
@@ -53,10 +57,10 @@ Runtime recurrent execution is not implied by finite tied uses.
 
 Extension: .vtw; container: ordinary SQLite 3, not a ZIP or executable Python.
 metadata.format must equal visual-torch-workspace. New saves use
-PRAGMA user_version = 32. The current reader accepts versions 1–20,23–32;
+PRAGMA user_version = 33. The current reader accepts versions 1–20,23–33;
 opening an older supported file copies it into memory and upgrades the working
-version to 32. Opening alone never rewrites the source; explicit Save writes
-version 32. Versions 21/22 belong to the deliberately deferred execution branch
+version to 33. Opening alone never rewrites the source; explicit Save writes
+version 33. Versions 21/22 belong to the deliberately deferred execution branch
 and are not accepted by this reader. They must not be reinterpreted or reused.
 
 Other versions are rejected. Version28 adds LogSoftmax/Softplus, explicit-floor
@@ -446,6 +450,8 @@ Permute, not Reshape, changes axis order and values; Reshape discards axis names
 | AdaptiveAvgPool2d | output_size | Positive scalar/pair output H,W; channels preserved. [1,1] is global spatial average; PyTorch adaptive bin semantics, including overlapping bins. |
 | Flatten | start_dim=0; end_dim=-1 | Axes index SAMPLE dimensions, excluding B. Negative indices count from sample rank. Merge an ordered contiguous axis range; runtime nn.Flatten gets resolved sample axes plus 1. Batch never merged. |
 | Permute | dims | Permutation of sample axes 0..rank−1, excluding B. Runtime prepends batch axis 0 and shifts sample axes by 1. Example HWC→CHW: dims=[2,0,1]. |
+| Patches | kernel_size; stride=[1,1]; padding=[0,0]; dilation=[1,1] | Version 33. Needs [C,H,W] (axes C,H,W when named). Output [H_out,W_out,C·kH·kW], axes H,W,C: every zero-padded window, patch values last in (channel, kernel row, kernel column) order, i.e. `unfold` transposed. Same spatial formula as Conv2d; no parameters. Conv2d (groups 1) = Patches → Linear(out) → Permute [2,0,1] exactly. |
+| Reduce | mode=mean (max or mean); axis=-1 | Version 33. Maximum or mean over one sample axis (rank ≥ 2), which disappears with its name. No parameters. MaxPool2d (no padding) and AvgPool2d (count_include_pad) = Patches → Reshape [H_out,W_out,C,kH·kW] → Reduce → Permute [2,0,1]; global average = Reshape [C,H·W] → Reduce mean → Reshape [C,1,1]. |
 
 Shape contracts report propagated output_axes and operator constructor/kwargs,
 local parameters and weight_shape. Conv2d and averaging are affine for fixed

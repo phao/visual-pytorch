@@ -92,6 +92,13 @@ def _dependency_specification(models, mid, declared, *, temporal=False, temporal
                 guards.append({'path':location,'rule':'positive-spatial-output; NCHW'})
             elif kind == 'AdaptiveAvgPool2d': current[1:] = [frozenset(),frozenset()]
             elif kind == 'Permute': current = [before[d] for d in node['dims']]
+            elif kind == 'Patches':
+                # [C,H,W] -> [H_out, W_out, C*kH*kW]: the patch axis inherits the channel dependency.
+                current = [before[1], before[2], before[0]]
+                guards.append({'path':location,'rule':'positive-spatial-output; NCHW; patches-last'})
+            elif kind == 'Reduce':
+                dim = c['shapes'][nid]['operator']['kwargs']['dim'] - 1
+                current = before[:dim] + before[dim + 1:]
             elif kind == 'Flatten':
                 kwargs = c['shapes'][nid]['operator']['kwargs']; start,end = kwargs['start_dim']-1,kwargs['end_dim']-1
                 current = before[:start] + [merged(before[start:end+1])] + before[end+1:]

@@ -1,5 +1,15 @@
 # Agentic changelog
 
+## 2026-10-14 06:55 -03:00 — CNNs from simpler pieces
+
+Owner-approved (private campaign spec). Two new blocks: Patches (every kernel window of a C,H,W
+image as [H_out, W_out, C·kH·kW], patch values last) and Reduce (max or mean over one axis).
+Conv2d = Patches → Linear → Permute 2,0,1 and the exact pooling compositions are verified in
+values and gradients. Building blocks gains a READY-MADE · EXPAND INTO PIECES group (MLP, Conv2d,
+MaxPool2d, AvgPool2d, AdaptiveAvgPool2d); "Expand into simpler blocks" (Inspector, context menu)
+replaces a ready-made block by its pieces in one undo step, refusing inexact cases. Format 33,
+ModelRevision 11; family templates refuse the new blocks for now.
+
 ## 2026-10-14 02:31 -03:00 — Parallel test runner
 
 Added tools/run_tests_parallel.py (bounded, pinned workers; same results as sequential discover, about 2x faster on first run). No application code changed.

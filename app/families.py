@@ -19,6 +19,7 @@ FIELDS = {
     'MaxPool2d': {'kernel_size', 'stride', 'padding', 'dilation'},
     'AdaptiveAvgPool2d': {'output_size'}, 'Flatten': {'start_dim', 'end_dim'},
     'Permute': {'dims'}, 'Activation': {'dim'},
+    'Patches': {'kernel_size', 'stride', 'padding', 'dilation'}, 'Reduce': {'axis'},
     'LSTM': {'hidden_size', 'num_layers', 'proj_size'},
     'Constant': {'shape'}, 'TensorParameter': {'shape'},
     'CausalLagWindow': {'lags'},
@@ -28,7 +29,7 @@ CHOICE_FIELDS = {
     'Linear': {'bias': 'boolean'}, 'Conv2d': {'bias': 'boolean', 'padding_mode': 'enum'},
     'Activation': {'activation': 'enum'}, 'Concat': {'flatten': 'boolean'},
     'AvgPool2d': {'count_include_pad': 'boolean', 'ceil_mode': 'boolean'},
-    'MaxPool2d': {'ceil_mode': 'boolean'},
+    'MaxPool2d': {'ceil_mode': 'boolean'}, 'Reduce': {'mode': 'enum'},
     'LSTM': {'bias': 'boolean', 'bidirectional': 'boolean'},
 }
 TEMPLATE_FIELDS = dict(OPERATOR_FIELDS, Input={'features', 'shape', 'axes'},
@@ -237,6 +238,8 @@ def validate_family(doc):
         try:
             check_document(model)
             for node in model['graph']['nodes']:
+                require(node['type'] not in {'Patches', 'Reduce'},
+                        'Patches/Reduce are not yet available in family templates; use a concrete architecture.')
                 require(doc['version']>=14 or not (node['type'] in {'GaussianFilter','CausalLagWindow','PositiveVariance'} and node.get('op_version',1)==2),
                         'Controlled/logvariance operators require Family14.')
                 require(doc['version']>=13 or node['type']!='CausalLagWindow','Causal lag templates require explicit Family13.')

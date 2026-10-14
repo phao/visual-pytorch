@@ -16,7 +16,13 @@ Sigmoid, Softplus, Tanh) and Normalizing along an axis (LogSoftmax, Softmax). Th
 compact form: comma-separated layer widths (first = input width; `count*w` repeats a width) and one
 activation placed after every hidden Linear, none after the readout. After a selection the first
 width must equal its output width; with nothing selected it adds Input [n0] → chain → Output.
-It creates ordinary, editable Linear/Activation blocks in one undo step. One floating
+It creates ordinary, editable Linear/Activation blocks in one undo step.
+Simple pieces (including Patches and Reduce) stay in the alphabetical list; a labelled group
+READY-MADE · EXPAND INTO PIECES holds AdaptiveAvgPool2d, AvgPool2d, Conv2d, MaxPool2d and MLP.
+"Expand into simpler blocks" (Inspector essentials and the block context menu) replaces a wired
+Conv2d (groups 1) or pooling block by its exact pieces in one undo step, keeping every wire and
+Concat/Add source; inexact cases (grouped convolution, padded max pooling, average pooling that
+excludes padding, adaptive output other than 1, 1) and shared/policy-bound blocks are refused. One floating
 vertical PANELS pack independently opens/hides each. Click its icon to hide all
 menus and shrink the pack. Double-click the compact icon, or focused Enter/Space,
 restores only the menu buttons. Palettes are arbitrary rectangles, not fixed sidebars.

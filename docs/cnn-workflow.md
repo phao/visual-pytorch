@@ -26,6 +26,14 @@ entries are alphabetical with type icons and explanatory tooltips. Choose
 Spatial Conv2d teacher (or Auto for eligible CNNs), generate data and train.
 Arbitrary student graphs are not promised to represent this teacher exactly.
 
+The same network can be built from simpler pieces, with the same values and
+gradients: Conv2d = Patches → Linear → Permute 2,0,1 (Patches lists every
+window as [H_out, W_out, C·kH·kW]; the Linear acts on each patch), pooling =
+Patches → Reshape → Reduce max/mean → Permute, global average = Reshape →
+Reduce mean → Reshape. Ready-made blocks expand into these pieces in place
+(Inspector or context menu). tests/test_cnn_pieces.py checks the equalities;
+tests/qt_cnn_pieces_smoke.py builds, trains, exports and expands in the app.
+
 Inspector displays input/output sizes, axes, weight shape and spatial-size
 formula. Flatten and Permute index sample axes, never B. HWC data needs Permute
 [2,0,1], not Reshape. Compact Conv2d blocks retain channel/kernel summaries and

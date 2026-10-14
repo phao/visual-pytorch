@@ -1,5 +1,20 @@
 # Development state and roadmap
 
+## 2026-10-14 06:55 -03:00 — CNNs from simple pieces (Patches, Reduce, expand)
+
+- Operators Patches/Reduce (op_version 1) with shape rules, runtime classes and standalone export
+  (`_Patches` = `F.unfold` → transpose → reshape; `_Reduce` = amax/mean). Patches output axes are
+  H,W,C (not a new name) so Linear keeps them and Permute 2,0,1 restores C,H,W for the next conv.
+- Container 33 / ModelRevision 11 fence; families refuse templates using the pieces (later work).
+  The captured family runtime imports PIECE_OPERATORS (missed at first; caught by the full suite).
+- `LoomGraph.expandBlock` (pure, Node-tested) for Conv2d (groups 1), MaxPool2d (no padding),
+  AvgPool2d (count_include_pad), AdaptiveAvgPool2d (1,1); refuses shared/policy-bound blocks.
+- Checks: tests/test_cnn_pieces.py (unfold grid, conv values/gradients, pooling, export, fences);
+  tests/expand-block.test.js; tests/qt_cnn_pieces_smoke.py (palette build, Experiment training,
+  export, expansion equal shapes/parameters, undo/redo, result invalidation). JS 385/385; Python
+  1704 tests (6 skipped) pass after the fix; Qt smokes: same 10 pre-existing failures as baseline.
+- Open: Unfold-style "fold" counterpart, Patches in family templates, multi-port summary line.
+
 ## 2026-10-14 02:31 -03:00 — Parallel test runner
 
 `tools/run_tests_parallel.py`: one test module per process (same module names and PYTHONPATH as

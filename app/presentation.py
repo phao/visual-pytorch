@@ -87,7 +87,7 @@ def block_parameter_counts(model, contract, interfaces):
         elif kind=='Recurrent':count=shape['recurrent']['contract']['parameters']
         elif kind=='LSTM':count=shape['lstm']['parameters']
         elif kind in {'Input','Output','Activation','Reshape','Concat','Add','Scale','Splitter','Replicator',
-                       'Flatten','Permute','MaxPool2d','AvgPool2d','AdaptiveAvgPool2d'}:count=0
+                       'Flatten','Permute','MaxPool2d','AvgPool2d','AdaptiveAvgPool2d','Patches','Reduce'}:count=0
         else:raise ValueError('Parameter sizing is not implemented for '+kind+'.')
         if 'parameter_owner' in shape:count=0
         if type(count) is not int or count<0:raise ValueError('Parameter counts must be nonnegative integers.')

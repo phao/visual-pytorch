@@ -17,13 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .memory import (DEFAULT_MEMORY_LIMIT_PERCENT, memory_percent, available_memory,
                      estimate_memory, format_bytes)
-from .operators import ARITHMETIC_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
+from .operators import ARITHMETIC_OPERATORS, PIECE_OPERATORS, PROBABILITY_OPERATORS, BLOCK_TYPES, TENSOR_OPERATORS, SOURCE_TYPES, LAYER_TYPES, REFERENCE_TYPES, normalized, axes_for, constructor_code
 from .activations import ACTIVATIONS, activation_name, normalize_activation, softmax_axis
 from .activations import constructor_code as activation_constructor_code
 
 FORMAT = "visual-torch-workspace"
-VERSION = 32
-SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31,32}
+VERSION = 33
+SUPPORTED_VERSIONS = frozenset(range(1, 21)) | {23, 24, 25, 26, 27,28,29,30,31,32,33}
 MAX_INTEGER = 2**53 - 1  # Exact round-trip through the JavaScript editor.
 
 
@@ -633,6 +633,13 @@ class Workspace:
             if version < 26 and w.db.execute("SELECT 1 FROM spec_revisions WHERE kind='parameter-derivation' LIMIT 1").fetchone():
                 raise GraphError('Parameter-derivation specifications require a version-26 container.')
             validate_all(w.db,cache=w.history.registry_validation,force=True)
+            if version < 33:
+                from .revisions import _parse
+                if any(n['type'] in PIECE_OPERATORS for m in loaded.values() for n in m['graph']['nodes']):
+                    raise GraphError('Patches/Reduce drawings require a version-33 container.')
+                for kind,text in w.db.execute("SELECT kind,document FROM spec_revisions WHERE kind='model'"):
+                    if _parse(text)['version'] >= 11:
+                        raise GraphError('Patches/Reduce model revisions require a version-33 container.')
             if version < 32:
                 from .revisions import _parse
                 if any(n['type'] in PROBABILITY_OPERATORS and n.get('op_version',1)==2 for m in loaded.values() for n in m['graph']['nodes']):
@@ -922,6 +929,9 @@ def generate_code(models, model_id):
         lines.append(runtime_source())
         lines.extend(['from pathlib import Path', inspect.getsource(memory_percent),
                       inspect.getsource(available_memory), inspect.getsource(_source_batch_admission)])
+    if any(n['type'] in PIECE_OPERATORS for m in models.values() for n in m['graph']['nodes']):
+        from .operators import RUNTIME_SOURCE
+        lines.append(RUNTIME_SOURCE)
     if any(n['type']=='PositiveVariance' for m in models.values() for n in m['graph']['nodes']):
         from .positive_variance import runtime_source
         lines.extend(['_variance_namespace = {}',f'exec({runtime_source()!r}, _variance_namespace)',
@@ -1131,7 +1141,11 @@ def compile_model(models, mid, constrained=True, *, memory_limit_percent=DEFAULT
             kwargs = dict(spec['kwargs'])
             if 'dtype' in kwargs:
                 kwargs['dtype'] = torch.float32
-            layer = (Permute if node['type'] == 'Permute' else getattr(nn, spec['constructor']))(**kwargs)
+            if node['type'] in PIECE_OPERATORS:
+                from .operators import runtime_classes
+                layer = dict(zip(('Patches', 'Reduce'), runtime_classes(torch, nn)))[node['type']](**kwargs)
+            else:
+                layer = (Permute if node['type'] == 'Permute' else getattr(nn, spec['constructor']))(**kwargs)
         elif node['type'] == 'Recurrent':
             from .recurrent import _runner_class
             c = contract['shapes'][node['id']]['recurrent']['contract']
