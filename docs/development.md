@@ -1,5 +1,13 @@
 # Development state and roadmap
 
+## 2026-10-14 07:40 -03:00 — Palette sections fixed
+
+- Sorted building groups are inserted before the TENSOR SOURCES heading (was: before NAMED
+  BOUNDARIES, i.e. under PROBABILITY COMPONENTS). Found while surveying the palette for lesson 5.
+- qt_palette_groups_smoke was a baseline failure for this reason; it now checks alphabetical order
+  within each heading's section, three groups (activation, MLP, reference), and passes.
+  qt_cnn_pieces_smoke asserts the section contents.
+
 ## 2026-10-14 06:55 -03:00 — CNNs from simple pieces (Patches, Reduce, expand)
 
 - Operators Patches/Reduce (op_version 1) with shape rules, runtime classes and standalone export

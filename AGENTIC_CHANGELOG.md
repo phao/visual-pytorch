@@ -1,5 +1,11 @@
 # Agentic changelog
 
+## 2026-10-14 07:40 -03:00 — Building blocks under the right heading
+
+The alphabetical Building blocks list was inserted after the Tensor sources and Probability
+components sections, so Activation…Scale appeared under "PROBABILITY COMPONENTS". They now sit
+under BUILDING BLOCKS, followed by READY-MADE, TENSOR SOURCES, PROBABILITY COMPONENTS, NAMED BOUNDARIES.
+
 ## 2026-10-14 06:55 -03:00 — CNNs from simpler pieces
 
 Owner-approved (private campaign spec). Two new blocks: Patches (every kernel window of a C,H,W

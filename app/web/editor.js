@@ -1657,7 +1657,8 @@
     if(description){button.title=description;button.setAttribute('aria-label',name+'. '+description);}
   });
   // Sort only browsing groups. Never reorder graph nodes, tensor ports or recents.
-  const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-input').previousElementSibling;
+  // Building blocks end where the Tensor sources heading starts (not at Named boundaries, which would put them under other headings).
+  const library=document.querySelector('#library-scroll .sidebar-section'),boundaryHeading=$('add-constant').previousElementSibling;
   const buildingGroups=[[$('activation-palette-group')],[$('mlp-palette-group')],[$('reference-palette-group')],[$('add-add')],[$('add-concat')],[$('add-linear')],[$('add-lstm')],[$('add-reshape')],
     ...[...$('tensor-palette').children].map(button=>[button])];
   // Simple pieces first; blocks that expand into pieces form the Ready-made group (vpcc decision 5).

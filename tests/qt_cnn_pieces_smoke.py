@@ -119,6 +119,11 @@ with tempfile.TemporaryDirectory() as folder:
         until('Boolean(window.loom?.document && document.querySelector(".node"))')
         js('document.querySelector("[data-open-panel=library-panel]").click()')
         assert js('document.getElementById("ready-made-heading").textContent') == 'READY-MADE · EXPAND INTO PIECES'
+        headings = js('JSON.stringify([...document.querySelector("#library-scroll .sidebar-section").children].filter(e=>e.classList.contains("eyebrow")||e.matches(".palette,.palette-group")).map(e=>e.classList.contains("eyebrow")?"#"+e.textContent:e.querySelector("b").textContent))')
+        headings = json.loads(headings); section = lambda h: headings[headings.index(h) + 1:next(i for i, x in enumerate(headings) if x.startswith('#') and i > headings.index(h))]
+        assert section('#BUILDING BLOCKS')[:3] == ['Activation', 'Add', 'Architecture reference'] and 'Patches' in section('#BUILDING BLOCKS'), headings
+        assert section('#READY-MADE · EXPAND INTO PIECES') == ['AdaptiveAvgPool2d', 'AvgPool2d', 'Conv2d', 'MaxPool2d', 'MLP'], headings
+        assert section('#TENSOR SOURCES') == ['Constant', 'Tensor parameter'] and section('#PROBABILITY COMPONENTS') == ['Gaussian filter'], headings
         # Pieces: Input [1,6,5] -> Patches 3x3 -> Linear 3 -> Tanh -> Reshape 12,3 -> Permute 1,0 -> Reduce mean -> linear1 -> Output.
         inspect('input')
         add('[data-tensor-type=Patches]', 'Patches')
