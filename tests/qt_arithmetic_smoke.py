@@ -77,7 +77,7 @@ with tempfile.TemporaryDirectory() as td:
         until('window.loom.document.graph.nodes.find(n=>n.id==='+json.dumps(add)+').sources.length===2')
         until('document.getElementById("validation-message").textContent.includes("Valid")')
         c=validate_model(h.workspace.models(),'arithmetic');assert c['parameters']==6
-        inspect(add);assert js('document.getElementById("inspector-content").textContent.includes("No broadcasting")')
+        inspect(add);assert js('window.LoomBlockHelp.describe("add-add").paragraphs.join(" ").includes("No broadcasting")')  # prose moved to About (R2)
         assert not js('Boolean(document.getElementById("flatten-concat"))')
         assert js('document.querySelector(".node[data-id=sum] .node-params").textContent.includes("0 params")')
         h.workspace.save(folder/'final.vtw');loaded=Workspace.load(folder/'final.vtw')

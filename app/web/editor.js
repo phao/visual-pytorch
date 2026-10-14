@@ -554,8 +554,8 @@
     } else if (n.type === "Activation") {
       E.push('<label class="inspect-label" for="node-activation">Activation</label><select id="node-activation"' + dis + '>' + Object.keys(activationInfo).sort().map(key => '<option' + (key === n.activation ? ' selected' : '') + '>' + key + '</option>').join('') + '</select>');
       if(['Softmax','LogSoftmax'].includes(n.activation)){
-        const rank=s?.input_shape?.length,dim=n.dim??-1;
-        E.push('<label class="inspect-label" for="softmax-dim">Normalization axis · omit B</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+dis+'>');
+        const rank=s?.input_shape?.length,dim=n.dim??-1,axisName=rank?s?.output_axes?.[((dim%rank)+rank)%rank]:null;
+        E.push('<label class="inspect-label" for="softmax-dim">Normalization axis · omit B'+(axisName?' ('+esc(axisName)+')':'')+'</label><input id="softmax-dim" class="inspect-input" type="number" min="'+(rank?-rank:-8)+'" max="'+(rank?rank-1:7)+'" step="1" value="'+esc(dim)+'"'+dis+'>');
       }
       shapes.push(card([shapeText(s?.input_shape)+' → '+shapeText(s?.output_shape),'0 trainable parameters']));
     } else if (["Concat","Add"].includes(n.type)) {

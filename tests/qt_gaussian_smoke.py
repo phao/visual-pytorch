@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory() as temporary:
         assert js('document.querySelectorAll(".node[data-id=tensor] .port-out").length')==1
         inspect('tensor');until('Boolean(document.getElementById("parameter-policy-editor")?.textContent.includes("value"))')
         assert js('document.getElementById("sample-shape").value')=='2'
-        assert js('document.getElementById("inspector-content").textContent.includes("One tensor owner")')
+        assert js('window.LoomBlockHelp.describe("add-tensor-parameter").paragraphs.join(" ").includes("Every batch observation sees the same owner")')  # prose moved to About (R2)
         js('document.activeElement?.blur();document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"b",bubbles:true}))')
         until('!document.getElementById("library-panel").hidden')
         click('#add-constant')
@@ -115,7 +115,7 @@ with tempfile.TemporaryDirectory() as temporary:
         assert js('document.querySelectorAll(".node[data-id='+self_id+'] .port-in").length')==6
         assert js('document.querySelectorAll(".node[data-id='+self_id+'] .port-out").length')==4
         inspect(self_id);until('Boolean(document.getElementById("gaussian-config"))')
-        assert js('document.getElementById("inspector-content").textContent.includes("before the first transition")')
+        assert js('window.LoomBlockHelp.describe("add-gaussian").paragraphs.join(" ").includes("before the first transition")')  # prose moved to About (R2)
         # The backend refuses incompatible role shapes without touching SQLite.
         before=h.workspace.db.serialize()
         js('(()=>{const e=document.getElementById("gaussian-config"),v=JSON.parse(e.value);v.mean_mode="sequence";e.value=JSON.stringify(v);document.getElementById("apply-gaussian-config").click();})()')

@@ -6,7 +6,11 @@ The portable design contract for reuse in other projects is
 
 ## Menus and independent layers
 
-Architectures, Building blocks, Experiment, Inspector and Layout start hidden. One floating
+Architectures, Building blocks, Experiment, Export, Help, Inspector and Layout start hidden.
+Export (key X) shows the open architecture's PyTorch source, read-only and theme-highlighted,
+with scoped Ctrl+A, Copy (system clipboard) and Save as .py; its SVG tab is a placeholder.
+Building blocks no longer offers Replicator (one output socket can feed any number of wires);
+existing Replicators still load, inspect and run. One floating
 vertical PANELS pack independently opens/hides each. Click its icon to hide all
 menus and shrink the pack. Double-click the compact icon, or focused Enter/Space,
 restores only the menu buttons. Palettes are arbitrary rectangles, not fixed sidebars.
