@@ -1,5 +1,15 @@
 # Development state and roadmap
 
+## 2026-10-14 02:31 -03:00 — Parallel test runner
+
+`tools/run_tests_parallel.py`: one test module per process (same module names and PYTHONPATH as
+discover), 4 workers x 2 CPUs by default, one logical CPU per physical core (8 total), one thread
+per numeric library, per-worker TMPDIR, slowest modules first from saved timings, per-module logs in
+`.scratch/test-runs/`. First full run on this machine: 1693 tests / 151 modules / 6 skipped / 0 failed,
+identical to sequential discover, 542 s wall against 1115 s (about 2x; one notebook module takes 362 s
+and started late without timing history). Pure parts covered by tests/test_run_tests_parallel.py.
+Qt-only tests still need the Qt interpreter, as with discover.
+
 ## 2026-10-14 02:08 -03:00 — Grouped activations and MLP block
 
 graph-tools parseWidths/addMLP (pure); activations.groups/options build both selects. Checks: full

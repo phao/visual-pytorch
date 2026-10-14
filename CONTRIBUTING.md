@@ -26,6 +26,15 @@ QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
 QT_QPA_PLATFORM=offscreen python -m tests.qt_worker_smoke
 ```
 
+The Python suite is dominated by processes it starts (workers, notebook kernels), so on Linux it can
+also run in parallel, one test module per process, pinned to a bounded set of CPUs (default 4
+workers × 2 CPUs, one logical CPU per physical core, one thread per numeric library):
+
+```sh
+python tools/run_tests_parallel.py                  # whole suite
+python tools/run_tests_parallel.py test_core        # chosen modules
+```
+
 Do not disable the Chromium sandbox to make tests pass. Qt system packages and
 offscreen rendering support vary by platform; report unavailable checks rather
 than claiming they passed. Use temporary private files/profiles, bounded fits and

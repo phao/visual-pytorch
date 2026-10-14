@@ -1,5 +1,9 @@
 # Agentic changelog
 
+## 2026-10-14 02:31 -03:00 — Parallel test runner
+
+Added tools/run_tests_parallel.py (bounded, pinned workers; same results as sequential discover, about 2x faster on first run). No application code changed.
+
 ## 2026-10-14 02:08 -03:00 — One activation list and an MLP building block
 
 Owner-approved (private campaign spec). Building blocks and the Inspector share one list of all
