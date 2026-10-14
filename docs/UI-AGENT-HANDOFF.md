@@ -125,8 +125,8 @@ The collapsed icon remains the event/click target during drag so browser
 double-click recognition survives. Dragging it must not leave fixed 42px dimensions
 on the expanded pack. Clear compact width/height before restoring natural size.
 
-Current pack menus are Architectures, Building blocks, Experiment, Inspector and Layout,
-in alphabetical browsing order.
+Current pack menus are Architectures, Building blocks, Experiment, Export, Help, Inspector and Layout,
+in alphabetical browsing order. Export and Help geometry is session-only (not in saved presets).
 Only their labels/content are domain-specific. There is no architectural reason
 to limit other projects to five menus. Each menu must have exactly one launcher
 binding. Menus are rectangles: they can be wide/horizontal, not mandatory sidebars.
@@ -332,7 +332,17 @@ shows A [d_out,d_in], and either b [d_out] or Bias off · no b. Do not imply tha
 non-bias operations contain bias or collapse a module's heterogeneous internals
 into one misleading bias flag.
 
-Inspector is a selected-block view: its forward-contract footer must not display
+Inspector is essentials-first. Order: header (display name, type, About button), a folded
+Forward contract, the essentials (fields that define the computation plus one summary line
+`[B, n] → [B, k] · N parameters`), then folded sub-panels in a fixed order: Shapes & parameters,
+Axis names, Ports & bindings, Parameter sharing, Parameter policy, Advanced configuration; each
+appears only when relevant. Fold state is remembered per sub-panel for the session only (no
+persist, undo or dirty flag). The Inspector holds no explanatory prose (it lives on About pages,
+which link to PyTorch documentation opened in the system browser through a host allow-list) and
+shows no internal block IDs: other blocks are named by display name (e.g. `Linear 3 → 4`, `(2)` on ties).
+Input/Output boxes show exactly their port name (label, else port ID).
+
+Inspector is a selected-block view: its forward contract must not display
 the whole architecture's parameter total. Keep relevant selected-layer contracts
 and local counts. Architecture totals belong in architecture bookkeeping and the
 status bar, not a misleading global statistic beneath the selected block.
@@ -657,7 +667,7 @@ token source for native and web backgrounds, controls, text, accents and node
 fills. Platform title bars/file choosers may retain OS styling. Palette tests
 are not a full contrast/accessibility audit.
 
-I/A/B/E/H toggle Inspector/Architectures/Building blocks/Experiment/Help, ignoring
+I/A/B/E/H/X toggle Inspector/Architectures/Building blocks/Experiment/Help/Export, ignoring
 editable fields, modified/repeated keys and modal dialogs. Panel shortcuts also
 leave focused buttons, links, disclosure controls and ARIA controls alone.
 Help is a regular floating, draggable, resizable panel with a short drawing guide

@@ -17,6 +17,7 @@
   <script src="tensor-operators.js" defer></script>
   <script src="activations.js" defer></script>
   <script src="building-block-help.js" defer></script>
+  <script src="python-highlight.js" defer></script>
   <script src="parameter-policy.js" defer></script>
   <script src="parameter-binding.js" defer></script>
   <script src="notifications.js" defer></script>
@@ -69,7 +70,7 @@
   <main id="editor" class="editor" hidden>
     <nav id="menu-pack" class="menu-pack" aria-label="Floating panel menus">
       <div class="pack-heading"><span class="pack-grip" title="Drag menu pack">PANELS</span><button id="pack-toggle" aria-label="Shrink menu pack" aria-expanded="true" aria-controls="pack-menus" title="Shrink to one icon · double-click icon to restore"><svg class="panel-pack-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5V3h13v13h-2"/><rect x="3" y="8" width="13" height="13" rx="2"/><path d="M3 12h13"/><path d="M6 10h1"/></svg></button></div>
-      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="help-panel" aria-controls="help-panel" aria-expanded="false" title="Help · H"><span>?</span>Help</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
+      <div id="pack-menus"><button data-open-panel="architectures-panel" aria-controls="architectures-panel" aria-expanded="false"><span>▣</span>Architectures</button><button data-open-panel="library-panel" aria-controls="library-panel" aria-expanded="false"><span>ƒ</span>Building blocks</button><button data-open-panel="experiment-dock" aria-controls="experiment-dock" aria-expanded="false"><span>↗</span>Experiment</button><button data-open-panel="export-panel" aria-controls="export-panel" aria-expanded="false" title="Export · X"><span>⤓</span>Export</button><button data-open-panel="help-panel" aria-controls="help-panel" aria-expanded="false" title="Help · H"><span>?</span>Help</button><button data-open-panel="inspector-panel" aria-controls="inspector-panel" aria-expanded="false"><span>ƒ</span>Inspector</button><button data-open-panel="layout-panel" aria-controls="layout-panel" aria-expanded="false"><span>⋈</span>Layout</button></div>
     </nav>
     <aside id="library-panel" class="library floating-panel" hidden>
       <div class="floating-heading" data-drag-handle><span>BUILDING BLOCKS</span><div class="panel-controls"><button data-expand-panel aria-label="Expand building blocks" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide building blocks" aria-expanded="true" aria-controls="library-scroll" title="Hide">×</button></div></div>
@@ -93,8 +94,7 @@
       <div class="eyebrow">NAMED BOUNDARIES</div>
       <button id="add-input" class="palette compact-palette"><span class="type-symbol blue-text">x</span><span><b>Input part</b><small>Independent named input path</small></span></button>
       <button id="add-output" class="palette compact-palette"><span class="type-symbol mint-text">ŷ</span><span><b>Output</b><small>Expose the selected tensor as a named output</small></span></button>
-      <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button>
-      <button id="add-replicator" class="palette compact-palette"><span class="type-symbol amber-text">⇉</span><span><b>Replicator</b><small>Expose the full tensor on two ports without copying it</small></span></button></div>
+      <button id="add-splitter" class="palette compact-palette"><span class="type-symbol amber-text">↣</span><span><b>Splitter</b><small>Partition the selected tensor's last axis into separate paths</small></span></button></div>
       </div>
     </aside>
 
@@ -182,11 +182,19 @@
         </article>
       </div>
     </aside>
+    <aside id="export-panel" class="export-panel floating-panel" aria-labelledby="export-title" hidden>
+      <div class="floating-heading" data-drag-handle><span id="export-title">EXPORT</span><div class="panel-controls"><button data-expand-panel aria-label="Expand export" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Hide export" aria-controls="export-scroll" title="Hide">×</button></div></div>
+      <div class="export-tabs" role="tablist" aria-label="Export formats"><button data-export-tab="pytorch" role="tab" aria-selected="true" class="active">PyTorch</button><button data-export-tab="svg" role="tab" aria-selected="false">SVG</button></div>
+      <div id="export-scroll" class="scrollport">
+        <section id="export-pytorch" class="export-tab" role="tabpanel"><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><span class="inline-actions"><button id="export-copy" type="button">Copy</button><button id="export-code" type="button">Save as .py…</button></span></div><pre id="export-source" class="code-view" tabindex="0" role="textbox" aria-readonly="true" aria-multiline="true" aria-label="PyTorch source"></pre></section>
+        <section id="export-svg" class="export-tab" role="tabpanel" hidden><p class="inspect-note">SVG export: not yet available.</p></section>
+      </div>
+    </aside>
 
     <section class="workarea">
       <div class="canvas-container"><svg id="canvas" role="img" aria-label="Editable neural-network graph" tabindex="0"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#26384b"/></pattern><marker id="wire-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6da7ce"/></marker></defs><rect width="100%" height="100%" fill="url(#dots)"/><g id="viewport"><g id="wires"></g><g id="nodes"></g><path id="pending-wire" class="wire pending" hidden/><g id="wire-handles"></g></g></svg><div id="validation-message" class="validation-chip">Checking graph…</div></div>
       <div id="experiment-dock" class="bottom-panel floating-panel" hidden>
-        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="code">PyTorch forward</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
+        <div class="panel-tabs" data-drag-handle><button data-panel="experiment" class="active">Experiment</button><button data-panel="results">Learned parameters</button><button data-panel="science">Experiments &amp; history</button><span class="panel-context" id="panel-context">CPU · full-batch Adam · MSE</span><div class="panel-controls"><button data-expand-panel aria-label="Expand experiment panel" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold experiment panel" aria-expanded="true" aria-controls="experiment-scroll" title="Fold / unfold">−</button></div></div>
         <div id="experiment-scroll" class="scrollport">
         <div id="experiment-panel" class="experiment panel-content">
           <section class="data-section"><div class="section-line"><h3>1. Prepare x, y data</h3><span id="data-status" class="muted">No dataset yet</span></div>
@@ -195,7 +203,6 @@
           <section class="train-section"><div class="section-line"><h3>2. Learn the model</h3><span id="training-state" class="muted">Ready when data is loaded</span></div><div class="inline-fields"><label>Epochs<input id="epochs" type="number" min="1" value="400"></label><label>Learning rate<input id="learning-rate" type="number" min=".000001" max="1" step=".01" value=".03"></label></div><div class="inline-actions"><button id="train" class="primary">▶ Train model</button><button id="stop" hidden>Stop</button><span id="loss-value" class="metric">—</span></div><p class="tiny">Seeded shuffled 80/20 split · MSE regression · one CPU worker thread. Output copies do not duplicate loss terms.</p><details class="safety-details"><summary id="safety-summary">Workspace run safety</summary><div id="safety-notice" role="status"></div><p id="safety-rules" class="tiny"></p></details></section>
           <section class="loss-section"><div class="section-line"><h3>Loss</h3><span class="tiny">log scale · train + held-out</span></div><svg id="loss-plot" viewBox="0 0 300 120" aria-label="Training and held-out loss curves"></svg><div class="plot-legend"><span class="mint-text">— training</span><span class="blue-text">— held-out</span></div></section>
         </div>
-        <div id="code-panel" class="panel-content code-panel" hidden><div class="code-bar"><span>Architecture template · fresh weights, not the trained checkpoint</span><button id="export-code">Export template .py…</button></div><pre id="code"></pre></div>
         <div id="results-panel" class="panel-content results-panel" hidden><div id="results">Train a model to inspect its learned A and b.</div></div>
         <div id="science-panel" class="panel-content" hidden>
           <div class="inline-actions"><button id="science-author-new-family" title="Use the current valid drawing as a concrete seed, without changing it">New architecture family</button><button id="science-author-new">New dataset</button><button id="science-author-new-task">New task</button><button id="science-author-new-experiment">New experiment</button><button id="science-author-edit">Edit selected revision</button></div>
@@ -274,7 +281,7 @@
       </div>
     </section>
 
-    <aside id="inspector-panel" class="inspector floating-panel" hidden><div class="floating-heading" data-drag-handle><span>INSPECTOR <small id="node-kind" class="muted">Linear</small></span><div class="panel-controls"><button data-expand-panel aria-label="Expand inspector" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold inspector" aria-expanded="true" aria-controls="inspector-scroll" title="Fold / unfold">−</button></div></div><div id="inspector-scroll" class="scrollport"><div id="inspector-content"></div><div class="inspector-bottom"><div class="eyebrow">FORWARD CONTRACT</div><div id="equation" class="equation">y = Ax + b</div><p id="contract-explanation" class="tiny">PyTorch batches are rows. Tensor features use dimension 1.</p></div></div></aside>
+    <aside id="inspector-panel" class="inspector floating-panel" hidden><div class="floating-heading" data-drag-handle><span>INSPECTOR <small id="node-kind" class="muted">Linear</small></span><div class="panel-controls"><button data-expand-panel aria-label="Expand inspector" title="Expand / restore">⤢</button><button data-fold-panel aria-label="Fold inspector" aria-expanded="true" aria-controls="inspector-scroll" title="Fold / unfold">−</button></div></div><div id="inspector-scroll" class="scrollport"><div id="inspector-header" class="inspector-header"></div><details id="contract-details" class="sub" data-sub="contract" hidden><summary>Forward contract</summary><div class="sub-body"><div id="equation" class="equation">y = Ax + b</div></div></details><div id="inspector-content"></div></div></aside>
   </main>
 
   <footer><div><span class="status-dot"></span><span id="status">Connecting to desktop…</span></div><span id="runtime">Visual Torch Workspace</span></footer>

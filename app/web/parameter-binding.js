@@ -9,7 +9,6 @@
   function attach(container,owner,services){
     const document=container.ownerDocument,create=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
     const details=create('details');details.dataset.parameterSource='true';details.append(create('summary','Retained checkpoint tensor'));
-    details.append(create('p','Copies initial float32 values, preserving trainability. Not optimizer resume.','inspect-note'));
     function field(text,input){const label=create('label',text);label.className='inspect-label';label.append(input);details.append(label);return input;}
     const run=field('Exact run revision',create('select'));run.dataset.bindingRun='true';
     const attempt=field('Explicit attempt number',create('input'));attempt.type='number';attempt.min='1';attempt.step='1';attempt.placeholder='Choose explicitly';attempt.dataset.bindingAttempt='true';

@@ -46,7 +46,7 @@ def build_context_menu(view, window, block=None):
     for label,command in sorted([
         ("Fit graph","fit"),("Validate architecture","validate"),
         ("Architectures panel","architectures"),("Building blocks panel","library"),("Inspector panel","inspector"),
-        ("Experiment panel","experiment"),("PyTorch forward","code"),
+        ("Experiment panel","experiment"),("Export panel","export"),
         ("Layout panel","layout"),
         ("Learned parameters","results"),("Reset floating menus","reset-panels"),
     ], key=lambda item:item[0].casefold()):

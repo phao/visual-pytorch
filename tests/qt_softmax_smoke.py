@@ -61,10 +61,10 @@ with tempfile.TemporaryDirectory() as directory:
         js('document.querySelector(".node.Linear").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}));document.getElementById("activation-select").value="Softmax";document.getElementById("add-activation").click()')
         until('window.loom.document.graph.nodes.some(n=>n.activation==="Softmax")');inspect()
         assert js('document.getElementById("softmax-dim").value')=='-1';native_axis(-1)
-        assert js('document.getElementById("inspector-content").textContent.includes("PyTorch dim = 2 (Class)")')
-        assert js('document.getElementById("inspector-content").textContent.includes("Cross-entropy expects raw logits")')
+        assert js('document.querySelector("label[for=softmax-dim]").textContent.includes("(Class)")')  # resolved axis name kept as data
+        assert js('window.LoomBlockHelp.describe("add-activation",{activation:"Softmax"}).paragraphs.join(" ").includes("Cross-entropy expects raw logits")')  # prose moved to About (R2)
         js('document.getElementById("softmax-dim").value="0";document.getElementById("softmax-dim").dispatchEvent(new Event("change"))')
-        native_axis(0);until('document.getElementById("inspector-content").textContent.includes("PyTorch dim = 1 (Position)")')
+        native_axis(0);until('document.querySelector("label[for=softmax-dim]").textContent.includes("(Position)")')
         c=validate_model(h.workspace.models(),mid);assert c['output_shape']==[2,3];assert c['parameters']==12
         assert 'nn.Softmax(dim=1)' in generate_code(h.workspace.models(),mid)
         for bad in ('2','-3','1.5',''):

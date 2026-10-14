@@ -1,5 +1,15 @@
 # Agentic changelog
 
+## 2026-10-14 00:06 -03:00 — Essentials-first Inspector, port-name boxes, Export panel
+
+Owner-approved redesign (private campaign spec). Inspector: header with About, folded Forward
+contract, essentials with a summary line, folded sub-panels in a fixed order, session fold memory,
+no prose and no internal IDs (prose moved to About pages, which now link to PyTorch docs opened in
+the system browser via a host allow-list). Input/Output boxes show their port name; GUI-created
+architectures start with "Input x" / "Prediction ŷ". New Export panel (X): highlighted read-only
+source, scoped Ctrl+A, Copy, Save as .py, SVG placeholder; the dock's PyTorch tab is gone.
+Building blocks no longer offers Replicator; existing ones keep working.
+
 ## 2026-10-13 22:38 -03:00 — Native double-click opens the Inspector again
 
 Owner reported that double-clicking a block did not open the Inspector. Cause:

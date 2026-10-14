@@ -68,7 +68,7 @@ with tempfile.TemporaryDirectory() as temporary:
             assert js('document.getElementById("variance-transform").value')=='exp'
             assert js('document.getElementById("variance-floor").value')=='0'
         js('document.querySelector(".node[data-id=lags]").dispatchEvent(new MouseEvent("dblclick",{bubbles:true}))')
-        until('document.getElementById("inspector-content").textContent.includes("current observation is excluded")')
+        until('window.LoomBlockHelp.describe("block-causal-lag").paragraphs.join(" ").includes("current observation is excluded")')  # prose moved to About (R2)
         js('document.activeElement?.blur();document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));window.loom.perform("fit")')
         click('.node[data-id=lags] .node-type-icon .icon-hit')
         until('window.loom.document.graph.nodes.find(n=>n.id==="lags").collapsed===true')

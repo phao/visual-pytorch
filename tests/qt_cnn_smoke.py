@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory() as folder:
         until('document.querySelector(".node.Conv2d .node-shape")?.textContent.includes("4, 4")')
         conv = next(n for n in h.workspace.models()[h.model['id']]['graph']['nodes'] if n['type'] == 'Conv2d')
         assert conv['kernel_size'] == [3, 2]
-        assert js('document.getElementById("inspector-content").textContent.includes("Cross-correlation")')
+        assert js('window.LoomBlockHelp.describe("add-tensor-Conv2d",{tensorType:"Conv2d"}).paragraphs.join(" ").includes("Cross-correlation")')  # prose moved to About (R2)
         js('document.getElementById("activation-select").value="Tanh";document.getElementById("add-activation").click()')
         until('window.loom.document.graph.nodes.some(n=>n.type==="Activation")')
         js('document.querySelector("[data-tensor-type=AdaptiveAvgPool2d]").click()')

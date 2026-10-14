@@ -36,6 +36,43 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 BINDING = "PyQt6"
 
 
+# Closed allow-list: the webview names a resource; only these URLs open, in the user's browser.
+HELP_RESOURCES = {
+    'pytorch-basics': 'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
+    'pytorch-nn': 'https://docs.pytorch.org/docs/stable/nn.html',
+    'torch.nn.Linear': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Linear.html',
+    'torch.nn.ReLU': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html',
+    'torch.nn.Tanh': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Tanh.html',
+    'torch.nn.Sigmoid': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Sigmoid.html',
+    'torch.nn.GELU': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html',
+    'torch.nn.Softplus': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Softplus.html',
+    'torch.nn.Softmax': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Softmax.html',
+    'torch.nn.LogSoftmax': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.LogSoftmax.html',
+    'torch.reshape': 'https://docs.pytorch.org/docs/stable/generated/torch.reshape.html',
+    'torch.add': 'https://docs.pytorch.org/docs/stable/generated/torch.add.html',
+    'torch.cat': 'https://docs.pytorch.org/docs/stable/generated/torch.cat.html',
+    'torch.split': 'https://docs.pytorch.org/docs/stable/generated/torch.split.html',
+    'torch.Tensor': 'https://docs.pytorch.org/docs/stable/tensors.html',
+    'torch.nn.Module': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html',
+    'torch.nn.LSTM': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.LSTM.html',
+    'torch.nn.RNN': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.RNN.html',
+    'torch.full': 'https://docs.pytorch.org/docs/stable/generated/torch.full.html',
+    'torch.nn.Parameter': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html',
+    'torch.logsumexp': 'https://docs.pytorch.org/docs/stable/generated/torch.logsumexp.html',
+    'torch.nn.Conv2d': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html',
+    'torch.nn.MaxPool2d': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html',
+    'torch.nn.AvgPool2d': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.AvgPool2d.html',
+    'torch.nn.AdaptiveAvgPool2d': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.AdaptiveAvgPool2d.html',
+    'torch.nn.Flatten': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.modules.flatten.Flatten.html',
+    'torch.permute': 'https://docs.pytorch.org/docs/stable/generated/torch.permute.html',
+    'torch.mul': 'https://docs.pytorch.org/docs/stable/generated/torch.mul.html',
+    'torch.nn.functional.softplus': 'https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.softplus.html',
+    'torch.exp': 'https://docs.pytorch.org/docs/stable/generated/torch.exp.html',
+    'torch.Tensor.unfold': 'https://docs.pytorch.org/docs/stable/generated/torch.Tensor.unfold.html',
+}
+
+DEFAULT_PORT_NAMES = {"Input": "Input x", "Output": "Prediction ŷ"}
+
 class TrainingJob(QThread):
     point = Signal(str)
     completed = Signal(str)
@@ -614,8 +651,7 @@ class Window(QMainWindow):
         from .desktop_construction import ACTIONS,dispatch as construction_dispatch
         if action in ACTIONS:return construction_dispatch(self,req)
         if action == 'openHelpResource':
-            resources={'pytorch-basics':'https://docs.pytorch.org/tutorials/beginner/basics/intro.html',
-                       'pytorch-nn':'https://docs.pytorch.org/docs/stable/nn.html'}
+            resources=HELP_RESOURCES
             if set(req) != {'action','id'} or not isinstance(req['id'],str) or req['id'] not in resources:
                 raise ValueError('Unknown help resource.')
             if not QDesktopServices.openUrl(QUrl(resources[req['id']])):
@@ -702,6 +738,11 @@ class Window(QMainWindow):
                 doc = default_model(req.get("name", "Untitled architecture"))
             else:
                 raise ValueError("Choose a linear or MLP architecture.")
+            # GUI-created architectures start with readable port names; the box
+            # title is the port name. CLI/test defaults keep their port IDs.
+            for node in doc["graph"]["nodes"]:
+                if node["type"] in DEFAULT_PORT_NAMES:
+                    node.setdefault("label", DEFAULT_PORT_NAMES[node["type"]])
             self.workspace.put(doc)
             self.broadcast()
             bridge.send("navigate", doc["id"])
@@ -882,6 +923,13 @@ class Window(QMainWindow):
             doc.update(dataset_binding=binding_for(contract),result=None)
             self.workspace.put(doc)
             self.broadcast()
+            return True
+        if action == "copyText":
+            # Read-only: no workspace edit, undo step or dirty flag.
+            text = req.get("text")
+            if not isinstance(text, str) or len(text) > 8 * 1024 * 1024:
+                raise ValueError("Copy needs text of at most 8 MiB.")
+            QApplication.clipboard().setText(text)
             return True
         if action == "exportCode":
             code = generate_code(models, req["id"])

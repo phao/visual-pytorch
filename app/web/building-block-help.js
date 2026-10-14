@@ -11,10 +11,46 @@
     'add-add':'Add','add-concat':'Concat','add-reference':'Architecture reference','add-recurrent':'Recurrent transition','add-input':'Input part',
     'add-output':'Output','add-replicator':'Replicator','add-splitter':'Splitter','add-lstm':'LSTM',
     'add-constant':'Constant','add-tensor-parameter':'Tensor parameter',
-    'add-gaussian':'Gaussian filter',
+    'add-gaussian':'Gaussian filter','block-causal-lag':'Causal lag window',
   };
   const activations=A.info;
+  // Explanations moved out of the Inspector (it shows essentials only).
+  const sharing='Parameter sharing (Inspector): reuse one compatible local block, not copies of its values. Gradients from all uses update the same parameters and checkpoints store them once. Constructors must match.';
+  const policy='Parameter policy (Inspector) sets initial values and trainability for a new run, not optimizer resume. Frozen weights still pass input gradients. Explicit conflicts across shared or reference scopes are refused. Binding a retained checkpoint tensor copies its float32 values as initial values and preserves trainability.';
+  const inspector={
+    'add-linear':[sharing,policy],
+    'add-input':['Specify sample dimensions without B: 3, 8 means [B, 3, 8]. Optional axis names (one unique name per sample axis) do not reshape, permute or broadcast values.'],
+    'add-constant':['Literals over 2000 characters must be edited with the CLI JSON editor.'],
+    'add-tensor-parameter':[policy],
+    'add-reference':['Occurrences are independent unless explicit parameter sharing is selected in the Inspector.',sharing,policy],
+    'add-lstm':['PyTorch receives states transposed to [layers × directions, B, width]. Projection narrows hidden, not cell. Dropout is fixed at zero.',sharing,policy],
+    'add-recurrent':['Change T or supplied tensor dimensions by inspecting their Input boxes. Drag a source to a named input socket to replace only that binding.',sharing,policy],
+    'add-gaussian':['The initial law applies before the first transition; transition rows are from_state, columns to_state. Variance is positive variance, not a standard deviation or log variance. Missing emissions advance belief without density evidence; they are not execution or loss masks.',
+      'Outputs are posterior log probabilities and signed log evidence, not known regime labels.',
+      'Version 2: skipped execution preserves belief and contributes zero evidence. An executed reset restores the supplied initial law before transition. Resets on skipped or padded slots are ignored. Controls apply only within this call.'],
+  };
+  const tensorInspector={
+    Conv2d:[sharing,policy],
+    PositiveVariance:['Version 2 also offers exp(log variance). Overflow or a nonpositive result is refused, never clamped.'],
+  };
+  // PyTorch API pages per About page; names are HELP_RESOURCES ids in app/desktop.py.
+  const docs={'add-linear':['torch.nn.Linear'],'add-reshape':['torch.reshape'],'add-add':['torch.add'],'add-concat':['torch.cat'],
+    'add-splitter':['torch.split'],'add-input':['torch.Tensor'],'add-output':['torch.Tensor'],'add-reference':['torch.nn.Module'],
+    'add-recurrent':['torch.nn.Module','torch.nn.RNN'],'add-lstm':['torch.nn.LSTM'],'add-constant':['torch.full'],'add-tensor-parameter':['torch.nn.Parameter'],
+    'add-gaussian':['torch.logsumexp'],'block-causal-lag':['torch.Tensor.unfold']};
+  const tensorDocs={Conv2d:['torch.nn.Conv2d'],MaxPool2d:['torch.nn.MaxPool2d'],AvgPool2d:['torch.nn.AvgPool2d'],AdaptiveAvgPool2d:['torch.nn.AdaptiveAvgPool2d'],
+    Flatten:['torch.nn.Flatten'],Permute:['torch.permute'],Scale:['torch.mul'],PositiveVariance:['torch.nn.functional.softplus','torch.exp']};
   function describe(id,context={}){
+    const help=describeBase(id,context);
+    if(!help)return help;
+    help.docs=context.tensorType&&T.definitions[context.tensorType]?tensorDocs[context.tensorType]||[]:
+      id==='add-activation'?['torch.nn.'+(activations[context.activation]?context.activation:'ReLU')]:docs[id]||[];
+    const type=context.tensorType,more=type&&T.definitions[type]?tensorInspector[type]:inspector[id];
+    if(id==='add-activation'&&['Softmax','LogSoftmax'].includes(context.activation))help.paragraphs.push('PyTorch’s dim is the sample axis + 1, because batch B comes first.');
+    if(more)help.paragraphs.push(...more);
+    return help;
+  }
+  function describeBase(id,context={}){
     const type=context.tensorType;
     if(type && T.definitions[type])return {name:type,
       paragraphs:[T.definitions[type].explanation,
@@ -77,9 +113,12 @@
       case 'add-output':paragraphs=['Adds a named output exposing the selected tensor or selected router output port. It does not apply a transformation or create weights.',
         'Its dimensions are inferred from the incoming connection unless you declare a matching shape in the Inspector. Use Reshape to actually change dimensions.',
         'Outputs define what the forward model returns. Adding one is separate from choosing a target, loss or evaluation metric. You can restore a deleted output with this button.'];break;
-      case 'add-replicator':paragraphs=['Adds a router that exposes the same entire incoming tensor on two initial output ports. Each port can feed a different downstream path.',
+      case 'add-replicator':paragraphs=['A router that exposes the same entire incoming tensor on two or more output ports. Building blocks no longer offers it: one output socket can already feed any number of wires. Existing Replicators keep working.',
         'Both ports keep the full shape, for example [B, 6] → two ports each [B, 6]. This is logical fan-out, not a physical tensor copy or a partition.',
         'No parameters are learned. Use the Inspector to add ports. Select the tensor-producing box first; router insertion needs an existing outgoing connection.'];break;
+      case 'block-causal-lag':paragraphs=['At time t, the window uses only preceding observations and explicitly supplied history, oldest to newest. The current observation is excluded. Prefix padding is inactive.',
+        'Version 2: skipped execution does not update history. Executed resets replace history before features are built; reset histories must be supplied explicitly. Version 1 has no resets.',
+        'There is no hidden carry and no missing-history imputation. The window learns no parameters.'];break;
       case 'add-splitter':paragraphs=['Adds a router that partitions the selected tensor along its last axis into ordered, non-overlapping slices.',
         'For example, widths 2 and 4 split [B, 10, 6] into [B, 10, 2] and [B, 10, 4]. Every other dimension, including B, is preserved.',
         'Slice widths must be positive and sum to the incoming last-axis width. The button initially creates two nearly equal pieces; edit widths and add ports in the Inspector.',
@@ -87,5 +126,5 @@
     }
     return {name:names[id],paragraphs,equation,tex};
   }
-  return {describe,names};
+  return {describe,names,docs,tensorDocs};
 });

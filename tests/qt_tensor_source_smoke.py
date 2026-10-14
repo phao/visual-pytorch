@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory() as temporary:
         assert js('document.querySelectorAll(".node[data-id=tensor] .port-out").length')==1
         inspect('tensor');until('Boolean(document.getElementById("parameter-policy-editor")?.textContent.includes("value"))')
         assert js('document.getElementById("sample-shape").value')=='2'
-        assert js('document.getElementById("inspector-content").textContent.includes("One tensor owner")')
+        assert js('window.LoomBlockHelp.describe("add-tensor-parameter").paragraphs.join(" ").includes("Every batch observation sees the same owner")')  # prose moved to About (R2)
         js('document.activeElement?.blur();document.body.dispatchEvent(new KeyboardEvent("keydown",{key:"b",bubbles:true}))')
         until('!document.getElementById("library-panel").hidden')
         click('#add-constant')

@@ -1,5 +1,18 @@
 # Development state and roadmap
 
+## 2026-10-14 00:06 -03:00 — Inspector/Export redesign
+
+Checks: full Python discovery 1681 tests 1137 s OK (6 Qt skips), those 6 in the Qt
+environment OK; node --test 377/377; new tests/qt_inspector_export_smoke.py PASS over 21 block
+types (structure order, ID-free text, fold memory, About doc link via patched openUrl, X key,
+scoped Ctrl+A, real clipboard, Save as .py, invalid-graph message, context-menu route,
+Replicator absent from palette and still inspectable). All 73 qt_*.py compared with a baseline
+on cf14c43: identical except 7 scripts that asserted removed Inspector prose; each now checks
+the moved text on the block's About page (Softmax keeps the resolved axis name as data).
+The 10 baseline failures (missing nbformat, missing argv, stale assertions) are unchanged.
+Remaining: README screenshot of the old PyTorch tab is now outdated; follow-ups: locatable
+validation errors, partial shapes for invalid drafts, loose blocks, selected block to front.
+
 ## 2026-10-13 22:38 -03:00 — Native double-click on expanded blocks fixed
 
 Native double-click on an expanded block left the Inspector closed: pointer

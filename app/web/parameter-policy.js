@@ -51,7 +51,8 @@
     const document=container.ownerDocument;
     function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
     container.replaceChildren();
-    container.append(element('h4','Parameter policy'),element('p','Initial values for a new run; not optimizer resume. Frozen weights still pass input gradients.','inspect-note'));
+    // The Inspector sub-panel supplies the heading; explanations live on About pages.
+    const ownerName=name=>options.ownerName?options.ownerName(name):name;
     if(info.policy_error)container.append(element('p','Policy needs repair: '+info.policy_error,'policy-error'));
     if(info.has_local_policy){
       const reset=element('button','Reset this block’s local policies');reset.type='button';reset.disabled=options.busy();
@@ -64,7 +65,7 @@
     if(!info.owners.length){container.append(element('p','This block owns no learned parameters.','inspect-note'));return;}
     for(const owner of info.owners){
       const card=element('div',undefined,'policy-owner');card.dataset.policySelector=owner.selector;
-      card.append(element('div',owner.name+' ['+owner.shape.join(', ')+']','policy-owner-title'));
+      card.append(element('div',ownerName(owner.name)+' ['+owner.shape.join(', ')+']','policy-owner-title'));
       if(owner.initial_source){const source=owner.initial_source.source,note=element('p','Pinned tensor source: '+source.run.id+' · attempt '+source.attempt,'inspect-note');note.title='Current initial values match this retained receipt. The receipt pins its original model snapshot; this is not proof that the whole current architecture equals that snapshot. '+JSON.stringify(owner.initial_source);note.style.overflowWrap='anywhere';card.append(note);}
       const label=element('label',undefined,'inspect-bias'),toggle=element('input');toggle.type='checkbox';toggle.checked=owner.trainable;toggle.disabled=options.busy()||owner.effective_available===false;
       const status=element('span',owner.effective_available===false?'Unverified policy':owner.trainable?'Trainable':'Frozen');label.append(toggle,status);card.append(label);
@@ -77,7 +78,7 @@
       toggle.onchange=()=>commit({trainable:toggle.checked});
       if(owner.shared)card.append(element('p','Shared canonical owner; edit affects every use.','inspect-note'));
       const details=element('details');details.append(element('summary','Initialization · '+owner.initializer_kind));
-      const selection=element('select');selection.setAttribute('aria-label','Initializer for '+owner.name);
+      const selection=element('select');selection.setAttribute('aria-label','Initializer for '+ownerName(owner.name));
       for(const kind of kinds){const option=element('option',kind);option.value=kind;selection.append(option);}
       selection.value=kinds.includes(owner.initializer_kind)?owner.initializer_kind:'constructor';selection.disabled=options.busy();details.append(selection);
       const fields=element('div',undefined,'policy-fields');details.append(fields);
@@ -90,7 +91,7 @@
         }
         for(const key of Object.keys(value).filter(k=>!['kind','dtype'].includes(k))){
           const label=element('label',key==='std'?'Standard deviation':key==='values'?'Exact float32 values · JSON':key,'inspect-label');
-          const input=element(key==='values'?'textarea':'input');input.dataset.policyField=key;input.setAttribute('aria-label',key+' for '+owner.name);
+          const input=element(key==='values'?'textarea':'input');input.dataset.policyField=key;input.setAttribute('aria-label',key+' for '+ownerName(owner.name));
           if(key!=='values'){input.type='number';input.step=key==='seed'?'1':'any';}
           else input.rows=4;
           input.value=key==='values'?J.stringify(value[key]):value[key];input.disabled=options.busy();label.append(input);fields.append(label);
@@ -106,7 +107,6 @@
       if(owner.definition){const open=element('button','Open owner');open.type='button';open.onclick=()=>options.openDefinition(owner.definition);card.append(open);}
       card.append(error);container.append(card);
     }
-    container.append(element('p',info.note,'inspect-note'));
   }
   return {kinds,defaultInitializer,parse,reconcile,drafts,restore,mount};
 });

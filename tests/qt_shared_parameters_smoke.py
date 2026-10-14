@@ -72,7 +72,9 @@ with tempfile.TemporaryDirectory() as td:
         assert js('document.getElementById("inspector-content").textContent.includes("A [")')
         assert js('Boolean(document.getElementById("equation").textContent)')
         js('(()=>{const n=document.getElementById("parameter-owner");n.value="use0";n.dispatchEvent(new Event("change"));})()')
-        until('window.loom.document.graph.nodes.find(n=>n.id==="use1").share_with==="use0" && document.getElementById("inspector-content").textContent.includes("Canonical owner: use0")')
+        # R3: the owner is named by its display name; the internal ID is the option value only.
+        until('window.loom.document.graph.nodes.find(n=>n.id==="use1").share_with==="use0" && document.getElementById("parameter-owner").value==="use0"')
+        owner=js('document.getElementById("parameter-owner").selectedOptions[0].textContent');assert owner and owner!='use0',owner
         assert validate_model(h.workspace.models(), 'shared')['parameters'] == 12
         assert js('document.getElementById("status").textContent.includes("12 parameters")')
         assert h.workspace.models()['shared']['graph']['nodes'][2]['share_with'] == 'use0'

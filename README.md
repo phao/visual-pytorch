@@ -157,7 +157,7 @@ Start with Linear regression, or choose MLP regression from Architectures.
 Double-click a block to inspect its dimensions and parameters. Connect source
 and destination sockets; split paths and rejoin them with Concat when needed.
 Open Experiment, generate synthetic data, then Train model. Inspect loss,
-learned weights and the PyTorch forward tab.
+learned weights, and the PyTorch source in the Export panel (key `X`).
 
 For a structured CNN example, create a new workspace with
 python -m examples.cnn_regression /path/to/new-cnn.vtw, then open it in the app.
@@ -177,7 +177,8 @@ It creates explicit T=3/7 dataset/task cases over one retained recurrent family;
 add `--train` for separate bounded CPU worker trials. No implicit state carry,
 parameter sharing across trials or automatic padding is inferred.
 
-`A`, `B`, `E`, `I` toggle Architectures, Building blocks, Experiment and Inspector.
+`A`, `B`, `E`, `H`, `I`, `X` toggle Architectures, Building blocks, Experiment, Help,
+Inspector and Export.
 `D` deletes the selection; undo/redo repairs accidental edits. Empty canvas
 clicks retain selection. Escape cancels a gesture, otherwise clears selection;
 with nothing selected it hides the tools. Text fields keep normal editing behavior.
@@ -188,7 +189,7 @@ Drag an arrow's destination handle to reconnect it without changing its source.
 ![Real learned weights and held-out predictions from the same CNN run](assets/screenshots/cnn-training-weights.png)
 
 Inspect learned tensors and predictions, or export a standalone PyTorch model.
-The **PyTorch forward** view is a fresh-weight architecture template; trained
+The **Export → PyTorch** view is a fresh-weight architecture template; trained
 export is a separate, identity-checked operation.
 
 ![Generated PyTorch forward code in the real application](assets/screenshots/cnn-training-code.png)
