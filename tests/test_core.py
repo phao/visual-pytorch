@@ -79,8 +79,12 @@ class CoreTests(unittest.TestCase):
 
     def test_disconnected_graph_rejected(self):
         self.models[self.mid]["graph"]["edges"].pop()
-        with self.assertRaisesRegex(GraphError, "Connect every block"):
+        # Located messages (vpid R2): every structural problem is reported with its block.
+        with self.assertRaises(GraphError) as caught:
             validate_model(self.models, self.mid)
+        found = {(p['code'], p['node']) for p in caught.exception.problems}
+        self.assertEqual(found, {('no_output_path', 'linear1'), ('no_input', 'output')})
+        self.assertEqual(str(caught.exception), "Linear 'linear1' has no outgoing wire; connect it toward an Output or remove it.")
 
     def test_ordinary_multiple_inputs_need_explicit_join(self):
         self.models[self.mid]["graph"]["edges"].append({"from": "input", "to": "output"})

@@ -321,3 +321,6 @@ details.sub .sub-body{padding-bottom:calc(1.25 * var(--menu-unit))}
 .tok-string{color:var(--amber)}.tok-number{color:var(--pink)}.tok-comment{color:var(--muted);font-style:italic}
 .about-docs{margin:0 0 12px;padding-left:18px}.about-docs a{color:var(--blue);font-family:ui-monospace,monospace}
 #block-about-content h3{font-size:inherit;margin:14px 0 4px}
+
+/* Invalid drafts: located problem blocks and a clickable validity pill. */
+.validation-chip.locatable{cursor:pointer}

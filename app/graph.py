@@ -31,6 +31,50 @@ def parameter_owners(model):
     return owners
 
 
+def block_name(n):
+    """Plain-words block reference for messages: type plus its label, else its ID."""
+    return n['type'] + " '" + str(n.get('label') or n['id']) + "'"
+
+
+def block_problems(nodes, incoming, outgoing):
+    """Every block-level wiring problem, in node order, each with code, node and message."""
+    problems = []
+    def add(code, n, message):
+        problems.append({'code': code, 'node': n['id'], 'message': message})
+    for n in nodes:
+        ins, outs, name = incoming[n['id']], outgoing[n['id']], block_name(n)
+        if n['type'] == 'Input' or n['type'] in SOURCE_TYPES or n['type'] == 'Module' and n.get('batch_only') is True:
+            if ins:
+                add('source_receives', n, name + ' cannot receive a wire; Inputs and tensor sources start a path.')
+        elif n['type'] in {'Concat', 'Add'}:
+            sources = n.get('sources', [])
+            keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
+            if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
+                add('join_sources', n, name + ' needs at least two incoming wires, each listed exactly once, in order.')
+        elif n['type'] in {'Recurrent', 'LSTM', 'GaussianFilter','CausalLagWindow'}:
+            if n['type'] == 'CausalLagWindow':
+                from .lag_nodes import sources
+            elif n['type'] == 'GaussianFilter':
+                from .gaussian_nodes import sources
+            elif n['type'] == 'LSTM':
+                from .lstm_nodes import sources
+            else:
+                from .recurrent_nodes import sources
+            keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
+            expected = sources(n)
+            if len(set(keys)) != len(keys) or set(keys) != set(expected):
+                add('bindings', n, name + ' bindings must name exactly its unambiguous incoming wire sources.')
+        elif not ins:
+            add('no_input', n, name + ' has no incoming wire.')
+        elif len(ins) > 1:
+            add('extra_inputs', n, name + ' has ' + str(len(ins)) + ' incoming wires; use Concat or Add to join branches.')
+        if n['type'] == 'Output' and outs:
+            add('output_sends', n, name + ' cannot send a wire.')
+        if n['type'] != 'Output' and not outs:
+            add('no_output_path', n, name + ' has no outgoing wire; connect it toward an Output or remove it.')
+    return problems
+
+
 def topology(model):
     from .core import GraphError
     nodes, edges = model['graph']['nodes'], model['graph']['edges']
@@ -53,35 +97,10 @@ def topology(model):
     if not any(n['type'] == 'Input' or n['type'] in SOURCE_TYPES or
                n['type'] == 'Module' and n.get('batch_only') is True for n in nodes) or not any(n['type'] == 'Output' for n in nodes):
         raise GraphError('Use at least one Input or tensor source and one Output.')
-    for n in nodes:
-        ins, outs = incoming[n['id']], outgoing[n['id']]
-        if n['type'] == 'Input' or n['type'] in SOURCE_TYPES or n['type'] == 'Module' and n.get('batch_only') is True:
-            if ins:
-                raise GraphError('Input, tensor sources and batch-only Module calls cannot receive a wire.')
-        elif n['type'] in {'Concat', 'Add'}:
-            sources = n.get('sources', [])
-            keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
-            if len(sources) < 2 or len(set(sources)) != len(sources) or set(sources) != set(keys) or len(ins) != len(sources):
-                raise GraphError(n['type'] + ' sources must list at least two incoming source keys exactly once, in order.')
-        elif n['type'] in {'Recurrent', 'LSTM', 'GaussianFilter','CausalLagWindow'}:
-            if n['type'] == 'CausalLagWindow':
-                from .lag_nodes import sources
-            elif n['type'] == 'GaussianFilter':
-                from .gaussian_nodes import sources
-            elif n['type'] == 'LSTM':
-                from .lstm_nodes import sources
-            else:
-                from .recurrent_nodes import sources
-            keys = [e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from'] for e in ins]
-            expected = sources(n)
-            if len(set(keys)) != len(keys) or set(keys) != set(expected):
-                raise GraphError(n['type'] + ' bindings must name exactly its unambiguous incoming wire sources.')
-        elif len(ins) != 1:
-            raise GraphError('Connect every block: each ordinary block has exactly one input; use Concat to join branches.')
-        if n['type'] == 'Output' and outs:
-            raise GraphError('Output cannot send a wire.')
-        if n['type'] != 'Output' and not outs:
-            raise GraphError('Connect every block to a declared Output; remove unused branches.')
+    problems = block_problems(nodes, incoming, outgoing)
+    if problems:
+        first = problems[0]
+        raise GraphError(first['message'], code=first['code'], node=first['node'], problems=problems)
     # Stable Kahn order; root input Concat's declared order retains legacy CSV order.
     roots = [n for n in nodes if n['type'] == 'Input']
     root_join = next((n for n in nodes if n['type'] == 'Concat' and
@@ -174,272 +193,280 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         entry=shapes[src['node']]
         return entry.get('port_representations',{}).get(src['port'],entry.get('representation'))
 
-    for n in order:
-        kind, nid = n['type'], n['id']
-        previous_params = params
-        previous_buffers = buffer_elements
-        incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
-        if kind in {'Concat', 'Add'}:
-            incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
-        if kind in {'Recurrent', 'LSTM','GaussianFilter','CausalLagWindow'}:
-            if kind == 'CausalLagWindow':
-                from .lag_nodes import sources
+    nid = None
+    try:
+        for n in order:
+            kind, nid = n['type'], n['id']
+            previous_params = params
+            previous_buffers = buffer_elements
+            incoming = [e for e in model['graph']['edges'] if e['to'] == nid]
+            if kind in {'Concat', 'Add'}:
+                incoming.sort(key=lambda e: n['sources'].index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
+            if kind in {'Recurrent', 'LSTM','GaussianFilter','CausalLagWindow'}:
+                if kind == 'CausalLagWindow':
+                    from .lag_nodes import sources
+                elif kind == 'GaussianFilter':
+                    from .gaussian_nodes import sources
+                elif kind == 'LSTM':
+                    from .lstm_nodes import sources
+                else:
+                    from .recurrent_nodes import sources
+                incoming.sort(key=lambda e: sources(n).index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
+            resolved = [source(e) for e in incoming]
+            before = (resolved[0][1] if resolved else n['shape'] if kind in SOURCE_TYPES else
+                      [] if kind == 'Module' and n.get('batch_only') is True else effective[nid])
+            current = list(before)
+            axes = source_axes(resolved[0][0]) if resolved else axes_for(n, len(before))
+            operator = None
+            representation=source_representation(resolved[0][0]) if resolved else None
+            normalization_axis=None
+            item = {'id': nid, 'type': kind, 'sources': [r[0] for r in resolved]}
+            origin = resolved[0][2] if resolved else (nid, None)
+            if kind == 'Input':
+                item['group'] = next(g for g in groups if g['id'] == nid)
+            elif kind in SOURCE_TYPES:
+                from .operators import normalized
+                source_node = normalized(n)
+                current = source_node['shape']
+                axes = source_node.get('axes')
+                if kind == 'TensorParameter':
+                    params += math.prod(current)
+                else:
+                    buffer_elements += math.prod(current)
+                matrix_affine = False
+                origin = (nid, None)
+            elif kind == 'Linear':
+                representation=None
+                width = feature_count(n['features'])
+                current = before[:-1] + [width]
+                params += before[-1] * width + (width if n.get('bias', True) else 0)
+                matrix_affine = matrix_affine and len(before) == 1
+                origin = (nid, None)
+            elif kind == 'Activation':
+                from .activations import normalize_activation
+                normalize_activation(n)
+                if n['activation'] in ('Softmax','LogSoftmax'):
+                    from .activations import softmax_axis
+                    normalization_axis=softmax_axis(n,len(before))
+                    representation='probabilities' if n['activation']=='Softmax' else 'log-probabilities'
+                else:representation=None
+                affine = False
+                origin = (nid, None)
+            elif kind == 'PositiveVariance':
+                representation='positive-variance'
+                from .operators import normalized
+                normalized(n)
+                affine = matrix_affine = False
+                origin = (nid,None)
+            elif kind == 'CausalLagWindow':
+                from .lag_nodes import describe as lag_describe
+                bound={(edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']):
+                       (result[1],source_axes(result[0])) for edge,result in zip(incoming,resolved)}
+                lag=lag_describe(n,bound);current=lag['output_shape'];axes=lag['output_axes']
+                item['causal_lag']=lag;representation=None;origin=(nid,None)
+                activation_elements+=lag['work_elements'];affine=matrix_affine=False
             elif kind == 'GaussianFilter':
-                from .gaussian_nodes import sources
-            elif kind == 'LSTM':
-                from .lstm_nodes import sources
-            else:
-                from .recurrent_nodes import sources
-            incoming.sort(key=lambda e: sources(n).index(e['from'] + '@' + e['from_port'] if 'from_port' in e else e['from']))
-        resolved = [source(e) for e in incoming]
-        before = (resolved[0][1] if resolved else n['shape'] if kind in SOURCE_TYPES else
-                  [] if kind == 'Module' and n.get('batch_only') is True else effective[nid])
-        current = list(before)
-        axes = source_axes(resolved[0][0]) if resolved else axes_for(n, len(before))
-        operator = None
-        representation=source_representation(resolved[0][0]) if resolved else None
-        normalization_axis=None
-        item = {'id': nid, 'type': kind, 'sources': [r[0] for r in resolved]}
-        origin = resolved[0][2] if resolved else (nid, None)
-        if kind == 'Input':
-            item['group'] = next(g for g in groups if g['id'] == nid)
-        elif kind in SOURCE_TYPES:
-            from .operators import normalized
-            source_node = normalized(n)
-            current = source_node['shape']
-            axes = source_node.get('axes')
-            if kind == 'TensorParameter':
-                params += math.prod(current)
-            else:
-                buffer_elements += math.prod(current)
-            matrix_affine = False
-            origin = (nid, None)
-        elif kind == 'Linear':
-            representation=None
-            width = feature_count(n['features'])
-            current = before[:-1] + [width]
-            params += before[-1] * width + (width if n.get('bias', True) else 0)
-            matrix_affine = matrix_affine and len(before) == 1
-            origin = (nid, None)
-        elif kind == 'Activation':
-            from .activations import normalize_activation
-            normalize_activation(n)
-            if n['activation'] in ('Softmax','LogSoftmax'):
-                from .activations import softmax_axis
-                normalization_axis=softmax_axis(n,len(before))
-                representation='probabilities' if n['activation']=='Softmax' else 'log-probabilities'
-            else:representation=None
-            affine = False
-            origin = (nid, None)
-        elif kind == 'PositiveVariance':
-            representation='positive-variance'
-            from .operators import normalized
-            normalized(n)
-            affine = matrix_affine = False
-            origin = (nid,None)
-        elif kind == 'CausalLagWindow':
-            from .lag_nodes import describe as lag_describe
-            bound={(edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']):
-                   (result[1],source_axes(result[0])) for edge,result in zip(incoming,resolved)}
-            lag=lag_describe(n,bound);current=lag['output_shape'];axes=lag['output_axes']
-            item['causal_lag']=lag;representation=None;origin=(nid,None)
-            activation_elements+=lag['work_elements'];affine=matrix_affine=False
-        elif kind == 'GaussianFilter':
-            from .gaussian_nodes import describe as gaussian_describe
-            bound = {}
-            for edge,result in zip(incoming,resolved):
-                key=edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']
-                bound[key]=(result[1],source_axes(result[0]))
-            gaussian=gaussian_describe(n,bound)
-            for role in ('initial','transition'):
-                src=next(result[0] for edge,result in zip(incoming,resolved) if
-                         (edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from'])==n['inputs'][role])
-                metadata=shapes[src['node']];known=source_representation(src)
-                expected=n[role+'_representation']
-                if known is not None and known!=expected:
-                    raise GraphError('GaussianFilter '+role+' format disagrees with its upstream representation.')
-                axis=metadata.get('normalization_axis')
-                required=0 if role=='initial' else 1 if n['transition_mode']=='shared' else 2
-                if axis is not None and axis!=required:
-                    raise GraphError('GaussianFilter transition columns/initial state axis must be normalized, not from_state or batch.')
-            representation=None
-            item['gaussian']=gaussian
-            outputs,port_axes=gaussian['ports'],gaussian['port_axes']
-            ports[nid]=outputs
-            current=[sum(math.prod(s) for s in outputs.values())]
-            axes=None
-            activation_elements += gaussian['work_elements']
-            ops += gaussian['steps']
-            affine=matrix_affine=False
-            for port in outputs:origins[(nid,port)]=(nid,port)
-        elif kind == 'Reshape':
-            current = reshape_shape(before, n.get('shape'))
-            if input_shapes is not None:
-                item['runtime_reshape'] = list(current)
-            axes = None
-            representation=None
-            origin = (nid, None)
-        elif kind == 'Add':
-            representation=None
-            from .operators import normalized
-            normalized(n)
-            if any(r[1] != before or source_axes(r[0]) != axes for r in resolved):
-                raise GraphError('Add requires identical sample shapes and declared axes; no broadcasting or flattening.')
-            matrix_affine = False
-            origin = (nid, None)
-        elif kind == 'Scale':
-            representation=None
-            from .operators import normalized
-            item['coefficient'] = normalized(n)['coefficient']
-            matrix_affine = False
-            origin = (nid, None)
-        elif kind in TENSOR_OPERATORS:
-            representation=None
-            operator = describe(n, before, axes)
-            current, axes = operator['output_shape'], operator['output_axes']
-            if kind == 'Conv2d':
-                convolution_workspace_elements += before[0] * math.prod(operator['weight_shape'][2:]) * math.prod(current[1:])
-            params += operator['parameters']
-            affine = affine and operator['affine']
-            matrix_affine = matrix_affine and operator['matrix_affine']
-            origin = (nid, None)
-        elif kind == 'Module':
-            representation=None
-            child_shapes = None
-            if input_shapes is not None:
-                child_inputs = [v for v in topology(models[n['ref']]) if v['type'] == 'Input']
-                child_shapes = ({child_inputs[0]['id']: before} if len(child_inputs) == 1 else
-                                {v['id']: input_shape(v) for v in child_inputs})
-            ref = contract(models, n['ref'], (*ancestry, mid), cache, input_shapes=child_shapes,
-                           _runtime_contexts=_runtime_contexts)
-            if bool(n.get('batch_only')) != (not ref['input_groups']):
-                raise GraphError('Nullary Module calls must explicitly declare batch_only:true and refer to a source-only architecture.')
-            if input_shapes is not None:
-                item['runtime_contract'] = ref
-            if before != ref['input_shape']:
-                raise GraphError(f"{models[n['ref']]['name']} needs {ref['inputs']} features with sample shape {ref['input_shape']}; incoming shape {before}. Use Reshape.")
-            if ref['input_axes'] is not None and axes != ref['input_axes']:
-                raise GraphError('Module input axes differ; use an explicit axis adapter.')
-            current = ref['output_shape']
-            axes = ref['output_axes']
-            params += ref['parameters']
-            buffer_elements += ref.get('buffer_elements', 0)
-            has_tensor_sources = has_tensor_sources or ref.get('has_tensor_sources', False)
-            has_gaussian_filter=has_gaussian_filter or ref.get('has_gaussian_filter',False)
-            activation_elements += ref['activation_elements']
-            convolution_workspace_elements += ref['convolution_workspace_elements']
-            ops += ref['operations']
-            max_width = max(max_width, ref['max_width'])
-            max_input = max(max_input, ref['max_input'])
-            affine = affine and ref['affine']
-            matrix_affine = matrix_affine and ref['matrix_affine']
-            origin = (nid, None)
-        elif kind == 'Recurrent':
-            representation=None
-            from .recurrent_nodes import describe as recurrent_describe
-            child = contract(models, n['ref'], (*ancestry, mid), cache, _runtime_contexts=_runtime_contexts)
-            bound = {}
-            for edge, result in zip(incoming, resolved):
-                src = result[0]
-                entry = shapes[src['node']]
-                src_axes = entry.get('port_axes', {}).get(src['port'], entry['output_axes'])
-                key = edge['from'] + '@' + edge['from_port'] if 'from_port' in edge else edge['from']
-                bound[key] = (result[1], src_axes)
-            recurrent, outputs, port_axes = recurrent_describe(n, child, bound)
-            item['recurrent'] = recurrent
-            ports[nid] = outputs
-            current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
-            axes = None
-            params += child['parameters']
-            buffer_elements += child.get('buffer_elements', 0)
-            has_tensor_sources = has_tensor_sources or child.get('has_tensor_sources', False)
-            has_gaussian_filter=has_gaussian_filter or child.get('has_gaussian_filter',False)
-            activation_elements += recurrent['steps'] * child['activation_elements']
-            convolution_workspace_elements += recurrent['steps'] * child['convolution_workspace_elements']
-            ops += recurrent['steps'] * child['operations']
-            max_width = max(max_width, child['max_width'])
-            max_input = max(max_input, child['max_input'])
-            affine = matrix_affine = False
-            for row in n['sequence_outputs']:
-                origins[(nid, row['port'])] = (nid, 'sequence/' + row['output'])
-            for row in n['states']:
-                origins[(nid, row['port'])] = (nid, 'state/' + row['input'])
-        elif kind == 'LSTM':
-            representation=None
-            from .lstm_nodes import describe as lstm_describe
-            bound = {}
-            for edge, result in zip(incoming, resolved):
-                key = edge['from'] + '@' + edge['from_port'] if 'from_port' in edge else edge['from']
-                bound[key] = (result[1], source_axes(result[0]))
-            lstm = lstm_describe(n, bound)
-            item['lstm'] = lstm
-            outputs, port_axes = lstm['ports'], lstm['port_axes']
-            ports[nid] = outputs
-            current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
-            axes = None
-            params += lstm['parameters']
-            activation_elements += lstm['activation_elements']
-            ops += lstm['steps'] * lstm['kwargs']['num_layers'] * (2 if lstm['kwargs']['bidirectional'] else 1)
-            affine = matrix_affine = False
-            for port in outputs:
-                origins[(nid, port)] = (nid, port)
-        elif kind == 'Concat':
-            representation=None
-            item['flatten'] = n.get('flatten', True)
-            if item['flatten']:
-                current = [sum(math.prod(r[1]) for r in resolved)]
+                from .gaussian_nodes import describe as gaussian_describe
+                bound = {}
+                for edge,result in zip(incoming,resolved):
+                    key=edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from']
+                    bound[key]=(result[1],source_axes(result[0]))
+                gaussian=gaussian_describe(n,bound)
+                for role in ('initial','transition'):
+                    src=next(result[0] for edge,result in zip(incoming,resolved) if
+                             (edge['from']+'@'+edge['from_port'] if 'from_port' in edge else edge['from'])==n['inputs'][role])
+                    metadata=shapes[src['node']];known=source_representation(src)
+                    expected=n[role+'_representation']
+                    if known is not None and known!=expected:
+                        raise GraphError('GaussianFilter '+role+' format disagrees with its upstream representation.')
+                    axis=metadata.get('normalization_axis')
+                    required=0 if role=='initial' else 1 if n['transition_mode']=='shared' else 2
+                    if axis is not None and axis!=required:
+                        raise GraphError('GaussianFilter transition columns/initial state axis must be normalized, not from_state or batch.')
+                representation=None
+                item['gaussian']=gaussian
+                outputs,port_axes=gaussian['ports'],gaussian['port_axes']
+                ports[nid]=outputs
+                current=[sum(math.prod(s) for s in outputs.values())]
+                axes=None
+                activation_elements += gaussian['work_elements']
+                ops += gaussian['steps']
+                affine=matrix_affine=False
+                for port in outputs:origins[(nid,port)]=(nid,port)
+            elif kind == 'Reshape':
+                current = reshape_shape(before, n.get('shape'))
+                if input_shapes is not None:
+                    item['runtime_reshape'] = list(current)
                 axes = None
-            else:
-                if any(r[1][:-1] != before[:-1] for r in resolved):
-                    raise GraphError('Last-axis Concat requires matching other sample dimensions.')
-                current = before[:-1] + [sum(r[1][-1] for r in resolved)]
-                if any(source_axes(r[0]) != axes for r in resolved):
+                representation=None
+                origin = (nid, None)
+            elif kind == 'Add':
+                representation=None
+                from .operators import normalized
+                normalized(n)
+                if any(r[1] != before or source_axes(r[0]) != axes for r in resolved):
+                    raise GraphError('Add requires identical sample shapes and declared axes; no broadcasting or flattening.')
+                matrix_affine = False
+                origin = (nid, None)
+            elif kind == 'Scale':
+                representation=None
+                from .operators import normalized
+                item['coefficient'] = normalized(n)['coefficient']
+                matrix_affine = False
+                origin = (nid, None)
+            elif kind in TENSOR_OPERATORS:
+                representation=None
+                operator = describe(n, before, axes)
+                current, axes = operator['output_shape'], operator['output_axes']
+                if kind == 'Conv2d':
+                    convolution_workspace_elements += before[0] * math.prod(operator['weight_shape'][2:]) * math.prod(current[1:])
+                params += operator['parameters']
+                affine = affine and operator['affine']
+                matrix_affine = matrix_affine and operator['matrix_affine']
+                origin = (nid, None)
+            elif kind == 'Module':
+                representation=None
+                child_shapes = None
+                if input_shapes is not None:
+                    child_inputs = [v for v in topology(models[n['ref']]) if v['type'] == 'Input']
+                    child_shapes = ({child_inputs[0]['id']: before} if len(child_inputs) == 1 else
+                                    {v['id']: input_shape(v) for v in child_inputs})
+                ref = contract(models, n['ref'], (*ancestry, mid), cache, input_shapes=child_shapes,
+                               _runtime_contexts=_runtime_contexts)
+                if bool(n.get('batch_only')) != (not ref['input_groups']):
+                    raise GraphError('Nullary Module calls must explicitly declare batch_only:true and refer to a source-only architecture.')
+                if input_shapes is not None:
+                    item['runtime_contract'] = ref
+                if before != ref['input_shape']:
+                    raise GraphError(f"{models[n['ref']]['name']} needs {ref['inputs']} features with sample shape {ref['input_shape']}; incoming shape {before}. Use Reshape.")
+                if ref['input_axes'] is not None and axes != ref['input_axes']:
+                    raise GraphError('Module input axes differ; use an explicit axis adapter.')
+                current = ref['output_shape']
+                axes = ref['output_axes']
+                params += ref['parameters']
+                buffer_elements += ref.get('buffer_elements', 0)
+                has_tensor_sources = has_tensor_sources or ref.get('has_tensor_sources', False)
+                has_gaussian_filter=has_gaussian_filter or ref.get('has_gaussian_filter',False)
+                activation_elements += ref['activation_elements']
+                convolution_workspace_elements += ref['convolution_workspace_elements']
+                ops += ref['operations']
+                max_width = max(max_width, ref['max_width'])
+                max_input = max(max_input, ref['max_input'])
+                affine = affine and ref['affine']
+                matrix_affine = matrix_affine and ref['matrix_affine']
+                origin = (nid, None)
+            elif kind == 'Recurrent':
+                representation=None
+                from .recurrent_nodes import describe as recurrent_describe
+                child = contract(models, n['ref'], (*ancestry, mid), cache, _runtime_contexts=_runtime_contexts)
+                bound = {}
+                for edge, result in zip(incoming, resolved):
+                    src = result[0]
+                    entry = shapes[src['node']]
+                    src_axes = entry.get('port_axes', {}).get(src['port'], entry['output_axes'])
+                    key = edge['from'] + '@' + edge['from_port'] if 'from_port' in edge else edge['from']
+                    bound[key] = (result[1], src_axes)
+                recurrent, outputs, port_axes = recurrent_describe(n, child, bound)
+                item['recurrent'] = recurrent
+                ports[nid] = outputs
+                current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
+                axes = None
+                params += child['parameters']
+                buffer_elements += child.get('buffer_elements', 0)
+                has_tensor_sources = has_tensor_sources or child.get('has_tensor_sources', False)
+                has_gaussian_filter=has_gaussian_filter or child.get('has_gaussian_filter',False)
+                activation_elements += recurrent['steps'] * child['activation_elements']
+                convolution_workspace_elements += recurrent['steps'] * child['convolution_workspace_elements']
+                ops += recurrent['steps'] * child['operations']
+                max_width = max(max_width, child['max_width'])
+                max_input = max(max_input, child['max_input'])
+                affine = matrix_affine = False
+                for row in n['sequence_outputs']:
+                    origins[(nid, row['port'])] = (nid, 'sequence/' + row['output'])
+                for row in n['states']:
+                    origins[(nid, row['port'])] = (nid, 'state/' + row['input'])
+            elif kind == 'LSTM':
+                representation=None
+                from .lstm_nodes import describe as lstm_describe
+                bound = {}
+                for edge, result in zip(incoming, resolved):
+                    key = edge['from'] + '@' + edge['from_port'] if 'from_port' in edge else edge['from']
+                    bound[key] = (result[1], source_axes(result[0]))
+                lstm = lstm_describe(n, bound)
+                item['lstm'] = lstm
+                outputs, port_axes = lstm['ports'], lstm['port_axes']
+                ports[nid] = outputs
+                current = [feature_count(sum(math.prod(s) for s in outputs.values()))]
+                axes = None
+                params += lstm['parameters']
+                activation_elements += lstm['activation_elements']
+                ops += lstm['steps'] * lstm['kwargs']['num_layers'] * (2 if lstm['kwargs']['bidirectional'] else 1)
+                affine = matrix_affine = False
+                for port in outputs:
+                    origins[(nid, port)] = (nid, port)
+            elif kind == 'Concat':
+                representation=None
+                item['flatten'] = n.get('flatten', True)
+                if item['flatten']:
+                    current = [sum(math.prod(r[1]) for r in resolved)]
                     axes = None
-            origin = (nid, None)
-        elif kind in {'Splitter', 'Replicator'}:
-            ids = [p['output'] for p in n.get('parts', [])] if kind == 'Splitter' else n.get('outputs', [])
-            if len(ids) < 2 or len(ids) != len(set(ids)):
-                raise GraphError('Router ports must have at least two unique IDs.')
-            sizes = [feature_count(p['features']) for p in n['parts']] if kind == 'Splitter' else [before[-1]] * len(ids)
-            if kind == 'Splitter' and sum(sizes) != before[-1]:
-                raise GraphError(f'Splitter sizes must sum to {before[-1]} last-axis features.')
-            ports[nid] = {pid: before[:-1] + [w] for pid, w in zip(ids, sizes)}
-            item.update(ports=ids, sizes=sizes)
-            for pid in ids:
-                origins[(nid, pid)] = (nid, pid) if kind == 'Splitter' else origin
-        elif kind == 'Output':
-            if 'shape' in n and tensor_shape(n['shape']) != current:
-                raise GraphError(f'Output {nid} declares {n["shape"]}, but receives {current}. Add a Reshape.')
-        else:
-            raise GraphError(f'Unsupported block: {kind}.')
-        feature_count(math.prod(current))
-        activation_elements += math.prod(current)
-        shapes[nid] = {'input': before[-1] if before else 0, 'output': current[-1],
-                       'input_shape': list(before), 'output_shape': list(current),
-                       'output_axes': axes}
-        if representation is not None:shapes[nid]['representation']=representation
-        if normalization_axis is not None:shapes[nid]['normalization_axis']=normalization_axis
-        if kind == 'Recurrent':
-            shapes[nid].update(ports=outputs, port_axes=port_axes, recurrent=recurrent)
-        if kind == 'LSTM':
-            shapes[nid].update(ports=outputs, port_axes=port_axes, lstm=lstm)
-        if kind == 'GaussianFilter':
-            shapes[nid].update(ports=outputs,port_axes=port_axes,gaussian=gaussian,
-                               port_representations=gaussian['representations'])
-        if operator is not None:
-            shapes[nid]['operator'] = operator
-        origins[(nid, None)] = origin
-        max_width = max(max_width, math.prod(current))
-        if kind in LAYER_TYPES:
-            item['layer'] = f'layer_{operation_index}'
-            operation_index += 1
-            if kind not in {'Module', 'Recurrent', 'LSTM','GaussianFilter'}:
+                else:
+                    if any(r[1][:-1] != before[:-1] for r in resolved):
+                        raise GraphError('Last-axis Concat requires matching other sample dimensions.')
+                    current = before[:-1] + [sum(r[1][-1] for r in resolved)]
+                    if any(source_axes(r[0]) != axes for r in resolved):
+                        axes = None
+                origin = (nid, None)
+            elif kind in {'Splitter', 'Replicator'}:
+                ids = [p['output'] for p in n.get('parts', [])] if kind == 'Splitter' else n.get('outputs', [])
+                if len(ids) < 2 or len(ids) != len(set(ids)):
+                    raise GraphError('Router ports must have at least two unique IDs.')
+                sizes = [feature_count(p['features']) for p in n['parts']] if kind == 'Splitter' else [before[-1]] * len(ids)
+                if kind == 'Splitter' and sum(sizes) != before[-1]:
+                    raise GraphError(f'Splitter sizes must sum to {before[-1]} last-axis features.')
+                ports[nid] = {pid: before[:-1] + [w] for pid, w in zip(ids, sizes)}
+                item.update(ports=ids, sizes=sizes)
+                for pid in ids:
+                    origins[(nid, pid)] = (nid, pid) if kind == 'Splitter' else origin
+            elif kind == 'Output':
+                if 'shape' in n and tensor_shape(n['shape']) != current:
+                    raise GraphError(f'Output {nid} declares {n["shape"]}, but receives {current}. Add a Reshape.')
+            else:
+                raise GraphError(f'Unsupported block: {kind}.')
+            feature_count(math.prod(current))
+            activation_elements += math.prod(current)
+            shapes[nid] = {'input': before[-1] if before else 0, 'output': current[-1],
+                           'input_shape': list(before), 'output_shape': list(current),
+                           'output_axes': axes}
+            if representation is not None:shapes[nid]['representation']=representation
+            if normalization_axis is not None:shapes[nid]['normalization_axis']=normalization_axis
+            if kind == 'Recurrent':
+                shapes[nid].update(ports=outputs, port_axes=port_axes, recurrent=recurrent)
+            if kind == 'LSTM':
+                shapes[nid].update(ports=outputs, port_axes=port_axes, lstm=lstm)
+            if kind == 'GaussianFilter':
+                shapes[nid].update(ports=outputs,port_axes=port_axes,gaussian=gaussian,
+                                   port_representations=gaussian['representations'])
+            if operator is not None:
+                shapes[nid]['operator'] = operator
+            origins[(nid, None)] = origin
+            max_width = max(max_width, math.prod(current))
+            if kind in LAYER_TYPES:
+                item['layer'] = f'layer_{operation_index}'
+                operation_index += 1
+                if kind not in {'Module', 'Recurrent', 'LSTM','GaussianFilter'}:
+                    ops += 1
+            elif kind in {'Concat', 'Add', 'Scale', 'Splitter', 'Replicator'}:
                 ops += 1
-        elif kind in {'Concat', 'Add', 'Scale', 'Splitter', 'Replicator'}:
-            ops += 1
-        plan.append(item)
-        parameter_counts[nid] = params - previous_params
-        buffer_counts[nid] = buffer_elements - previous_buffers
+            plan.append(item)
+            parameter_counts[nid] = params - previous_params
+            buffer_counts[nid] = buffer_elements - previous_buffers
+    except GraphError as error:
+        # Locate shape/constructor errors on the block being processed (vpid R1/R2).
+        # An inner reference's block ID does not exist here: point at the reference block.
+        if nid is not None and error.node not in {m['id'] for m in model['graph']['nodes']}:
+            error.node = nid
+        raise
 
     layers = {item['id']: item['layer'] for item in plan if 'layer' in item}
     for item in plan:
@@ -541,3 +568,62 @@ def contract(models, mid, ancestry=(), cache=None, *, input_shapes=None, _runtim
         from .likelihood_conditioning import attach
         result['density_conditioning']=attach(models,mid,result,cache)
     return result
+
+
+MULTI_OUTPUT_TYPES = {'Splitter', 'Replicator', 'Recurrent', 'LSTM', 'GaussianFilter'}
+
+
+def partial_shapes(models, mid):
+    """Display-only shapes for an invalid draft: the shapes of the largest valid probe.
+
+    Blocks with wiring problems, and everything downstream of them, are dropped;
+    dangling blocks get synthetic Outputs; a block whose shape fails is dropped and
+    the probe retried. Shape rules are contract()'s own. Never use for execution.
+    """
+    import copy
+    from .core import GraphError
+    original = models[mid]['graph']
+    real = {n['id'] for n in original['nodes']}
+    dropped = set()
+
+    def drop(nid):
+        stack = [nid]
+        while stack:
+            current = stack.pop()
+            if current in dropped:
+                continue
+            dropped.add(current)
+            stack.extend(e['to'] for e in original['edges'] if e['from'] == current)
+
+    for _ in range(len(real) + 2):
+        probe = copy.deepcopy(models[mid])
+        graph = probe['graph']
+        graph['nodes'] = [n for n in graph['nodes'] if n['id'] not in dropped]
+        graph['edges'] = [e for e in graph['edges'] if e['from'] not in dropped and e['to'] not in dropped]
+        if 'input_order' in graph:
+            graph['input_order'] = [i for i in graph['input_order'] if i not in dropped]
+        senders = {e['from'] for e in graph['edges']}
+        dangling = [n for n in graph['nodes'] if n['type'] != 'Output' and n['id'] not in senders]
+        if any(n['type'] in MULTI_OUTPUT_TYPES for n in dangling):
+            for n in dangling:
+                if n['type'] in MULTI_OUTPUT_TYPES:
+                    drop(n['id'])
+            continue
+        for k, n in enumerate(dangling):
+            graph['nodes'].append({'id': f'__probe_output_{k}', 'type': 'Output'})
+            graph['edges'].append({'from': n['id'], 'to': f'__probe_output_{k}'})
+        if not graph['nodes']:
+            return {}
+        try:
+            result = contract({**models, mid: probe}, mid)
+        except GraphError as error:
+            located = [p['node'] for p in error.problems if p['node'] in real and p['node'] not in dropped]
+            if not located and error.node in real and error.node not in dropped:
+                located = [error.node]
+            if not located:
+                return {}  # a whole-graph problem (no Input, cycle…): nothing determinable
+            for nid in located:
+                drop(nid)
+            continue
+        return {nid: shape for nid, shape in result['shapes'].items() if nid in real}
+    return {}

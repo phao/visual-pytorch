@@ -13,7 +13,7 @@ import sys
 import threading
 from pathlib import Path
 
-from .core import (Workspace, default_model, default_mlp, generate_code, generate_dataset,
+from .core import (GraphError, Workspace, default_model, default_mlp, generate_code, generate_dataset,
                    validate_model, preflight, safety_report)
 from .memory import DEFAULT_MEMORY_LIMIT_PERCENT
 from .themes import THEME_NAMES, THEMES, resolve_theme, native_palette, native_font
@@ -990,7 +990,12 @@ class Window(QMainWindow):
                         epochs=models[mid].get("training", {}).get("epochs", 400),
                         memory_limit_percent=percentage)}
         except Exception as exc:
-            return {"valid": False, "error": str(exc)}
+            invalid = {"valid": False, "error": str(exc)}
+            if isinstance(exc, GraphError) and mid in models:
+                # Display-only: locate problems and keep determinable shapes visible.
+                from .graph import partial_shapes
+                invalid.update(problems=exc.located(), partial_shapes=partial_shapes(models, mid))
+            return invalid
 
     def training_complete(self, payload):
         result = json.loads(payload)

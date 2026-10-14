@@ -84,3 +84,5 @@ dialog p,.results-summary span,#zoom-label,footer{color:var(--muted)}
 :root[data-theme=metallic] :is(.floating-panel,.menu-pack){background:linear-gradient(135deg,var(--panel),var(--chrome));box-shadow:inset 0 1px 0 #ffffff24,0 8px 28px #0006}
 :root[data-theme=metallic] #pack-menus button:not([aria-expanded=true]){background:linear-gradient(180deg,var(--control),var(--panel))}
 :root[data-theme=metallic] #pack-menus button:hover{background:var(--hover)}
+/* Located problem blocks (invalid drafts): after the per-type outlines so it always shows. */
+.node.problem rect{stroke:var(--pink);stroke-width:2.5;stroke-dasharray:6 3}
