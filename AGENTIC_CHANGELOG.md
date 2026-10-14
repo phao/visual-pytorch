@@ -1,5 +1,14 @@
 # Agentic changelog
 
+## 2026-10-13 22:38 -03:00 — Native double-click opens the Inspector again
+
+Owner reported that double-clicking a block did not open the Inspector. Cause:
+the block-drag pointer capture retargets the native dblclick to the canvas, so
+the handler found no block. It now hit-tests the actual screen point, as wire
+rewiring already did. Existing smoke tests dispatched synthetic DOM dblclicks and
+so never saw the defect; new tests/qt_dblclick_native_smoke.py uses native QWindow
+input and fails on the old code. 375 JS, undo-window and family smokes pass.
+
 ## 2026-10-13 14:54 -03:00 — Correct public README before authorized push
 
 User requested publication of the accepted version, explicitly excluding the
